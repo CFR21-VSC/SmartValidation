@@ -3321,13 +3321,13 @@ async function renderAssociatedDocsList() {
         <div style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--vsc-gris-claro); border-radius: 6px; margin-bottom: 6px; background: white;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--vsc-azul)" stroke-width="2" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             <div style="flex: 1; min-width: 0;">
-                <div style="font-size: 12px; font-weight: 600; color: var(--vsc-texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${doc.name}</div>
+                <div style="font-size: 12px; font-weight: 600; color: var(--vsc-texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(doc.name)}</div>
                 <div style="font-size: 10px; color: var(--vsc-gris);">${formatSize(doc.size)} | ${new Date(doc.addedDate).toLocaleDateString('es-AR')}</div>
             </div>
-            <select onchange="updateDocCategory('${doc.id}', this.value)" style="font-size: 11px; padding: 2px 4px; border: 1px solid var(--vsc-gris-claro); border-radius: 4px; color: var(--vsc-azul); background: var(--vsc-gris-claro);">
+            <select onchange="updateDocCategory('${escapeHtml(doc.id)}', this.value)" style="font-size: 11px; padding: 2px 4px; border: 1px solid var(--vsc-gris-claro); border-radius: 4px; color: var(--vsc-azul); background: var(--vsc-gris-claro);">
                 ${categories.map(c => `<option value="${c}" ${doc.category === c ? 'selected' : ''}>${c}</option>`).join('')}
             </select>
-            <button onclick="removeAssociatedDoc('${doc.id}')" style="background: none; border: none; cursor: pointer; color: var(--vsc-gris); padding: 4px;" title="Eliminar">
+            <button onclick="removeAssociatedDoc('${escapeHtml(doc.id)}')" style="background: none; border: none; cursor: pointer; color: var(--vsc-gris); padding: 4px;" title="Eliminar">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
         </div>
@@ -5015,7 +5015,7 @@ function renderTests() {
     });
 
     if (searchQuery && !hasVisibleContent) {
-        container.innerHTML = `<p style="text-align: center; color: var(--vsc-gris); padding: 20px; font-size: 12px;">Sin resultados para "<strong>${searchQuery}</strong>"</p>`;
+        container.innerHTML = `<p style="text-align: center; color: var(--vsc-gris); padding: 20px; font-size: 12px;">Sin resultados para "<strong>${escapeHtml(searchQuery)}</strong>"</p>`;
     }
 
     // Actualizar stats
@@ -5082,12 +5082,12 @@ function createProtocolElement(protocol, searchQuery) {
         : '';
 
     header.innerHTML = `
-        <span class="protocol-icon" onclick="toggleProtocol('${protocol.id}')">${icon}</span>
-        <span class="protocol-type">${typeLabel}</span>
-        <span class="protocol-name" onclick="selectProtocol('${protocol.id}')">${protocol.name}</span>
-        <span class="protocol-code">${protocol.code}</span>
+        <span class="protocol-icon" onclick="toggleProtocol('${escapeHtml(protocol.id)}')">${icon}</span>
+        <span class="protocol-type">${escapeHtml(typeLabel)}</span>
+        <span class="protocol-name" onclick="selectProtocol('${escapeHtml(protocol.id)}')">${escapeHtml(protocol.name)}</span>
+        <span class="protocol-code">${escapeHtml(protocol.code)}</span>
         ${finalizedBadge}
-        <button class="test-menu-btn" onclick="showProtocolContextMenu(event, '${protocol.id}')">⋮</button>
+        <button class="test-menu-btn" onclick="showProtocolContextMenu(event, '${escapeHtml(protocol.id)}')">⋮</button>
     `;
 
     protocolDiv.appendChild(header);
@@ -5142,8 +5142,8 @@ function createGroupElement(group, searchQuery) {
     const folderFinTag = group.finalized ? ' <span style="color:#388E3C;font-size:10px;font-weight:700;">[FINALIZADA]</span>' : '';
     header.innerHTML = `
         <span>${(group.collapsed && !searchQuery) ? '▶' : '▼'}</span>
-        <span>${group.name}${folderFinTag}</span>
-        <button class="test-menu-btn" onclick="showGroupContextMenu(event, '${group.id}')">⋮</button>
+        <span>${escapeHtml(group.name)}${folderFinTag}</span>
+        <button class="test-menu-btn" onclick="showGroupContextMenu(event, '${escapeHtml(group.id)}')">⋮</button>
     `;
 
     header.addEventListener('click', (e) => {
@@ -5190,16 +5190,16 @@ function createTestElement(test) {
     const finalized = test.finalized ? ' [FINALIZADO]' : '';
     // Si el test tiene un TC formal asociado, mostrarlo como prefijo en azul.
     const tcBadge = test.tcId
-        ? `<span class="test-item-tcid" style="color: #1F3C56; font-weight: 700; font-size: 11px; margin-right: 6px;">[${test.tcId}]</span>`
+        ? `<span class="test-item-tcid" style="color: #1F3C56; font-weight: 700; font-size: 11px; margin-right: 6px;">[${escapeHtml(test.tcId)}]</span>`
         : '';
 
     testDiv.innerHTML = `
         <div class="test-item-header">
             <span class="test-item-icon">📋</span>
-            <span>${tcBadge}${test.name}${finalized}</span>
+            <span>${tcBadge}${escapeHtml(test.name)}${finalized}</span>
             <span class="test-item-count">${evidenceCount}</span>
         </div>
-        <button class="test-menu-btn" onclick="showTestContextMenu(event, '${test.id}')">⋮</button>
+        <button class="test-menu-btn" onclick="showTestContextMenu(event, '${escapeHtml(test.id)}')">⋮</button>
     `;
 
     // Click para seleccionar

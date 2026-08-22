@@ -34,8 +34,10 @@ from urllib.parse import urlparse, parse_qs
 # Estado en memoria (no persistente; se pierde al reiniciar el servidor)
 SESSIONS = {}
 SESSION_TTL = 3600  # 1 hora
-MAX_SESSION_BYTES = 50 * 1024 * 1024  # 50 MB
+MAX_SESSION_BYTES = 50 * 1024 * 1024  # 50 MB — límite acumulado de imágenes por sesión
 MAX_PHOTO_BYTES = 15 * 1024 * 1024     # 15 MB por foto
+MAX_PHOTOS_PER_SESSION = 200           # SEC-FIX-SYNC04: límite de cantidad de fotos por sesión
+MAX_SESSIONS = 200                     # SEC-FIX-DOS005: cota dura del dict SESSIONS
 
 # Sync de firmas manuscritas movil → PC (modal de registro de firmante).
 # Cada entry: { firmaImage: data:image/png;base64,..., uploaded_at: ts }
@@ -345,7 +347,9 @@ _SYNC_ENABLED = not _IS_PROD or os.environ.get("SYNC_ENABLED", "").lower() == "t
 # Sin clave, un atacante con acceso a la DB puede recalcular hashes y falsificar el ledger.
 _AUDIT_HMAC_KEY = (os.environ.get("AUDIT_HMAC_KEY", "").strip() or _AUTH_SECRET).encode()
 if not _AUDIT_HMAC_KEY:
-    _AUDIT_HMAC_KEY = b"dev-audit-key"
+    # SEC-FIX-SEC05: no usar clave hardcodeada — sin clave el audit HMAC queda sin firma
+    print("[WARN] AUDIT_HMAC_KEY no configurada. El Validation Book no tendrá firma HMAC verificable.")
+    _AUDIT_HMAC_KEY = b""
 
 # PIN: longitud mínima unificada en todos los paths (VULN-04)
 _PIN_MIN_LEN = 6
@@ -716,7 +720,7 @@ def _email_html(title: str, body: str, cta_text: str = "", cta_url: str = "") ->
         '<span style="color:#a0b4c8;font-size:12px;margin-left:12px;">GxP Document Suite</span>'
         '</td></tr>'
         '<tr><td style="padding:28px;">'
-        f'<h2 style="color:#1F3C56;margin:0 0 16px 0;">{title}</h2>'
+        f'<h2 style="color:#1F3C56;margin:0 0 16px 0;">{_html_mod.escape(title)}</h2>'
         f'<div style="color:#333;font-size:14px;line-height:1.6;">{body}</div>'
         f'{cta_block}'
         '<hr style="border:none;border-top:1px solid #e8e8e8;margin:24px 0;">'
@@ -892,7 +896,7 @@ def _get_api_key():
 ANTHROPIC_ENDPOINT = "https://api.anthropic.com/v1/messages"
 ANTHROPIC_VERSION = "2023-06-01"
 AI_MAX_TOKENS = 96000
-AI_REQUEST_TIMEOUT = 720  # segundos; protocolos con muchos TCs (POQ, IOQ, PPQ) pueden tardar hasta 12 min
+AI_REQUEST_TIMEOUT = 300  # segundos; 5 min es suficiente para protocolos grandes (SEC-FIX-DOS002)
 
 
 _AI_MAX_RETRIES = 3  # reintentos ante conexión interrumpida (WinError 10054, etc.)
@@ -1114,8 +1118,11 @@ def cleanup_expired_signatures():
 class SyncHandler(BaseHTTPRequestHandler):
     """Handler que sirve archivos estaticos + endpoints /sync/*"""
 
+    # SEC-FIX-DOS001: timeout en lectura de headers (anti-Slowloris)
+    timeout = 30
+
     def version_string(self) -> str:
-        return "SMART-Validation/1.0"
+        return "Server"
 
     # Silenciar logs ruidosos del polling
     def log_message(self, format, *args):
@@ -1237,7 +1244,7 @@ class SyncHandler(BaseHTTPRequestHandler):
             return self._send_json(429, {
                 "ok": False,
                 "error": f"Cuenta bloqueada por demasiados intentos fallidos. Intentá en {mins_left} minuto{'s' if mins_left != 1 else ''}.",
-                "locked_until": locked_until,
+                "retry_after_minutes": mins_left,
             })
 
         role    = row["role"]
@@ -1250,8 +1257,13 @@ class SyncHandler(BaseHTTPRequestHandler):
             ok = bool(row["password_hash"]) and _pbkdf2_verify(password, row["password_hash"])
 
         if not ok:
-            # Incrementar contador de intentos fallidos
-            new_attempts = (row["failed_attempts"] or 0) + 1
+            # SEC-FIX-AUTH001: UPDATE atómico para evitar race condition en counter de lockout
+            updated = db.execute(
+                "UPDATE users SET failed_attempts = failed_attempts + 1 WHERE id=? "
+                "RETURNING failed_attempts", (row["id"],)
+            ).fetchone()
+            new_attempts = updated["failed_attempts"] if updated else (row["failed_attempts"] or 0) + 1
+            db.commit()
             new_locked   = None
             if new_attempts >= _MAX_FAILED_LOGINS:
                 new_locked = now + _LOCKOUT_SECONDS
@@ -1688,6 +1700,13 @@ class SyncHandler(BaseHTTPRequestHandler):
             return
         folder_path = str(data.get("folder_path", "")).strip()
         if folder_path:
+            import pathlib as _pl
+            _allowed_root = _pl.Path(DATA_DIR).resolve()
+            try:
+                _resolved = _pl.Path(folder_path).resolve()
+                _resolved.relative_to(_allowed_root)  # ValueError si sale del árbol
+            except (ValueError, OSError):
+                return self._send_json(400, {"ok": False, "error": "La carpeta debe estar dentro del directorio de datos del servidor"})
             if not os.path.isdir(folder_path):
                 return self._send_json(400, {"ok": False, "error": "La carpeta no existe en el servidor"})
         db = _get_db()
@@ -1769,6 +1788,18 @@ class SyncHandler(BaseHTTPRequestHandler):
                 doc_type = str(json_data.get("type", "")).upper()
                 if not doc_type:
                     results.append({"filename": fname, "ok": False, "error": "sin campo 'type'"})
+                    continue
+                # SEC-FIX-SVE002: validar doc_type con whitelist (igual que _api_doc_upsert)
+                if not _is_valid_doc_type(doc_type):
+                    results.append({"filename": fname, "ok": False, "error": "doc_type inválido"})
+                    continue
+                # SEC-FIX-F02: no sobreescribir documentos aprobados (inmutabilidad GxP)
+                existing = db.execute(
+                    "SELECT status FROM documents WHERE project_id=? AND doc_type=?",
+                    (proj_id, doc_type)
+                ).fetchone()
+                if existing and existing["status"] in ("approved", "for_review"):
+                    results.append({"filename": fname, "ok": False, "error": f"Documento {doc_type} está {existing['status']} y no puede sobreescribirse"})
                     continue
                 db.execute("""
                     INSERT INTO documents
@@ -2482,6 +2513,9 @@ class SyncHandler(BaseHTTPRequestHandler):
 
     def _admin_user_unlock(self, user_id, admin_user):
         """Desbloquea una cuenta bloqueada por intentos fallidos y resetea el contador."""
+        # SEC-FIX-AUTH008: solo superadmin puede desbloquear cuentas
+        if not _is_superadmin(admin_user):
+            return self._send_json(403, {"ok": False, "error": "Solo el superadministrador puede desbloquear cuentas"})
         if not _is_valid_uuid(user_id):
             return self._send_json(404, {"ok": False, "error": "Usuario no encontrado"})
         db = _get_db()
@@ -2501,6 +2535,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         return self._send_json(200, {"ok": True, "username": row["username"]})
 
     def _admin_user_set_password(self, user_id, admin_user):
+        # SEC-FIX-AUTH002: solo superadmin puede cambiar contraseñas (incluida la del superadmin)
+        if not _is_superadmin(admin_user):
+            return self._send_json(403, {"ok": False, "error": "Solo el superadministrador puede cambiar contraseñas"})
         # NEW-05: validar UUID
         if not _is_valid_uuid(user_id):
             return self._send_json(404, {"ok": False, "error": "Usuario no encontrado"})
@@ -2530,6 +2567,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         return self._send_json(200, {"ok": True})
 
     def _admin_user_pin_set(self, user_id, admin_user):
+        # SEC-FIX-F03: solo superadmin puede resetear PIN de clientes (impersonación en firmas electrónicas)
+        if not _is_superadmin(admin_user):
+            return self._send_json(403, {"ok": False, "error": "Solo el superadministrador puede resetear PINs"})
         if not _is_valid_uuid(user_id):
             return self._send_json(404, {"ok": False, "error": "Usuario no encontrado"})
         data = self._read_json_body()
@@ -3631,13 +3671,7 @@ class SyncHandler(BaseHTTPRequestHandler):
             if not _SYNC_ENABLED:
                 return self._send_json(403, {"ok": False, "error": "Sync no habilitado. Setear SYNC_ENABLED=true y PUBLIC_URL."})
 
-        if path == "/sync/info":
-            return self._send_json(200, {
-                "ip": get_local_ip(),
-                "all_ips": get_all_local_ips(),
-                "sessions": len(SESSIONS),
-                "uptime": time.time(),
-            })
+        # /sync/info se mueve después del auth (SEC-FIX-SEC01)
 
         if path.startswith("/sync/session/"):
             token = path[len("/sync/session/"):]
@@ -3694,6 +3728,15 @@ class SyncHandler(BaseHTTPRequestHandler):
                 self.send_header("Location", "/client/")
                 self.end_headers()
                 return
+
+        # SEC-FIX-SEC01: /sync/info requiere auth admin (expone IPs LAN y sesiones activas)
+        if path == "/sync/info":
+            if user.get("r") != "admin":
+                return self._send_json(403, {"ok": False, "error": "Acceso denegado"})
+            return self._send_json(200, {
+                "ip": get_local_ip(),
+                "sessions": len(SESSIONS),
+            })
 
         # ── /api/me ───────────────────────────────────────────────────────────
         if path == "/api/me":
@@ -3959,7 +4002,7 @@ class SyncHandler(BaseHTTPRequestHandler):
             data = self._read_json_body()
             if data is None:
                 return
-            new_key = (data.get("key") or "").strip()
+            new_key = re.sub(r"[\r\n\x00]+", "", (data.get("key") or "").strip())
             if not new_key:
                 return self._send_json(400, {"ok": False, "error": "Campo 'key' requerido"})
             if not new_key.startswith("sk-ant-"):
@@ -3983,8 +4026,7 @@ class SyncHandler(BaseHTTPRequestHandler):
                     f.writelines(lines)
                 return self._send_json(200, {
                     "ok": True,
-                    "message": "API key guardada en .env",
-                    "key_prefix": new_key[:16] + "..."
+                    "message": "API key guardada en .env"
                 })
             except Exception as e:
                 print(f"[ENV] Error al escribir .env: {e}")
@@ -4006,11 +4048,14 @@ class SyncHandler(BaseHTTPRequestHandler):
             raw_proj = str(data.get("project_id", "") or "")
             safe_project_id = raw_proj if _is_valid_proj_id(raw_proj) else ""
             cleanup_expired_sessions()
+            if len(SESSIONS) >= MAX_SESSIONS:
+                return self._send_json(503, {"error": f"Demasiadas sesiones activas ({MAX_SESSIONS} máx). Intentá más tarde."})
             SESSIONS[token] = {
                 "session_data": session_data,
                 "project_id": safe_project_id,
                 "photos": [],
                 "created_at": time.time(),
+                "created_by": user.get("u", "unknown"),
             }
             best_ip = get_local_ip()
             all_ips = get_all_local_ips()
@@ -4084,6 +4129,12 @@ class SyncHandler(BaseHTTPRequestHandler):
             return self._send_json(400, {"error": "Formato de imagen no permitido. Solo jpeg, png, webp o gif."})
         if len(photo["image"]) > MAX_PHOTO_BYTES:
             return self._send_json(400, {"error": "Imagen invalida o excede 15MB"})
+        # SEC-FIX-SYNC04: verificar límites acumulados de la sesión
+        if len(sess["photos"]) >= MAX_PHOTOS_PER_SESSION:
+            return self._send_json(413, {"error": f"Límite de {MAX_PHOTOS_PER_SESSION} fotos por sesión alcanzado"})
+        session_bytes = sum(len(p.get("image", "")) for p in sess["photos"])
+        if session_bytes + len(photo["image"]) > MAX_SESSION_BYTES:
+            return self._send_json(413, {"error": "Límite de almacenamiento de sesión alcanzado (50 MB)"})
         sess["photos"].append(photo)
         if sess.get("project_id"):
             _save_photo_to_disk(sess["project_id"], photo)
@@ -4218,6 +4269,12 @@ def main():
     if _IS_PROD and not _AUTH_SECRET:
         print("[FATAL] ENV=production pero AUTH_SECRET_KEY no está configurada.")
         print("[FATAL] Configurá AUTH_SECRET_KEY como variable de entorno antes de iniciar.")
+        sys.exit(1)
+
+    # SEC-FIX-AUTH007: longitud mínima de AUTH_SECRET_KEY (defensa contra brute-force HMAC)
+    if _AUTH_SECRET and len(_AUTH_SECRET) < 32:
+        print("[FATAL] AUTH_SECRET_KEY debe tener al menos 32 caracteres.")
+        print("[FATAL] Generá una clave segura: python -c \"import secrets; print(secrets.token_hex(32))\"")
         sys.exit(1)
 
     # Validar AUDIT_HMAC_KEY solo en producción: debe ser independiente de AUTH_SECRET_KEY.
