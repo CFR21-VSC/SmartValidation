@@ -1,0 +1,779 @@
+{
+  "schemaVersion": "1.0",
+  "type": "RA",
+  "package": {
+    "code": "DRP-SIS-001",
+    "systemName": "DRP-GAMP Categorizador™",
+    "systemVersion": "1.0",
+    "systemSubtitle": "Sistema de Categorización GAMP 5",
+    "client": "Emara SRL",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": 2026
+  },
+  "document": {
+    "code": "RA-DRP-SIS-001",
+    "titleEs": "ANÁLISIS DE RIESGOS OPERATIVO",
+    "titleEn": "RISK ANALYSIS — OPERATIONAL (FMEA)",
+    "headerTitle": "Análisis de Riesgos Operativo (RA)",
+    "version": "1.0",
+    "issueDate": "Febrero 2026",
+    "status": "Aprobado",
+    "processOwner": "Ana Pérez",
+    "gampCategory": "GAMP 3 — IRO Bajo-Medio (de HLRA)",
+    "normativeFramework": "ANMAT 4159/2023 | ICH Q9 R1 | GAMP 5 | 21 CFR Part 11",
+    "extras": {
+      "Documento base (URS)": "URS-DRP-SIS-001 v1.0 — 45 requerimientos",
+      "Metodología": "FMEA — ICH Q9 R1 — GAMP 5 2da Ed.",
+      "Total riesgos evaluados": "24 riesgos operativos (21 funcionales + 3 infraestructura)"
+    }
+  },
+  "controlCambios": [
+    {
+      "version": "1.0",
+      "fecha": "Feb 2026",
+      "autor": "Ana Pérez",
+      "descripcion": "Versión inicial — Riesgos mapeados 1:1 con URS-DRP-SIS-001 v1.0"
+    }
+  ],
+  "matrizAprobaciones": [
+    {
+      "rol": "Redactor (Validador)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "16/02/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-02-16T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "16/02/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-02-16T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    },
+    {
+      "rol": "Aprobador (Jefe de Validaciones)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "16/02/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-02-16T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "16/02/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-02-16T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    }
+  ],
+  "trazabilidad": {
+    "recibeDe": [
+      "HLRA",
+      "URS"
+    ],
+    "alimentaA": [
+      "MTR",
+      "POQ"
+    ]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO",
+      "bloques": [
+        {
+          "texto": "El presente Análisis de Riesgos Operativo (RA) identifica y evalúa los riesgos asociados al uso del sistema DRP-GAMP Categorizador™ (DRP-SIS-001) en procesos GxP, utilizando la metodología FMEA (Failure Mode and Effects Analysis) conforme a ICH Q9 R1 y GAMP 5 Segunda Edición."
+        },
+        {
+          "texto": "Cada riesgo identificado está vinculado a uno o más requerimientos del documento URS-DRP-SIS-001 v1.0, garantizando trazabilidad completa entre el análisis de riesgo y los requerimientos del usuario. Los controles de mitigación son los que el sistema implementa según la documentación fuente (MAN v1.0, SOP-USO v1.0, SOP-ADM v1.0) o los controles compensatorios documentados en el HLRA-DRP-SIS-001 v1.0."
+        }
+      ],
+      "numero": 1
+    },
+    {
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido",
+      "incluido": [
+        "Funciones operativas del sistema evaluadas por módulo funcional: Autenticación, Gestión de Usuarios/Roles, Cuestionario de Categorización, Generación de Reportes PDF, Verificación QR/SHA-256, e Infraestructura/Audit Trail.",
+        "Procesos GxP impactados: Planificación de validación, Gestión documental GxP, Cumplimiento regulatorio (ANMAT/FDA/EMA), Auditorías internas y regulatorias.",
+        "24 modos de fallo analizados, directamente derivados de los 45 URS del documento URS-DRP-SIS-001 v1.0."
+      ],
+      "subExcluido": "2.2 Excluido",
+      "excluido": [
+        "Riesgos de infraestructura cloud (AWS) — calificados por el proveedor de hosting. Cubiertos en IRA-DRP-SIS-001.",
+        "Riesgos del proceso de desarrollo del software — perspectiva del vendor (DRP Assurance como desarrollador).",
+        "Riesgos de funcionalidades de versión Pro no validadas (Excel, JSON, Blockchain)."
+      ],
+      "numero": 2
+    },
+    {
+      "tipo": "texto",
+      "titulo": "METODOLOGÍA FMEA",
+      "intro": "Se aplica análisis FMEA (Failure Mode and Effects Analysis) conforme a ICH Q9 R1. Para cada función del sistema, se identifican los modos de fallo potenciales, se evalúan en estado inicial (sin controles adicionales), se definen controles de mitigación, y se recalcula el riesgo residual. La priorización de esfuerzo de testing en el POQ-DRP-SIS-001 se basará directamente en los riesgos residuales calculados en este documento.",
+      "numero": 3,
+      "bloques": [
+        {
+          "texto": "El análisis aplica metodología FMEA (Failure Mode and Effects Analysis) para identificar riesgos funcionales del sistema."
+        }
+      ]
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "3.1 ENFOQUE",
+      "intro": "FMEA estructurado en 6 columnas: identificación del riesgo, vinculación a URS, escala numérica de Severidad/Probabilidad/Detectabilidad inicial, controles aplicados (de la documentación fuente o del HLRA), y recálculo del riesgo residual. La Severidad (S) es inmutable a la mitigación: solo P y D pueden reducirse."
+    },
+    {
+      "tipo": "escalas-fmea",
+      "titulo": "3.2 ESCALAS DE PUNTUACIÓN",
+      "escalaS": [
+        {
+          "valor": 1,
+          "nivel": "Baja",
+          "descripcion": "Sin impacto en datos GxP ni en validez del reporte."
+        },
+        {
+          "valor": 2,
+          "nivel": "Media",
+          "descripcion": "Impacto indirecto en proceso GxP; resultado auditable comprometido parcialmente."
+        },
+        {
+          "valor": 3,
+          "nivel": "Alta",
+          "descripcion": "Impacto directo en validez del reporte, integridad de datos o categorización incorrecta."
+        }
+      ],
+      "escalaP": [
+        {
+          "valor": 1,
+          "nivel": "Baja",
+          "descripcion": "El fallo es improbable bajo uso normal."
+        },
+        {
+          "valor": 2,
+          "nivel": "Media",
+          "descripcion": "El fallo puede ocurrir ocasionalmente."
+        },
+        {
+          "valor": 3,
+          "nivel": "Alta",
+          "descripcion": "El fallo es probable o ha ocurrido en sistemas similares."
+        }
+      ],
+      "escalaD": [
+        {
+          "valor": 1,
+          "nivel": "Alta detección",
+          "descripcion": "El fallo es obvio e inmediatamente visible para el usuario."
+        },
+        {
+          "valor": 2,
+          "nivel": "Media detección",
+          "descripcion": "El fallo puede pasar desapercibido en algunos casos."
+        },
+        {
+          "valor": 3,
+          "nivel": "Baja detección",
+          "descripcion": "El fallo puede no detectarse hasta impactar un proceso GxP downstream."
+        }
+      ],
+      "niveles": [
+        {
+          "rango": "1-6",
+          "nivel": "BAJO",
+          "accion": "Aceptable. Monitoreo estándar."
+        },
+        {
+          "rango": "7-14",
+          "nivel": "MEDIO",
+          "accion": "Mitigación obligatoria. TC dedicado en OQ."
+        },
+        {
+          "rango": "15-27",
+          "nivel": "ALTO",
+          "accion": "Requiere control compensatorio documentado."
+        }
+      ],
+      "nota": "Objetivo de mitigación: todos los riesgos con RI ALTO (≥15) deberán reducirse a RR MEDIO o BAJO tras aplicar controles. Los riesgos con RR ALTO al cierre del análisis constituyen GAPs que requieren decisión formal del Process Owner. La SEVERIDAD nunca se reduce con mitigación: es propiedad inherente del peligro.",
+      "numero": null
+    },
+    {
+      "tipo": "tabla-fmea",
+      "titulo": "MATRIZ DE RIESGOS FMEA",
+      "intro": "Cada riesgo está mapeado a su URS de origen. Las columnas S, P, D representan Severidad, Probabilidad y Detectabilidad en estado inicial. RI = Riesgo Inicial (S × P × D). RR = Riesgo Residual tras aplicar controles (calculado por el equipo de validación respetando S inmutable).",
+      "filas": [
+        {
+          "subheader": "MÓDULO A — AUTENTICACIÓN Y CONTROL DE ACCESO (URS-001 a URS-008)"
+        },
+        {
+          "id": "RA-001",
+          "urs": "URS-001",
+          "peligro": "Acceso no autorizado al sistema mediante credenciales compartidas o comprometidas. Un usuario no habilitado accede a funciones de categorización y genera reportes inválidos.",
+          "S": 3,
+          "P": 2,
+          "D": 2,
+          "control": "Credenciales personales e intransferibles (MAN §5.2). Política de contraseña compleja mínimo 8 chars (URS-015). Audit trail de accesos con IP (URS-006). Capacitación documentada en SOP-USO §6.1.",
+          "RR": 3
+        },
+        {
+          "id": "RA-002",
+          "urs": "URS-002",
+          "peligro": "Sesión activa abandonada sin cerrar. Un tercero utiliza la sesión abierta para generar categorizaciones no autorizadas o visualizar datos confidenciales.",
+          "S": 3,
+          "P": 2,
+          "D": 2,
+          "control": "Timeout automático de 30 minutos de inactividad (URS-002 / MAN §5.2). Instrucción en SOP-USO §6.1 de cerrar sesión al alejarse. TC-OQ-002 verifica timeout exacto.",
+          "RR": 3
+        },
+        {
+          "id": "RA-003",
+          "urs": "URS-003",
+          "peligro": "Ataque de fuerza bruta sobre credenciales de usuario o administrador. Iteración sistemática de contraseñas hasta obtener acceso.",
+          "S": 3,
+          "P": 2,
+          "D": 2,
+          "control": "Bloqueo automático tras 3 intentos fallidos consecutivos (URS-003). Registro de intentos fallidos con IP en audit trail (URS-006). Admin notificado de bloqueos. GAP-001: inconsistencia MAN/SOP corregida en URS-003.",
+          "RR": 3
+        },
+        {
+          "id": "RA-004",
+          "urs": "URS-004 | URS-015",
+          "peligro": "Contraseña temporal no cambiada en primer acceso. Usuario opera con contraseña débil o genérica, aumentando riesgo de compromiso.",
+          "S": 2,
+          "P": 2,
+          "D": 2,
+          "control": "Sistema fuerza cambio de contraseña temporal en primer acceso (URS-004). Política de complejidad mínima 8 chars (URS-015). Historia de 5 contraseñas previas impedida.",
+          "RR": 2
+        },
+        {
+          "id": "RA-005",
+          "urs": "URS-005",
+          "peligro": "Enlace de recuperación de contraseña interceptado o reutilizado fuera del plazo. Tercero malicioso resetea contraseña del usuario legítimo.",
+          "S": 3,
+          "P": 1,
+          "D": 2,
+          "control": "Enlace de reset válido por exactamente 24 horas (URS-005 / MAN §5.3). Enviado al email corporativo registrado únicamente. TC-OQ-005 verifica expiración del enlace.",
+          "RR": 3
+        },
+        {
+          "id": "RA-006",
+          "urs": "URS-006 | URS-049",
+          "peligro": "Registro de accesos incompleto o manipulado. Sin audit trail íntegro no es posible demostrar quién realizó qué categorización ante un auditor regulatorio.",
+          "S": 3,
+          "P": 1,
+          "D": 3,
+          "control": "Audit trail automático con usuario, fecha, hora (segundos) e IP en cada acceso (URS-006). Registro no modificable por ningún rol incluyendo administrador (URS-049 / SOP-ADM §10). TC-OQ-006 y TC-OQ-019 verifican integridad.",
+          "RR": 3
+        },
+        {
+          "subheader": "MÓDULO B — GESTIÓN DE USUARIOS Y ROLES (URS-009 a URS-016)"
+        },
+        {
+          "id": "RA-007",
+          "urs": "URS-009 | URS-010 | URS-011",
+          "peligro": "Escalación de privilegios: un Usuario Final accede a funciones de administración (crear/eliminar usuarios, cambiar configuración). Compromiso de la integridad del sistema.",
+          "S": 3,
+          "P": 1,
+          "D": 2,
+          "control": "Matriz de roles con perfiles diferenciados y permisos no intercambiables (URS-009). Usuario Final limitado a categorizar y ver su propio historial (URS-010). TC-OQ-007 verifica que rol Usuario Final no puede acceder al admin panel.",
+          "RR": 3
+        },
+        {
+          "id": "RA-008",
+          "urs": "URS-013",
+          "peligro": "Eliminación de cuenta de usuario que ha realizado categorizaciones GxP. Se pierde el audit trail de quién generó reportes auditables. No trazable ante inspección.",
+          "S": 3,
+          "P": 1,
+          "D": 1,
+          "control": "Sistema impide eliminación de cuentas; solo permite desactivación (URS-013 / SOP-ADM §7.1.3). Advertencia explícita en procedimiento administrativo: 'NUNCA eliminar usuarios'. TC-OQ-008 verifica que historial se preserva tras desactivación. En versión demo por políticas Zero Knowledge, los usuarios pueden eliminar su cuenta.",
+          "RR": 3
+        },
+        {
+          "id": "RA-009",
+          "urs": "URS-014 | URS-016",
+          "peligro": "Cuenta de administrador con contraseña expirada, débil o activa sin uso. Riesgo de compromiso del único punto de administración del sistema.",
+          "S": 3,
+          "P": 1,
+          "D": 2,
+          "control": "Contraseña de admin mínimo 8 chars, expiración obligatoria configurable días (URS-016). Alerta de cuentas inactivas >180 días (URS-014 / SOP-ADM §7.1.3). Acceso admin solo desde VPN (URS-008).",
+          "RR": 3
+        },
+        {
+          "subheader": "MÓDULO C — CUESTIONARIO ADAPTATIVO Y CATEGORIZACIÓN (URS-017 a URS-028)"
+        },
+        {
+          "id": "RA-010",
+          "urs": "URS-017 | URS-020",
+          "peligro": "Datos incompletos o incorrectos en el formulario de registro del sistema. Categorización realizada con información del sistema evaluado incorrecta (nombre, versión, proveedor erróneos). Reporte inválido como evidencia GxP.",
+          "S": 3,
+          "P": 2,
+          "D": 2,
+          "control": "Validación de campos obligatorios antes de avanzar al cuestionario (URS-020 / SOP-USO §7.2). Indicación visual de campos faltantes. SOP-USO §6.2 requiere documentación técnica del sistema antes de iniciar.",
+          "RR": 3
+        },
+        {
+          "id": "RA-011",
+          "urs": "URS-021 | URS-022 | URS-023",
+          "peligro": "Flujo adaptativo del cuestionario incorrecto: Q2 aparece cuando no debería, o no aparece cuando sí debería según respuesta de Q1. Categorización incorrecta por lógica de ramificación defectuosa.",
+          "S": 3,
+          "P": 2,
+          "D": 2,
+          "control": "Lógica adaptativa validada: Q2 aparece SOLO si Q1 = Software Comercial (URS-023). TC-OQ-009 testea todos los caminos del flujo (Q1=A→Q3, Q1=B→Q2→Q3, Q1=C→Q3, Q1=D→Q3). Testing sistemático por árbol de decisión.",
+          "RR": 3
+        },
+        {
+          "id": "RA-012",
+          "urs": "URS-025 | URS-026",
+          "peligro": "Sistema fuerza o presenta una categorización con índice de confianza inferior al 90%. Resultado no auditable es aceptado como válido y utilizado en un plan de validación real.",
+          "S": 3,
+          "P": 1,
+          "D": 2,
+          "control": "Sistema IMPIDE presentar resultado si confianza <90% (URS-025 / MAN §7.4). Solicita respuestas adicionales. Indicación de color rojo para <75% y amarillo para 75-89% (URS-026). TC-OQ-010 verifica que resultado de baja confianza no es accesible.",
+          "RR": 3
+        },
+        {
+          "id": "RA-013",
+          "urs": "URS-027 | URS-028",
+          "peligro": "Sistema asigna categoría incorrecta (ej: GAMP 4 cuando corresponde GAMP 3, o asigna la categoría obsoleta GAMP 2). El sistema evaluado recibe una estrategia de validación inadecuada: demasiado laxa o innecesariamente onerosa.",
+          "S": 3,
+          "P": 2,
+          "D": 2,
+          "control": "Algoritmo de categorización testado con escenarios explícitos para cada categoría en TC-OQ-012 (categoría 1, 3, 4, 5). URS-028 prohíbe explícitamente asignación de GAMP 2. Asistente GAMPI provee tests de 30 segundos para verificación cruzada (URS-030).",
+          "RR": 3
+        },
+        {
+          "id": "RA-014",
+          "urs": "URS-029 | URS-030",
+          "peligro": "Asistente GAMPI provee orientación incorrecta o desactualizada. Usuario toma decisión de categorización basada en información errónea del asistente.",
+          "S": 2,
+          "P": 1,
+          "D": 2,
+          "control": "GAMPI es ayuda contextual, no decisor. Responsabilidad final del usuario según MAN §3.1 y SOP-USO §3.1. Documentación del sistema a categorizar requerida antes de iniciar (SOP-USO §4.2).",
+          "RR": 2
+        },
+        {
+          "subheader": "MÓDULO D — GENERACIÓN DE REPORTES PDF (URS-035 a URS-039)"
+        },
+        {
+          "id": "RA-015",
+          "urs": "URS-035 | URS-037",
+          "peligro": "Reporte PDF generado con estructura incompleta: faltan páginas, datos del sistema evaluado incorrectos, o campos obligatorios vacíos. El documento es presentado en auditoría como evidencia válida pero es defectuoso.",
+          "S": 3,
+          "P": 1,
+          "D": 2,
+          "control": "Estructura obligatoria de 4 páginas definida en URS-035. Campos obligatorios en Página 1 definidos en URS-037. TC-OQ-013 y TC-OQ-014 verifican estructura completa y contenido de cada página. Verificación visual durante ejecución OQ.",
+          "RR": 3
+        },
+        {
+          "id": "RA-016",
+          "urs": "URS-036",
+          "peligro": "Nomenclatura del archivo PDF incorrecta o no estándar. El reporte no es identificable en el sistema de archivo controlado. Pérdida de trazabilidad documental en el repositorio de calidad.",
+          "S": 1,
+          "P": 2,
+          "D": 2,
+          "control": "Nombre de archivo con formato estándar: GAMP_Report_Cat[X]_[Sistema]_[Fecha].pdf (URS-036 / MAN §8.2). SOP-USO §8.3 define nomenclatura de almacenamiento controlado.",
+          "RR": 1
+        },
+        {
+          "id": "RA-017",
+          "urs": "URS-038",
+          "peligro": "Reporte firmado (Página 4) con hash SHA-256 calculado POST-firma. La firma no está incluida en el hash → el documento es técnicamente falsificable después de la firma sin que el hash lo detecte.",
+          "S": 3,
+          "P": 1,
+          "D": 1,
+          "control": "SHA-256 calculado ANTES de la firma, sobre el contenido completo del reporte (URS-038 / MAN §9.4). Hash incluye todos los campos de Página 4 excepto el espacio de firma física. GAP-002 (firma manuscrita) documentado y aceptado con controles compensatorios en HLRA §10.",
+          "RR": 3
+        },
+        {
+          "subheader": "MÓDULO E — INTEGRIDAD SHA-256 Y VERIFICACIÓN QR (URS-040 a URS-043)"
+        },
+        {
+          "id": "RA-018",
+          "urs": "URS-040",
+          "peligro": "Colisión de hash SHA-256: dos reportes diferentes producen el mismo hash. Imposibilidad de distinguir un reporte original de uno alterado mediante el hash.",
+          "S": 3,
+          "P": 1,
+          "D": 1,
+          "control": "SHA-256 es criptográficamente resistente a colisiones. Probabilidad de colisión: 1 en 2^128 (computacionalmente imposible con hardware actual). URS-040 exige que un cambio mínimo produzca hash completamente diferente. TC-OQ-015 lo verifica empíricamente.",
+          "RR": 3
+        },
+        {
+          "id": "RA-019",
+          "urs": "URS-041 | URS-042 | URS-043",
+          "peligro": "Portal de verificación QR no disponible o inaccesible durante una auditoría regulatoria. Auditor no puede verificar autenticidad del reporte en el momento de la inspección.",
+          "S": 2,
+          "P": 2,
+          "D": 2,
+          "control": "Portal en URL dedicada https://verify.example.com/ con SLA 99.9% (URS-044). Método alternativo de verificación manual por código alfanumérico DRP-[Cat]-[Hash12] (URS-041). Ambos métodos testados en TC-OQ-016.",
+          "RR": 2
+        },
+        {
+          "id": "RA-020",
+          "urs": "URS-043",
+          "peligro": "Portal de verificación no detecta o no alerta correctamente sobre un reporte PDF alterado manualmente. Un documento falsificado es presentado como válido.",
+          "S": 3,
+          "P": 1,
+          "D": 1,
+          "control": "Portal muestra alerta explícita 'ADVERTENCIA: HASH NO COINCIDE' con descripción de causas para documentos alterados (URS-043 / MAN §9.3). TC-OQ-017 verifica con documento modificado (cambio de 1 carácter).",
+          "RR": 3
+        },
+        {
+          "subheader": "MÓDULO F — INFRAESTRUCTURA, DISPONIBILIDAD Y AUDIT TRAIL (URS-044 a URS-050)"
+        },
+        {
+          "id": "RA-021",
+          "urs": "URS-044",
+          "peligro": "Indisponibilidad del sistema durante un proceso de validación activo. El equipo de validación no puede generar la categorización GAMP necesaria para continuar la planificación regulatoria con impacto en timelines regulatorios.",
+          "S": 2,
+          "P": 2,
+          "D": 2,
+          "control": "SLA de disponibilidad 99.9% (URS-044 / MAN §4.2). Infraestructura AWS US-East-1 con alta disponibilidad. Verificado en IQ como parte de TC-IQ de disponibilidad.",
+          "RR": 2
+        },
+        {
+          "id": "RA-022",
+          "urs": "URS-045 | URS-046",
+          "peligro": "Comunicación en texto plano (HTTP) o datos en reposo sin cifrado. Credenciales o información del sistema evaluado interceptadas en tránsito o expuestas desde la base de datos.",
+          "S": 3,
+          "P": 1,
+          "D": 2,
+          "control": "TLS 1.3 (HTTPS) en todo el tráfico; HTTP no aceptado (URS-045 / SOP-ADM §6.1). AES-256 en reposo sobre PostgreSQL (URS-046). Verificado en IQ como parte de configuración de seguridad. TC-OQ-018 verifica rechazo de HTTP.",
+          "RR": 3
+        },
+        {
+          "id": "RA-023",
+          "urs": "URS-048",
+          "peligro": "Pérdida de datos de categorizaciones históricas y reportes por fallo de infraestructura sin backup disponible. Imposibilidad de reconstruir evidencia GxP solicitada en auditoría retroactiva.",
+          "S": 3,
+          "P": 1,
+          "D": 2,
+          "control": "Backup automático diario a las 02:00 AM (URS-048 / MAN §4.2). Administrador verifica estado del backup desde panel de administración. GAP-003 (almacenamiento en sistema) mitigado por SHA-256 que permite verificar integridad de copias locales del cliente.",
+          "RR": 3
+        },
+        {
+          "id": "RA-024",
+          "urs": "URS-049 | URS-NF-003",
+          "peligro": "Audit trail manipulado o eliminado por administrador del sistema. Imposibilidad de demostrar integridad de los registros de categorización ante auditoría regulatoria (ANMAT Pto.9 / 21 CFR §11.10(e)).",
+          "S": 3,
+          "P": 1,
+          "D": 2,
+          "control": "Audit trail no modificable ni eliminable por ningún rol, incluyendo administrador (URS-049 / SOP-ADM §10). Solo 1 administrador de BD habilitado. Acceso BD solo desde VPN (URS-008). TC-OQ-019 verifica inmutabilidad del audit trail. GAP-004 (sin 2FA) con controles compensatorios documentados en HLRA.",
+          "RR": 3
+        }
+      ],
+      "notaInferior": "LA SEVERIDAD NO PUEDE DISMINUIRSE CON MITIGACIÓN, YA QUE ES INHERENTE AL PELIGRO ASOCIADO Y NO ES POSIBLE DE MITIGAR.",
+      "numero": 4
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESUMEN DE RESULTADOS",
+      "intro": "La siguiente tabla muestra los riesgos medios o superiores y su análisis de riesgo residual. Los riesgos bajos no se incluyen en la tabla, ya que si bien son desafiados, funcionalmente están mitigados por diseño.",
+      "columnas": [
+        "Módulo",
+        "Riesgos evaluados",
+        "RI ALTO (≥15)",
+        "RI MEDIO (7-14)",
+        "RR ALTO"
+      ],
+      "widths": [
+        165,
+        80,
+        70,
+        80,
+        60
+      ],
+      "filas": [
+        [
+          "A — Autenticación",
+          {
+            "text": "6",
+            "alignment": "center"
+          },
+          {
+            "text": "0",
+            "alignment": "center"
+          },
+          {
+            "text": "5",
+            "alignment": "center"
+          },
+          {
+            "text": "0",
+            "alignment": "center"
+          }
+        ],
+        [
+          "B — Usuarios/Roles",
+          {
+            "text": "3",
+            "alignment": "center"
+          },
+          {
+            "text": "0",
+            "alignment": "center"
+          },
+          {
+            "text": "3",
+            "alignment": "center"
+          },
+          {
+            "text": "0",
+            "alignment": "center"
+          }
+        ],
+        [
+          "C — Cuestionario",
+          {
+            "text": "5",
+            "alignment": "center"
+          },
+          {
+            "text": "0",
+            "alignment": "center"
+          },
+          {
+            "text": "4",
+            "alignment": "center"
+          },
+          {
+            "text": "0",
+            "alignment": "center"
+          }
+        ],
+        [
+          "D — Reportes PDF",
+          {
+            "text": "3",
+            "alignment": "center"
+          },
+          {
+            "text": "0",
+            "alignment": "center"
+          },
+          {
+            "text": "2",
+            "alignment": "center"
+          },
+          {
+            "text": "0",
+            "alignment": "center"
+          }
+        ],
+        [
+          "E — SHA-256 / QR",
+          {
+            "text": "3",
+            "alignment": "center"
+          },
+          {
+            "text": "0",
+            "alignment": "center"
+          },
+          {
+            "text": "1",
+            "alignment": "center"
+          },
+          {
+            "text": "0",
+            "alignment": "center"
+          }
+        ],
+        [
+          "F — Infraestructura",
+          {
+            "text": "4",
+            "alignment": "center"
+          },
+          {
+            "text": "0",
+            "alignment": "center"
+          },
+          {
+            "text": "4",
+            "alignment": "center"
+          },
+          {
+            "text": "0",
+            "alignment": "center"
+          }
+        ],
+        [
+          {
+            "text": "TOTAL",
+            "bold": true,
+            "fillColor": "#EAF1F8"
+          },
+          {
+            "text": "24",
+            "alignment": "center",
+            "bold": true,
+            "fillColor": "#EAF1F8"
+          },
+          {
+            "text": "0",
+            "alignment": "center",
+            "bold": true,
+            "fillColor": "#EAF1F8"
+          },
+          {
+            "text": "19",
+            "alignment": "center",
+            "bold": true,
+            "fillColor": "#EAF1F8"
+          },
+          {
+            "text": "0",
+            "alignment": "center",
+            "bold": true,
+            "fillColor": "#EAF1F8"
+          }
+        ]
+      ],
+      "numero": 5
+    },
+    {
+      "tipo": "caja-conclusion",
+      "titulo": "Conclusión",
+      "parrafos": [
+        "Ningún riesgo presenta Riesgo Inicial ALTO (≥15). Todos los riesgos iniciales son MEDIO o BAJO.",
+        "Tras aplicar controles de mitigación, el 100% de los riesgos tiene Riesgo Residual BAJO (≤6). El sistema es apto para proceder a la calificación IQ/OQ."
+      ],
+      "numero": null
+    },
+    {
+      "tipo": "aceptacion-riesgo-residual",
+      "titulo": "ACEPTACIÓN FORMAL DEL RIESGO RESIDUAL",
+      "conclusion": "En base al análisis realizado, el Riesgo Residual de todos los peligros identificados es BAJO (RR ≤ 6) tras aplicar los controles de mitigación documentados. Se concluye que:",
+      "items": [
+        "Ningún riesgo identificado supera RR = 6 (Bajo) tras mitigación.",
+        "Los 4 GAPs regulatorios (GAP-001 a GAP-004 del HLRA) tienen controles compensatorios adecuados al nivel de riesgo GAMP 3 / IRO 32.",
+        "Los 24 riesgos identificados están cubiertos por test cases en el PIQ o el POQ.",
+        "El sistema es apto para proceder a la ejecución de la IQ y OQ."
+      ],
+      "firmas": [
+        {
+          "rol": "Process Owner",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "03/03/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-03-03T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        },
+        {
+          "rol": "Gerente QA",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "03/03/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-03-03T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        }
+      ],
+      "numero": 6
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": [
+        "Código / Referencia",
+        "Título"
+      ],
+      "widths": [
+        180,
+        275
+      ],
+      "filas": [
+        [
+          "URS-DRP-SIS-001 v1.0",
+          "Especificación de Requerimientos de Usuario — DRP-GAMP Categorizador™"
+        ],
+        [
+          "HLRA-DRP-SIS-001 v1.0",
+          "High Level Risk Assessment — DRP-GAMP Categorizador™ (GAPs e IRO global)"
+        ],
+        [
+          "VP-DRP-SIS-001 v1.0",
+          "Plan de Validación — DRP-GAMP Categorizador™"
+        ],
+        [
+          "MAN-GAMP-CAT-001 v1.0",
+          "Manual de Usuario — DRP-GAMP Categorizador™"
+        ],
+        [
+          "SOP-ADM-GAMP-001 v1.0",
+          "Procedimiento de Administración del Sistema"
+        ],
+        [
+          "ICH Q9 R1 (2023)",
+          "Quality Risk Management"
+        ],
+        [
+          "GAMP 5 — 2da Ed. 2022",
+          "Good Practice Guide: A Risk-Based Approach to Compliant GxP Computerized Systems (ISPE)"
+        ],
+        [
+          "ANMAT 4159/2023 Anexo VI",
+          "Guía de Buenas Prácticas de Sistemas Informatizados"
+        ],
+        [
+          "21 CFR Part 11",
+          "Electronic Records; Electronic Signatures (FDA)"
+        ]
+      ],
+      "numero": 7
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal del Análisis de Riesgos Operativo. La aceptación específica del riesgo residual quedó documentada en la Sección 6 con firma de Process Owner + Gerente QA.",
+      "firmas": [
+        {
+          "rol": "Redactor (Validador)",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "16/02/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-02-16T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        },
+        {
+          "rol": "Revisor (Process Owner)",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "16/02/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-02-16T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        },
+        {
+          "rol": "Aprobador (Jefe de Validaciones)",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "16/02/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-02-16T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        },
+        {
+          "rol": "Aprobador (Gerente QA)",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "16/02/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-02-16T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        }
+      ],
+      "nota": "Documento sujeto a firma electrónica. La firma manuscrita en este recuadro solo aplica como respaldo físico cuando no es viable la firma digital.",
+      "numero": 8
+    }
+  ]
+}

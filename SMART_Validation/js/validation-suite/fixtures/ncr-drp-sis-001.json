@@ -1,0 +1,454 @@
+{
+  "schemaVersion": "1.0",
+  "type": "NCR",
+  "package": {
+    "code": "DRP-SIS-001",
+    "systemName": "DRP-GAMP Categorizador™",
+    "systemVersion": "1.1",
+    "systemSubtitle": "Sistema de Categorización GAMP 5",
+    "client": "Emara SRL",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": 2026
+  },
+  "document": {
+    "code": "NCR-DRP-SIS-001",
+    "titleEs": "REPORTE DE NO CONFORMIDADES Y CAPA",
+    "titleEn": "NON-CONFORMANCE REPORT (NCR)",
+    "headerTitle": "Reporte de No Conformidades y CAPA (NCR)",
+    "version": "1.0",
+    "issueDate": "Abril–Mayo 2026",
+    "status": "Aprobado",
+    "processOwner": "Ana Pérez",
+    "gampCategory": "GAMP 3 — Software Estándar Configurable",
+    "normativeFramework": "ANMAT 4159/2023 | 21 CFR Part 11 | EU Annex 11 | GAMP 5 §6 | ICH Q9",
+    "extras": {
+      "Documento(s) base (Hallazgos)": "IOQ-DRP-SIS-001 v1.0 (47 TCs ejecutados)",
+      "NCs registradas": "2 (NC-001 OBS / NC-002 NC CRÍTICA)",
+      "Estado del workflow": "CERRADO — todas las CAPAs verificadas",
+      "Etapa actual": "4 — Cierre y Aprobación Final (CERRADA)"
+    }
+  },
+  "controlCambios": [
+    {
+      "version": "1.0",
+      "fecha": "May 2026",
+      "autor": "Ana Pérez — Process Owner",
+      "descripcion": "Emisión inicial del NCR. Consolida los 2 hallazgos identificados durante la ejecución del IOQ-DRP-SIS-001. NC-001 cerrada el 24/04/2026, NC-002 cerrada el 23/04/2026 vía CAPA con re-ejecución. Workflow completado en 4 etapas con firmas trazables por etapa."
+    }
+  ],
+  "matrizAprobaciones": [
+    {
+      "rol": "Identificador NC (Ejecutor)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "23/04/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-04-23T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Process Owner",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "24/04/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-04-24T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    },
+    {
+      "rol": "Responsable CAPA",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "24/04/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-04-24T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "25/04/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-04-25T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    }
+  ],
+  "trazabilidad": {
+    "schemaVersion": "2.0",
+    "recibeDe": [
+      {
+        "tipo": "IOQ",
+        "code": "IOQ-DRP-SIS-001",
+        "version": "v1.0",
+        "fechaCongelado": "23/04/2026",
+        "items": [
+          "NC-001",
+          "NC-002"
+        ],
+        "itemsCount": 2,
+        "estado": "aprobado",
+        "_auto": true
+      }
+    ],
+    "alimentaA": [
+      "ROQ",
+      "Reporte de Liberación post-OQ"
+    ]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO Y OBJETIVO",
+      "bloques": [
+        {
+          "texto": "El presente Reporte de No Conformidades y CAPA (NCR) consolida los 2 hallazgos identificados durante la ejecución del Informe de Calificación Operacional IOQ-DRP-SIS-001 v1.0 sobre el sistema DRP-GAMP Categorizador™ v1.1. El documento documenta el registro de los hallazgos, el análisis de causa raíz aplicado, el plan de acciones correctivas y preventivas (CAPA) y el cierre formal del proceso."
+        },
+        {
+          "texto": "El workflow del NCR aplica gating por firmas: cada una de las 4 etapas (Registro → Análisis → Plan CAPA → Cierre) requiere firmas obligatorias antes de habilitar la siguiente. Todas las etapas fueron firmadas y aprobadas en orden — el sistema queda apto para continuar el ciclo de validación hacia la PQ."
+        }
+      ]
+    },
+    {
+      "tipo": "tabla-info",
+      "titulo": "DATOS GENERALES",
+      "labelWidth": 165,
+      "filas": [
+        {
+          "campo": "Documento(s) base",
+          "valor": "IOQ-DRP-SIS-001 v1.0"
+        },
+        {
+          "campo": "NCs registradas",
+          "valor": "2 (NC-001 OBS / NC-002 NC CRÍTICA)"
+        },
+        {
+          "campo": "Período de gestión",
+          "valor": "21/04/2026 — 25/04/2026 (5 días)"
+        },
+        {
+          "campo": "Etapa actual",
+          "valor": "4 — Cierre y Aprobación Final (CERRADA)",
+          "boldValor": true,
+          "colorValor": "primary"
+        },
+        {
+          "campo": "Estado workflow",
+          "valor": "OK CERRADO — todas las CAPAs verificadas y aprobadas",
+          "boldValor": true,
+          "colorValor": "accent"
+        }
+      ]
+    },
+    {
+      "tipo": "ncr-workflow-indicator",
+      "titulo": "ESTADO DEL WORKFLOW",
+      "intro": "Indicador visual del progreso de las 4 etapas. Todas aprobadas (estado final demo)."
+    },
+    {
+      "tipo": "ncr-registro-hallazgos",
+      "titulo": "REGISTRO DE HALLAZGOS DE EJECUCIÓN",
+      "intro": "Hallazgos identificados durante la ejecución del IOQ entre el 18 y el 23 de abril de 2026. Dos NCs registradas: NC-001 (OBS menor de UI) y NC-002 (NC crítica de hash SHA-256).",
+      "estado": "aprobada",
+      "firmasRequeridas": [
+        {
+          "rol": "Validador Ejecutor",
+          "obligatoria": true
+        }
+      ],
+      "firmas": [
+        {
+          "rol": "Validador Ejecutor",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "23/04/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-04-23T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        }
+      ],
+      "hallazgos": [
+        {
+          "id": "NC-001",
+          "tipo": "OBS",
+          "criticidad": "OBSERVACIÓN",
+          "tcRef": "TC-OQ-024",
+          "docOrigen": "IOQ-DRP-SIS-001",
+          "descripcion": "En Firefox, el filtro de fecha por rango personalizado del dashboard de analytics no muestra el calendar picker (input vacío clickeable). Funcional en Chrome. Bug menor de UI sin impacto en los datos ni en la trazabilidad.",
+          "fechaApertura": "21/04/2026"
+        },
+        {
+          "id": "NC-002",
+          "tipo": "NC",
+          "criticidad": "CRÍTICA",
+          "tcRef": "TC-OQ-032",
+          "docOrigen": "IOQ-DRP-SIS-001",
+          "descripcion": "En primera ejecución, el hash SHA-256 mostrado en el portal QR público no coincidía con el hash calculado independientemente sobre el PDF cuando el nombre del sistema contenía caracteres especiales (acentos y ñ). Impacto: la promesa central del sistema (verificabilidad pública del PDF firmado) quedaba comprometida para nombres con caracteres no-ASCII.",
+          "fechaApertura": "22/04/2026"
+        }
+      ]
+    },
+    {
+      "tipo": "ncr-analisis-causa",
+      "titulo": "ANÁLISIS DE CAUSA RAÍZ",
+      "intro": "Análisis estructurado 5-porqués aplicado por NC. NC-001 es una OBS menor de UI; el análisis se mantuvo breve. NC-002 fue tratada como NC crítica con análisis completo y declaración de factor sistémico.",
+      "estado": "aprobada",
+      "firmasRequeridas": [
+        {
+          "rol": "Process Owner",
+          "obligatoria": true
+        },
+        {
+          "rol": "QA Reviewer",
+          "obligatoria": true
+        }
+      ],
+      "firmas": [
+        {
+          "rol": "Process Owner",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "23/04/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-04-23T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        },
+        {
+          "rol": "QA Reviewer",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "23/04/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-04-23T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        }
+      ],
+      "analisis": [
+        {
+          "ncId": "NC-001",
+          "tipoAnalisis": "5-porqués (abreviado)",
+          "porques": [
+            "¿Por qué el calendar picker no se renderiza en Firefox? Porque la regla CSS asume comportamiento Chrome.",
+            "¿Por qué la regla CSS asume Chrome? Porque el QA cross-browser no fue parte del checklist de revisión front-end del cuestionario adaptativo.",
+            "Causa raíz: ausencia del checklist cross-browser en el DoR del componente UI."
+          ],
+          "causaRaizIdentificada": "El proceso QA front-end no exige verificación cross-browser para componentes de UI auxiliares (filtros, dashboards). Es un gap del proceso, no del código.",
+          "factorSistemico": true,
+          "recurrente": false,
+          "ncRecurrenteRef": null,
+          "impactoScope": "TC"
+        },
+        {
+          "ncId": "NC-002",
+          "tipoAnalisis": "5-porqués",
+          "porques": [
+            "¿Por qué el hash SHA-256 no coincide? Porque la función de cálculo no normaliza el string UTF-8 antes del hash.",
+            "¿Por qué no se normaliza UTF-8? Porque el desarrollador asumió que los inputs siempre serían ASCII puro.",
+            "¿Por qué se asumió ASCII puro? Porque los TCs del POQ no incluían inputs con caracteres especiales (acentos, ñ).",
+            "¿Por qué los TCs no cubrían UTF-8 multibyte? Porque la generación de TCs del POQ no consideró la diversidad de inputs reales (en castellano los nombres de sistemas suelen llevar acentos).",
+            "Causa raíz: el proceso de generación de TCs OQ omite cobertura de inputs UTF-8 multibyte cuando aplica."
+          ],
+          "causaRaizIdentificada": "Gap sistémico: la metodología de generación de TCs no contempla explícitamente cobertura de caracteres especiales (UTF-8 multibyte) en sistemas que operan con datos en castellano. La criticidad se eleva por estar afectada la promesa central del sistema (verificabilidad del PDF).",
+          "factorSistemico": true,
+          "recurrente": false,
+          "ncRecurrenteRef": null,
+          "impactoScope": "sistema"
+        }
+      ]
+    },
+    {
+      "tipo": "ncr-plan-capa",
+      "titulo": "PLAN DE ACCIONES CORRECTIVAS Y PREVENTIVAS (CAPA)",
+      "intro": "Por cada NC: acción correctiva inmediata (CA) + acción preventiva sistémica (PA) para evitar recurrencia futura. Ambas CAPAs fueron ejecutadas y verificadas antes del cierre del NCR.",
+      "estado": "aprobada",
+      "firmasRequeridas": [
+        {
+          "rol": "Responsable CAPA",
+          "obligatoria": true
+        },
+        {
+          "rol": "Aprobador QA",
+          "obligatoria": true
+        }
+      ],
+      "firmas": [
+        {
+          "rol": "Responsable CAPA",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "24/04/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-04-24T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        },
+        {
+          "rol": "Aprobador QA",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "24/04/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-04-24T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        }
+      ],
+      "capas": [
+        {
+          "ncId": "NC-001",
+          "accionCorrectiva": "Aplicado fix CSS en commit b3a4f12 (24/04/2026). El calendar picker se renderiza correctamente en Firefox tras refresh del navegador. Re-verificación visual completada por LS.",
+          "accionPreventiva": "Incorporar verificación cross-browser (Chrome + Firefox + Safari) al checklist de DoR de cualquier componente UI auxiliar (dashboards, filtros, modales). Documentado en la actualización del SOP-QA-FRONT-007 v1.2.",
+          "responsable": "Ana Pérez",
+          "fechaCompromiso": "24/04/2026",
+          "fechaCierre": "24/04/2026",
+          "evidenciaCierre": "Commit b3a4f12 con diff CSS + captura Firefox mostrando calendar picker funcional + actualización SOP-QA-FRONT-007 v1.2 con cláusula cross-browser.",
+          "verificadoPor": "Carlos Rodríguez",
+          "estadoCapa": "VERIFICADA"
+        },
+        {
+          "ncId": "NC-002",
+          "accionCorrectiva": "Aplicado fix de normalización UTF-8 (NFC) antes del cálculo de hash en commit a8d2e91 (22/04/2026 16:30). Re-deploy productivo el 22/04/2026 18:00. Re-ejecución del TC-OQ-032 el 23/04/2026 con resultado PASS. Adicionalmente: re-verificación batch de los hashes de los 47 sistemas previamente categorizados — todos confirmados consistentes (los previos no contenían caracteres especiales, sin impacto retroactivo).",
+          "accionPreventiva": "Ampliación de la metodología de generación de TCs OQ con: (1) checklist explícito de cobertura de inputs UTF-8 multibyte cuando el sistema opera con datos en castellano u otros idiomas; (2) inclusión obligatoria de al menos 1 TC con caracteres especiales en cualquier paquete OQ futuro de sistemas con outputs verificables externamente; (3) actualización del template POQ-DRP-SIS-001 con sección dedicada a robustez UTF-8. Documentado en SOP-VAL-OQ-003 v2.1.",
+          "responsable": "Ana Pérez",
+          "fechaCompromiso": "23/04/2026",
+          "fechaCierre": "23/04/2026",
+          "evidenciaCierre": "Commit a8d2e91 con diff de normalización UTF-8 + audit trail de re-ejecución TC-OQ-032 PASS + matriz de re-verificación de los 47 sistemas previos + SOP-VAL-OQ-003 v2.1 con sección UTF-8.",
+          "verificadoPor": "Carlos Rodríguez + Laura Martínez (auditor externo independiente)",
+          "estadoCapa": "VERIFICADA"
+        }
+      ]
+    },
+    {
+      "tipo": "ncr-cierre-aprobacion",
+      "titulo": "CIERRE Y APROBACIÓN FINAL",
+      "intro": "Resumen consolidado del proceso y decisión formal de cierre. Las dos NCs identificadas fueron resueltas con CAPAs verificadas. NC-002 reveló un factor sistémico que derivó en mejora de la metodología de generación de TCs (aplica a futuras validaciones).",
+      "estado": "aprobada",
+      "firmasRequeridas": [
+        {
+          "rol": "Gerente QA",
+          "obligatoria": true
+        },
+        {
+          "rol": "Director (firma final)",
+          "obligatoria": false
+        }
+      ],
+      "firmas": [
+        {
+          "rol": "Gerente QA",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "25/04/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-04-25T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        },
+        {
+          "rol": "Director (firma final)",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "25/04/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-04-25T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        }
+      ],
+      "resumen": {
+        "totalNcs": 2,
+        "ncCerradas": 2,
+        "ncAbiertas": 0,
+        "ncCriticas": 1,
+        "criticasCerradas": 1,
+        "diasPromedioCierre": 1.5,
+        "factorSistemico": true,
+        "decisionFinal": "NCR CERRADO — Sistema apto para continuar el ciclo de validación hacia la Calificación de Performance (PQ). Las 2 NCs fueron resueltas con sus CAPAs verificadas. NC-002 reveló un factor sistémico (omisión de cobertura UTF-8 en la metodología de generación de TCs) que se transformó en mejora del SOP-VAL-OQ-003 — la metodología corregida aplica desde el próximo paquete de validación."
+      }
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": [
+        "Documento",
+        "Título"
+      ],
+      "widths": [
+        180,
+        275
+      ],
+      "filas": [
+        [
+          "IOQ-DRP-SIS-001 v1.0",
+          "Informe de Calificación Operacional — origen de los 2 hallazgos"
+        ],
+        [
+          "POQ-DRP-SIS-001 v1.0",
+          "Protocolo OQ ejecutado"
+        ],
+        [
+          "SOP-QA-FRONT-007 v1.2",
+          "Checklist DoR cross-browser (actualizado por CAPA NC-001)"
+        ],
+        [
+          "SOP-VAL-OQ-003 v2.1",
+          "Metodología de generación de TCs OQ — incluye sección UTF-8 (CAPA NC-002)"
+        ],
+        [
+          "ICH Q9",
+          "Quality Risk Management — base normativa del análisis"
+        ],
+        [
+          "ISO 13485 §8.5.2",
+          "Acciones correctivas — referencia metodológica"
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS CONSOLIDADAS DEL PROCESO",
+      "intro": "Resumen de firmas del workflow completo. Las firmas detalladas por sección figuran en cada etapa.",
+      "firmas": [
+        {
+          "rol": "Identificador NC (Ejecutor)",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "23/04/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-04-23T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        },
+        {
+          "rol": "Process Owner",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "24/04/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-04-24T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        },
+        {
+          "rol": "Responsable CAPA",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "24/04/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-04-24T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        },
+        {
+          "rol": "Aprobador (Gerente QA)",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "25/04/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-04-25T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        }
+      ],
+      "rolesPlaceholder": [
+        "Identificador NC (Ejecutor)",
+        "Process Owner",
+        "Responsable CAPA",
+        "Aprobador (Gerente QA)"
+      ],
+      "nota": "NCR cerrado el 25/04/2026 — sistema apto para PQ."
+    }
+  ]
+}

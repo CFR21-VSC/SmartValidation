@@ -1,0 +1,116 @@
+{
+  "schemaVersion": "1.0",
+  "type": "EVPROT",
+  "package": {
+    "code": "",
+    "client": ""
+  },
+  "document": {
+    "titleEs": "Protocolo de Validación de Planilla de Cálculo",
+    "version": "1.0",
+    "status": "draft",
+    "issueDate": ""
+  },
+  "spreadsheet": {
+    "fileName": "",
+    "purpose": "",
+    "gampCategory": "Cat 4",
+    "department": "",
+    "responsible": "",
+    "version": "v1.0",
+    "sheets": [],
+    "hasVBA": false,
+    "hasExternalLinks": false,
+    "hasProtection": false
+  },
+  "secciones": [
+    {
+      "numero": "1",
+      "titulo": "OBJETIVO Y ALCANCE",
+      "tipo": "texto",
+      "contenido": ""
+    },
+    {
+      "numero": "2",
+      "titulo": "CRITERIOS DE ACEPTACIÓN",
+      "tipo": "caja-criterio",
+      "contenido": "El 100% de los casos de prueba debe resultar PASA. Cualquier resultado FALLA suspende el uso de la planilla en actividades GxP y requiere emisión de NCR."
+    },
+    {
+      "numero": "3",
+      "titulo": "VERIFICACIÓN DE IDENTIDAD Y VERSIÓN",
+      "tipo": "tabla-test-cases",
+      "testCases": [
+        {
+          "id": "TC-001",
+          "descripcion": "Verificar nombre del archivo",
+          "procedimiento": "1. Abrir el explorador en la ubicación del archivo.\n2. Verificar que el nombre es exactamente el especificado.",
+          "entradas": "N/A",
+          "resultadoEsperado": "",
+          "resultadoReal": "",
+          "resultado": "",
+          "observaciones": ""
+        },
+        {
+          "id": "TC-002",
+          "descripcion": "Verificar versión interna de la planilla",
+          "procedimiento": "1. Abrir el archivo.\n2. Localizar la celda donde se registra la versión.\n3. Verificar el valor.",
+          "entradas": "N/A",
+          "resultadoEsperado": "",
+          "resultadoReal": "",
+          "resultado": "",
+          "observaciones": ""
+        }
+      ]
+    },
+    {
+      "numero": "4",
+      "titulo": "VERIFICACIÓN DE CONTROLES DE ACCESO",
+      "tipo": "tabla-test-cases",
+      "testCases": [
+        {
+          "id": "TC-003",
+          "descripcion": "Verificar protección de hoja crítica",
+          "procedimiento": "1. Abrir el archivo.\n2. Intentar modificar una celda con fórmula en la hoja crítica sin contraseña.\n3. Registrar la respuesta del sistema.",
+          "entradas": "Intentar editar celda [celda] en hoja [hoja]",
+          "resultadoEsperado": "Excel muestra mensaje de protección y rechaza la edición",
+          "resultadoReal": "",
+          "resultado": "",
+          "observaciones": ""
+        }
+      ]
+    },
+    {
+      "numero": "5",
+      "titulo": "VERIFICACIÓN DE CÁLCULOS CRÍTICOS",
+      "tipo": "tabla-test-cases",
+      "testCases": [
+        {
+          "id": "TC-004",
+          "descripcion": "",
+          "procedimiento": "1. Ingresar los valores de entrada en las celdas indicadas.\n2. Registrar el valor calculado en la celda de resultado.\n3. Comparar con el resultado esperado.",
+          "entradas": "",
+          "resultadoEsperado": "",
+          "resultadoReal": "",
+          "resultado": "",
+          "observaciones": ""
+        },
+        {
+          "id": "TC-005",
+          "descripcion": "",
+          "procedimiento": "",
+          "entradas": "",
+          "resultadoEsperado": "",
+          "resultadoReal": "",
+          "resultado": "",
+          "observaciones": ""
+        }
+      ]
+    },
+    {
+      "numero": "6",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "tipo": "tabla-firmas-final"
+    }
+  ]
+}

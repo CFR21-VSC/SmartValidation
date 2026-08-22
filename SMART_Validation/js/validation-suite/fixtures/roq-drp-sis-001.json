@@ -1,0 +1,269 @@
+{
+  "schemaVersion": "1.0",
+  "type": "ROQ",
+  "etapa": "OQ",
+  "package": {
+    "code": "DRP-SIS-001",
+    "systemName": "DRP-GAMP Categorizador™",
+    "systemVersion": "1.1",
+    "systemSubtitle": "Sistema de Categorización GAMP 5",
+    "client": "Emara SRL",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": 2026
+  },
+  "document": {
+    "code": "ROQ-DRP-SIS-001",
+    "titleEs": "REPORTE DE CALIFICACIÓN OQ — LIBERACIÓN DE ETAPA",
+    "titleEn": "QUALIFICATION RELEASE REPORT (ROQ)",
+    "headerTitle": "Reporte de Calificación OQ (ROQ)",
+    "version": "1.0",
+    "issueDate": "Abril 2026",
+    "status": "Aprobado",
+    "processOwner": "Ana Pérez",
+    "gampCategory": "GAMP 3 — Software Estándar Configurable",
+    "normativeFramework": "ANMAT 4159/2023 | 21 CFR Part 11 | EU Annex 11 | GAMP 5 §8 | FDA CSA 2022",
+    "extras": {
+      "Etapa cubierta": "POQ → IOQ → ROQ",
+      "Documento base (Informe)": "IOQ-DRP-SIS-001 v1.0",
+      "NCR consolidado": "NCR-DRP-SIS-001 v1.0 (CERRADO)",
+      "Decisión": "APROBADO"
+    }
+  },
+  "controlCambios": [
+    {
+      "version": "1.0",
+      "fecha": "Abr 2026",
+      "autor": "Ana Pérez — Process Owner",
+      "descripcion": "Emisión inicial del ROQ. Cierre de la fase OQ tras ejecución exitosa del POQ (47/47 TCs PASS final tras cierre de 2 NCs). NCR-DRP-SIS-001 cerrado con CAPAs verificadas. Sistema apto para Calificación de Performance (PQ)."
+    }
+  ],
+  "matrizAprobaciones": [
+    {
+      "rol": "Sponsor / Director",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "26/04/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-04-26T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    },
+    {
+      "rol": "Gerente QA",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "26/04/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-04-26T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Process Owner",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "26/04/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-04-26T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    }
+  ],
+  "trazabilidad": {
+    "schemaVersion": "2.0",
+    "recibeDe": [
+      {
+        "tipo": "IOQ",
+        "code": "IOQ-DRP-SIS-001",
+        "version": "v1.0",
+        "estado": "aprobado",
+        "_auto": true
+      },
+      {
+        "tipo": "NCR",
+        "code": "NCR-DRP-SIS-001",
+        "version": "v1.0",
+        "estado": "aprobado",
+        "_auto": true
+      }
+    ],
+    "alimentaA": [
+      "PQ — Calificación de Performance"
+    ]
+  },
+  "secciones": [
+    {
+      "tipo": "release-portada-decision",
+      "titulo": "DECISIÓN DE LIBERACIÓN",
+      "decision": "APROBADO",
+      "subtitulo": "Cierre formal de la fase de Calificación Operacional"
+    },
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO Y ALCANCE",
+      "bloques": [
+        {
+          "texto": "El presente Reporte de Calificación Operacional (ROQ) documenta el cierre formal de la fase OQ del sistema DRP-GAMP Categorizador™ v1.1."
+        },
+        {
+          "texto": "La fase OQ identificó 2 No Conformidades durante la ejecución: NC-001 (OBS menor de UI) y NC-002 (NC crítica de hash SHA-256). Ambas fueron gestionadas mediante el NCR-DRP-SIS-001 con CAPAs aplicadas y verificadas antes de la aprobación de este reporte."
+        }
+      ]
+    },
+    {
+      "tipo": "release-resumen-ejecutivo",
+      "titulo": "RESUMEN EJECUTIVO",
+      "intro": "Indicadores consolidados de la fase OQ. Métricas calculadas a partir del paquete documental cargado en el suite (informe IOQ + NCR asociado cuando aplica).",
+      "kpis": {
+        "totalTcsProtocolos": 62,
+        "totalTcsEjecutados": 62,
+        "pass": 61,
+        "fail": 0,
+        "obs": 1,
+        "na": 0,
+        "pendiente": 0,
+        "negativos": 2,
+        "negativosFail": 0,
+        "cobertura": 100,
+        "estadoGlobal": "APROBADO CON OBS",
+        "hallazgosTotal": 2,
+        "hallazgosCerrados": 2,
+        "hallazgosAbiertos": 0,
+        "criticasAbiertas": 0
+      },
+      "fundamento": "Los 47 TCs del POQ fueron ejecutados con resultado final 47/47 PASS (incluidos los 2 TCs negativos que demostraron correcto rechazo de escenarios límite). Las 2 NCs identificadas fueron cerradas con sus CAPAs verificadas y trazables en NCR-DRP-SIS-001. NC-002 (crítica) derivó en mejora del SOP-VAL-OQ-003 — factor sistémico ya mitigado para futuras validaciones. Sistema apto para PQ."
+    },
+    {
+      "tipo": "release-trazabilidad-cierre",
+      "titulo": "TRAZABILIDAD DEL CIERRE",
+      "intro": "Documentos base referenciados en este reporte. La aprobación implica que cada uno está en estado válido al momento del cierre.",
+      "documentos": [
+        {
+          "codigo": "URS-DRP-SIS-001",
+          "tipo": "URS",
+          "version": "v1.0",
+          "estado": "Aprobado",
+          "observacion": "Base de TCs OQ"
+        },
+        {
+          "codigo": "RA-DRP-SIS-001",
+          "tipo": "RA",
+          "version": "v1.0",
+          "estado": "Aprobado",
+          "observacion": "24 riesgos funcionales"
+        },
+        {
+          "codigo": "POQ-DRP-SIS-001",
+          "tipo": "POQ",
+          "version": "v1.0",
+          "estado": "Aprobado",
+          "observacion": "Protocolo OQ — 47 TCs"
+        },
+        {
+          "codigo": "IOQ-DRP-SIS-001",
+          "tipo": "IOQ",
+          "version": "v1.0",
+          "estado": "Aprobado",
+          "observacion": "47/47 PASS final tras CAPA"
+        },
+        {
+          "codigo": "NCR-DRP-SIS-001",
+          "tipo": "NCR",
+          "version": "v1.0",
+          "estado": "Aprobado",
+          "observacion": "NC-001 + NC-002 cerradas y verificadas"
+        },
+        {
+          "codigo": "RIQ-DRP-SIS-001",
+          "tipo": "RIQ",
+          "version": "v1.0",
+          "estado": "Aprobado",
+          "observacion": "Pre-requisito cumplido"
+        }
+      ]
+    },
+    {
+      "tipo": "release-condicionantes",
+      "titulo": "CONDICIONANTES DE LA APROBACIÓN",
+      "intro": "Obligaciones que el sponsor exige cumplir aún tras la aprobación.",
+      "condicionantes": []
+    },
+    {
+      "tipo": "release-decision-formal",
+      "titulo": "DECISIÓN FORMAL Y AUTORIZACIÓN",
+      "decision": "APROBADO",
+      "textoFormal": "Por la presente se autoriza formalmente el avance del sistema DRP-GAMP Categorizador™ v1.1 a la fase de Calificación de Performance (PQ). La ejecución operacional verificada por el IOQ y las acciones correctivas cerradas por el NCR demuestran que el sistema opera conforme a los requerimientos funcionales y es apto para someterse a verificación de performance con usuarios representativos. Esta autorización queda trazable y firmada por los responsables ejecutivos."
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": [
+        "Documento",
+        "Título"
+      ],
+      "widths": [
+        180,
+        275
+      ],
+      "filas": [
+        [
+          "IOQ-DRP-SIS-001 v1.0",
+          "Informe de Calificación Operacional — 47/47 PASS"
+        ],
+        [
+          "NCR-DRP-SIS-001 v1.0",
+          "Reporte NC y CAPA — NC-001 + NC-002 cerradas"
+        ],
+        [
+          "RIQ-DRP-SIS-001 v1.0",
+          "Reporte de Calificación IQ — pre-requisito cumplido"
+        ],
+        [
+          "SOP-VAL-OQ-003 v2.1",
+          "Metodología de generación de TCs OQ — mejorada por CAPA NC-002"
+        ],
+        [
+          "GAMP 5 §8.3",
+          "Operational Qualification"
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS EJECUTIVAS",
+      "intro": "Firmas que autorizan la decisión de liberación. Sponsor / Director y Gerente QA son obligatorios.",
+      "firmas": [
+        {
+          "rol": "Sponsor / Director",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "26/04/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-04-26T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        },
+        {
+          "rol": "Gerente QA",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "26/04/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-04-26T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        },
+        {
+          "rol": "Process Owner",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "26/04/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-04-26T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        }
+      ],
+      "rolesPlaceholder": [
+        "Sponsor / Director",
+        "Gerente QA",
+        "Process Owner"
+      ],
+      "nota": "OQ APROBADA. Sistema autorizado para iniciar PPQ-DRP-SIS-001 (Performance Qualification con usuarios representativos)."
+    }
+  ]
+}

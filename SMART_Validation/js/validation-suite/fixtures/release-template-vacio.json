@@ -1,0 +1,116 @@
+{
+  "schemaVersion": "1.0",
+  "type": "ROQ",
+  "etapa": "OQ",
+  "package": {
+    "code": "",
+    "systemName": "",
+    "systemVersion": "",
+    "systemSubtitle": "",
+    "client": "",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": null
+  },
+  "document": {
+    "code": "",
+    "titleEs": "REPORTE DE CALIFICACIÓN — LIBERACIÓN DE ETAPA",
+    "titleEn": "QUALIFICATION RELEASE REPORT",
+    "headerTitle": "Reporte de Calificación",
+    "version": "1.0",
+    "issueDate": "",
+    "status": "Borrador",
+    "processOwner": "",
+    "gampCategory": "",
+    "normativeFramework": "",
+    "extras": {
+      "Etapa cubierta": "",
+      "Documento base (Informe)": "",
+      "NCR consolidado": "",
+      "Decisión": "PENDIENTE"
+    }
+  },
+  "controlCambios": [],
+  "matrizAprobaciones": [
+    { "rol": "Sponsor / Director", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Gerente QA", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Process Owner", "nombre": "", "iniciales": "", "fecha": "" }
+  ],
+  "trazabilidad": {
+    "recibeDe": ["IIQ", "IOQ", "IPQ", "NCR"],
+    "alimentaA": ["Siguiente fase del ciclo"]
+  },
+  "secciones": [
+    {
+      "tipo": "release-portada-decision",
+      "titulo": "DECISIÓN DE LIBERACIÓN",
+      "decision": "PENDIENTE",
+      "subtitulo": "Reporte ejecutivo de cierre de fase"
+    },
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO Y ALCANCE",
+      "bloques": [
+        { "texto": "El presente Reporte de Calificación documenta el cierre formal de la fase del ciclo de validación y registra la decisión ejecutiva de avance a la siguiente etapa, conforme al ciclo de validación GAMP 5." },
+        { "texto": "Este documento se emite tras la firma del Informe técnico correspondiente y, cuando aplique, tras la verificación del NCR (Reporte de No Conformidades) asociado." }
+      ]
+    },
+    {
+      "tipo": "release-resumen-ejecutivo",
+      "titulo": "RESUMEN EJECUTIVO",
+      "intro": "Indicadores consolidados de la fase. Métricas auto-calculadas desde el paquete documental.",
+      "kpis": {
+        "totalTcsEjecutados": null,
+        "pass": null,
+        "fail": null,
+        "obs": null,
+        "na": null,
+        "cobertura": null,
+        "hallazgosTotal": null,
+        "hallazgosCerrados": null,
+        "hallazgosAbiertos": null,
+        "criticasAbiertas": null,
+        "negativos": null,
+        "negativosFail": null,
+        "estadoGlobal": ""
+      },
+      "fundamento": ""
+    },
+    {
+      "tipo": "release-trazabilidad-cierre",
+      "titulo": "TRAZABILIDAD DEL CIERRE",
+      "intro": "Documentos base referenciados en este reporte. La aprobación implica que cada uno está en estado válido al momento del cierre.",
+      "documentos": []
+    },
+    {
+      "tipo": "release-condicionantes",
+      "titulo": "CONDICIONANTES DE LA APROBACIÓN",
+      "intro": "Obligaciones que el sponsor exige cumplir aún tras la aprobación. Aplica solo si la decisión es \"Aprobado con Condiciones\".",
+      "condicionantes": []
+    },
+    {
+      "tipo": "release-decision-formal",
+      "titulo": "DECISIÓN FORMAL Y AUTORIZACIÓN",
+      "decision": "PENDIENTE",
+      "textoFormal": ""
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": ["Documento", "Título"],
+      "widths": [180, 275],
+      "filas": []
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS EJECUTIVAS",
+      "intro": "Firmas que autorizan la decisión de liberación. Sponsor / Director y Gerente QA son obligatorios; Process Owner es opcional.",
+      "firmas": [],
+      "rolesPlaceholder": [
+        "Sponsor / Director",
+        "Gerente QA",
+        "Process Owner"
+      ],
+      "nota": ""
+    }
+  ]
+}

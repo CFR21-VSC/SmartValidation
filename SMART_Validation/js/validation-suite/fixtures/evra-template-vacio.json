@@ -1,0 +1,144 @@
+{
+  "schemaVersion": "1.0",
+  "type": "EVRA",
+  "package": {
+    "code": "",
+    "client": ""
+  },
+  "document": {
+    "titleEs": "Evaluación de Riesgo de Planilla de Cálculo",
+    "version": "1.0",
+    "status": "draft",
+    "issueDate": ""
+  },
+  "spreadsheet": {
+    "fileName": "",
+    "purpose": "",
+    "gampCategory": "Cat 4",
+    "department": "",
+    "responsible": "",
+    "frequency": "",
+    "version": "v1.0",
+    "location": "",
+    "sheets": [
+      { "name": "", "purpose": "", "formulaCount": 0, "isCritical": false }
+    ],
+    "hasVBA": false,
+    "hasExternalLinks": false,
+    "hasProtection": false
+  },
+  "secciones": [
+    {
+      "numero": "1",
+      "titulo": "PROPÓSITO Y ALCANCE",
+      "tipo": "texto",
+      "contenido": ""
+    },
+    {
+      "numero": "2",
+      "titulo": "CLASIFICACIÓN GxP",
+      "tipo": "tabla-info",
+      "items": [
+        { "label": "Nombre del archivo", "valor": "" },
+        { "label": "Categoría GAMP 5", "valor": "Categoría 4 — Herramienta configurada" },
+        { "label": "Impacto GxP", "valor": "" },
+        { "label": "Departamento responsable", "valor": "" },
+        { "label": "Frecuencia de uso", "valor": "" },
+        { "label": "Versión evaluada", "valor": "" },
+        { "label": "Responsable de uso", "valor": "" }
+      ]
+    },
+    {
+      "numero": "3",
+      "titulo": "ESTRUCTURA DE LA PLANILLA",
+      "tipo": "tabla",
+      "columnas": ["Hoja", "Propósito", "Fórmulas", "Crítica GxP"],
+      "filas": [
+        ["", "", "0", "No"]
+      ]
+    },
+    {
+      "numero": "4",
+      "titulo": "METODOLOGÍA DE EVALUACIÓN DE RIESGO",
+      "tipo": "texto",
+      "contenido": "Se aplica una matriz Probabilidad × Severidad de 3 niveles (Baja / Media / Alta). El riesgo inherente se calcula sin controles. El riesgo residual considera los controles propuestos. Un riesgo residual ALTO requiere controles adicionales antes de aprobar el uso GxP."
+    },
+    {
+      "numero": "5",
+      "titulo": "EVALUACIÓN DE RIESGOS",
+      "tipo": "tabla-riesgos",
+      "riesgos": [
+        {
+          "id": "R-001",
+          "categoria": "Integridad de fórmulas",
+          "descripcion": "",
+          "causa": "",
+          "efectoGxP": "",
+          "probabilidad": "Media",
+          "severidad": "Alta",
+          "riesgoInherente": "Alto",
+          "control": "",
+          "riesgoResidual": "Bajo"
+        },
+        {
+          "id": "R-002",
+          "categoria": "Control de acceso",
+          "descripcion": "",
+          "causa": "",
+          "efectoGxP": "",
+          "probabilidad": "Media",
+          "severidad": "Media",
+          "riesgoInherente": "Medio",
+          "control": "",
+          "riesgoResidual": "Bajo"
+        },
+        {
+          "id": "R-003",
+          "categoria": "Control de versión",
+          "descripcion": "",
+          "causa": "",
+          "efectoGxP": "",
+          "probabilidad": "Alta",
+          "severidad": "Alta",
+          "riesgoInherente": "Alto",
+          "control": "",
+          "riesgoResidual": "Bajo"
+        },
+        {
+          "id": "R-004",
+          "categoria": "Integridad de datos de entrada",
+          "descripcion": "",
+          "causa": "",
+          "efectoGxP": "",
+          "probabilidad": "Media",
+          "severidad": "Media",
+          "riesgoInherente": "Medio",
+          "control": "",
+          "riesgoResidual": "Bajo"
+        },
+        {
+          "id": "R-005",
+          "categoria": "Trazabilidad",
+          "descripcion": "",
+          "causa": "",
+          "efectoGxP": "",
+          "probabilidad": "Media",
+          "severidad": "Media",
+          "riesgoInherente": "Medio",
+          "control": "",
+          "riesgoResidual": "Bajo"
+        }
+      ]
+    },
+    {
+      "numero": "6",
+      "titulo": "CONCLUSIÓN",
+      "tipo": "caja-conclusion",
+      "contenido": ""
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS"
+    }
+  ]
+}

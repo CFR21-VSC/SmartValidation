@@ -1,0 +1,667 @@
+{
+  "schemaVersion": "1.0",
+  "type": "IRA",
+  "package": {
+    "code": "DRP-SIS-001",
+    "systemName": "DRP-GAMP Categorizador™",
+    "systemVersion": "1.0",
+    "systemSubtitle": "Sistema de Categorización GAMP 5",
+    "client": "Emara SRL",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": 2026
+  },
+  "document": {
+    "code": "IRA-DRP-SIS-001",
+    "titleEs": "ANÁLISIS DE RIESGOS DE COMPONENTES",
+    "titleEn": "INFRASTRUCTURE RISK ANALYSIS BY COMPONENT (IRA)",
+    "headerTitle": "Análisis de Riesgos de Componentes (IRA)",
+    "version": "1.0",
+    "issueDate": "Febrero 2026",
+    "status": "Aprobado",
+    "processOwner": "Ana Pérez",
+    "gampCategory": "GAMP 3 — IRO Bajo-Medio (de HLRA)",
+    "normativeFramework": "ANMAT 4159/2023 | ICH Q9 R1 | GAMP 5 §8.2 | 21 CFR Part 11",
+    "extras": {
+      "Componentes evaluados": "16 (8 Software / 5 Infraestructura / 3 Seguridad)",
+      "Metodología": "IRA-Score = P × G × I | GAMP 5 §8.2 | ICH Q9 R1",
+      "Fuente de datos": "SOP-ADM-GAMP-001 v1.0 | MAN-GAMP-CAT-001 v1.0"
+    }
+  },
+  "controlCambios": [
+    {
+      "version": "1.0",
+      "fecha": "Feb 2026",
+      "autor": "Ana Pérez",
+      "descripcion": "Versión inicial — Componentes extraídos de SOP-ADM v1.0 y MAN v1.0"
+    }
+  ],
+  "matrizAprobaciones": [
+    {
+      "rol": "Redactor (Validador)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "16/02/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-02-16T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "16/02/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-02-16T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    },
+    {
+      "rol": "Aprobador (Jefe de Validaciones)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "16/02/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-02-16T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "16/02/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-02-16T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    }
+  ],
+  "trazabilidad": {
+    "recibeDe": [
+      "HLRA",
+      "RA"
+    ],
+    "alimentaA": [
+      "PIQ",
+      "MTR"
+    ]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO",
+      "bloques": [
+        {
+          "texto": "El IRA evalúa los riesgos individuales de cada componente técnico del DRP-GAMP Categorizador™ (DRP-SIS-001) para determinar el alcance y profundidad de verificación en la Installation Qualification (IQ). Complementa al RA-DRP-SIS-001 (riesgos por función) aportando la dimensión técnica de la instalación."
+        },
+        {
+          "texto": "Todos los componentes fueron identificados de la documentación fuente oficial: SOP-ADM-GAMP-001 v1.0 (Sección 4.1 infraestructura técnica) y MAN-GAMP-CAT-001 v1.0 (Sección 4.2 requisitos del sistema)."
+        }
+      ]
+    },
+    {
+      "tipo": "escalas-ira",
+      "titulo": "METODOLOGÍA: IRA-Score = P × G × I",
+      "escalaP": [
+        {
+          "valor": 1,
+          "nivel": "Bajo",
+          "descripcion": "Sin vinculación directa a proceso GxP."
+        },
+        {
+          "valor": 2,
+          "nivel": "Medio",
+          "descripcion": "Soporte indirecto a proceso GxP."
+        },
+        {
+          "valor": 3,
+          "nivel": "Alto",
+          "descripcion": "Directamente involucrado en proceso GxP crítico."
+        }
+      ],
+      "escalaG": [
+        {
+          "valor": 1,
+          "nivel": "Baja",
+          "descripcion": "Fallo no afecta continuidad del servicio."
+        },
+        {
+          "valor": 2,
+          "nivel": "Media",
+          "descripcion": "Fallo interrumpe parcialmente el servicio."
+        },
+        {
+          "valor": 3,
+          "nivel": "Alta",
+          "descripcion": "Fallo total: servicio no disponible o datos comprometidos."
+        }
+      ],
+      "escalaI": [
+        {
+          "valor": 1,
+          "nivel": "Baja",
+          "descripcion": "Fallo no compromete integridad de datos GxP."
+        },
+        {
+          "valor": 2,
+          "nivel": "Media",
+          "descripcion": "Fallo puede comprometer integridad de forma recuperable."
+        },
+        {
+          "valor": 3,
+          "nivel": "Alta",
+          "descripcion": "Fallo compromete irreversiblemente datos GxP."
+        }
+      ],
+      "niveles": [
+        {
+          "rango": "1-4",
+          "nivel": "BAJO",
+          "verificacion": "Verificación Básica"
+        },
+        {
+          "rango": "5-8",
+          "nivel": "MEDIO",
+          "verificacion": "Verificación Estándar"
+        },
+        {
+          "rango": "9-27",
+          "nivel": "ALTO",
+          "verificacion": "Verificación Exhaustiva"
+        }
+      ],
+      "nota": "El IRA-Score determina la profundidad del IQ (no la mitigación). La Gravedad (G) es propiedad inherente del componente: nunca se reduce — solo se reduce el riesgo verificando exhaustivamente la instalación correcta."
+    },
+    {
+      "tipo": "tabla-componentes-ira",
+      "titulo": "MATRIZ DE RIESGOS POR COMPONENTE",
+      "intro": "Componentes identificados de SOP-ADM §4.1, §4.2, §6.1 y MAN §4.2. Los colores en P, G, I reflejan individualmente cada dimensión del riesgo. El IRA-Score es el producto P × G × I y determina la profundidad de verificación en el IQ.",
+      "filas": [
+        {
+          "subheader": "CATEGORÍA 1 — SOFTWARE DE APLICACIÓN"
+        },
+        {
+          "id": "COMP-SW-01",
+          "tipo": "Software",
+          "componente": "App Web Principal",
+          "descripcion": "SaaS Python/Django en https://categorizador.example.com/ controla todo el flujo (SOP-ADM §4.1)",
+          "P": 3,
+          "G": 3,
+          "I": 3,
+          "tcIq": "TC-IQ-001"
+        },
+        {
+          "id": "COMP-SW-02",
+          "tipo": "Software",
+          "componente": "Panel de Administración",
+          "descripcion": "Admin Panel: gestión usuarios, roles, config. Solo accesible desde URL de administrador",
+          "P": 3,
+          "G": 3,
+          "I": 3,
+          "tcIq": "TC-IQ-003 / TC-IQ-004"
+        },
+        {
+          "id": "COMP-SW-03",
+          "tipo": "Software",
+          "componente": "Portal de Verificación",
+          "descripcion": "https://verify.example.com/ verificación pública SHA-256 para auditores (MAN §9.2)",
+          "P": 3,
+          "G": 2,
+          "I": 3,
+          "tcIq": "TC-IQ-005"
+        },
+        {
+          "id": "COMP-SW-04",
+          "tipo": "Software",
+          "componente": "Motor Generación PDF",
+          "descripcion": "Módulo interno que genera reportes auditables de 4 páginas (MAN §8.3 / URS-035)",
+          "P": 3,
+          "G": 3,
+          "I": 3,
+          "tcIq": "TC-OQ-013"
+        },
+        {
+          "id": "COMP-SW-05",
+          "tipo": "Software",
+          "componente": "Motor SHA-256",
+          "descripcion": "Hash criptográfico 64 chars por reporte: garantiza integridad e inmutabilidad (MAN §9.4 / URS-040)",
+          "P": 3,
+          "G": 3,
+          "I": 3,
+          "tcIq": "TC-OQ-015"
+        },
+        {
+          "id": "COMP-SW-06",
+          "tipo": "Software",
+          "componente": "Módulo Audit Trail",
+          "descripcion": "Registro automático e inmutable de accesos y acciones admin (SOP-ADM §10 / URS-049)",
+          "P": 3,
+          "G": 3,
+          "I": 3,
+          "tcIq": "TC-IQ-004"
+        },
+        {
+          "id": "COMP-SW-07",
+          "tipo": "Software",
+          "componente": "Servicio Email/SMTP",
+          "descripcion": "Gmail App Password: notificaciones y reset contraseña (SOP-ADM §4.2 / URS-005)",
+          "P": 2,
+          "G": 2,
+          "I": 1,
+          "tcIq": "TC-IQ-006"
+        },
+        {
+          "id": "COMP-SW-08",
+          "tipo": "Software",
+          "componente": "Algoritmo Categorizador",
+          "descripcion": "Motor adaptativo Q1-Q5 con índice de confianza: función nuclear del negocio (MAN §7.3 / URS-021)",
+          "P": 3,
+          "G": 3,
+          "I": 3,
+          "tcIq": "TC-OQ-009 / 012"
+        },
+        {
+          "subheader": "CATEGORÍA 2 — INFRAESTRUCTURA CLOUD (AWS)"
+        },
+        {
+          "id": "COMP-INF-01",
+          "tipo": "AWS Cloud",
+          "componente": "Servidor EC2 t3.medium",
+          "descripcion": "2vCPU/4GB RAM/US-East-1: host de la aplicación completa. Fallo = sistema inaccesible (SOP-ADM §4.1)",
+          "P": 3,
+          "G": 3,
+          "I": 2,
+          "tcIq": "TC-IQ-001 / 007"
+        },
+        {
+          "id": "COMP-INF-02",
+          "tipo": "AWS Cloud",
+          "componente": "Base de Datos SQLite",
+          "descripcion": "Almacena usuarios, categorizaciones y audit trail (SOP-ADM §4.1 / §6.1 / URS-046)",
+          "P": 3,
+          "G": 3,
+          "I": 3,
+          "tcIq": "TC-IQ-008"
+        },
+        {
+          "id": "COMP-INF-03",
+          "tipo": "AWS Cloud",
+          "componente": "Backup Automático",
+          "descripcion": "Backup diario 02:00 AM: único mecanismo de recuperación ante fallo (SOP-ADM §9 / URS-048)",
+          "P": 3,
+          "G": 3,
+          "I": 2,
+          "tcIq": "TC-IQ-009"
+        },
+        {
+          "id": "COMP-INF-04",
+          "tipo": "AWS Cloud",
+          "componente": "Consola AWS IAM",
+          "descripcion": "Monitoreo y administración cloud: credenciales IAM. Fallo no impacta app directamente (SOP-ADM §4.2)",
+          "P": 2,
+          "G": 2,
+          "I": 1,
+          "tcIq": "TC-IQ-010"
+        },
+        {
+          "id": "COMP-INF-05",
+          "tipo": "AWS Cloud",
+          "componente": "Acceso SSH al Servidor",
+          "descripcion": "Mantenimiento y logs. Auth por clave SSH únicamente; contraseña deshabilitada (SOP-ADM §6.1)",
+          "P": 2,
+          "G": 2,
+          "I": 2,
+          "tcIq": "TC-IQ-011"
+        },
+        {
+          "subheader": "CATEGORÍA 3 — CONTROLES DE SEGURIDAD"
+        },
+        {
+          "id": "COMP-SEC-01",
+          "tipo": "Seguridad",
+          "componente": "Certificado TLS 1.3",
+          "descripcion": "Let's Encrypt: cifrado en tránsito de toda la comunicación. HTTP rechazado (SOP-ADM §4.1 / URS-045)",
+          "P": 3,
+          "G": 3,
+          "I": 3,
+          "tcIq": "TC-IQ-002 / TC-OQ-018"
+        },
+        {
+          "id": "COMP-SEC-02",
+          "tipo": "Seguridad",
+          "componente": "Firewall AWS Security Groups",
+          "descripcion": "Reglas de red: solo puerto 443 + SSH desde IPs autorizadas (SOP-ADM §6.1)",
+          "P": 3,
+          "G": 3,
+          "I": 2,
+          "tcIq": "TC-IQ-012"
+        },
+        {
+          "id": "COMP-SEC-03",
+          "tipo": "Seguridad",
+          "componente": "Política Contraseñas / Bloqueo",
+          "descripcion": "Min 8 chars, bloqueo 3 intentos, timeout 30 min. Control compensatorio sin 2FA (SOP-ADM §6.3 / URS-002 / 003 / 015)",
+          "P": 3,
+          "G": 2,
+          "I": 2,
+          "tcIq": "TC-OQ-002 / 003"
+        }
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESUMEN DE RESULTADOS",
+      "intro": "Distribución de componentes por categoría y nivel de IRA-Score.",
+      "columnas": [
+        "Categoría",
+        "Total",
+        "IRA ALTO (9-27)",
+        "IRA MEDIO (5-8)",
+        "IRA BAJO (1-4)"
+      ],
+      "widths": [
+        165,
+        60,
+        80,
+        80,
+        70
+      ],
+      "filas": [
+        [
+          "Software de Aplicación",
+          {
+            "text": "8",
+            "alignment": "center"
+          },
+          {
+            "text": "7",
+            "alignment": "center"
+          },
+          {
+            "text": "0",
+            "alignment": "center"
+          },
+          {
+            "text": "1",
+            "alignment": "center"
+          }
+        ],
+        [
+          "Infraestructura Cloud",
+          {
+            "text": "5",
+            "alignment": "center"
+          },
+          {
+            "text": "3",
+            "alignment": "center"
+          },
+          {
+            "text": "1",
+            "alignment": "center"
+          },
+          {
+            "text": "1",
+            "alignment": "center"
+          }
+        ],
+        [
+          "Controles de Seguridad",
+          {
+            "text": "3",
+            "alignment": "center"
+          },
+          {
+            "text": "2",
+            "alignment": "center"
+          },
+          {
+            "text": "1",
+            "alignment": "center"
+          },
+          {
+            "text": "0",
+            "alignment": "center"
+          }
+        ],
+        [
+          {
+            "text": "TOTAL",
+            "bold": true,
+            "fillColor": "#EAF1F8"
+          },
+          {
+            "text": "16",
+            "alignment": "center",
+            "bold": true,
+            "fillColor": "#EAF1F8"
+          },
+          {
+            "text": "12",
+            "alignment": "center",
+            "bold": true,
+            "fillColor": "#EAF1F8"
+          },
+          {
+            "text": "2",
+            "alignment": "center",
+            "bold": true,
+            "fillColor": "#EAF1F8"
+          },
+          {
+            "text": "2",
+            "alignment": "center",
+            "bold": true,
+            "fillColor": "#EAF1F8"
+          }
+        ]
+      ]
+    },
+    {
+      "tipo": "caja-conclusion",
+      "titulo": "Interpretación",
+      "parrafos": [
+        "12/16 componentes con IRA ALTO es coherente con la arquitectura SaaS centralizada del sistema. Aunque el IRO global del sistema (HLRA) es 32 (BAJO-MEDIO para GAMP 3), la concentración de funciones críticas en pocos componentes cloud eleva el valor por componente.",
+        "Esto NO contradice el HLRA: refleja que cada componente es crítico individualmente porque sostiene múltiples funciones simultáneamente.",
+        "Impacto en PIQ: 12 TCs exhaustivos + 2 estándar + 2 básicos = estimado 15 test cases IQ totales."
+      ]
+    },
+    {
+      "tipo": "tabla-alcance-piq",
+      "titulo": "ALCANCE DE VERIFICACIÓN EN EL PIQ",
+      "intro": "La siguiente tabla traduce directamente los resultados del IRA en requerimientos de verificación para el PIQ-DRP-SIS-001, asignando a cada componente su criterio de aceptación exacto y el TC-IQ correspondiente.",
+      "filas": [
+        {
+          "compId": "COMP-SW-01",
+          "componente": "App Web",
+          "ira": 27,
+          "verificacion": "URL accesible HTTPS, versión v1.0 visible en interfaz.",
+          "criterio": "HTTPS 200 OK. Texto '1.0' visible en pantalla sin login.",
+          "tcIq": "TC-IQ-001"
+        },
+        {
+          "compId": "COMP-SW-02",
+          "componente": "Panel Admin",
+          "ira": 27,
+          "verificacion": "Acceso desde VPN: login exitoso. Sin VPN: acceso denegado.",
+          "criterio": "Con VPN: panel visible. Sin VPN: error de acceso.",
+          "tcIq": "TC-IQ-003"
+        },
+        {
+          "compId": "COMP-SW-03",
+          "componente": "Portal Verif.",
+          "ira": 18,
+          "verificacion": "Portal activo, formulario de verificación funcional.",
+          "criterio": "URL responde 200 OK. Formulario QR/código visible.",
+          "tcIq": "TC-IQ-005"
+        },
+        {
+          "compId": "COMP-SW-06",
+          "componente": "Audit Trail",
+          "ira": 27,
+          "verificacion": "Log de accesos activo: IP + fecha + hora por login.",
+          "criterio": "Tras login: registro con usuario, IP, timestamp con segundos.",
+          "tcIq": "TC-IQ-004"
+        },
+        {
+          "compId": "COMP-INF-01",
+          "componente": "Servidor EC2",
+          "ira": 18,
+          "verificacion": "EC2 activo en US-East-1, tipo t3.medium.",
+          "criterio": "Instancia activa. Región US-East-1 confirmada en consola.",
+          "tcIq": "TC-IQ-007"
+        },
+        {
+          "compId": "COMP-INF-02",
+          "componente": "DB SQLite",
+          "ira": 27,
+          "verificacion": "DB activa y AES-256 en reposo habilitado.",
+          "criterio": "SQLite responde. Cifrado AES-256 verificado en config AWS.",
+          "tcIq": "TC-IQ-008"
+        },
+        {
+          "compId": "COMP-INF-03",
+          "componente": "Backup",
+          "ira": 18,
+          "verificacion": "Backup configurado, último backup exitoso.",
+          "criterio": "Schedule 02:00 AM activo. Último backup: estado OK con fecha.",
+          "tcIq": "TC-IQ-009"
+        },
+        {
+          "compId": "COMP-SEC-01",
+          "componente": "TLS 1.3",
+          "ira": 27,
+          "verificacion": "HTTPS con TLS 1.3, cert vigente, HTTP redireccionado.",
+          "criterio": "Cert Let's Encrypt válido. TLS 1.3. HTTP→HTTPS redirect activo.",
+          "tcIq": "TC-IQ-002"
+        },
+        {
+          "compId": "COMP-SEC-02",
+          "componente": "Firewall AWS",
+          "ira": 18,
+          "verificacion": "Solo 443 abierto. SSH solo desde IPs autorizadas.",
+          "criterio": "Puerto 443: abierto. Puerto 80: cerrado/redirect. SSH: solo IPs admin.",
+          "tcIq": "TC-IQ-012"
+        },
+        {
+          "compId": "COMP-INF-05",
+          "componente": "SSH Acceso",
+          "ira": 8,
+          "verificacion": "SSH con clave: conecta. SSH con contraseña: rechazado.",
+          "criterio": "Login por clave SSH: OK. Login por contraseña: rechazado.",
+          "tcIq": "TC-IQ-011"
+        },
+        {
+          "compId": "COMP-SW-07",
+          "componente": "Email SMTP",
+          "ira": 4,
+          "verificacion": "Envío de email de reset funcional.",
+          "criterio": "Email de recuperación llega en ~5 min al destinatario.",
+          "tcIq": "TC-IQ-006"
+        },
+        {
+          "compId": "COMP-INF-04",
+          "componente": "Consola AWS",
+          "ira": 4,
+          "verificacion": "Login a consola AWS funcional con credenciales IAM.",
+          "criterio": "Acceso a consola exitoso. EC2 visible en dashboard.",
+          "tcIq": "TC-IQ-010"
+        }
+      ]
+    },
+    {
+      "tipo": "caja-conclusion",
+      "titulo": "Conclusión",
+      "parrafos": [
+        "16 componentes evaluados: 12 IRA ALTO, 2 IRA MEDIO, 2 IRA BAJO.",
+        "La concentración de IRA ALTO es estructural a la arquitectura SaaS del sistema y no constituye un hallazgo regulatorio adverso.",
+        "Todos los componentes con IRA ALTO tienen trazabilidad completa: URS → IRA → TC.",
+        "El IRA determina el alcance del PIQ: 13 TCs exhaustivos + 2 básicos = 15 TCs IQ estimados.",
+        "Componentes COMP-SW-07 y COMP-INF-04 (IRA BAJO) requieren solo verificación básica funcional."
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": [
+        "Código",
+        "Título"
+      ],
+      "widths": [
+        180,
+        275
+      ],
+      "filas": [
+        [
+          "RA-DRP-SIS-001 v1.0",
+          "Análisis de Riesgos Operativo"
+        ],
+        [
+          "URS-DRP-SIS-001 v1.0",
+          "Especificación de Requerimientos de Usuario"
+        ],
+        [
+          "HLRA-DRP-SIS-001 v1.0",
+          "High Level Risk Assessment"
+        ],
+        [
+          "SOP-ADM-GAMP-001 v1.0",
+          "Procedimiento de Administración (fuente de componentes)"
+        ],
+        [
+          "MAN-GAMP-CAT-001 v1.0",
+          "Manual de Usuario"
+        ],
+        [
+          "GAMP 5 §8.2 — 2da Ed. 2022",
+          "Installation Qualification — Risk-based approach (ISPE)"
+        ],
+        [
+          "ICH Q9 R1 (2023)",
+          "Quality Risk Management"
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal del Análisis de Riesgos de Componentes (IRA). El alcance del PIQ definido en este documento (Sección 5) será input directo del PIQ-DRP-SIS-001.",
+      "firmas": [
+        {
+          "rol": "Redactor (Validador)",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "16/02/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-02-16T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        },
+        {
+          "rol": "Revisor (Process Owner)",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "16/02/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-02-16T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        },
+        {
+          "rol": "Aprobador (Jefe de Validaciones)",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "16/02/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-02-16T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        },
+        {
+          "rol": "Aprobador (Gerente QA)",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "16/02/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-02-16T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        }
+      ],
+      "nota": "Documento sujeto a firma electrónica. La firma manuscrita en este recuadro solo aplica como respaldo físico cuando no es viable la firma digital."
+    }
+  ]
+}

@@ -1,0 +1,178 @@
+{
+  "schemaVersion": "1.0",
+  "type": "URS",
+  "package": {
+    "code": "",
+    "systemName": "",
+    "systemVersion": "",
+    "systemSubtitle": "",
+    "client": "",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": null
+  },
+  "document": {
+    "code": "",
+    "titleEs": "ESPECIFICACIÓN DE REQUERIMIENTOS DE USUARIO",
+    "titleEn": "USER REQUIREMENTS SPECIFICATION (URS)",
+    "headerTitle": "Especificación de Requerimientos de Usuario (URS)",
+    "version": "1.0",
+    "issueDate": "",
+    "status": "Borrador",
+    "processOwner": "",
+    "gampCategory": "",
+    "normativeFramework": "",
+    "extras": {
+      "Total de requerimientos": "",
+      "Documentos fuente": ""
+    }
+  },
+  "controlCambios": [],
+  "matrizAprobaciones": [
+    { "rol": "Redactor (Validador)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Revisor (Process Owner)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+  ],
+  "trazabilidad": {
+    "recibeDe": ["HLRA", "VP"],
+    "alimentaA": ["MCN", "MTR", "POQ"]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO",
+      "bloques": []
+    },
+    {
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido",
+      "incluido": [],
+      "subExcluido": "2.2 Excluido",
+      "excluido": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESPONSABILIDADES",
+      "columnas": ["Rol", "Responsabilidad en este URS"],
+      "widths": [160, 295],
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DEFINICIONES",
+      "columnas": ["Término", "Definición"],
+      "widths": [125, 330],
+      "filas": []
+    },
+    {
+      "tipo": "texto",
+      "titulo": "CONTEXTO DEL SISTEMA",
+      "contenido": ""
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "5.1 Descripción General",
+      "intro": ""
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "5.2 Usuarios del Sistema"
+    },
+    {
+      "tipo": "tabla",
+      "columnas": ["Rol", "Perfil", "Acciones principales"],
+      "widths": [110, 165, 180],
+      "filas": []
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "5.3 Integraciones con Otros Sistemas",
+      "intro": ""
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "LEYENDA DE LA TABLA DE REQUERIMIENTOS",
+      "columnas": ["Campo", "Valores posibles", "Significado"],
+      "widths": [85, 175, 195],
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "noHeader": true,
+      "compact": true,
+      "widths": [120, 335],
+      "filas": [
+        [
+          { "text": "Criticidad CRÍTICA", "color": "#C0392B", "bold": true, "fillColor": "#FFF8DC" },
+          { "text": "", "fillColor": "#FFF8DC" }
+        ],
+        [
+          { "text": "Criticidad ALTA", "color": "#E67E22", "bold": true, "fillColor": "#FFF8DC" },
+          { "text": "", "fillColor": "#FFF8DC" }
+        ],
+        [
+          { "text": "Criticidad MEDIA", "color": "#717D8A", "bold": true, "fillColor": "#FFF8DC" },
+          { "text": "", "fillColor": "#FFF8DC" }
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REQUERIMIENTOS FUNCIONALES",
+      "intro": "",
+      "compact": true,
+      "columnas": ["URS-ID", "Fuente", "El sistema DEBERÁ...", "Tipo", "Criticidad"],
+      "widths": [50, 80, 220, 30, 75],
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REQUERIMIENTOS NO FUNCIONALES",
+      "compact": true,
+      "columnas": ["URS-ID", "Fuente", "El sistema DEBERÁ...", "Tipo", "Criticidad"],
+      "widths": [55, 80, 215, 30, 75],
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "EXCLUSIONES EXPLÍCITAS",
+      "intro": "",
+      "columnas": ["Funcionalidad excluida", "Justificación", "Referencia"],
+      "widths": [165, 200, 90],
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "CRITERIOS DE ACEPTACIÓN DEL URS",
+      "columnas": ["#", "Criterio", "Verificación"],
+      "widths": [25, 290, 140],
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESUMEN ESTADÍSTICO DE REQUERIMIENTOS",
+      "columnas": ["Por tipo", "Por criticidad", "Por módulo"],
+      "widths": [140, 120, 195],
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": ["Código / Referencia", "Título"],
+      "widths": [180, 275],
+      "filas": []
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de este URS.",
+      "firmas": [],
+      "rolesPlaceholder": [
+        "Ejecutor (Validador)",
+        "Revisor (Process Owner)",
+        "Aprobador (Gerente QA)"
+      ],
+      "nota": ""
+    }
+  ]
+}

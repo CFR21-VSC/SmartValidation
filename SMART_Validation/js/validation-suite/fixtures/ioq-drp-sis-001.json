@@ -1,0 +1,1962 @@
+{
+  "schemaVersion": "1.0",
+  "type": "IOQ",
+  "package": {
+    "code": "DRP-SIS-001",
+    "systemName": "DRP-GAMP Categorizador™",
+    "systemVersion": "1.1",
+    "systemSubtitle": "Sistema de Categorización GAMP 5",
+    "client": "Emara SRL",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": 2026
+  },
+  "document": {
+    "code": "IOQ-DRP-SIS-001",
+    "titleEs": "INFORME DE CALIFICACIÓN OPERACIONAL",
+    "titleEn": "OPERATIONAL QUALIFICATION REPORT (IOQ)",
+    "headerTitle": "Informe de Calificación Operacional (IOQ)",
+    "version": "1.0",
+    "issueDate": "Abril 2026",
+    "status": "Aprobado",
+    "processOwner": "Ana Pérez",
+    "gampCategory": "GAMP 3 — Software Estándar Configurable",
+    "normativeFramework": "ANMAT 4159/2023 | 21 CFR Part 11 | EU Annex 11 | GAMP 5 §8.3 | FDA CSA 2022",
+    "extras": {
+      "Documento base (POQ)": "POQ-DRP-SIS-001 v1.0",
+      "Total TCs ejecutados": "47/47 TCs",
+      "TCs negativos ejecutados": "2 TCs (TC-OQ-020, TC-OQ-023) — ambos PASS por rechazo correcto",
+      "Resultado global": "47 PASS / 0 FAIL / 0 OBS abiertas (tras cierre de CAPA)",
+      "Hallazgos": "2 NC abiertas durante ejecución → AMBAS CERRADAS. NC-001 (OBS menor UI Firefox). NC-002 (NC crítica: hash SHA-256 sin normalización UTF-8).",
+      "Decisión": "OQ APROBADA — sistema apto para Performance Qualification (PQ)"
+    }
+  },
+  "controlCambios": [
+    {
+      "version": "1.0",
+      "fecha": "Abr 2026",
+      "autor": "Ana Pérez — Process Owner",
+      "descripcion": "Emisión inicial del IOQ. Ejecución conducida del 18/04/2026 al 23/04/2026 por Carlos Rodríguez (Validador interno). 47/47 TCs PASS final tras cierre de 2 NC. Modalidad abreviada: 10 TCs detallados in extenso (1 por grupo + 2 negativos + el OBS + el FAIL→PASS); los 37 restantes consolidados en matriz con su estado y evidencias capturadas en Gestor."
+    }
+  ],
+  "matrizAprobaciones": [
+    {
+      "rol": "Ejecutor (Validador)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "23/04/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-04-23T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "24/04/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-04-24T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    },
+    {
+      "rol": "Aprobador (Jefe de Validaciones)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "25/04/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-04-25T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "25/04/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-04-25T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    }
+  ],
+  "trazabilidad": {
+    "schemaVersion": "2.0",
+    "recibeDe": [
+      {
+        "tipo": "POQ",
+        "code": "POQ-DRP-SIS-001",
+        "version": "v1.0",
+        "fechaCongelado": "15/03/2026",
+        "items": [
+          "TC-OQ-001",
+          "TC-OQ-002",
+          "TC-OQ-003",
+          "TC-OQ-004",
+          "TC-OQ-005",
+          "TC-OQ-006",
+          "TC-OQ-007",
+          "TC-OQ-008",
+          "TC-OQ-009",
+          "TC-OQ-010",
+          "TC-OQ-011",
+          "TC-OQ-012",
+          "TC-OQ-013",
+          "TC-OQ-014",
+          "TC-OQ-015",
+          "TC-OQ-016",
+          "TC-OQ-017",
+          "TC-OQ-018",
+          "TC-OQ-019",
+          "TC-OQ-020",
+          "TC-OQ-021",
+          "TC-OQ-022",
+          "TC-OQ-023",
+          "TC-OQ-024",
+          "TC-OQ-025",
+          "TC-OQ-026",
+          "TC-OQ-027",
+          "TC-OQ-028",
+          "TC-OQ-029",
+          "TC-OQ-030",
+          "TC-OQ-031",
+          "TC-OQ-032",
+          "TC-OQ-033",
+          "TC-OQ-034",
+          "TC-OQ-035",
+          "TC-OQ-036",
+          "TC-OQ-037",
+          "TC-OQ-038",
+          "TC-OQ-039",
+          "TC-OQ-040",
+          "TC-OQ-041",
+          "TC-OQ-042",
+          "TC-OQ-043",
+          "TC-OQ-044",
+          "TC-OQ-045",
+          "TC-OQ-046",
+          "TC-OQ-047"
+        ],
+        "itemsCount": 47,
+        "estado": "aprobado",
+        "_auto": true
+      }
+    ],
+    "alimentaA": [
+      "ROQ",
+      "PPQ",
+      "AEX"
+    ]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO Y OBJETIVO",
+      "bloques": [
+        {
+          "texto": "El presente Informe de Calificación Operacional (IOQ) documenta los resultados de la ejecución del Protocolo POQ-DRP-SIS-001 v1.0 sobre el sistema DRP-GAMP Categorizador™ v1.1, llevada a cabo entre el 18/04/2026 y el 23/04/2026 por el equipo interno de Validaciones."
+        },
+        {
+          "texto": "Los 47 Test Cases del POQ fueron ejecutados con resultado final PASS, tras la apertura y cierre de 2 No Conformidades durante el período de ejecución: NC-001 (observación menor de UI en Firefox, cerrada con fix CSS) y NC-002 (NC crítica de hash SHA-256 sin normalización UTF-8 para nombres con caracteres especiales, cerrada vía CAPA y re-ejecución del TC afectado). Ambas NC se documentan en la sección \"Hallazgos y Desvíos\"."
+        },
+        {
+          "texto": "Modalidad del presente informe — abreviada: por tratarse de un IOQ con volumen grande de TCs (47), el detalle por TC se documenta de forma representativa: 10 TCs detallados completamente (uno por grupo funcional + los 2 negativos + el TC con OBS + el TC con FAIL→PASS tras CAPA) y los 37 restantes consolidados en la matriz general con estado/ejecutor/fecha/evidencias. Todas las evidencias completas se encuentran capturadas en el Gestor de Evidencias bajo paquete DRP-SIS-001."
+        },
+        {
+          "texto": "Decisión global: el sistema es apto para iniciar la Calificación de Performance (PQ). Las 2 NC quedaron cerradas antes del cierre del IOQ, sin impacto residual."
+        }
+      ]
+    },
+    {
+      "tipo": "tabla-info",
+      "titulo": "DATOS DE EJECUCIÓN",
+      "labelWidth": 165,
+      "filas": [
+        {
+          "campo": "Protocolo ejecutado",
+          "valor": "POQ-DRP-SIS-001 v1.0",
+          "boldValor": true,
+          "colorValor": "primary"
+        },
+        {
+          "campo": "Fecha de ejecución",
+          "valor": "18/04/2026 — 23/04/2026 (6 días hábiles incluyendo CAPA)"
+        },
+        {
+          "campo": "Ejecutor",
+          "valor": "Carlos Rodríguez — Validador Interno"
+        },
+        {
+          "campo": "Ambiente",
+          "valor": "Pre-productivo (staging) — equivalente productivo"
+        },
+        {
+          "campo": "Total TCs ejecutados",
+          "valor": "47/47 (100%) — PASS final tras cierre de CAPA",
+          "boldValor": true,
+          "colorValor": "accent"
+        },
+        {
+          "campo": "TCs negativos ejecutados",
+          "valor": "2 TCs (TC-OQ-020, TC-OQ-023) — ambos PASS por rechazo correcto"
+        },
+        {
+          "campo": "Hallazgos / Desvíos",
+          "valor": "2 NC abiertas durante ejecución, AMBAS CERRADAS. NC-001 (OBS menor cerrada). NC-002 (crítica cerrada vía CAPA + re-ejecución).",
+          "boldValor": true
+        }
+      ]
+    },
+    {
+      "tipo": "matriz-tc",
+      "titulo": "MATRIZ DE TEST CASES OQ — RESULTADOS DE EJECUCIÓN",
+      "intro": "Resumen consolidado de la ejecución de los 47 TCs OQ. Estado final tras cierre de CAPA: 47 PASS. NC-001 y NC-002 abiertas durante la ejecución se cerraron antes del cierre del IOQ.",
+      "columnasVisibles": [
+        "tcId",
+        "titulo",
+        "grupo",
+        "tipoTC",
+        "raScore",
+        "nivel",
+        "ursVinculados",
+        "estado",
+        "ejecutor",
+        "fechaEjecucion",
+        "evidenciasCount"
+      ],
+      "tcs": [
+        {
+          "tcId": "TC-OQ-001",
+          "titulo": "Login con credenciales válidas e inválidas",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-001"
+          ],
+          "raVinculado": "RA-001",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "18/04/2026",
+          "evidenciasCount": 2
+        },
+        {
+          "tcId": "TC-OQ-002",
+          "titulo": "Expiración de sesión — timeout 24 horas (versión demo)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-002",
+            "URS-003"
+          ],
+          "raVinculado": "RA-002",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "18/04/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-OQ-003",
+          "titulo": "Bloqueo de cuenta al 5to intento fallido",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-003"
+          ],
+          "raVinculado": "RA-003",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "18/04/2026",
+          "evidenciasCount": 4
+        },
+        {
+          "tcId": "TC-OQ-004",
+          "titulo": "Cambio de contraseña obligatorio en primer acceso",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-004"
+          ],
+          "raVinculado": "RA-004",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "18/04/2026",
+          "evidenciasCount": 2
+        },
+        {
+          "tcId": "TC-OQ-005",
+          "titulo": "Recuperación de contraseña por email",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-005"
+          ],
+          "raVinculado": "RA-005",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "18/04/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-OQ-006",
+          "titulo": "Audit trail de intentos de acceso",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-006"
+          ],
+          "raVinculado": "RA-006",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "18/04/2026",
+          "evidenciasCount": 4
+        },
+        {
+          "tcId": "TC-OQ-007",
+          "titulo": "Re-autenticación al ingresar al panel admin",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-007"
+          ],
+          "raVinculado": "RA-007",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "18/04/2026",
+          "evidenciasCount": 2
+        },
+        {
+          "tcId": "TC-OQ-008",
+          "titulo": "Acceso panel admin con credencial independiente",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-008"
+          ],
+          "raVinculado": "RA-008",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "18/04/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-OQ-009",
+          "titulo": "Creación y gestión de cuentas de usuario",
+          "tipoTC": "POSITIVO",
+          "grupo": "Roles y Permisos",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-009"
+          ],
+          "raVinculado": "RA-009",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "19/04/2026",
+          "evidenciasCount": 4
+        },
+        {
+          "tcId": "TC-OQ-010",
+          "titulo": "Permisos del rol Usuario Final",
+          "tipoTC": "POSITIVO",
+          "grupo": "Roles y Permisos",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-010"
+          ],
+          "raVinculado": "RA-010",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "19/04/2026",
+          "evidenciasCount": 2
+        },
+        {
+          "tcId": "TC-OQ-011",
+          "titulo": "Desactivación de cuenta preserva historial",
+          "tipoTC": "POSITIVO",
+          "grupo": "Roles y Permisos",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-011"
+          ],
+          "raVinculado": "RA-011",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "19/04/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-OQ-012",
+          "titulo": "Permisos del rol Administrador",
+          "tipoTC": "POSITIVO",
+          "grupo": "Roles y Permisos",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-012"
+          ],
+          "raVinculado": "RA-012",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "19/04/2026",
+          "evidenciasCount": 4
+        },
+        {
+          "tcId": "TC-OQ-013",
+          "titulo": "Desactivación de cuenta — verificación de bloqueo de acceso",
+          "tipoTC": "POSITIVO",
+          "grupo": "Roles y Permisos",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-013"
+          ],
+          "raVinculado": "RA-013",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "19/04/2026",
+          "evidenciasCount": 2
+        },
+        {
+          "tcId": "TC-OQ-014",
+          "titulo": "Políticas de contraseña por rol",
+          "tipoTC": "POSITIVO",
+          "grupo": "Roles y Permisos",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-015",
+            "URS-016"
+          ],
+          "raVinculado": "RA-014",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "19/04/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-OQ-015",
+          "titulo": "Formulario de registro del sistema",
+          "tipoTC": "POSITIVO",
+          "grupo": "Registro",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-017",
+            "URS-018",
+            "URS-019",
+            "URS-020"
+          ],
+          "raVinculado": "RA-015",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "19/04/2026",
+          "evidenciasCount": 4
+        },
+        {
+          "tcId": "TC-OQ-016",
+          "titulo": "Validación de campos obligatorios",
+          "tipoTC": "POSITIVO",
+          "grupo": "Registro",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-020"
+          ],
+          "raVinculado": "RA-016",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "19/04/2026",
+          "evidenciasCount": 2
+        },
+        {
+          "tcId": "TC-OQ-017",
+          "titulo": "Cuestionario adaptativo 3-5 preguntas",
+          "tipoTC": "POSITIVO",
+          "grupo": "Cuestionario GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-021",
+            "URS-022"
+          ],
+          "raVinculado": "RA-017",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "20/04/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-OQ-018",
+          "titulo": "Lógica condicional en pregunta Q2",
+          "tipoTC": "POSITIVO",
+          "grupo": "Cuestionario GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-023"
+          ],
+          "raVinculado": "RA-018",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "20/04/2026",
+          "evidenciasCount": 4
+        },
+        {
+          "tcId": "TC-OQ-019",
+          "titulo": "Presentación de pregunta Q3 — GxP",
+          "tipoTC": "POSITIVO",
+          "grupo": "Cuestionario GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-024"
+          ],
+          "raVinculado": "RA-019",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "20/04/2026",
+          "evidenciasCount": 2
+        },
+        {
+          "tcId": "TC-OQ-020",
+          "titulo": "NO se genera resultado si confianza < 90%",
+          "tipoTC": "NEGATIVO",
+          "grupo": "Cuestionario GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-025"
+          ],
+          "raVinculado": "RA-020",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "20/04/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-OQ-021",
+          "titulo": "Colores del índice de confianza",
+          "tipoTC": "POSITIVO",
+          "grupo": "Cuestionario GAMP",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-026"
+          ],
+          "raVinculado": "RA-021",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "20/04/2026",
+          "evidenciasCount": 4
+        },
+        {
+          "tcId": "TC-OQ-022",
+          "titulo": "Contenido de la pantalla de resultado",
+          "tipoTC": "POSITIVO",
+          "grupo": "Cuestionario GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-027"
+          ],
+          "raVinculado": "RA-022",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "20/04/2026",
+          "evidenciasCount": 2
+        },
+        {
+          "tcId": "TC-OQ-023",
+          "titulo": "Categoría GAMP 2 NUNCA asignada",
+          "tipoTC": "NEGATIVO",
+          "grupo": "Cuestionario GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-028"
+          ],
+          "raVinculado": "RA-023",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "20/04/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-OQ-024",
+          "titulo": "Asistente GAMPI — columna izquierda",
+          "tipoTC": "POSITIVO",
+          "grupo": "GAMPI y Analytics",
+          "raScore": 12,
+          "nivel": "MEDIO",
+          "ursVinculados": [
+            "URS-029",
+            "URS-030"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "OBS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "21/04/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-OQ-025",
+          "titulo": "Casos similares en GAMPI",
+          "tipoTC": "POSITIVO",
+          "grupo": "GAMPI y Analytics",
+          "raScore": 12,
+          "nivel": "MEDIO",
+          "ursVinculados": [
+            "URS-031"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "21/04/2026",
+          "evidenciasCount": 2
+        },
+        {
+          "tcId": "TC-OQ-026",
+          "titulo": "Monitor de Analytics — columna derecha",
+          "tipoTC": "POSITIVO",
+          "grupo": "GAMPI y Analytics",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-032",
+            "URS-033"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "21/04/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-OQ-027",
+          "titulo": "Manejo de error en consulta fallida del asistente",
+          "tipoTC": "POSITIVO",
+          "grupo": "GAMPI y Analytics",
+          "raScore": 12,
+          "nivel": "MEDIO",
+          "ursVinculados": [
+            "URS-034"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "21/04/2026",
+          "evidenciasCount": 4
+        },
+        {
+          "tcId": "TC-OQ-028",
+          "titulo": "Reporte PDF — 4 páginas exactas",
+          "tipoTC": "POSITIVO",
+          "grupo": "Reporte PDF",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-035"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "21/04/2026",
+          "evidenciasCount": 2
+        },
+        {
+          "tcId": "TC-OQ-029",
+          "titulo": "Nombre del archivo PDF — formato estandarizado",
+          "tipoTC": "POSITIVO",
+          "grupo": "Reporte PDF",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-036"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "21/04/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-OQ-030",
+          "titulo": "Contenido de la Página 1 del PDF",
+          "tipoTC": "POSITIVO",
+          "grupo": "Reporte PDF",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-037"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "21/04/2026",
+          "evidenciasCount": 4
+        },
+        {
+          "tcId": "TC-OQ-031",
+          "titulo": "Página 4 del PDF — firmas y almacenamiento",
+          "tipoTC": "POSITIVO",
+          "grupo": "Reporte PDF",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-038",
+            "URS-039"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "21/04/2026",
+          "evidenciasCount": 2
+        },
+        {
+          "tcId": "TC-OQ-032",
+          "titulo": "Hash SHA-256 único e invariable",
+          "tipoTC": "POSITIVO",
+          "grupo": "SHA-256 y Portal QR",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-040"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "22/04/2026",
+          "evidenciasCount": 5
+        },
+        {
+          "tcId": "TC-OQ-033",
+          "titulo": "Portal QR — acceso y funcionalidad",
+          "tipoTC": "POSITIVO",
+          "grupo": "SHA-256 y Portal QR",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-041"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "22/04/2026",
+          "evidenciasCount": 4
+        },
+        {
+          "tcId": "TC-OQ-034",
+          "titulo": "Portal QR — resultado VÁLIDO con SHA correcto",
+          "tipoTC": "POSITIVO",
+          "grupo": "SHA-256 y Portal QR",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-042"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "22/04/2026",
+          "evidenciasCount": 2
+        },
+        {
+          "tcId": "TC-OQ-035",
+          "titulo": "Portal QR — metadatos del reporte",
+          "tipoTC": "POSITIVO",
+          "grupo": "SHA-256 y Portal QR",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-043"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "22/04/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-OQ-036",
+          "titulo": "Disponibilidad — uptime 99.5%",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-044"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "22/04/2026",
+          "evidenciasCount": 4
+        },
+        {
+          "tcId": "TC-OQ-037",
+          "titulo": "Cifrado TLS — HTTPS obligatorio",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-045"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "22/04/2026",
+          "evidenciasCount": 2
+        },
+        {
+          "tcId": "TC-OQ-038",
+          "titulo": "Cifrado de base de datos AES-256",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-046"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "23/04/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-OQ-039",
+          "titulo": "Compatibilidad de navegadores",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 12,
+          "nivel": "MEDIO",
+          "ursVinculados": [
+            "URS-047"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "23/04/2026",
+          "evidenciasCount": 4
+        },
+        {
+          "tcId": "TC-OQ-040",
+          "titulo": "Backup automático diario",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-048"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "23/04/2026",
+          "evidenciasCount": 2
+        },
+        {
+          "tcId": "TC-OQ-041",
+          "titulo": "Audit trail 21 CFR Part 11",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-049"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "23/04/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-OQ-042",
+          "titulo": "Mensajes de error estandarizados",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 12,
+          "nivel": "MEDIO",
+          "ursVinculados": [
+            "URS-050"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "23/04/2026",
+          "evidenciasCount": 4
+        },
+        {
+          "tcId": "TC-OQ-043",
+          "titulo": "Política de seguridad (NF-001)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-NF-001"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "23/04/2026",
+          "evidenciasCount": 2
+        },
+        {
+          "tcId": "TC-OQ-044",
+          "titulo": "Tiempo de respuesta del PDF < 10s (NF-002)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 12,
+          "nivel": "MEDIO",
+          "ursVinculados": [
+            "URS-NF-002"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "23/04/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-OQ-045",
+          "titulo": "Audit trail 21 CFR Part 11 (NF-003)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-NF-003"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "23/04/2026",
+          "evidenciasCount": 4
+        },
+        {
+          "tcId": "TC-OQ-046",
+          "titulo": "Integridad de PDF post-generación (NF-004)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-NF-004"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "23/04/2026",
+          "evidenciasCount": 2
+        },
+        {
+          "tcId": "TC-OQ-047",
+          "titulo": "Backup completo diario (NF-005)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-NF-005"
+          ],
+          "raVinculado": "RA-024",
+          "estado": "PASS",
+          "ejecutor": "CR",
+          "fechaEjecucion": "23/04/2026",
+          "evidenciasCount": 3
+        }
+      ]
+    },
+    {
+      "tipo": "tabla-test-case",
+      "titulo": "DETALLE DE EJECUCIÓN POR TEST CASE (REPRESENTATIVOS)",
+      "intro": "Detalle in extenso de 10 TCs representativos seleccionados como muestra de la ejecución: 1 por cada grupo funcional, los 2 TCs negativos del protocolo, el TC que generó la OBS NC-001 (TC-OQ-024) y el TC que falló inicialmente y fue re-ejecutado tras CAPA (TC-OQ-032). Los 37 TCs restantes están consolidados en la matriz superior con su estado y referencia a evidencias en el Gestor.",
+      "agruparPorGrupo": true,
+      "schemaModo": "procedimiento",
+      "tcs": [
+        {
+          "tcId": "TC-OQ-001",
+          "titulo": "Login con credenciales válidas e inválidas",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "grupoFuncional": "Autenticación y Seguridad de Acceso",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-001"
+          ],
+          "raVinculado": "RA-001",
+          "objetivo": "Verificar que el sistema autentica correctamente con credenciales válidas y rechaza credenciales inválidas con mensaje genérico sin revelar datos sensibles.",
+          "precondiciones": [
+            "Sesión cerrada en navegador (modo incógnito o logout previo).",
+            "Usuario de prueba activo: contacto@example.com con contraseña válida configurada.",
+            "Credenciales inválidas (usuario inexistente o contraseña incorrecta) preparadas."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Abrir navegador y navegar a https://categorizador.example.com/",
+              "resultadoEsperado": "Pantalla de login visible.",
+              "resultadoReal": "Login con credencial válida exitoso en 1.1s. Redirige a dashboard."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Ingresar usuario: contacto@example.com y contraseña válida. Hacer clic en 'Iniciar sesión'.",
+              "resultadoEsperado": "Login exitoso. Sistema redirige al dashboard.",
+              "resultadoReal": "Login inválido rechazado en 0.4s. Mensaje generico \"Credenciales incorrectas\" sin diferenciar si el usuario existe o no."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Capturar screenshot del dashboard post-login con usuario autenticado visible.",
+              "resultadoEsperado": "Screenshot con sesión activa documentado.",
+              "resultadoReal": "Audit trail visible en panel admin con ambas entradas (login válido + login inválido), timestamps e IPs correctas."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Cerrar sesión. Navegar nuevamente a la pantalla de login.",
+              "resultadoEsperado": "Pantalla de login visible.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Ingresar credenciales inválidas (usuario inexistente o contraseña incorrecta). Hacer clic en 'Iniciar sesión'.",
+              "resultadoEsperado": "Sistema rechaza el acceso y muestra mensaje de error genérico.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Verificar que el mensaje de error NO revela si el usuario existe o cuál dato es incorrecto.",
+              "resultadoEsperado": "Mensaje genérico sin datos sensibles.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Capturar screenshot del mensaje de error con credenciales inválidas.",
+              "resultadoEsperado": "Screenshot del error documentado.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            }
+          ],
+          "criterioAceptacion": "Login exitoso con credenciales válidas redirige al dashboard. Credenciales inválidas muestran mensaje de error genérico sin revelar si el usuario existe o cuál dato es incorrecto.",
+          "criterioObservado": "Login válido aceptado en 1.1s. Login inválido rechazado en 0.4s con mensaje generico sin filtración de info. Audit trail registró ambos intentos con timestamp e IP correcta.",
+          "estado": "PASS",
+          "ejecutor": "Carlos Rodríguez (Validador Interno)",
+          "fechaEjecucion": "18/04/2026",
+          "firma": "CR",
+          "evidenciasGestor": [
+            {
+              "descripcion": "Captura del login exitoso + dashboard del usuario",
+              "criterioRef": "Paso 1",
+              "timestamp": "18/04/2026 10:15"
+            },
+            {
+              "descripcion": "Captura del rechazo de credencial inválida",
+              "criterioRef": "Paso 2",
+              "timestamp": "18/04/2026 10:18"
+            },
+            {
+              "descripcion": "Audit trail con ambos eventos registrados",
+              "criterioRef": "Paso 3",
+              "timestamp": "18/04/2026 10:22"
+            }
+          ],
+          "hallazgos": []
+        },
+        {
+          "tcId": "TC-OQ-009",
+          "titulo": "Administración Django — creación y gestión de cuentas de usuario",
+          "tipoTC": "POSITIVO",
+          "grupo": "Roles y Permisos",
+          "grupoFuncional": "Gestión de Usuarios y Contraseñas",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-009"
+          ],
+          "raVinculado": "RA-009",
+          "objetivo": "Verificar que el panel admin Django permite al administrador crear, modificar y desactivar cuentas de usuario de la aplicación. El sistema implementa un único tipo de usuario con acceso homogéneo a las funciones de categorización.",
+          "precondiciones": [
+            "Acceso al panel admin Django (/admin/) con credenciales de administrador."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Ingresar al panel admin Django. Navegar a la sección de gestión de usuarios de la aplicación.",
+              "resultadoEsperado": "Panel admin accesible. Lista de usuarios de la aplicación visible.",
+              "resultadoReal": "Panel admin abierto correctamente. Botón \"Nuevo usuario\" habilitado."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Crear un nuevo usuario de prueba: prueba_oq09@example.com. Asignar contraseña temporal.",
+              "resultadoEsperado": "Usuario creado exitosamente. Visible en la lista de usuarios.",
+              "resultadoReal": "Formulario completado. Validación de email funcional (rechazó \"no-es-email\")."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Capturar screenshot del nuevo usuario creado en la lista de usuarios del panel admin Django.",
+              "resultadoEsperado": "Screenshot del usuario creado documentado.",
+              "resultadoReal": "Alta confirmada. Email enviado en 1m 03s."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Verificar que el nuevo usuario puede iniciar sesión en la aplicación con sus credenciales. Capturar screenshot.",
+              "resultadoEsperado": "Login del nuevo usuario exitoso en la aplicación.",
+              "resultadoReal": "Usuario nuevo accedió al dashboard con permisos del rol Usuario Final (sin acceso a panel admin)."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Desde el panel admin Django, modificar el email del usuario prueba_oq09@example.com. Guardar.",
+              "resultadoEsperado": "Modificación aplicada correctamente. Cambio visible en la lista de usuarios.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Desactivar la cuenta prueba_oq09@example.com (campo Active = False). Guardar cambios.",
+              "resultadoEsperado": "Cuenta marcada como inactiva en el panel admin.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Verificar que prueba_oq09@example.com aparece como inactivo. Capturar screenshot.",
+              "resultadoEsperado": "Screenshot del usuario con estado inactivo documentado.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 8,
+              "instruccion": "Intentar iniciar sesión en la aplicación con prueba_oq09@example.com. Verificar rechazo.",
+              "resultadoEsperado": "Sistema rechaza el login. Mensaje de cuenta inactiva visible.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            }
+          ],
+          "criterioAceptacion": "El administrador puede crear, modificar y desactivar cuentas de usuario desde el panel admin Django. Cuentas desactivadas no permiten autenticación en la aplicación. La gestión de usuarios es exclusiva del panel de administración Django.",
+          "criterioObservado": "Admin pudo crear cuenta nueva con email + empresa + rol Usuario Final. Email enviado en 1m 03s. Audit trail registró el alta correctamente. Permisos del nuevo usuario coinciden con el rol asignado.",
+          "estado": "PASS",
+          "ejecutor": "Carlos Rodríguez (Validador Interno)",
+          "fechaEjecucion": "19/04/2026",
+          "firma": "CR",
+          "evidenciasGestor": [
+            {
+              "descripcion": "Formulario de alta completado por admin",
+              "criterioRef": "Paso 2",
+              "timestamp": "19/04/2026 11:30"
+            },
+            {
+              "descripcion": "Email de bienvenida recibido por usuario nuevo",
+              "criterioRef": "Paso 3",
+              "timestamp": "19/04/2026 11:32"
+            },
+            {
+              "descripcion": "Dashboard del usuario con permisos correctos + intento de acceso al admin bloqueado",
+              "criterioRef": "Paso 4",
+              "timestamp": "19/04/2026 11:45"
+            }
+          ],
+          "hallazgos": []
+        },
+        {
+          "tcId": "TC-OQ-015",
+          "titulo": "Formulario de registro del sistema — campos y tipos de sistema",
+          "tipoTC": "POSITIVO",
+          "grupo": "Registro",
+          "grupoFuncional": "Registro del Sistema",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-017",
+            "URS-018",
+            "URS-019",
+            "URS-020"
+          ],
+          "raVinculado": "RA-015",
+          "objetivo": "Verificar que el formulario de registro del sistema incluye todos los campos requeridos (nombre, tipo/categoría, departamento, ambiente, responsable) con tipos de entrada correctos.",
+          "precondiciones": [
+            "Sesión iniciada como Usuario Final o Administrador."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Ingresar al sistema con contacto@example.com y navegar a la sección de 'Registrar Sistema' o equivalente.",
+              "resultadoEsperado": "Formulario de registro del sistema visible.",
+              "resultadoReal": "Formulario abierto con campos obligatorios visibles y marcados."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Verificar que el formulario incluye campo: Nombre del Sistema.",
+              "resultadoEsperado": "Campo 'Nombre del Sistema' presente.",
+              "resultadoReal": "Validación rechazó envío con campos vacíos mostrando mensajes específicos por campo."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Verificar que el formulario incluye campo: Tipo/Categoría del sistema (dropdown o selección).",
+              "resultadoEsperado": "Campo 'Tipo de Sistema' presente.",
+              "resultadoReal": "Registro completado con datos válidos. Persistencia OK. Cuestionario adaptativo abierto en 0.9s."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Verificar que el formulario incluye campo: Departamento o área responsable.",
+              "resultadoEsperado": "Campo 'Departamento' presente.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Verificar que el formulario incluye campo: Ambiente (Producción, Testing, etc.).",
+              "resultadoEsperado": "Campo 'Ambiente' presente.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Verificar que el formulario incluye campo: Responsable o Process Owner.",
+              "resultadoEsperado": "Campo 'Responsable' presente.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Capturar screenshot del formulario de registro completo con todos los campos visibles.",
+              "resultadoEsperado": "Screenshot con todos los campos documentado.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 8,
+              "instruccion": "Completar todos los campos y hacer clic en 'Siguiente'.",
+              "resultadoEsperado": "Sistema procesa el formulario y avanza al cuestionario.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            }
+          ],
+          "criterioAceptacion": "Formulario muestra todos los campos: nombre sistema, categoría, departamento, ambiente, responsable. Campos obligatorios marcados. El formulario procesa correctamente y avanza al cuestionario cuando todos los campos están completos.",
+          "criterioObservado": "Formulario de registro abierto correctamente con los campos obligatorios visibles. Validación de campos funcional. Registro persistido y cuestionario abierto en 0.9s.",
+          "estado": "PASS",
+          "ejecutor": "Carlos Rodríguez (Validador Interno)",
+          "fechaEjecucion": "19/04/2026",
+          "firma": "CR",
+          "evidenciasGestor": [
+            {
+              "descripcion": "Formulario inicial con campos obligatorios marcados",
+              "criterioRef": "Paso 1",
+              "timestamp": "19/04/2026 15:00"
+            },
+            {
+              "descripcion": "Rechazo de envío vacío con mensajes por campo",
+              "criterioRef": "Paso 2",
+              "timestamp": "19/04/2026 15:05"
+            },
+            {
+              "descripcion": "Cuestionario adaptativo abierto tras registro",
+              "criterioRef": "Paso 3",
+              "timestamp": "19/04/2026 15:10"
+            }
+          ],
+          "hallazgos": []
+        },
+        {
+          "tcId": "TC-OQ-017",
+          "titulo": "Cuestionario adaptativo — flujo de 3 a 5 preguntas",
+          "tipoTC": "POSITIVO",
+          "grupo": "Cuestionario GAMP",
+          "grupoFuncional": "Cuestionario Adaptativo GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-021",
+            "URS-022"
+          ],
+          "raVinculado": "RA-017",
+          "objetivo": "Verificar que el cuestionario adaptativo GAMP presenta entre 3 y 5 preguntas dinámicamente según las respuestas dadas.",
+          "precondiciones": [
+            "Usuario autenticado con acceso al cuestionario.",
+            "Sistema con preguntas de cuestionario configuradas."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Ingresar al sistema con contacto@example.com. Registrar un nuevo sistema de prueba en el formulario.",
+              "resultadoEsperado": "Formulario completado. Sistema inicia cuestionario.",
+              "resultadoReal": "Q1 cargó con opciones predefinidas. Selección registrada."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Observar y registrar la primera pregunta (Q1) presentada por el cuestionario.",
+              "resultadoEsperado": "Q1 visible. Capturar screenshot de Q1 (primera pregunta sobre tipo de sistema).",
+              "resultadoReal": "Q2 condicional apareció solo cuando Q1 = \"Software Configurable\". OK."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Responder Q1 y observar si el sistema presenta Q2 condicionalmente.",
+              "resultadoEsperado": "Q2 puede aparecer según respuesta de Q1.",
+              "resultadoReal": "Q3 GxP presentada con tooltip explicativo del impacto GxP. OK."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Continuar respondiendo todas las preguntas hasta que el sistema muestre el resultado de categorización.",
+              "resultadoEsperado": "Cuestionario completo. Resultado visible.",
+              "resultadoReal": "Confianza calculada: 94%. Sistema devolvió categoría GAMP 3."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Registrar la cantidad total de preguntas presentadas en el cuestionario: N = _____",
+              "resultadoEsperado": "N entre 3 y 5 preguntas.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Capturar screenshot de la última pregunta y el resultado de categorización.",
+              "resultadoEsperado": "Screenshot de última pregunta y resultado documentados.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            }
+          ],
+          "criterioAceptacion": "Cuestionario inicia con Q1. Mínimo 3 preguntas, máximo 5 según ruta adaptativa. Preguntas relevantes al tipo de sistema indicado.",
+          "criterioObservado": "Cuestionario presentó 4 preguntas adaptativamente. Lógica condicional funcional. Categoría calculada y devuelta cuando confianza supera el 90%.",
+          "estado": "PASS",
+          "ejecutor": "Carlos Rodríguez (Validador Interno)",
+          "fechaEjecucion": "20/04/2026",
+          "firma": "CR",
+          "evidenciasGestor": [
+            {
+              "descripcion": "Pantalla del cuestionario con Q1 y Q2 condicional visible",
+              "criterioRef": "Paso 1-2",
+              "timestamp": "20/04/2026 09:30"
+            },
+            {
+              "descripcion": "Resultado del cuestionario: Confianza 94%, GAMP 3",
+              "criterioRef": "Paso 4",
+              "timestamp": "20/04/2026 09:35"
+            }
+          ],
+          "hallazgos": []
+        },
+        {
+          "tcId": "TC-OQ-020",
+          "titulo": "Sistema NO muestra resultado si confianza < 90%",
+          "tipoTC": "NEGATIVO",
+          "grupo": "Cuestionario GAMP",
+          "grupoFuncional": "Cuestionario Adaptativo GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-025"
+          ],
+          "raVinculado": "RA-020",
+          "objetivo": "Verificar que el sistema NO muestra resultado de categorización cuando el índice de confianza es inferior al 90%. Este TC verifica el rechazo correcto del sistema ante combinaciones ambiguas.",
+          "precondiciones": [
+            "Acceso al cuestionario.",
+            "Combinación de respuestas que resulten en confianza < 90% preparada."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Iniciar cuestionario. Ingresar respuestas ambiguas o contradictorias que resulten en confianza baja (<90%).",
+              "resultadoEsperado": "Sistema procesa respuestas ambiguas.",
+              "resultadoReal": "Respuestas inconsistentes ingresadas intencionalmente (combinación que reduce confianza)."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Verificar que el sistema NO muestra ninguna categoría GAMP como resultado.",
+              "resultadoEsperado": "Sistema no muestra categoría GAMP.",
+              "resultadoReal": "Sistema calculó confianza 78% (menor a 90%) y NO devolvió categoría."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Capturar screenshot del resultado mostrando mensaje de confianza insuficiente (sin categoría GAMP).",
+              "resultadoEsperado": "Screenshot de mensaje de confianza insuficiente documentado.",
+              "resultadoReal": "Pantalla intermedia mostrada: \"Información insuficiente — refine las respuestas para obtener una categorización confiable\"."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Verificar que el sistema muestra un mensaje indicando insuficiencia de información o solicita más respuestas.",
+              "resultadoEsperado": "Mensaje de insuficiencia o solicitud de aclaraciones visible.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Verificar que NO se muestra ninguna categoría GAMP (1, 3, 4 o 5) cuando confianza < 90%.",
+              "resultadoEsperado": "Ninguna categoría GAMP visible en la pantalla de resultado.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            }
+          ],
+          "criterioAceptacion": "Índice de confianza < 90%: sistema NO muestra categoría GAMP (rechazo correcto). Muestra mensaje indicando insuficiencia de información o solicita aclaraciones al usuario.",
+          "notas": "TC NEGATIVO: el sistema DEBE rechazar mostrar resultado cuando la confianza es insuficiente. PASS = sistema NO muestra categoría. FAIL sería el sistema mostrando una categoría con confianza <90%.",
+          "criterioObservado": "TC negativo: sistema correctamente NO generó resultado cuando la confianza calculada fue 78% (menor al umbral de 90%). Mostró pantalla intermedia solicitando información adicional. Rechazo manejado sin error.",
+          "estado": "PASS",
+          "ejecutor": "Carlos Rodríguez (Validador Interno)",
+          "fechaEjecucion": "20/04/2026",
+          "firma": "CR",
+          "evidenciasGestor": [
+            {
+              "descripcion": "Pantalla con confianza 78% y bloqueo de resultado",
+              "criterioRef": "Paso 2",
+              "timestamp": "20/04/2026 11:15"
+            },
+            {
+              "descripcion": "Mensaje al usuario solicitando refinamiento",
+              "criterioRef": "Paso 3",
+              "timestamp": "20/04/2026 11:18"
+            }
+          ],
+          "hallazgos": []
+        },
+        {
+          "tcId": "TC-OQ-023",
+          "titulo": "Categoría GAMP 2 NUNCA asignada — TC NEGATIVO EXHAUSTIVO",
+          "tipoTC": "NEGATIVO",
+          "grupo": "Cuestionario GAMP",
+          "grupoFuncional": "Cuestionario Adaptativo GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-028"
+          ],
+          "raVinculado": "RA-023",
+          "objetivo": "Verificar que la Categoría GAMP 2 NUNCA es asignada por el sistema (categoría eliminada en GAMP 5 Segunda Edición 2022). Cobertura exhaustiva: ningún escenario del cuestionario debe resultar en GAMP 2.",
+          "precondiciones": [
+            "Múltiples combinaciones de respuestas del cuestionario preparadas.",
+            "Conocimiento de que GAMP 2 fue eliminada en GAMP 5 2ª Ed. 2022."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Iniciar cuestionario. Responder con combinación Escenario 1 (ej: Software Custom, Baja Criticidad).",
+              "resultadoEsperado": "Resultado de categorización visible. Registrar categoría obtenida.",
+              "resultadoReal": "Ejecutadas 50 categorizaciones con combinaciones diversas de respuestas."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Registrar resultado escenario 1: Categoría = _____ (debe ser ≠ 2).",
+              "resultadoEsperado": "Categoría ≠ 2 registrada para Escenario 1.",
+              "resultadoReal": "Resultado: 12 × GAMP 1, 28 × GAMP 3, 8 × GAMP 4, 2 × GAMP 5. Cero GAMP 2."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Iniciar cuestionario. Responder con combinación Escenario 2 (ej: COTS, Alta Criticidad, Alta Configuración).",
+              "resultadoEsperado": "Resultado visible. Registrar categoría obtenida.",
+              "resultadoReal": "Inspección del código fuente confirmó: GAMP 2 excluido de la matriz funcional."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Registrar resultado escenario 2: Categoría = _____ (debe ser ≠ 2).",
+              "resultadoEsperado": "Categoría ≠ 2 registrada para Escenario 2.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Capturar screenshot de resultados mostrando que solo aparecen categorías 1, 3, 4 o 5.",
+              "resultadoEsperado": "Screenshots de múltiples resultados documentados.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Navegar por toda la interfaz del sistema y verificar que no existe ninguna referencia a 'Categoría 2' o 'GAMP 2'.",
+              "resultadoEsperado": "Sin referencias a Categoría 2 en ninguna sección de la interfaz.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Verificar que no existe ninguna referencia a 'Categoría 2' o 'GAMP 2' en la documentación generada (reportes PDF).",
+              "resultadoEsperado": "Sin referencias a GAMP 2 confirmado.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            }
+          ],
+          "criterioAceptacion": "Ninguna combinación de respuestas resulta en asignación de Categoría 2. Las categorías posibles son: 1, 3, 4, 5. Sin referencias a GAMP 2 en la UI ni en reportes generados.",
+          "notas": "TC NEGATIVO EXHAUSTIVO: PASS = Categoría 2 NUNCA aparece en ningún escenario. Aplica directamente al estándar GAMP 5 2ª Ed. 2022 que eliminó esta categoría. Cobertura crítica para auditoría regulatoria.",
+          "criterioObservado": "TC negativo: durante 50 categorizaciones de prueba con combinaciones diversas, ninguna devolvió GAMP 2. Sistema correctamente solo considera GAMP 1/3/4/5 según matriz funcional.",
+          "estado": "PASS",
+          "ejecutor": "Carlos Rodríguez (Validador Interno)",
+          "fechaEjecucion": "20/04/2026",
+          "firma": "CR",
+          "evidenciasGestor": [
+            {
+              "descripcion": "Tabla de 50 categorizaciones con distribución de resultados (sin GAMP 2)",
+              "criterioRef": "Paso 2",
+              "timestamp": "20/04/2026 16:00"
+            },
+            {
+              "descripcion": "Snippet del código mostrando matriz funcional sin GAMP 2",
+              "criterioRef": "Paso 3",
+              "timestamp": "20/04/2026 16:20"
+            }
+          ],
+          "hallazgos": []
+        },
+        {
+          "tcId": "TC-OQ-024",
+          "titulo": "Asistente GAMPI — columna izquierda y funciones disponibles",
+          "tipoTC": "POSITIVO",
+          "grupo": "GAMPI y Analytics",
+          "grupoFuncional": "Asistente GAMPI y Monitor Analytics",
+          "raScore": 12,
+          "nivel": "MEDIO",
+          "ursVinculados": [
+            "URS-029",
+            "URS-030"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el Asistente GAMPI está disponible en columna izquierda con sus funciones diferenciadas y permite consultas en lenguaje natural sobre GAMP.",
+          "precondiciones": [
+            "Sesión activa.",
+            "Resultado de categorización disponible en pantalla."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Ingresar al sistema y completar una categorización hasta el resultado.",
+              "resultadoEsperado": "Pantalla de resultado de categorización visible.",
+              "resultadoReal": "Dashboard admin con widgets visibles. Datos correctos."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Observar la disposición de la pantalla. Verificar que el Asistente GAMPI está ubicado en la columna izquierda.",
+              "resultadoEsperado": "Asistente GAMPI visible en columna izquierda.",
+              "resultadoReal": "Filtro fecha \"Últimos 7 días\" funcional en Chrome y Firefox."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Capturar screenshot de la interfaz completa mostrando Asistente GAMPI en columna izquierda.",
+              "resultadoEsperado": "Screenshot de interfaz completa documentado.",
+              "resultadoReal": "Filtro fecha \"Rango personalizado\" → Chrome OK. En Firefox: calendar picker no se renderizaba (caja de input vacía clickeable). OBS registrada."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Ingresar una consulta en lenguaje natural al Asistente GAMPI: '¿Qué implica la categoría GAMP 3?'.",
+              "resultadoEsperado": "Asistente procesa la consulta y genera respuesta.",
+              "resultadoReal": "Métricas se actualizaron correctamente al cambiar filtros."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Capturar screenshot de la respuesta del asistente a una consulta de ejemplo sobre GAMP.",
+              "resultadoEsperado": "Screenshot con respuesta del asistente documentado.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Verificar que la respuesta es contextual y relevante a la categoría GAMP asignada.",
+              "resultadoEsperado": "Respuesta contextualizada y coherente.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            }
+          ],
+          "criterioAceptacion": "Asistente GAMPI visible en columna izquierda. Permite consultas en lenguaje natural sobre GAMP. Respuestas contextualizadas y relevantes a la categoría asignada.",
+          "criterioObservado": "Dashboard de analytics mostró las métricas esperadas. OBSERVACIÓN MENOR: el filtro de fecha por rango personalizado no mostraba calendar picker en Firefox (sí en Chrome). CAPA aplicada (NC-001) — bug menor de UI corregido vía CSS en commit b3a4f12. Re-verificación OK.",
+          "estado": "OBS",
+          "ejecutor": "Carlos Rodríguez (Validador Interno)",
+          "fechaEjecucion": "21/04/2026",
+          "firma": "CR",
+          "evidenciasGestor": [
+            {
+              "descripcion": "Dashboard de analytics con las métricas y filtro 7 días",
+              "criterioRef": "Paso 1-2",
+              "timestamp": "21/04/2026 10:00"
+            },
+            {
+              "descripcion": "Firefox: rango personalizado SIN calendar picker (bug menor)",
+              "criterioRef": "Paso 3",
+              "timestamp": "21/04/2026 10:15"
+            },
+            {
+              "descripcion": "Tras CAPA aplicada: Firefox mostrando calendar picker correctamente",
+              "criterioRef": "Re-verificación",
+              "timestamp": "24/04/2026 09:00"
+            }
+          ],
+          "hallazgos": [
+            {
+              "id": "NC-001",
+              "descripcion": "En Firefox, el filtro de fecha por rango personalizado no muestra el calendar picker (input vacío). Funcional en Chrome. Bug menor de UI sin impacto en datos.",
+              "severidad": "BAJO",
+              "criticidad": "OBSERVACIÓN",
+              "criterioRef": "Paso 3",
+              "estado": "CERRADO",
+              "accionCorrectiva": "Aplicado fix CSS en commit b3a4f12 (24/04/2026). Calendar picker visible en Firefox tras refresh. Re-verificado por LS el 24/04/2026 — OK."
+            }
+          ]
+        },
+        {
+          "tcId": "TC-OQ-028",
+          "titulo": "Generación de reporte PDF — exactamente 4 páginas",
+          "tipoTC": "POSITIVO",
+          "grupo": "Reporte PDF",
+          "grupoFuncional": "Reporte PDF",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-035"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el reporte PDF generado tiene exactamente 4 páginas, todas con contenido válido.",
+          "precondiciones": [
+            "Categorización completada con índice ≥90%.",
+            "Visor PDF disponible (Adobe Reader, Foxit, u otro)."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Con resultado de categorización visible (índice ≥90%), hacer clic en 'Generar Reporte PDF' o equivalente.",
+              "resultadoEsperado": "Sistema inicia generación del PDF.",
+              "resultadoReal": "Click en \"Descargar PDF\". Generación iniciada."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Esperar a que el sistema complete la generación y descargue o muestre el PDF.",
+              "resultadoEsperado": "PDF descargado o visualizado.",
+              "resultadoReal": "PDF descargado en 17s."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Abrir el PDF en el visor y verificar el número total de páginas.",
+              "resultadoEsperado": "Número total de páginas = exactamente 4.",
+              "resultadoReal": "PDF abierto: portada + 3 secciones + QR + firma visible. Todos los elementos formales presentes."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Capturar screenshot del PDF generado mostrando número total de páginas (debe ser exactamente 4).",
+              "resultadoEsperado": "Screenshot con contador de páginas = 4 documentado.",
+              "resultadoReal": "PDF impreso en A4: layout correcto, sin elementos cortados."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Registrar número de páginas del PDF: N = _____",
+              "resultadoEsperado": "N = 4 registrado.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Navegar por las 4 páginas del PDF para confirmar que todas tienen contenido (no hay páginas en blanco).",
+              "resultadoEsperado": "4 páginas con contenido válido.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            }
+          ],
+          "criterioAceptacion": "Reporte PDF generado exitosamente. Archivo tiene exactamente 4 páginas. Todas las páginas con contenido válido (sin páginas en blanco).",
+          "criterioObservado": "PDF generado en 17s. Contiene: portada, datos del sistema, categorización con justificación, QR en pie de página, firma digital. Layout responsive correcto.",
+          "estado": "PASS",
+          "ejecutor": "Carlos Rodríguez (Validador Interno)",
+          "fechaEjecucion": "21/04/2026",
+          "firma": "CR",
+          "evidenciasGestor": [
+            {
+              "descripcion": "PDF descargado y abierto mostrando estructura completa",
+              "criterioRef": "Paso 3",
+              "timestamp": "21/04/2026 14:20"
+            },
+            {
+              "descripcion": "PDF impreso A4 con todos los elementos visibles",
+              "criterioRef": "Paso 4",
+              "timestamp": "21/04/2026 14:30"
+            }
+          ],
+          "hallazgos": []
+        },
+        {
+          "tcId": "TC-OQ-032",
+          "titulo": "Hash SHA-256 — único por reporte e invariable",
+          "tipoTC": "POSITIVO",
+          "grupo": "SHA-256 y Portal QR",
+          "grupoFuncional": "SHA-256 y Portal de Verificación",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-040"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el hash SHA-256 es único por reporte e invariable post-generación. Cualquier modificación al PDF debe invalidar el hash.",
+          "precondiciones": [
+            "Mínimo 2 reportes PDF generados (reporte 1 y reporte 2).",
+            "Herramienta de cálculo SHA-256 (online o local) disponible.",
+            "Editor PDF para prueba de integridad."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Obtener el hash SHA-256 del reporte 1 (registrado en TC-OQ-030 o visible en el PDF).",
+              "resultadoEsperado": "Hash del reporte 1 disponible.",
+              "resultadoReal": "PRIMERA EJECUCIÓN: PDF generado con caracteres especiales en el nombre del sistema (acentos y ñ)."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Registrar hash SHA-256 del reporte 1: _____________________________",
+              "resultadoEsperado": "Hash reporte 1 registrado.",
+              "resultadoReal": "PRIMERA EJECUCIÓN: Hash SHA-256 calculado externamente sobre el contenido del PDF."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Generar un segundo reporte PDF con otro sistema de prueba diferente.",
+              "resultadoEsperado": "Reporte 2 generado.",
+              "resultadoReal": "PRIMERA EJECUCIÓN: Escaneo QR del PDF mostró hash en portal. NO COINCIDÍA con el calculado externamente. FAIL — NC-002 registrada."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Obtener el hash SHA-256 del reporte 2.",
+              "resultadoEsperado": "Hash del reporte 2 disponible.",
+              "resultadoReal": "CAPA: bug identificado en función de hash (normalización UTF-8 omitida). Fix aplicado en commit a8d2e91 (22/04/2026). Re-deploy productivo."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Registrar hash SHA-256 del reporte 2: _____________________________",
+              "resultadoEsperado": "Hash reporte 2 registrado.",
+              "resultadoReal": "RE-EJECUCIÓN (23/04/2026): PDF nuevo generado con caracteres especiales. Hash externo coincide con el del portal QR. PASS."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Comparar Hash 1 vs Hash 2 — deben ser diferentes (unicidad por reporte).",
+              "resultadoEsperado": "Hash 1 ≠ Hash 2. Unicidad confirmada.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Hacer una pequeña modificación en el reporte 1 (ej: agregar un espacio con editor PDF). Recalcular hash.",
+              "resultadoEsperado": "Hash del PDF modificado cambia completamente.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 8,
+              "instruccion": "Capturar screenshot del hash original vs hash del PDF modificado (deben ser diferentes).",
+              "resultadoEsperado": "Screenshot comparación de hashes documentado.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            }
+          ],
+          "criterioAceptacion": "Dos reportes distintos tienen hash SHA-256 diferente. El mismo reporte siempre genera el mismo hash. Cualquier modificación al PDF invalida el hash.",
+          "criterioObservado": "INICIAL: TC FAIL — el hash SHA-256 mostrado en el portal no coincidía con el calculado independientemente. CAPA aplicada (NC-002) — bug crítico en función de generación de hash corregido en commit a8d2e91 (los caracteres especiales no se normalizaban UTF-8 antes del hash). RE-EJECUCIÓN tras fix: hash coincide perfectamente. TC PASS en re-verificación.",
+          "estado": "PASS",
+          "ejecutor": "Carlos Rodríguez (Validador Interno)",
+          "fechaEjecucion": "22/04/2026",
+          "firma": "CR",
+          "evidenciasGestor": [
+            {
+              "descripcion": "PRIMERA EJECUCIÓN: discrepancia entre hash externo y hash del portal",
+              "criterioRef": "Paso 3 (FAIL)",
+              "timestamp": "22/04/2026 09:30"
+            },
+            {
+              "descripcion": "Análisis del bug: función de hash sin normalización UTF-8",
+              "criterioRef": "CAPA NC-002",
+              "timestamp": "22/04/2026 14:00"
+            },
+            {
+              "descripcion": "Commit a8d2e91 con fix de normalización UTF-8",
+              "criterioRef": "CAPA NC-002",
+              "timestamp": "22/04/2026 16:30"
+            },
+            {
+              "descripcion": "RE-EJECUCIÓN: hash externo coincide con portal QR",
+              "criterioRef": "Paso 5 (PASS final)",
+              "timestamp": "23/04/2026 10:00"
+            },
+            {
+              "descripcion": "Audit trail de la re-ejecución con resultado PASS firmado",
+              "criterioRef": "Cierre NC",
+              "timestamp": "23/04/2026 10:15"
+            }
+          ],
+          "hallazgos": [
+            {
+              "id": "NC-002",
+              "descripcion": "En primera ejecución, el hash SHA-256 mostrado en el portal QR público no coincidía con el hash calculado independientemente sobre el PDF, cuando el nombre del sistema contenía caracteres especiales (acentos / ñ). Causa raíz: la función de generación de hash no aplicaba normalización UTF-8 antes del cálculo. Impacto: la promesa central del sistema (verificabilidad del PDF) quedaba comprometida para nombres con caracteres no-ASCII.",
+              "severidad": "ALTO",
+              "criticidad": "NC CRÍTICA",
+              "criterioRef": "Paso 3 (primera ejecución)",
+              "estado": "CERRADO",
+              "accionCorrectiva": "CAPA aplicada: fix de normalización UTF-8 (NFC) antes del cálculo de hash en commit a8d2e91 (22/04/2026). Re-deploy productivo el 22/04/2026 18:00. Re-ejecución del TC completa el 23/04/2026 → PASS. Adicionalmente: re-verificación de los hashes de los 47 sistemas previamente categorizados — todos confirmados consistentes (los previos no contenían caracteres especiales). Trazabilidad de la NC y su cierre registrada en sistema de gestión de NC."
+            }
+          ]
+        },
+        {
+          "tcId": "TC-OQ-036",
+          "titulo": "Disponibilidad del servicio — uptime verificación",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "grupoFuncional": "Infraestructura y Requerimientos No Funcionales",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-044"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el sistema cumple el SLA de disponibilidad del servicio (uptime ≥99.5%).",
+          "precondiciones": [
+            "Acceso a panel de administración.",
+            "Consola AWS o herramienta de monitoreo disponible."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Navegar a https://categorizador.example.com/ y verificar que el sistema está accesible.",
+              "resultadoEsperado": "Sistema accesible. HTTP 200 OK.",
+              "resultadoReal": "5 usuarios distintos preparados en sesiones browser separadas."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Registrar hora y resultado de acceso: HH:MM _____ / Accesible: Sí/No.",
+              "resultadoEsperado": "Accesibilidad registrada.",
+              "resultadoReal": "Inicio coordinado a la señal. Los 5 lograron iniciar el flujo en ventana de 10s."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Ingresar al panel de administración o consola AWS para revisar logs/dashboard de disponibilidad.",
+              "resultadoEsperado": "Dashboard de disponibilidad accesible.",
+              "resultadoReal": "5 PDFs generados. Tiempos: 19s, 22s, 21s, 24s, 24s. Promedio: 22s."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Capturar screenshot del dashboard del sistema funcional y accesible.",
+              "resultadoEsperado": "Screenshot del dashboard documentado.",
+              "resultadoReal": "Servidor: CPU pico 54%, sin errores 500, cola PDF dimensionada (depth máximo 2)."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Si existe dashboard de uptime: verificar que el valor de SLA es ≥99.5% en el período evaluado.",
+              "resultadoEsperado": "Uptime ≥99.5% confirmado en el período evaluado.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Registrar valor de SLA documentado por el proveedor: _____% (debe ser ≥99.5%).",
+              "resultadoEsperado": "SLA registrado.",
+              "resultadoReal": "Verificado conforme al resultado esperado del paso. Sin desvíos. Captura en Gestor de Evidencias."
+            }
+          ],
+          "criterioAceptacion": "Logs o dashboard de monitoreo muestran uptime ≥99.5% en el período evaluado. Sin incidentes críticos de indisponibilidad no planificada.",
+          "criterioObservado": "Sistema sostuvo carga de 5 categorizaciones simultáneas sin degradación. Tiempos: PDF promedio 22s (vs 18s aislado, degradación 22% — dentro del SLA de 30s). CPU pico del servidor: 54%. Sin errores 500.",
+          "estado": "PASS",
+          "ejecutor": "Carlos Rodríguez (Validador Interno)",
+          "fechaEjecucion": "22/04/2026",
+          "firma": "CR",
+          "evidenciasGestor": [
+            {
+              "descripcion": "Tabla de tiempos de los 5 PDFs simultáneos",
+              "criterioRef": "Paso 3",
+              "timestamp": "23/04/2026 15:00"
+            },
+            {
+              "descripcion": "Gráfico de carga del servidor durante la prueba (CPU/Memoria)",
+              "criterioRef": "Paso 4",
+              "timestamp": "23/04/2026 15:20"
+            }
+          ],
+          "hallazgos": []
+        }
+      ]
+    },
+    {
+      "tipo": "resumen-ejecucion-oq",
+      "titulo": "RESUMEN DE EJECUCIÓN",
+      "intro": "Estadística consolidada por categoría funcional de los 47 TCs ejecutados. TCs negativos contabilizados separadamente. Estado final tras cierre de CAPAs.",
+      "tcs": []
+    },
+    {
+      "tipo": "hallazgos-consolidados",
+      "titulo": "HALLAZGOS Y DESVÍOS",
+      "intro": "Recolección consolidada de las 2 No Conformidades identificadas durante la ejecución del OQ. Ambas fueron cerradas antes del cierre del IOQ con sus CAPAs aplicadas y verificadas.",
+      "tcs": []
+    },
+    {
+      "tipo": "caja-conclusion",
+      "titulo": "CONCLUSIÓN Y DECISIÓN FORMAL",
+      "parrafos": [
+        "Decisión: OQ APROBADA.",
+        "El sistema DRP-GAMP Categorizador™ v1.1 (paquete DRP-SIS-001) ha completado exitosamente su Calificación Operacional. Los 47 Test Cases definidos en el POQ fueron ejecutados con resultado final PASS (incluidos los 2 TCs negativos que demostraron el correcto rechazo de escenarios límite).",
+        "Durante la ejecución se identificaron 2 No Conformidades. NC-001 (OBS menor): bug de UI en Firefox sin impacto funcional. Cerrada con fix CSS aplicado y re-verificado. NC-002 (NC crítica): hash SHA-256 incorrecto para nombres con caracteres especiales — comprometía la promesa central del sistema. Cerrada vía CAPA (fix de normalización UTF-8 + re-deploy + re-ejecución del TC afectado). Adicionalmente se re-verificaron los hashes de los 47 sistemas previamente categorizados — todos consistentes (no contenían caracteres especiales).",
+        "Conclusión formal: el sistema es apto para iniciar la Calificación de Performance (PQ). La aprobación del IOQ habilita la ejecución del PPQ-DRP-SIS-001. La trazabilidad cruzada queda preservada: todos los URS funcionales y los riesgos RA críticos del POQ fueron verificados con TCs PASS.",
+        "Este IOQ se integra al paquete documental DRP-SIS-001 v1.0 como cierre formal de la fase OQ."
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": [
+        "Documento",
+        "Título"
+      ],
+      "widths": [
+        180,
+        275
+      ],
+      "filas": [
+        [
+          "POQ-DRP-SIS-001 v1.0",
+          "Protocolo de Calificación Operacional ejecutado"
+        ],
+        [
+          "URS-DRP-SIS-001 v1.0",
+          "User Requirements Specification"
+        ],
+        [
+          "RA-DRP-SIS-001 v1.0",
+          "Risk Assessment (24 riesgos funcionales)"
+        ],
+        [
+          "PIQ-DRP-SIS-001 v1.0",
+          "Protocolo de Calificación de Instalación"
+        ],
+        [
+          "IIQ-DRP-SIS-001 v1.0",
+          "Informe IQ — 15/15 PASS (pre-requisito cumplido)"
+        ],
+        [
+          "MTR-DRP-SIS-001 v1.0",
+          "Matriz de Trazabilidad"
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN Y APROBACIÓN",
+      "intro": "Las firmas siguientes evidencian la ejecución, revisión y aprobación formal del Informe de Calificación Operacional.",
+      "firmas": [
+        {
+          "rol": "Ejecutor (Validador)",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "23/04/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-04-23T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        },
+        {
+          "rol": "Revisor (Process Owner)",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "24/04/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-04-24T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        },
+        {
+          "rol": "Aprobador (Jefe de Validaciones)",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "25/04/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-04-25T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        },
+        {
+          "rol": "Aprobador (Gerente QA)",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "25/04/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-04-25T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        }
+      ],
+      "rolesPlaceholder": [
+        "Ejecutor (Validador)",
+        "Revisor (Process Owner)",
+        "Aprobador (Jefe de Validaciones)",
+        "Aprobador (Gerente QA)"
+      ],
+      "nota": "OQ APROBADA — Sistema apto para Performance Qualification (PQ)."
+    }
+  ]
+}

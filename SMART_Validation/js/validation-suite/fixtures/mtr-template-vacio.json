@@ -1,0 +1,136 @@
+{
+  "schemaVersion": "1.0",
+  "type": "MTR",
+  "package": {
+    "code": "",
+    "systemName": "",
+    "systemVersion": "",
+    "systemSubtitle": "",
+    "client": "",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": null
+  },
+  "document": {
+    "code": "",
+    "titleEs": "MATRIZ DE TRAZABILIDAD DE REQUISITOS",
+    "titleEn": "REQUIREMENTS TRACEABILITY MATRIX (MTR)",
+    "headerTitle": "Matriz de Trazabilidad de Requisitos (MTR)",
+    "version": "1.0",
+    "issueDate": "",
+    "status": "Borrador",
+    "processOwner": "",
+    "gampCategory": "",
+    "normativeFramework": "",
+    "extras": {
+      "Documento base (URS)": "",
+      "RA Global (HLRA)": "",
+      "Total Test Cases": "",
+      "Cobertura URS→TC-OQ": ""
+    }
+  },
+  "_validacion": {
+    "estricta": false,
+    "mostrarCaja": true
+  },
+  "controlCambios": [],
+  "matrizAprobaciones": [
+    { "rol": "Redactor (Validador)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Revisor (Process Owner)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+  ],
+  "trazabilidad": {
+    "recibeDe": ["URS", "RA", "IRA", "RRM"],
+    "alimentaA": ["PIQ", "POQ", "IIQ", "IOQ"]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO",
+      "bloques": []
+    },
+    {
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido en esta MTR",
+      "incluido": [],
+      "subExcluido": "2.2 Excluido",
+      "excluido": []
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "3. METODOLOGÍA Y LEYENDA DE COLUMNAS",
+      "intro": ""
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "LEYENDA DE COLUMNAS",
+      "columnas": ["Columna", "Tipo", "Valores / Ejemplo", "Descripción"],
+      "widths": [70, 65, 125, 195],
+      "filas": []
+    },
+    {
+      "tipo": "tabla-trazabilidad",
+      "titulo": "MATRIZ DE TRAZABILIDAD COMPLETA",
+      "intro": "",
+      "filas": [
+        { "subheader": "MÓDULO X — <Nombre del módulo>" },
+        {
+          "ursId": "URS-001",
+          "descripcion": "",
+          "criticidad": "CRÍTICO",
+          "modulo": "",
+          "raId": "",
+          "tcIq": "",
+          "tcOq": "",
+          "fechaEjecucion": null
+        }
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESUMEN ESTADÍSTICO POR MÓDULO",
+      "intro": "",
+      "columnas": ["Módulo", "Rango URS", "Total URS", "TCs IQ", "TCs OQ"],
+      "widths": [165, 120, 60, 50, 60],
+      "filas": []
+    },
+    {
+      "tipo": "caja-conclusion",
+      "titulo": "Cobertura de trazabilidad",
+      "parrafos": []
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "ANÁLISIS DE GAPS DE COBERTURA"
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "GAPs Normativos con Impacto en MTR",
+      "intro": "Sección OPCIONAL. Si no hay GAPs heredados del HLRA, omitir esta tabla.",
+      "columnas": ["GAP-ID", "URS Afectado", "Descripción del GAP", "Control Compensatorio"],
+      "widths": [55, 75, 155, 170],
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": ["Documento", "Título y Versión"],
+      "widths": [180, 275],
+      "filas": []
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de la Matriz de Trazabilidad de Requisitos.",
+      "firmas": [],
+      "rolesPlaceholder": [
+        "Redactor (Validador)",
+        "Revisor (Process Owner)",
+        "Aprobador (Jefe de Validaciones)",
+        "Aprobador (Gerente QA)"
+      ],
+      "nota": ""
+    }
+  ]
+}

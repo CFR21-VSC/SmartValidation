@@ -1,0 +1,106 @@
+{
+  "schemaVersion": "1.0",
+  "type": "PIQ",
+  "package": {
+    "code": "",
+    "systemName": "",
+    "systemVersion": "",
+    "systemSubtitle": "",
+    "client": "",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": null
+  },
+  "document": {
+    "code": "",
+    "titleEs": "PROTOCOLO DE CALIFICACIÓN DE INSTALACIÓN",
+    "titleEn": "INSTALLATION QUALIFICATION PROTOCOL (PIQ)",
+    "headerTitle": "Protocolo de Calificación de Instalación (PIQ)",
+    "version": "1.0",
+    "issueDate": "",
+    "status": "Borrador",
+    "processOwner": "",
+    "gampCategory": "",
+    "normativeFramework": "",
+    "extras": {
+      "URL Sistema": "",
+      "Documento base (IRA)": "",
+      "Total TCs IQ": "",
+      "Enfoque": "CSA (Computer Software Assurance) — risk-based, criterios consolidados"
+    }
+  },
+  "controlCambios": [],
+  "matrizAprobaciones": [
+    { "rol": "Redactor (Validador)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Revisor (Process Owner)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+  ],
+  "trazabilidad": {
+    "recibeDe": ["IRA", "URS", "RA", "RRM", "MTR"],
+    "alimentaA": ["IIQ", "RIQ"]
+  },
+  "secciones": [
+    { "tipo": "texto", "titulo": "PROPÓSITO Y OBJETIVO", "bloques": [] },
+    {
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido",
+      "incluido": [],
+      "subExcluido": "2.2 Excluido",
+      "excluido": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DOCUMENTOS DE REFERENCIA",
+      "columnas": ["Documento", "Título y Versión"],
+      "widths": [180, 275],
+      "filas": []
+    },
+    {
+      "tipo": "tabla-info",
+      "titulo": "CONDICIONES DE EJECUCIÓN",
+      "labelWidth": 165,
+      "filas": [
+        { "campo": "Ambiente", "valor": "" },
+        { "campo": "Pre-requisitos", "valor": "" },
+        { "campo": "Herramientas", "valor": "" },
+        { "campo": "Criterio global", "valor": "100% de TCs con resultado PASS. Cualquier FAIL requiere NC documentada y CAPA antes de proceder a OQ.", "boldValor": true, "colorValor": "primary" }
+      ]
+    },
+    {
+      "tipo": "matriz-tc",
+      "titulo": "MATRIZ UNIFICADA DE TEST CASES",
+      "intro": "",
+      "tcs": []
+    },
+    {
+      "tipo": "tabla-test-case",
+      "titulo": "TEST CASES — INSTALLATION QUALIFICATION",
+      "intro": "",
+      "agruparPorGrupo": true,
+      "schemaModo": "criterios",
+      "tcs": []
+    },
+    { "tipo": "texto", "titulo": "JUSTIFICACIÓN DE PROPORCIONALIDAD (CRITICAL THINKING)", "bloques": [] },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": ["Documento", "Título"],
+      "widths": [180, 275],
+      "filas": []
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal del Protocolo de Calificación de Instalación.",
+      "firmas": [],
+      "rolesPlaceholder": [
+        "Redactor (Validador)",
+        "Revisor (Process Owner)",
+        "Aprobador (Jefe de Validaciones)",
+        "Aprobador (Gerente QA)"
+      ],
+      "nota": ""
+    }
+  ]
+}

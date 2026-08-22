@@ -1,0 +1,1186 @@
+{
+  "schemaVersion": "1.0",
+  "type": "MTR",
+  "package": {
+    "code": "DRP-SIS-001",
+    "systemName": "DRP-GAMP Categorizador™",
+    "systemVersion": "1.1",
+    "systemSubtitle": "Sistema de Categorización GAMP 5",
+    "client": "Emara SRL",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": 2026
+  },
+  "document": {
+    "code": "MTR-DRP-SIS-001",
+    "titleEs": "MATRIZ DE TRAZABILIDAD DE REQUISITOS",
+    "titleEn": "REQUIREMENTS TRACEABILITY MATRIX (MTR)",
+    "headerTitle": "Matriz de Trazabilidad de Requisitos (MTR)",
+    "version": "1.0",
+    "issueDate": "Marzo 2026",
+    "status": "Aprobado",
+    "processOwner": "Ana Pérez",
+    "gampCategory": "GAMP 3 — Software Estándar Configurable",
+    "normativeFramework": "ANMAT 4159/2023 | 21 CFR Part 11 | EU Annex 11 | ICH Q9 R1 | GAMP 5 2da Ed.",
+    "extras": {
+      "Documento base (URS)": "URS-DRP-SIS-001 v1.0 — 55 requerimientos",
+      "RA Global (HLRA)": "32 — Bajo-Medio (GAMP 3)",
+      "Total Test Cases": "62 (15 IQ + 47 OQ)",
+      "Cobertura URS→TC-OQ": "100% (55/55)"
+    }
+  },
+  "_validacion": {
+    "estricta": false,
+    "mostrarCaja": true
+  },
+  "controlCambios": [
+    {
+      "version": "1.0",
+      "fecha": "Mar 2026",
+      "autor": "Ana Pérez",
+      "descripcion": "Versión inicial — trazabilidad completa de 55 URS hacia RA, PIQ y POQ."
+    }
+  ],
+  "matrizAprobaciones": [
+    {
+      "rol": "Redactor (Validador)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "15/03/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-03-15T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "15/03/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-03-15T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    },
+    {
+      "rol": "Aprobador (Jefe de Validaciones)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "15/03/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-03-15T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "15/03/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-03-15T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    }
+  ],
+  "trazabilidad": {
+    "recibeDe": [
+      "URS",
+      "RA",
+      "IRA",
+      "RRM"
+    ],
+    "alimentaA": [
+      "PIQ",
+      "POQ",
+      "IIQ",
+      "IOQ"
+    ]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO",
+      "bloques": [
+        {
+          "texto": "La presente Matriz de Trazabilidad de Requisitos (MTR) vincula cada requerimiento de usuario documentado en el URS-DRP-SIS-001 v1.0 con su cadena de trazabilidad completa en el paquete de validación del sistema DRP-GAMP Categorizador™ (DRP-SIS-001)."
+        },
+        {
+          "texto": "Cada URS está trazado hacia: (a) el riesgo operativo correspondiente en el RA-DRP-SIS-001, (b) los test cases de instalación del PIQ-DRP-SIS-001 cuando aplica, y (c) el test case operacional del POQ-DRP-SIS-001. Esta trazabilidad bidireccional es un requisito fundamental de GAMP 5 Segunda Edición y demuestra que todos los requerimientos del usuario han sido considerados en el proceso de calificación."
+        }
+      ],
+      "numero": 1
+    },
+    {
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido en esta MTR",
+      "incluido": [
+        "55 requerimientos de usuario (URS-001 a URS-050 + URS-NF-001 a URS-NF-005).",
+        "24 riesgos operativos FMEA (RA-001 a RA-024) con trazabilidad hacia URS.",
+        "15 test cases de instalación (TC-IQ-001 a TC-IQ-015) del PIQ-DRP-SIS-001.",
+        "47 test cases operacionales (TC-OQ-001 a TC-OQ-047) del POQ-DRP-SIS-001.",
+        "9 módulos funcionales: Autenticación, Usuarios/Roles, Registro, Cuestionario, GAMPI/Analytics, Reportes PDF, SHA-256/QR, Infraestructura, No Funcionales."
+      ],
+      "subExcluido": "2.2 Excluido",
+      "excluido": [
+        "Requerimientos de versiones futuras del sistema (v1.1 en adelante).",
+        "Test cases de Performance Qualification (PQ) — no aplica para GAMP 3.",
+        "Trazabilidad hacia reportes de ejecución (RIQ/ROQ) — generados post-ejecución."
+      ],
+      "numero": 2
+    },
+    {
+      "tipo": "texto",
+      "titulo": "METODOLOGÍA Y LEYENDA DE COLUMNAS",
+      "numero": 3,
+      "bloques": [
+        {
+          "texto": "Esta sección documenta la metodología de trazabilidad aplicada y la leyenda de columnas usada en la matriz."
+        }
+      ]
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "3.1 METODOLOGÍA DE TRAZABILIDAD",
+      "intro": "La cadena de trazabilidad implementada en esta MTR sigue el modelo URS → Riesgo → Calificación establecido por GAMP 5 §7.4 y el Instructivo Operativo DRP Assurance. Cada requerimiento funcional o no funcional del URS tiene asignado como mínimo un test case operacional (TC-OQ) que verifica su cumplimiento. Los requerimientos de infraestructura tienen adicionalmente un TC-IQ que verifica la instalación del componente técnico subyacente. Los campos TC-IQ con valor '—' indican que el requerimiento es funcional puro y no requiere verificación de instalación adicional. Estado 'PENDIENTE' indica que la ejecución aún no se ha realizado."
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "3.2 LEYENDA DE COLUMNAS"
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "",
+      "columnas": [
+        "Columna",
+        "Tipo",
+        "Valores / Ejemplo",
+        "Descripción"
+      ],
+      "widths": [
+        70,
+        65,
+        125,
+        195
+      ],
+      "filas": [
+        [
+          "URS-ID",
+          "Identificador",
+          "URS-001 ... URS-NF-005",
+          "Código único del requerimiento de usuario."
+        ],
+        [
+          "Descripción",
+          "Texto",
+          "Texto corto",
+          "Resumen extraído del URS-DRP-SIS-001 v1.0."
+        ],
+        [
+          "Criticidad",
+          "Semáforo",
+          "CRÍTICO / ALTO / MEDIO",
+          "Impacto en integridad GxP si el requerimiento falla."
+        ],
+        [
+          "Módulo",
+          "Texto",
+          "Autenticación, Usuarios, ...",
+          "Módulo funcional al que pertenece el requerimiento."
+        ],
+        [
+          "RA-ID",
+          "Referencia",
+          "RA-001 ... RA-024",
+          "Riesgo operativo vinculado (RA-DRP-SIS-001 v1.0)."
+        ],
+        [
+          "TC-IQ",
+          "Referencia",
+          "TC-IQ-001 ... TC-IQ-015 | —",
+          "Test Case de Instalación. '—' = no aplica IQ."
+        ],
+        [
+          "TC-OQ",
+          "Referencia",
+          "TC-OQ-001 ... TC-OQ-047",
+          "Test Case Operacional. Cobertura 100% URS."
+        ],
+        [
+          "Fecha Ejecución",
+          "Estado",
+          "DD/MM/YYYY | PENDIENTE",
+          "Fecha de ejecución del TC. PENDIENTE = aún no ejecutado."
+        ]
+      ],
+      "numero": null
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "3.3 ESCALA DE CRITICIDAD"
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "",
+      "columnas": [
+        "Criticidad",
+        "Color",
+        "Criterio GxP de asignación"
+      ],
+      "widths": [
+        85,
+        80,
+        290
+      ],
+      "filas": [
+        [
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "color": "#A52A2A",
+            "fillColor": "#FDECEA",
+            "alignment": "center"
+          },
+          "Fondo rojo claro",
+          "Fallo impacta directamente integridad de datos GxP, seguridad del sistema o validez regulatoria del reporte generado."
+        ],
+        [
+          {
+            "text": "ALTO",
+            "bold": true,
+            "color": "#B85F0F",
+            "fillColor": "#FFF4E5",
+            "alignment": "center"
+          },
+          "Fondo naranja claro",
+          "Fallo afecta significativamente el uso correcto del sistema o el cumplimiento de controles GxP secundarios."
+        ],
+        [
+          {
+            "text": "MEDIO",
+            "bold": true,
+            "color": "#1E7E34",
+            "fillColor": "#E8F5E9",
+            "alignment": "center"
+          },
+          "Fondo verde claro",
+          "Fallo genera inconvenientes de uso pero no compromete la integridad GxP ni la validez del reporte."
+        ]
+      ],
+      "numero": null
+    },
+    {
+      "tipo": "tabla-trazabilidad",
+      "titulo": "MATRIZ DE TRAZABILIDAD COMPLETA",
+      "intro": "La siguiente tabla presenta los 55 requerimientos organizados por módulo funcional, con su trazabilidad completa hacia el análisis de riesgos y los test cases de calificación. Las filas con fondo azul marino corresponden a separadores de módulo.",
+      "filas": [
+        {
+          "subheader": "MÓDULO A — AUTENTICACIÓN Y CONTROL DE ACCESO (URS-001 a URS-008)"
+        },
+        {
+          "ursId": "URS-001",
+          "descripcion": "Login con credenciales únicas (email + contraseña).",
+          "criticidad": "CRÍTICO",
+          "modulo": "Autenticación",
+          "raId": "RA-001",
+          "tcIq": "TC-IQ-014",
+          "tcOq": "TC-OQ-001"
+        },
+        {
+          "ursId": "URS-002",
+          "descripcion": "Timeout de sesión automático tras 30 min de inactividad.",
+          "criticidad": "CRÍTICO",
+          "modulo": "Autenticación",
+          "raId": "RA-002",
+          "tcIq": "TC-IQ-013",
+          "tcOq": "TC-OQ-002"
+        },
+        {
+          "ursId": "URS-003",
+          "descripcion": "Bloqueo automático de cuenta tras 3 intentos fallidos.",
+          "criticidad": "CRÍTICO",
+          "modulo": "Autenticación",
+          "raId": "RA-003",
+          "tcIq": "TC-IQ-013",
+          "tcOq": "TC-OQ-003"
+        },
+        {
+          "ursId": "URS-004",
+          "descripcion": "Cambio de contraseña temporal obligatorio en primer acceso.",
+          "criticidad": "ALTO",
+          "modulo": "Autenticación",
+          "raId": "RA-004",
+          "tcIq": "TC-IQ-015",
+          "tcOq": "TC-OQ-004"
+        },
+        {
+          "ursId": "URS-005",
+          "descripcion": "Recuperación de contraseña por email (enlace válido 24h).",
+          "criticidad": "ALTO",
+          "modulo": "Autenticación",
+          "raId": "RA-005",
+          "tcIq": "TC-IQ-006",
+          "tcOq": "TC-OQ-005"
+        },
+        {
+          "ursId": "URS-006",
+          "descripcion": "Audit trail de intentos de acceso con usuario, fecha e IP.",
+          "criticidad": "CRÍTICO",
+          "modulo": "Autenticación",
+          "raId": "RA-006",
+          "tcIq": "TC-IQ-004",
+          "tcOq": "TC-OQ-006"
+        },
+        {
+          "ursId": "URS-007",
+          "descripcion": "Re-autenticación obligatoria en panel admin cada 4 horas.",
+          "criticidad": "ALTO",
+          "modulo": "Autenticación",
+          "raId": "RA-002",
+          "tcIq": "TC-IQ-015",
+          "tcOq": "TC-OQ-007"
+        },
+        {
+          "ursId": "URS-008",
+          "descripcion": "Panel de administración accesible solo desde URL aislada.",
+          "criticidad": "ALTO",
+          "modulo": "Autenticación",
+          "raId": "RA-001",
+          "tcIq": "TC-IQ-003",
+          "tcOq": "TC-OQ-008"
+        },
+        {
+          "subheader": "MÓDULO B — GESTIÓN DE USUARIOS Y ROLES (URS-009 a URS-016)"
+        },
+        {
+          "ursId": "URS-009",
+          "descripcion": "4 roles diferenciados con permisos no intercambiables.",
+          "criticidad": "CRÍTICO",
+          "modulo": "Usuarios/Roles",
+          "raId": "RA-007",
+          "tcIq": "TC-IQ-015",
+          "tcOq": "TC-OQ-009"
+        },
+        {
+          "ursId": "URS-010",
+          "descripcion": "Permisos y restricciones del rol Usuario Final.",
+          "criticidad": "CRÍTICO",
+          "modulo": "Usuarios/Roles",
+          "raId": "RA-007",
+          "tcIq": "TC-IQ-015",
+          "tcOq": "TC-OQ-010"
+        },
+        {
+          "ursId": "URS-011",
+          "descripcion": "Permisos del rol Auditor QA (read-only sobre datos GxP).",
+          "criticidad": "ALTO",
+          "modulo": "Usuarios/Roles",
+          "raId": "RA-007",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-011"
+        },
+        {
+          "ursId": "URS-012",
+          "descripcion": "Permisos del rol Administrador (gestión de usuarios y configuración).",
+          "criticidad": "CRÍTICO",
+          "modulo": "Usuarios/Roles",
+          "raId": "RA-007",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-012"
+        },
+        {
+          "ursId": "URS-013",
+          "descripcion": "Sistema impide eliminación de usuarios con historial GxP (solo desactivación).",
+          "criticidad": "CRÍTICO",
+          "modulo": "Usuarios/Roles",
+          "raId": "RA-008",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-013"
+        },
+        {
+          "ursId": "URS-014",
+          "descripcion": "Alerta de cuentas inactivas >180 días en panel admin.",
+          "criticidad": "MEDIO",
+          "modulo": "Usuarios/Roles",
+          "raId": "RA-009",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-014"
+        },
+        {
+          "ursId": "URS-015",
+          "descripcion": "Política de contraseñas (mínimo 8 chars, complejidad alta, histórico 5 previas).",
+          "criticidad": "ALTO",
+          "modulo": "Usuarios/Roles",
+          "raId": "RA-004",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-014"
+        },
+        {
+          "ursId": "URS-016",
+          "descripcion": "Expiración configurable de contraseña de administrador.",
+          "criticidad": "ALTO",
+          "modulo": "Usuarios/Roles",
+          "raId": "RA-009",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-014"
+        },
+        {
+          "subheader": "MÓDULO C — REGISTRO DE SISTEMA (URS-017 a URS-020)"
+        },
+        {
+          "ursId": "URS-017",
+          "descripcion": "Formulario de registro del sistema evaluado con campos obligatorios.",
+          "criticidad": "CRÍTICO",
+          "modulo": "Registro",
+          "raId": "RA-010",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-015"
+        },
+        {
+          "ursId": "URS-018",
+          "descripcion": "Validación de nombre del sistema (no vacío, sin caracteres especiales).",
+          "criticidad": "ALTO",
+          "modulo": "Registro",
+          "raId": "RA-010",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-015"
+        },
+        {
+          "ursId": "URS-019",
+          "descripcion": "Validación de versión y proveedor obligatorios.",
+          "criticidad": "ALTO",
+          "modulo": "Registro",
+          "raId": "RA-010",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-016"
+        },
+        {
+          "ursId": "URS-020",
+          "descripcion": "Confirmación explícita antes de avanzar al cuestionario.",
+          "criticidad": "MEDIO",
+          "modulo": "Registro",
+          "raId": "RA-010",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-016"
+        },
+        {
+          "subheader": "MÓDULO D — CUESTIONARIO ADAPTATIVO Y CATEGORIZACIÓN (URS-021 a URS-028)"
+        },
+        {
+          "ursId": "URS-021",
+          "descripcion": "Q1 — Pregunta inicial sobre tipo de software (A/B/C/D).",
+          "criticidad": "CRÍTICO",
+          "modulo": "Cuestionario",
+          "raId": "RA-011",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-017"
+        },
+        {
+          "ursId": "URS-022",
+          "descripcion": "Q2 — Pregunta condicional para Software Comercial (solo si Q1=B).",
+          "criticidad": "CRÍTICO",
+          "modulo": "Cuestionario",
+          "raId": "RA-011",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-018"
+        },
+        {
+          "ursId": "URS-023",
+          "descripcion": "Lógica adaptativa: Q2 aparece SOLO si Q1=B.",
+          "criticidad": "CRÍTICO",
+          "modulo": "Cuestionario",
+          "raId": "RA-011",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-018"
+        },
+        {
+          "ursId": "URS-024",
+          "descripcion": "Q3 — Pregunta sobre impacto GxP del sistema evaluado.",
+          "criticidad": "ALTO",
+          "modulo": "Cuestionario",
+          "raId": "RA-011",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-019"
+        },
+        {
+          "ursId": "URS-025",
+          "descripcion": "Sistema impide presentar resultado si confianza <90%.",
+          "criticidad": "CRÍTICO",
+          "modulo": "Cuestionario",
+          "raId": "RA-012",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-020"
+        },
+        {
+          "ursId": "URS-026",
+          "descripcion": "Indicación visual de confianza (rojo <75%, amarillo 75-89%, verde ≥90%).",
+          "criticidad": "ALTO",
+          "modulo": "Cuestionario",
+          "raId": "RA-012",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-020"
+        },
+        {
+          "ursId": "URS-027",
+          "descripcion": "Algoritmo de categorización GAMP 1, 3, 4, 5.",
+          "criticidad": "CRÍTICO",
+          "modulo": "Cuestionario",
+          "raId": "RA-013",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-021"
+        },
+        {
+          "ursId": "URS-028",
+          "descripcion": "Sistema PROHÍBE explícitamente asignación de GAMP 2 (categoría obsoleta).",
+          "criticidad": "CRÍTICO",
+          "modulo": "Cuestionario",
+          "raId": "RA-013",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-021"
+        },
+        {
+          "subheader": "MÓDULO E — GAMPI / ANALYTICS (URS-029 a URS-034)"
+        },
+        {
+          "ursId": "URS-029",
+          "descripcion": "Asistente GAMPI con tooltips contextuales para cada pregunta.",
+          "criticidad": "MEDIO",
+          "modulo": "GAMPI/Analytics",
+          "raId": "RA-014",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-022"
+        },
+        {
+          "ursId": "URS-030",
+          "descripcion": "GAMPI provee tests de 30 segundos para verificación cruzada.",
+          "criticidad": "MEDIO",
+          "modulo": "GAMPI/Analytics",
+          "raId": "RA-014",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-023"
+        },
+        {
+          "ursId": "URS-031",
+          "descripcion": "Dashboard de categorizaciones históricas para Auditor QA.",
+          "criticidad": "MEDIO",
+          "modulo": "GAMPI/Analytics",
+          "raId": "—",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-024"
+        },
+        {
+          "ursId": "URS-032",
+          "descripcion": "Filtros de búsqueda por sistema, fecha, categoría, usuario.",
+          "criticidad": "MEDIO",
+          "modulo": "GAMPI/Analytics",
+          "raId": "—",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-024"
+        },
+        {
+          "ursId": "URS-033",
+          "descripcion": "Estadísticas agregadas (categorización por mes, distribución por GAMP).",
+          "criticidad": "MEDIO",
+          "modulo": "GAMPI/Analytics",
+          "raId": "—",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-025"
+        },
+        {
+          "ursId": "URS-034",
+          "descripcion": "Exportación de listado de categorizaciones a CSV (versión Pro).",
+          "criticidad": "MEDIO",
+          "modulo": "GAMPI/Analytics",
+          "raId": "—",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-025"
+        },
+        {
+          "subheader": "MÓDULO F — REPORTES PDF (URS-035 a URS-039)"
+        },
+        {
+          "ursId": "URS-035",
+          "descripcion": "Estructura obligatoria de reporte PDF: 4 páginas definidas.",
+          "criticidad": "CRÍTICO",
+          "modulo": "Reportes PDF",
+          "raId": "RA-015",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-026"
+        },
+        {
+          "ursId": "URS-036",
+          "descripcion": "Nomenclatura de archivo: GAMP_Report_Cat[X]_[Sistema]_[Fecha].pdf.",
+          "criticidad": "MEDIO",
+          "modulo": "Reportes PDF",
+          "raId": "RA-016",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-027"
+        },
+        {
+          "ursId": "URS-037",
+          "descripcion": "Página 1: campos obligatorios (sistema, versión, proveedor, categoría, fecha).",
+          "criticidad": "CRÍTICO",
+          "modulo": "Reportes PDF",
+          "raId": "RA-015",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-028"
+        },
+        {
+          "ursId": "URS-038",
+          "descripcion": "Hash SHA-256 calculado ANTES de la firma, sobre contenido completo.",
+          "criticidad": "CRÍTICO",
+          "modulo": "Reportes PDF",
+          "raId": "RA-017",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-029"
+        },
+        {
+          "ursId": "URS-039",
+          "descripcion": "Identificación visible de original/copia en todas las páginas.",
+          "criticidad": "ALTO",
+          "modulo": "Reportes PDF",
+          "raId": "—",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-029"
+        },
+        {
+          "subheader": "MÓDULO G — INTEGRIDAD SHA-256 Y VERIFICACIÓN QR (URS-040 a URS-043)"
+        },
+        {
+          "ursId": "URS-040",
+          "descripcion": "SHA-256 criptográficamente resistente a colisiones (2^128).",
+          "criticidad": "CRÍTICO",
+          "modulo": "SHA-256/QR",
+          "raId": "RA-018",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-030"
+        },
+        {
+          "ursId": "URS-041",
+          "descripcion": "Código alfanumérico DRP-[Cat]-[Hash12] como método alternativo.",
+          "criticidad": "ALTO",
+          "modulo": "SHA-256/QR",
+          "raId": "RA-019",
+          "tcIq": "TC-IQ-005",
+          "tcOq": "TC-OQ-031"
+        },
+        {
+          "ursId": "URS-042",
+          "descripcion": "Portal de verificación QR en https://verify.example.com/ con SLA 99.9%.",
+          "criticidad": "ALTO",
+          "modulo": "SHA-256/QR",
+          "raId": "RA-019",
+          "tcIq": "TC-IQ-005",
+          "tcOq": "TC-OQ-032"
+        },
+        {
+          "ursId": "URS-043",
+          "descripcion": "Portal alerta 'HASH NO COINCIDE' ante PDF alterado.",
+          "criticidad": "CRÍTICO",
+          "modulo": "SHA-256/QR",
+          "raId": "RA-020",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-033"
+        },
+        {
+          "subheader": "MÓDULO H — INFRAESTRUCTURA (URS-044 a URS-050)"
+        },
+        {
+          "ursId": "URS-044",
+          "descripcion": "SLA de disponibilidad 99.9% mensual.",
+          "criticidad": "ALTO",
+          "modulo": "Infraestructura",
+          "raId": "RA-021",
+          "tcIq": "TC-IQ-007",
+          "tcOq": "TC-OQ-034"
+        },
+        {
+          "ursId": "URS-045",
+          "descripcion": "TLS 1.3 exclusivamente (HTTPS obligatorio, HTTP rechazado).",
+          "criticidad": "CRÍTICO",
+          "modulo": "Infraestructura",
+          "raId": "RA-022",
+          "tcIq": "TC-IQ-002 | TC-IQ-012",
+          "tcOq": "TC-OQ-035"
+        },
+        {
+          "ursId": "URS-046",
+          "descripcion": "Base de datos SQLite cifrada con AES-256 en reposo.",
+          "criticidad": "CRÍTICO",
+          "modulo": "Infraestructura",
+          "raId": "RA-022",
+          "tcIq": "TC-IQ-008",
+          "tcOq": "TC-OQ-036"
+        },
+        {
+          "ursId": "URS-047",
+          "descripcion": "Compatibilidad verificada con Chrome, Firefox y Edge.",
+          "criticidad": "MEDIO",
+          "modulo": "Infraestructura",
+          "raId": "—",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-037"
+        },
+        {
+          "ursId": "URS-048",
+          "descripcion": "Backup automático diario programado a las 02:00 AM.",
+          "criticidad": "ALTO",
+          "modulo": "Infraestructura",
+          "raId": "RA-023",
+          "tcIq": "TC-IQ-009",
+          "tcOq": "TC-OQ-038"
+        },
+        {
+          "ursId": "URS-049",
+          "descripcion": "Audit trail de acciones administrativas inmutable.",
+          "criticidad": "CRÍTICO",
+          "modulo": "Infraestructura",
+          "raId": "RA-024",
+          "tcIq": "TC-IQ-004",
+          "tcOq": "TC-OQ-039"
+        },
+        {
+          "ursId": "URS-050",
+          "descripcion": "Mensajes de error estándar sin exponer detalles técnicos.",
+          "criticidad": "MEDIO",
+          "modulo": "Infraestructura",
+          "raId": "—",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-040"
+        },
+        {
+          "subheader": "MÓDULO I — REQUERIMIENTOS NO FUNCIONALES (URS-NF-001 a URS-NF-005)"
+        },
+        {
+          "ursId": "URS-NF-001",
+          "descripcion": "Política integral de seguridad (controles compensatorios sin 2FA).",
+          "criticidad": "CRÍTICO",
+          "modulo": "No Funcionales",
+          "raId": "RA-006",
+          "tcIq": "TC-IQ-013",
+          "tcOq": "TC-OQ-041"
+        },
+        {
+          "ursId": "URS-NF-002",
+          "descripcion": "Tiempo de respuesta para generación de reporte PDF ≤ 10 segundos.",
+          "criticidad": "MEDIO",
+          "modulo": "No Funcionales",
+          "raId": "—",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-042"
+        },
+        {
+          "ursId": "URS-NF-003",
+          "descripcion": "Audit trail electrónico completo conforme 21 CFR Part 11.",
+          "criticidad": "CRÍTICO",
+          "modulo": "No Funcionales",
+          "raId": "RA-006",
+          "tcIq": "TC-IQ-004",
+          "tcOq": "TC-OQ-043"
+        },
+        {
+          "ursId": "URS-NF-004",
+          "descripcion": "Integridad del PDF post-generación verificable (hash SHA-256).",
+          "criticidad": "CRÍTICO",
+          "modulo": "No Funcionales",
+          "raId": "RA-018",
+          "tcIq": "—",
+          "tcOq": "TC-OQ-044"
+        },
+        {
+          "ursId": "URS-NF-005",
+          "descripcion": "Backup completo diario con política de disaster recovery.",
+          "criticidad": "ALTO",
+          "modulo": "No Funcionales",
+          "raId": "RA-023",
+          "tcIq": "TC-IQ-009",
+          "tcOq": "TC-OQ-045"
+        }
+      ],
+      "numero": 4
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESUMEN ESTADÍSTICO POR MÓDULO",
+      "intro": "Distribución de URS por módulo funcional con conteo de TC-IQ y TC-OQ asignados.",
+      "columnas": [
+        "Módulo",
+        "Rango URS",
+        "Total URS",
+        "TCs IQ",
+        "TCs OQ"
+      ],
+      "widths": [
+        165,
+        120,
+        60,
+        50,
+        60
+      ],
+      "filas": [
+        [
+          "A — Autenticación",
+          "URS-001 a 008",
+          {
+            "text": "8",
+            "alignment": "center"
+          },
+          {
+            "text": "6",
+            "alignment": "center"
+          },
+          {
+            "text": "8",
+            "alignment": "center"
+          }
+        ],
+        [
+          "B — Usuarios/Roles",
+          "URS-009 a 016",
+          {
+            "text": "8",
+            "alignment": "center"
+          },
+          {
+            "text": "1 (TC-IQ-015)",
+            "alignment": "center"
+          },
+          {
+            "text": "6",
+            "alignment": "center"
+          }
+        ],
+        [
+          "C — Registro",
+          "URS-017 a 020",
+          {
+            "text": "4",
+            "alignment": "center"
+          },
+          {
+            "text": "—",
+            "alignment": "center"
+          },
+          {
+            "text": "2",
+            "alignment": "center"
+          }
+        ],
+        [
+          "D — Cuestionario",
+          "URS-021 a 028",
+          {
+            "text": "8",
+            "alignment": "center"
+          },
+          {
+            "text": "—",
+            "alignment": "center"
+          },
+          {
+            "text": "5",
+            "alignment": "center"
+          }
+        ],
+        [
+          "E — GAMPI/Analytics",
+          "URS-029 a 034",
+          {
+            "text": "6",
+            "alignment": "center"
+          },
+          {
+            "text": "—",
+            "alignment": "center"
+          },
+          {
+            "text": "4",
+            "alignment": "center"
+          }
+        ],
+        [
+          "F — Reportes PDF",
+          "URS-035 a 039",
+          {
+            "text": "5",
+            "alignment": "center"
+          },
+          {
+            "text": "—",
+            "alignment": "center"
+          },
+          {
+            "text": "4",
+            "alignment": "center"
+          }
+        ],
+        [
+          "G — SHA-256 / QR",
+          "URS-040 a 043",
+          {
+            "text": "4",
+            "alignment": "center"
+          },
+          {
+            "text": "1 (TC-IQ-005)",
+            "alignment": "center"
+          },
+          {
+            "text": "4",
+            "alignment": "center"
+          }
+        ],
+        [
+          "H — Infraestructura",
+          "URS-044 a 050",
+          {
+            "text": "7",
+            "alignment": "center"
+          },
+          {
+            "text": "6",
+            "alignment": "center"
+          },
+          {
+            "text": "7",
+            "alignment": "center"
+          }
+        ],
+        [
+          "I — No Funcionales",
+          "URS-NF-001 a 005",
+          {
+            "text": "5",
+            "alignment": "center"
+          },
+          {
+            "text": "3",
+            "alignment": "center"
+          },
+          {
+            "text": "5",
+            "alignment": "center"
+          }
+        ],
+        [
+          {
+            "text": "TOTAL",
+            "bold": true,
+            "fillColor": "#EAF1F8"
+          },
+          {
+            "text": "URS-001 a NF-005",
+            "bold": true,
+            "fillColor": "#EAF1F8"
+          },
+          {
+            "text": "55",
+            "alignment": "center",
+            "bold": true,
+            "fillColor": "#EAF1F8"
+          },
+          {
+            "text": "15",
+            "alignment": "center",
+            "bold": true,
+            "fillColor": "#EAF1F8"
+          },
+          {
+            "text": "47",
+            "alignment": "center",
+            "bold": true,
+            "fillColor": "#EAF1F8"
+          }
+        ]
+      ],
+      "numero": 5
+    },
+    {
+      "tipo": "caja-conclusion",
+      "titulo": "Cobertura de trazabilidad",
+      "parrafos": [
+        "Cobertura URS→TC-OQ: 100%. Los 55 de 55 requerimientos tienen al menos un TC-OQ asignado.",
+        "Los 15 TC-IQ cubren los componentes de infraestructura críticos (RA con riesgo ALTO ≥18 según RA-DRP-SIS-001).",
+        "Los 47 TC-OQ cubren el 100% de los URS funcionales y no funcionales.",
+        "Estado global de la matriz: PENDIENTE — pendiente de ejecución formal en Fase 6 (PIQ + POQ)."
+      ],
+      "numero": null
+    },
+    {
+      "tipo": "texto",
+      "titulo": "ANÁLISIS DE GAPS DE COBERTURA",
+      "numero": 6,
+      "bloques": [
+        {
+          "texto": "Identificación de URS o RAs sin cobertura completa por TCs, con justificación de aceptación."
+        }
+      ]
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "6.1 URS SIN TC-IQ ASIGNADO",
+      "bloques": [
+        {
+          "texto": "Los requerimientos funcionales (módulos C, D, E, F, algunos de G y H) no requieren TC-IQ propio porque su verificación es funcional y se realiza íntegramente en OQ. La ausencia de TC-IQ no constituye un GAP regulatorio para sistemas GAMP 3 — está alineada con el enfoque proporcional al riesgo definido en GAMP 5 §8.2."
+        }
+      ]
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "6.2 COBERTURA OQ",
+      "bloques": [
+        {
+          "texto": "Sin GAPs de cobertura OQ detectados. Todos los 55 URS tienen al menos un TC-OQ asignado en el POQ-DRP-SIS-001 v1.0. Los TC-OQ que cubren múltiples URS (ej: TC-OQ-014 cubre URS-014, URS-015 y URS-016) han sido diseñados para verificar conjuntamente los requerimientos del mismo grupo funcional."
+        }
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "6.3 GAPs Normativos del HLRA con Impacto en MTR",
+      "intro": "Los siguientes 4 GAPs normativos identificados en el HLRA-DRP-SIS-001 v1.0 impactan en la MTR con controles compensatorios documentados.",
+      "columnas": [
+        "GAP-ID",
+        "URS Afectado",
+        "Descripción del GAP",
+        "Control Compensatorio"
+      ],
+      "widths": [
+        55,
+        75,
+        155,
+        170
+      ],
+      "filas": [
+        [
+          "GAP-001",
+          "URS-003",
+          "Inconsistencia MAN (5 intentos) vs SOP-ADM (3 intentos). Sistema implementa 3.",
+          "URS-003 documenta 3 intentos como valor implementado. TC-OQ-003 verifica el comportamiento real del sistema."
+        ],
+        [
+          "GAP-002",
+          "URS-NF-001",
+          "Ausencia de 2FA nativo en v1.0.",
+          "Controles compensatorios: timeout (URS-002), bloqueo (URS-003), audit trail (URS-006), acceso admin aislado (URS-008), pwd compleja (URS-015 / URS-016)."
+        ],
+        [
+          "GAP-003",
+          "URS-039 / URS-040",
+          "No hay almacenamiento centralizado en el sistema. Los PDF se descargan al dispositivo del usuario.",
+          "SHA-256 (URS-040) permite verificar integridad de copias locales. Nomenclatura estándar (URS-039) asegura trazabilidad documental."
+        ],
+        [
+          "GAP-004",
+          "URS-049",
+          "Ausencia de segundo factor para acceso de administrador de base de datos.",
+          "Solo 1 administrador habilitado. Acceso solo desde sección admin, no accesible para usuarios (URS-008). Audit trail inmutable (URS-049). TC-OQ-039 verifica inmutabilidad."
+        ]
+      ],
+      "numero": null
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": [
+        "Documento",
+        "Título y Versión"
+      ],
+      "widths": [
+        180,
+        275
+      ],
+      "filas": [
+        [
+          "URS-DRP-SIS-001 v1.0",
+          "Especificación de Requerimientos de Usuario — 55 URS"
+        ],
+        [
+          "RA-DRP-SIS-001 v1.0",
+          "Análisis de Riesgos Operativo FMEA — 24 riesgos"
+        ],
+        [
+          "IRA-DRP-SIS-001 v1.0",
+          "Análisis de Riesgo de Componentes / Infraestructura — 16 componentes"
+        ],
+        [
+          "PIQ-DRP-SIS-001 v1.0",
+          "Protocolo de Calificación de Instalación — 15 TC-IQ"
+        ],
+        [
+          "POQ-DRP-SIS-001 v1.0",
+          "Protocolo de Calificación Operacional — 47 TC-OQ"
+        ],
+        [
+          "HLRA-DRP-SIS-001 v1.0",
+          "High Level Risk Assessment — GAMP 3, 4 GAPs documentados"
+        ],
+        [
+          "RRM-DRP-SIS-001 v1.0",
+          "Matriz de Requerimientos Regulatorios"
+        ],
+        [
+          "VP-DRP-SIS-001 v1.0",
+          "Plan de Validación"
+        ],
+        [
+          "GAMP 5 — 2da Ed. 2022",
+          "Good Automated Manufacturing Practice Guide (ISPE)"
+        ],
+        [
+          "ICH Q9 R1 (2023)",
+          "Quality Risk Management"
+        ],
+        [
+          "ANMAT 4159/2023",
+          "Disposición de Registros Electrónicos y Firmas Electrónicas"
+        ],
+        [
+          "21 CFR Part 11",
+          "Electronic Records; Electronic Signatures (FDA)"
+        ]
+      ],
+      "numero": 7
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de la Matriz de Trazabilidad de Requisitos. Esta MTR constituye el documento de referencia único para responder a observaciones regulatorias sobre cobertura URS↔TC durante auditorías.",
+      "firmas": [
+        {
+          "rol": "Redactor (Validador)",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "15/03/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-03-15T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        },
+        {
+          "rol": "Revisor (Process Owner)",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "15/03/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-03-15T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        },
+        {
+          "rol": "Aprobador (Jefe de Validaciones)",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "15/03/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-03-15T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        },
+        {
+          "rol": "Aprobador (Gerente QA)",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "15/03/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-03-15T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        }
+      ],
+      "nota": "Documento sujeto a firma electrónica. Trazabilidad legal queda registrada en el log adjunto al paquete de validación.",
+      "numero": 8
+    }
+  ]
+}

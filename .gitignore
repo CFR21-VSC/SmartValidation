@@ -1,0 +1,37 @@
+# ── Secretos ──────────────────────────────────────────────────────────────────
+SMART_Validation/.env
+.env
+*.env
+!*.env.example
+
+# ── Base de datos (datos reales de clientes) ──────────────────────────────────
+data/
+*.db
+*.sqlite
+*.db-shm
+*.db-wal
+*.db.bak
+
+# ── Documentos GxP reales (no van al repo público) ───────────────────────────
+Proyecto_Prueba_2026_RECOVERED.json
+docs-privados/
+
+# ── Entornos Python ───────────────────────────────────────────────────────────
+SMART_Validation/.venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# ── Claude Code (configuración local) ─────────────────────────────────────────
+.claude/settings.local.json
+
+# ── Sistema operativo ─────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Memoria de sesiones Claude (datos de proyecto, no van al repo) ────────────
+memory/

@@ -1,0 +1,1062 @@
+{
+  "schemaVersion": "1.0",
+  "type": "IPQ",
+  "package": {
+    "code": "DRP-SIS-001",
+    "systemName": "DRP-GAMP Categorizador™",
+    "systemVersion": "1.1",
+    "systemSubtitle": "Sistema de Categorización GAMP 5",
+    "client": "Emara SRL",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": 2026
+  },
+  "document": {
+    "code": "IPQ-DRP-SIS-001",
+    "titleEs": "INFORME DE CALIFICACIÓN DE PERFORMANCE",
+    "titleEn": "PERFORMANCE QUALIFICATION REPORT (IPQ)",
+    "headerTitle": "Informe de Calificación de Performance (IPQ)",
+    "version": "1.0",
+    "issueDate": "Mayo 2026",
+    "status": "Aprobado",
+    "processOwner": "Ana Pérez",
+    "gampCategory": "GAMP 3 — Software Estándar Configurable",
+    "normativeFramework": "ANMAT 4159/2023 | 21 CFR Part 11 | EU Annex 11 | GAMP 5 §8.4 | FDA CSA 2022",
+    "extras": {
+      "Documento base (PPQ)": "PPQ-DRP-SIS-001 v1.0",
+      "Total TCs ejecutados": "8/8 TCs",
+      "TCs negativos ejecutados": "1 TC (TC-PQ-006 — PASS por rechazo correcto)",
+      "Resultado global": "8 PASS / 0 FAIL / 0 OBS / 0 NA",
+      "Decisión": "PQ APROBADA — sistema apto para liberación productiva GxP"
+    }
+  },
+  "controlCambios": [
+    {
+      "version": "1.0",
+      "fecha": "May 2026",
+      "autor": "Ana Pérez — Process Owner",
+      "descripcion": "Emisión inicial del IPQ. Ejecución conducida del 10/05/2026 al 12/05/2026 por auditor externo independiente Laura Martínez. 8/8 TCs PASS, incluido TC negativo. Sin hallazgos. Sistema apto para liberación productiva."
+    }
+  ],
+  "matrizAprobaciones": [
+    {
+      "rol": "Ejecutor (Validador)",
+      "nombre": "Laura Martínez (Auditor QA Externo)",
+      "iniciales": "LM",
+      "fecha": "12/05/2026",
+      "_signedBy": "person_LM_001",
+      "_signedAt": "2026-05-12T12:00:00.000Z",
+      "_signatureHashRef": "227F446B4BC3"
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "13/05/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-05-13T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    },
+    {
+      "rol": "Aprobador (Jefe de Validaciones)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "14/05/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-05-14T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "14/05/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-05-14T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    }
+  ],
+  "trazabilidad": {
+    "schemaVersion": "2.0",
+    "recibeDe": [
+      {
+        "tipo": "PPQ",
+        "code": "PPQ-DRP-SIS-001",
+        "version": "v1.0",
+        "fechaCongelado": "20/04/2026",
+        "items": [
+          "TC-PQ-001",
+          "TC-PQ-002",
+          "TC-PQ-003",
+          "TC-PQ-004",
+          "TC-PQ-005",
+          "TC-PQ-006",
+          "TC-PQ-007",
+          "TC-PQ-008"
+        ],
+        "itemsCount": 8,
+        "estado": "aprobado",
+        "_auto": true
+      }
+    ],
+    "alimentaA": [
+      "RPQ",
+      "AEX"
+    ]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO Y OBJETIVO",
+      "bloques": [
+        {
+          "texto": "El presente Informe de Calificación de Performance (IPQ) documenta los resultados de la ejecución del Protocolo PPQ-DRP-SIS-001 v1.0 sobre el sistema DRP-GAMP Categorizador™ v1.1 en su ambiente productivo. La ejecución se realizó entre el 10/05/2026 y el 12/05/2026 bajo conducción de un auditor externo independiente."
+        },
+        {
+          "texto": "Los 8 Test Cases definidos en el PPQ fueron ejecutados completamente con resultado PASS, incluido el TC negativo TC-PQ-006 (detección de fraude) que pasó por rechazar correctamente un PDF alterado. Todas las métricas de performance objetivo (email <2min, PDF <30s, QR <3s, concurrencia 15-simultánea) fueron observadas dentro de los límites declarados."
+        },
+        {
+          "texto": "Decisión global: el sistema DRP-GAMP Categorizador™ v1.1 se considera APTO PARA LIBERACIÓN PRODUCTIVA GxP en el alcance del paquete DRP-SIS-001. No se identificaron hallazgos. No se requiere CAPA. El paquete pasa al cierre vía AEX (Anexo de Ejecución)."
+        }
+      ]
+    },
+    {
+      "tipo": "tabla-info",
+      "titulo": "DATOS DE EJECUCIÓN",
+      "labelWidth": 165,
+      "filas": [
+        {
+          "campo": "Protocolo ejecutado",
+          "valor": "PPQ-DRP-SIS-001 v1.0",
+          "boldValor": true,
+          "colorValor": "primary"
+        },
+        {
+          "campo": "Fecha de ejecución",
+          "valor": "10/05/2026 — 12/05/2026 (3 días)"
+        },
+        {
+          "campo": "Ejecutor",
+          "valor": "Laura Martínez — Auditor QA Externo Independiente (no integrante del equipo de desarrollo)"
+        },
+        {
+          "campo": "Ambiente",
+          "valor": "Productivo — https://categorizador.example.com/"
+        },
+        {
+          "campo": "Total TCs ejecutados",
+          "valor": "8/8 (100%)",
+          "boldValor": true,
+          "colorValor": "accent"
+        },
+        {
+          "campo": "TCs negativos ejecutados",
+          "valor": "1 TC (TC-PQ-006) — PASS por rechazo correcto del PDF alterado"
+        },
+        {
+          "campo": "Hallazgos / Desvíos",
+          "valor": "0 (sin hallazgos)",
+          "boldValor": true
+        }
+      ]
+    },
+    {
+      "tipo": "matriz-tc",
+      "titulo": "MATRIZ DE TEST CASES PQ — RESULTADOS DE EJECUCIÓN",
+      "intro": "Resumen consolidado de la ejecución de los 8 TCs de Performance Qualification. Todas las métricas objetivo del PPQ fueron observadas dentro de los límites declarados. Sin hallazgos.",
+      "columnasVisibles": [
+        "tcId",
+        "titulo",
+        "grupo",
+        "tipoTC",
+        "raScore",
+        "nivel",
+        "ursVinculados",
+        "estado",
+        "ejecutor",
+        "fechaEjecucion",
+        "evidenciasCount"
+      ],
+      "tcs": [
+        {
+          "tcId": "TC-PQ-001",
+          "titulo": "Categorización end-to-end por usuario nuevo (GAMP 3)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Categorización end-to-end",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-017",
+            "URS-018",
+            "URS-021",
+            "URS-027",
+            "URS-035",
+            "URS-041"
+          ],
+          "raVinculado": "RA-001",
+          "estado": "PASS",
+          "ejecutor": "LM",
+          "fechaEjecucion": "10/05/2026",
+          "evidenciasCount": 4
+        },
+        {
+          "tcId": "TC-PQ-002",
+          "titulo": "Recategorización de sistema existente al actualizar versión",
+          "tipoTC": "POSITIVO",
+          "grupo": "Categorización end-to-end",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-024",
+            "URS-027",
+            "URS-029"
+          ],
+          "raVinculado": "RA-017",
+          "estado": "PASS",
+          "ejecutor": "LM",
+          "fechaEjecucion": "10/05/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-PQ-003",
+          "titulo": "Carga representativa — 10 categorizaciones consecutivas mismo usuario",
+          "tipoTC": "POSITIVO",
+          "grupo": "Categorización end-to-end",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-029",
+            "URS-NF-001"
+          ],
+          "raVinculado": "RA-021",
+          "estado": "PASS",
+          "ejecutor": "LM",
+          "fechaEjecucion": "11/05/2026",
+          "evidenciasCount": 2
+        },
+        {
+          "tcId": "TC-PQ-004",
+          "titulo": "Verificación pública de PDF firmado por usuario externo (QR)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Verificación y trazabilidad",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-041",
+            "URS-042",
+            "URS-043"
+          ],
+          "raVinculado": "RA-018",
+          "estado": "PASS",
+          "ejecutor": "LM",
+          "fechaEjecucion": "11/05/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-PQ-005",
+          "titulo": "Concurrencia productiva — 15 usuarios simultáneos categorizando",
+          "tipoTC": "POSITIVO",
+          "grupo": "Performance y concurrencia",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-NF-001",
+            "URS-NF-002"
+          ],
+          "raVinculado": "RA-022",
+          "estado": "PASS",
+          "ejecutor": "LM",
+          "fechaEjecucion": "11/05/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-PQ-006",
+          "titulo": "Detección de fraude — PDF firmado y posteriormente alterado",
+          "tipoTC": "NEGATIVO",
+          "grupo": "Verificación y trazabilidad",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-041",
+            "URS-042"
+          ],
+          "raVinculado": "RA-019",
+          "estado": "PASS",
+          "ejecutor": "LM",
+          "fechaEjecucion": "12/05/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-PQ-007",
+          "titulo": "Workflow administrativo — alta de usuario + asignación de empresa",
+          "tipoTC": "POSITIVO",
+          "grupo": "Workflow administrativo",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-009",
+            "URS-012"
+          ],
+          "raVinculado": "RA-009",
+          "estado": "PASS",
+          "ejecutor": "LM",
+          "fechaEjecucion": "12/05/2026",
+          "evidenciasCount": 3
+        },
+        {
+          "tcId": "TC-PQ-008",
+          "titulo": "Recuperación de cuenta + reentrada con contexto preservado",
+          "tipoTC": "POSITIVO",
+          "grupo": "Workflow administrativo",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-005",
+            "URS-007"
+          ],
+          "raVinculado": "RA-005",
+          "estado": "PASS",
+          "ejecutor": "LM",
+          "fechaEjecucion": "12/05/2026",
+          "evidenciasCount": 2
+        }
+      ]
+    },
+    {
+      "tipo": "tabla-test-case",
+      "titulo": "DETALLE DE EJECUCIÓN POR TEST CASE",
+      "intro": "Para cada TC se reporta el procedimiento ejecutado paso a paso, los resultados reales observados, el criterio observado con métricas vs límite del PPQ, las evidencias capturadas en el Gestor y la firma del ejecutor.",
+      "agruparPorGrupo": true,
+      "schemaModo": "procedimiento",
+      "tcs": [
+        {
+          "tcId": "TC-PQ-001",
+          "titulo": "Categorización end-to-end por usuario nuevo (GAMP 3)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Categorización end-to-end",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-017",
+            "URS-018",
+            "URS-021",
+            "URS-027",
+            "URS-035",
+            "URS-041"
+          ],
+          "raVinculado": "RA-001",
+          "objetivo": "Verificar que un usuario representativo del cliente puede completar el flujo end-to-end del sistema sin asistencia técnica.",
+          "precondiciones": [
+            "Sistema productivo activo.",
+            "Cuenta del usuario representativo creada.",
+            "Cliente email operativo.",
+            "Browser Chrome sesión limpia."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Admin crea cuenta usuario 'lmartinez@ext-example.com' con rol Usuario Final.",
+              "resultadoEsperado": "Email de bienvenida en <2min.",
+              "resultadoReal": "Email recibido en 47s."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Usuario abre email, ingresa con credencial temporal y cambia contraseña.",
+              "resultadoEsperado": "Sistema acepta nueva contraseña y redirige al dashboard.",
+              "resultadoReal": "Cambio de contraseña completado. Dashboard cargó en 1.2s."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Usuario inicia un nuevo registro de sistema.",
+              "resultadoEsperado": "Formulario con campos obligatorios visibles.",
+              "resultadoReal": "Formulario abierto correctamente con los 4 campos obligatorios visibles."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Usuario completa el formulario con planilla Excel de uniformidad y envía.",
+              "resultadoEsperado": "Validación + persistencia + apertura del cuestionario.",
+              "resultadoReal": "Formulario validado y persistido. Cuestionario abierto en 0.8s."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Usuario responde 3-5 preguntas adaptativas.",
+              "resultadoEsperado": "Confianza >90% → devuelve categoría GAMP.",
+              "resultadoReal": "4 preguntas respondidas. Confianza 96%. Categoría GAMP 3 asignada."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Usuario revisa resultado y descarga PDF.",
+              "resultadoEsperado": "PDF en <30s con portada, datos, categorización, QR, firma.",
+              "resultadoReal": "PDF descargado en 18s. Contiene los 6 elementos formales completos."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Usuario escanea QR del PDF con móvil.",
+              "resultadoEsperado": "Portal devuelve VÁLIDO en <3s.",
+              "resultadoReal": "Verificación QR completada en 1.8s. Portal mostró VÁLIDO con metadatos coincidentes."
+            }
+          ],
+          "criterioAceptacion": "Usuario completa flujo end-to-end sin asistencia. Email <2min. PDF <30s. QR <3s. Categoría correcta. Todos los elementos formales presentes.",
+          "criterioObservado": "Flujo completo exitoso. Tiempos observados: email 47s ≤ 2min OK, PDF 18s ≤ 30s OK, QR 1.8s ≤ 3s OK. Categoría GAMP 3 asignada coincide con el sistema declarado. Usuario completó el flujo sin asistencia técnica.",
+          "estado": "PASS",
+          "ejecutor": "Laura Martínez (Auditor QA Externo)",
+          "fechaEjecucion": "10/05/2026",
+          "firma": "LM",
+          "evidenciasGestor": [
+            {
+              "descripcion": "Email de bienvenida recibido por lmartinez@ext-example.com",
+              "criterioRef": "Paso 1",
+              "timestamp": "10/05/2026 09:15",
+              "usuarioPrueba": "lmartinez@ext-example.com",
+              "rolPrueba": "Usuario Final (representativo)"
+            },
+            {
+              "descripcion": "Dashboard del usuario después del cambio de contraseña",
+              "criterioRef": "Paso 2",
+              "timestamp": "10/05/2026 09:18"
+            },
+            {
+              "descripcion": "Pantalla de resultado del cuestionario adaptativo — confianza 96%, GAMP 3",
+              "criterioRef": "Paso 5",
+              "timestamp": "10/05/2026 09:21"
+            },
+            {
+              "descripcion": "PDF descargado + portal QR público mostrando VÁLIDO con metadatos",
+              "criterioRef": "Paso 6-7",
+              "timestamp": "10/05/2026 09:22"
+            }
+          ],
+          "hallazgos": []
+        },
+        {
+          "tcId": "TC-PQ-002",
+          "titulo": "Recategorización de sistema existente al actualizar versión",
+          "tipoTC": "POSITIVO",
+          "grupo": "Categorización end-to-end",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-024",
+            "URS-027",
+            "URS-029"
+          ],
+          "raVinculado": "RA-017",
+          "objetivo": "Verificar recategorización de un sistema preexistente al actualizar su versión.",
+          "precondiciones": [
+            "Usuario con sistema previamente categorizado.",
+            "PDF anterior disponible.",
+            "Nueva versión del sistema documentada."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Usuario abre el sistema previamente categorizado desde el dashboard.",
+              "resultadoEsperado": "Detalle del registro anterior con historial visible.",
+              "resultadoReal": "Detalle abierto correctamente con historial v1.0 visible (fecha, categoría, PDF anterior)."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Click en 'Nueva versión / Recategorizar' e ingresar v1.1.",
+              "resultadoEsperado": "Formulario prellenado preservando el registro anterior.",
+              "resultadoReal": "Formulario abierto con datos prellenos. Registro anterior preservado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Usuario actualiza descripción del cambio funcional y avanza al cuestionario.",
+              "resultadoEsperado": "Cuestionario presenta respuestas previas como sugerencia.",
+              "resultadoReal": "Cuestionario cargó respuestas previas como sugerencia. Usuario modificó 2 respuestas según los cambios funcionales."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Usuario confirma respuestas y envía. Sistema notifica si cambia la categoría.",
+              "resultadoEsperado": "Categoría calculada y mostrada. Alerta si difiere.",
+              "resultadoReal": "Categoría GAMP 3 mantenida (sin cambios funcionales significativos). Sin alerta de cambio de categoría."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Usuario descarga el nuevo PDF y verifica portal QR.",
+              "resultadoEsperado": "Nuevo PDF en <30s con QR único distinto. Portal devuelve VÁLIDO con v1.1.",
+              "resultadoReal": "PDF v1.1 descargado en 19s. QR único distinto al de v1.0. Portal devolvió VÁLIDO con metadatos de v1.1."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Usuario verifica historial completo en dashboard.",
+              "resultadoEsperado": "Historial muestra v1.0 y v1.1 con fechas, categorías y PDFs.",
+              "resultadoReal": "Historial muestra ambas versiones. PDF v1.0 sigue verificándose VÁLIDO con metadatos v1.0. PDF v1.1 verifica VÁLIDO con metadatos v1.1."
+            }
+          ],
+          "criterioAceptacion": "Recategorización sin perder registro anterior. Nuevo PDF en <30s. Historial conserva ambas versiones. Ambos QR siguen siendo válidos con sus metadatos respectivos.",
+          "criterioObservado": "Recategorización exitosa. Tiempos: PDF 19s ≤ 30s OK. Historial preservado correctamente. Ambos QR (v1.0 y v1.1) verifican VÁLIDO con metadatos correctos. No hay invalidación retroactiva del PDF anterior.",
+          "estado": "PASS",
+          "ejecutor": "Laura Martínez (Auditor QA Externo)",
+          "fechaEjecucion": "10/05/2026",
+          "firma": "LM",
+          "evidenciasGestor": [
+            {
+              "descripcion": "Pantalla de historial con v1.0 visible antes de iniciar recategorización",
+              "criterioRef": "Paso 1",
+              "timestamp": "10/05/2026 14:20"
+            },
+            {
+              "descripcion": "Nuevo PDF v1.1 descargado",
+              "criterioRef": "Paso 5",
+              "timestamp": "10/05/2026 14:35"
+            },
+            {
+              "descripcion": "Historial final con v1.0 y v1.1 en dashboard + verificación QR de ambos",
+              "criterioRef": "Paso 6",
+              "timestamp": "10/05/2026 14:42"
+            }
+          ],
+          "hallazgos": []
+        },
+        {
+          "tcId": "TC-PQ-003",
+          "titulo": "Carga representativa — 10 categorizaciones consecutivas mismo usuario",
+          "tipoTC": "POSITIVO",
+          "grupo": "Categorización end-to-end",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-029",
+            "URS-NF-001"
+          ],
+          "raVinculado": "RA-021",
+          "objetivo": "Verificar sostenibilidad del sistema bajo 10 categorizaciones consecutivas sin degradación.",
+          "precondiciones": [
+            "Usuario con cuenta activa.",
+            "Lista de 10 sistemas reales disponibles.",
+            "Cronómetro / monitor de tiempos."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Categorizar sistema #1 (planilla peso comprimido). Registrar tiempo total.",
+              "resultadoEsperado": "Categorización 1 <2min.",
+              "resultadoReal": "Categorización 1 completada en 1m 38s."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Sin cerrar sesión, categorizar sistema #2 (planilla disolución). Registrar tiempo.",
+              "resultadoEsperado": "Categorización 2 <2min. Sin re-login.",
+              "resultadoReal": "Categorización 2 completada en 1m 42s."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Repetir para sistemas 3-10 registrando tiempos y errores.",
+              "resultadoEsperado": "10 categorizaciones sin errores. Promedio <2min.",
+              "resultadoReal": "10 categorizaciones completadas sin errores. Promedio 1m 45s. Sistema #10 tardó 1m 49s (degradación 11% vs #1, dentro del límite del 20%)."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Revisar dashboard del usuario.",
+              "resultadoEsperado": "10 entradas visibles con versión, categoría, fecha, enlace PDF.",
+              "resultadoReal": "10 entradas correctamente visibles en dashboard."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Descargar PDF aleatorio (#7) y verificar QR.",
+              "resultadoEsperado": "PDF <30s. Portal QR VÁLIDO con metadatos correctos del #7.",
+              "resultadoReal": "PDF #7 descargado en 22s. Portal devolvió VÁLIDO con metadatos exactos del registro #7."
+            }
+          ],
+          "criterioAceptacion": "10 categorizaciones sin errores. Promedio <2min. Sin degradación notable. Dashboard refleja correctamente todas las entradas.",
+          "criterioObservado": "Carga representativa exitosa. Tiempo promedio observado: 1m 45s ≤ 2min OK. Degradación entre #1 y #10: 11% (dentro del 20% del criterio). Sin errores 500 ni cuelgues de UI. Dashboard refleja correctamente las 10 entradas. Verificación QR aleatoria del #7 exitosa.",
+          "estado": "PASS",
+          "ejecutor": "Laura Martínez (Auditor QA Externo)",
+          "fechaEjecucion": "11/05/2026",
+          "firma": "LM",
+          "evidenciasGestor": [
+            {
+              "descripcion": "Tabla cronometrada de las 10 categorizaciones con tiempos individuales",
+              "criterioRef": "Paso 1-3",
+              "timestamp": "11/05/2026 11:30"
+            },
+            {
+              "descripcion": "Dashboard mostrando los 10 sistemas + verificación QR del #7",
+              "criterioRef": "Paso 4-5",
+              "timestamp": "11/05/2026 11:48"
+            }
+          ],
+          "hallazgos": []
+        },
+        {
+          "tcId": "TC-PQ-004",
+          "titulo": "Verificación pública de PDF firmado por usuario externo (QR)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Verificación y trazabilidad",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-041",
+            "URS-042",
+            "URS-043"
+          ],
+          "raVinculado": "RA-018",
+          "objetivo": "Verificar que un usuario externo sin cuenta puede verificar la autenticidad de un PDF firmado escaneando su QR.",
+          "precondiciones": [
+            "PDF firmado disponible.",
+            "Dispositivo móvil externo sin sesión.",
+            "Conexión a internet externa."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Usuario externo escanea QR del PDF con cámara del móvil.",
+              "resultadoEsperado": "QR reconocido. URL del portal abierta en <3s.",
+              "resultadoReal": "QR reconocido inmediatamente. Portal abierto en 1.4s."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Observar pantalla de verificación pública.",
+              "resultadoEsperado": "Portal muestra 'DOCUMENTO VÁLIDO' en verde prominente.",
+              "resultadoReal": "Portal mostró 'DOCUMENTO VÁLIDO' en verde, leyenda prominente y visible en móvil."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Verificar metadatos contra el PDF.",
+              "resultadoEsperado": "Metadatos coinciden 1:1. Hash SHA-256 visible.",
+              "resultadoReal": "Todos los metadatos coinciden con el PDF: nombre sistema, versión, categoría, fecha, hash SHA-256 visible (verificado contra cálculo independiente)."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Intentar navegar a otras URLs internas desde el portal.",
+              "resultadoEsperado": "Portal NO expone otras URLs ni datos sensibles.",
+              "resultadoReal": "Portal solo muestra info del documento verificado. Intento de navegar a /admin → redirige al portal de verificación. No se expone otra información."
+            }
+          ],
+          "criterioAceptacion": "Verificación QR exitosa por usuario externo en <3s. Portal devuelve VÁLIDO con metadatos completos. Hash SHA-256 visible. Sin filtración de información sensible.",
+          "criterioObservado": "Verificación pública exitosa. Tiempo de apertura del portal: 1.4s ≤ 3s OK. Todos los metadatos coinciden. Hash SHA-256 verificado independientemente. Portal restringido correctamente — sin acceso a otros recursos.",
+          "estado": "PASS",
+          "ejecutor": "Laura Martínez (Auditor QA Externo)",
+          "fechaEjecucion": "11/05/2026",
+          "firma": "LM",
+          "evidenciasGestor": [
+            {
+              "descripcion": "Captura del QR siendo escaneado por móvil externo",
+              "criterioRef": "Paso 1",
+              "timestamp": "11/05/2026 15:10"
+            },
+            {
+              "descripcion": "Portal de verificación pública mostrando DOCUMENTO VÁLIDO + metadatos completos",
+              "criterioRef": "Paso 2-3",
+              "timestamp": "11/05/2026 15:12"
+            },
+            {
+              "descripcion": "Intento de acceso a /admin desde portal → redirige a verificación",
+              "criterioRef": "Paso 4",
+              "timestamp": "11/05/2026 15:18"
+            }
+          ],
+          "hallazgos": []
+        },
+        {
+          "tcId": "TC-PQ-005",
+          "titulo": "Concurrencia productiva — 15 usuarios simultáneos categorizando",
+          "tipoTC": "POSITIVO",
+          "grupo": "Performance y concurrencia",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-NF-001",
+            "URS-NF-002"
+          ],
+          "raVinculado": "RA-022",
+          "objetivo": "Verificar sostenibilidad del sistema con 15 usuarios concurrentes.",
+          "precondiciones": [
+            "15 cuentas activas (A-O).",
+            "15 sesiones browser distintas.",
+            "Coordinador de ejecución.",
+            "Monitor server-side."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "15 usuarios inician sesión coordinadamente en ventana de 60s.",
+              "resultadoEsperado": "15 logins. Sin rechazo por concurrencia. Login promedio <5s.",
+              "resultadoReal": "15 logins completados en 38s. Login promedio: 2.1s. Sin rechazos."
+            },
+            {
+              "paso": 2,
+              "instruccion": "A la señal, los 15 inician registro simultáneamente.",
+              "resultadoEsperado": "15 formularios. Degradación <20% vs aislado.",
+              "resultadoReal": "15 formularios abiertos. Tiempo promedio de apertura: 1.6s (vs 0.8s aislado → degradación 100% pero dentro del SLA absoluto de <3s)."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Cada usuario completa cuestionario y solicita PDF.",
+              "resultadoEsperado": "15 PDFs. Promedio <30s. Máximo individual <45s.",
+              "resultadoReal": "15 PDFs generados. Promedio 26s. Máximo individual: 38s (usuario K). Todos dentro del SLA."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Cada usuario verifica su PDF por QR.",
+              "resultadoEsperado": "15 QR VÁLIDOS con metadatos correctos de cada usuario (sin cross-contamination).",
+              "resultadoReal": "15 verificaciones QR exitosas. Cada portal devolvió los metadatos correctos del usuario emisor. Sin mezcla de datos entre usuarios."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Coordinador revisa logs del servidor.",
+              "resultadoEsperado": "Sin 500. CPU <80%. Sin timeouts DB. Cola PDF dimensionada.",
+              "resultadoReal": "Sin errores 500. CPU pico: 67%. Memoria pico: 72%. Sin timeouts DB. Cola de generación PDF mantuvo profundidad ≤4. Logs limpios."
+            }
+          ],
+          "criterioAceptacion": "15 categorizaciones concurrentes exitosas. PDF promedio <30s. 15 QR válidos sin cross-contamination. Logs sin errores 500.",
+          "criterioObservado": "Concurrencia exitosa. Tiempos: PDF promedio 26s ≤ 30s OK, PDF máximo 38s ≤ 45s OK. CPU pico 67% (margen 13% al límite). Sin cross-contamination en 15 verificaciones QR distintas. Logs limpios. Sistema apto para carga productiva inicial.",
+          "estado": "PASS",
+          "ejecutor": "Laura Martínez (Auditor QA Externo)",
+          "fechaEjecucion": "11/05/2026",
+          "firma": "LM",
+          "evidenciasGestor": [
+            {
+              "descripcion": "Gráfico de carga del servidor durante la prueba — CPU/Memoria/RPS",
+              "criterioRef": "Paso 1-5",
+              "timestamp": "11/05/2026 17:00"
+            },
+            {
+              "descripcion": "Tabla cronometrada de los 15 PDFs generados con tiempos individuales",
+              "criterioRef": "Paso 3",
+              "timestamp": "11/05/2026 17:15"
+            },
+            {
+              "descripcion": "Matriz de las 15 verificaciones QR con metadatos cruzados (sin contamination)",
+              "criterioRef": "Paso 4",
+              "timestamp": "11/05/2026 17:20"
+            }
+          ],
+          "hallazgos": []
+        },
+        {
+          "tcId": "TC-PQ-006",
+          "titulo": "Detección de fraude — PDF firmado y posteriormente alterado",
+          "tipoTC": "NEGATIVO",
+          "grupo": "Verificación y trazabilidad",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-041",
+            "URS-042"
+          ],
+          "raVinculado": "RA-019",
+          "objetivo": "Verificar que el portal de verificación detecta y rechaza correctamente un PDF alterado.",
+          "precondiciones": [
+            "PDF firmado disponible.",
+            "Editor PDF.",
+            "Backup del PDF original."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Modificar PDF: cambiar categoría GAMP de '3' a '5'. Preservar visualmente el QR.",
+              "resultadoEsperado": "PDF modificado visualmente similar al original.",
+              "resultadoReal": "PDF modificado obtenido. Categoría cambiada en el cuerpo del documento. QR preservado en apariencia."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Escanear QR del PDF modificado.",
+              "resultadoEsperado": "Portal abre URL de verificación.",
+              "resultadoReal": "Portal abierto en 1.6s."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Observar resultado.",
+              "resultadoEsperado": "Portal muestra 'DOCUMENTO ALTERADO' o 'INVÁLIDO' en rojo.",
+              "resultadoReal": "Portal mostró 'DOCUMENTO ALTERADO — El contenido no coincide con la firma digital' en rojo prominente."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Intentar obtener metadatos originales desde portal de rechazo.",
+              "resultadoEsperado": "Portal NO expone metadatos del original.",
+              "resultadoReal": "Portal solo muestra el mensaje de rechazo. No expone metadatos del documento original ni del documento alterado."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Verificar QR del PDF original (no modificado).",
+              "resultadoEsperado": "Portal devuelve VÁLIDO para el original.",
+              "resultadoReal": "PDF original sigue verificándose como VÁLIDO con metadatos correctos. La invalidación es específica del documento alterado."
+            }
+          ],
+          "criterioAceptacion": "Sistema detecta alteración y rechaza con mensaje claro. No filtra datos del original. PDF original sigue VÁLIDO. Trazabilidad preservada.",
+          "criterioObservado": "Detección de fraude exitosa. El portal rechaza correctamente el PDF alterado con mensaje claro y prominente. No expone metadatos del original ante intento de fraude. El PDF original sigue verificándose VÁLIDO. La promesa central del sistema (verificabilidad pública robusta) se cumple end-to-end.",
+          "estado": "PASS",
+          "ejecutor": "Laura Martínez (Auditor QA Externo)",
+          "fechaEjecucion": "12/05/2026",
+          "firma": "LM",
+          "evidenciasGestor": [
+            {
+              "descripcion": "PDF original vs PDF modificado (diff visual mostrando cambio en categoría)",
+              "criterioRef": "Paso 1",
+              "timestamp": "12/05/2026 09:30"
+            },
+            {
+              "descripcion": "Portal mostrando 'DOCUMENTO ALTERADO' con el PDF modificado",
+              "criterioRef": "Paso 3",
+              "timestamp": "12/05/2026 09:35"
+            },
+            {
+              "descripcion": "Portal mostrando 'VÁLIDO' con el PDF original (mismo QR del registro)",
+              "criterioRef": "Paso 5",
+              "timestamp": "12/05/2026 09:40"
+            }
+          ],
+          "hallazgos": []
+        },
+        {
+          "tcId": "TC-PQ-007",
+          "titulo": "Workflow administrativo — alta de usuario + asignación de empresa",
+          "tipoTC": "POSITIVO",
+          "grupo": "Workflow administrativo",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-009",
+            "URS-012"
+          ],
+          "raVinculado": "RA-009",
+          "objetivo": "Verificar workflow administrativo completo — alta + asignación de empresa + permisos heredados.",
+          "precondiciones": [
+            "Admin con rol Administrador.",
+            "Empresa cliente preexistente.",
+            "Email no usado disponible."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Admin ingresa al panel admin (re-autenticación) y navega a Gestión de usuarios.",
+              "resultadoEsperado": "Panel admin abierto. Lista visible. Botón 'Nuevo usuario' habilitado.",
+              "resultadoReal": "Re-autenticación completada en 2.3s. Panel admin abierto. Lista de 47 usuarios visible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Completar formulario: email, nombre, empresa, rol Usuario Final.",
+              "resultadoEsperado": "Form valida. Empresa desde dropdown.",
+              "resultadoReal": "Formulario completado. Dropdown de empresas mostró 12 clientes activos. Validación de email funcional."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Confirmar alta. Sistema envía email.",
+              "resultadoEsperado": "Usuario creado. Email en <2min.",
+              "resultadoReal": "Usuario creado. Email enviado en 52s."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Usuario nuevo abre email, cambia contraseña, entra.",
+              "resultadoEsperado": "Acceso al dashboard. Empresa visible. Solo ve sistemas de su empresa.",
+              "resultadoReal": "Usuario accedió al dashboard. Empresa 'LabMed S.A.' visible en header. Vista filtrada solo a sistemas de su empresa (verificado contra otra empresa)."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Admin verifica audit trail.",
+              "resultadoEsperado": "Trail con alta + cambio pwd + primer login.",
+              "resultadoReal": "Audit trail mostró las 3 entradas con timestamps, IPs y actores correctos."
+            }
+          ],
+          "criterioAceptacion": "Alta completada. Email <2min. Acceso con empresa correcta + permisos rol. Audit trail completo.",
+          "criterioObservado": "Workflow admin exitoso. Email 52s ≤ 2min OK. Empresa correctamente asignada y aislada. Audit trail completo con 3 eventos trazables. Sin intervención técnica.",
+          "estado": "PASS",
+          "ejecutor": "Laura Martínez (Auditor QA Externo)",
+          "fechaEjecucion": "12/05/2026",
+          "firma": "LM",
+          "evidenciasGestor": [
+            {
+              "descripcion": "Formulario de alta completado + email de bienvenida recibido",
+              "criterioRef": "Paso 2-3",
+              "timestamp": "12/05/2026 11:00"
+            },
+            {
+              "descripcion": "Dashboard del usuario nuevo con empresa LabMed S.A. + verificación de aislamiento contra otra empresa",
+              "criterioRef": "Paso 4",
+              "timestamp": "12/05/2026 11:15"
+            },
+            {
+              "descripcion": "Audit trail mostrando los 3 eventos del flujo (alta + cambio pwd + primer login)",
+              "criterioRef": "Paso 5",
+              "timestamp": "12/05/2026 11:25"
+            }
+          ],
+          "hallazgos": []
+        },
+        {
+          "tcId": "TC-PQ-008",
+          "titulo": "Recuperación de cuenta + reentrada con contexto preservado",
+          "tipoTC": "POSITIVO",
+          "grupo": "Workflow administrativo",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-005",
+            "URS-007"
+          ],
+          "raVinculado": "RA-005",
+          "objetivo": "Verificar recuperación de contraseña autónoma + preservación de contexto.",
+          "precondiciones": [
+            "Usuario con sistema previo categorizado.",
+            "Acceso al email.",
+            "Sesión cerrada."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Click en 'Olvidé mi contraseña', ingresar email.",
+              "resultadoEsperado": "Confirmación de envío.",
+              "resultadoReal": "Confirmación mostrada inmediatamente."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Abrir email, click en link.",
+              "resultadoEsperado": "Email <2min. Link abre form de reset.",
+              "resultadoReal": "Email recibido en 41s. Link abrió form de reset."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Ingresar nueva contraseña.",
+              "resultadoEsperado": "Sistema acepta. Link queda one-shot.",
+              "resultadoReal": "Contraseña aceptada. Intentar reusar el link mostró 'Enlace expirado'."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Ingresar con nueva contraseña.",
+              "resultadoEsperado": "Login OK. Contexto preservado.",
+              "resultadoReal": "Login exitoso en 1.2s. Dashboard cargado con contexto previo."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Verificar dashboard: registros, historial, PDFs.",
+              "resultadoEsperado": "Todo preservado. PDFs previos siguen verificándose.",
+              "resultadoReal": "12 registros previos visibles. Historial completo. PDF aleatorio descargado y verificado por QR → VÁLIDO con metadatos correctos."
+            }
+          ],
+          "criterioAceptacion": "Recuperación autónoma. Email <2min. Login con nueva contraseña OK. Contexto 100% preservado.",
+          "criterioObservado": "Recuperación exitosa. Email 41s ≤ 2min OK. Contexto del usuario preservado al 100% — todos los registros previos accesibles y todos los PDFs históricos siguen verificándose correctamente.",
+          "estado": "PASS",
+          "ejecutor": "Laura Martínez (Auditor QA Externo)",
+          "fechaEjecucion": "12/05/2026",
+          "firma": "LM",
+          "evidenciasGestor": [
+            {
+              "descripcion": "Email de recuperación recibido + form de reset",
+              "criterioRef": "Paso 1-3",
+              "timestamp": "12/05/2026 14:00"
+            },
+            {
+              "descripcion": "Dashboard después del login con los 12 registros preservados + verificación QR aleatoria",
+              "criterioRef": "Paso 4-5",
+              "timestamp": "12/05/2026 14:10"
+            }
+          ],
+          "hallazgos": []
+        }
+      ]
+    },
+    {
+      "tipo": "resumen-ejecucion-pq",
+      "titulo": "RESUMEN DE EJECUCIÓN",
+      "intro": "Estadística consolidada de los 8 TCs PQ ejecutados, agrupados por categoría funcional. TCs negativos contabilizados separadamente. Todas las métricas de performance dentro de los límites declarados en el PPQ.",
+      "tcs": []
+    },
+    {
+      "tipo": "hallazgos-consolidados",
+      "titulo": "HALLAZGOS Y DESVÍOS",
+      "intro": "No se identificaron hallazgos ni desvíos durante la ejecución del PPQ. Los 8 TCs (incluido el negativo) resultaron PASS con métricas dentro de los límites declarados.",
+      "tcs": []
+    },
+    {
+      "tipo": "caja-conclusion",
+      "titulo": "CONCLUSIÓN Y DECISIÓN FORMAL",
+      "parrafos": [
+        "**Decisión: PQ APROBADA**.",
+        "El sistema DRP-GAMP Categorizador™ v1.1 (paquete DRP-SIS-001) ha completado exitosamente su Calificación de Performance bajo conducción de auditor externo independiente, con resultado 8/8 TCs PASS y todas las métricas de performance objetivo (email <2min, PDF <30s, QR <3s, concurrencia 15-simultánea, detección de fraude) dentro de los límites declarados en el PPQ.",
+        "El TC negativo TC-PQ-006 demostró que el sistema detecta y rechaza correctamente la alteración del PDF firmado, preservando la promesa central de verificabilidad pública robusta. El portal QR no filtra información sensible ante intentos de fraude.",
+        "Conclusión formal: el sistema es **apto para liberación productiva GxP** en el alcance del paquete DRP-SIS-001. No se requiere CAPA. Se procede al cierre del paquete vía AEX (Anexo de Ejecución) que consolida las evidencias capturadas durante la ejecución.",
+        "El presente IPQ se integra al paquete documental DRP-SIS-001 v1.0 como cierre formal del ciclo IQ/OQ/PQ. La trazabilidad cruzada queda preservada — todos los URS productivos y todos los riesgos RA críticos han sido verificados con TCs PASS."
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": [
+        "Documento",
+        "Título"
+      ],
+      "widths": [
+        180,
+        275
+      ],
+      "filas": [
+        [
+          "PPQ-DRP-SIS-001 v1.0",
+          "Protocolo de Calificación de Performance ejecutado"
+        ],
+        [
+          "URS-DRP-SIS-001 v1.0",
+          "User Requirements Specification"
+        ],
+        [
+          "RA-DRP-SIS-001 v1.0",
+          "Risk Assessment (24 riesgos)"
+        ],
+        [
+          "IIQ-DRP-SIS-001 v1.0",
+          "Informe IQ — 15/15 PASS (pre-requisito cumplido)"
+        ],
+        [
+          "IOQ-DRP-SIS-001 v1.0",
+          "Informe OQ — 47/47 PASS (pre-requisito cumplido)"
+        ],
+        [
+          "MTR-DRP-SIS-001 v1.0",
+          "Matriz de Trazabilidad"
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN Y APROBACIÓN",
+      "intro": "Las firmas siguientes evidencian la ejecución, revisión y aprobación formal del Informe de Calificación de Performance.",
+      "firmas": [
+        {
+          "rol": "Ejecutor (Validador)",
+          "nombre": "Laura Martínez (Auditor QA Externo)",
+          "iniciales": "LM",
+          "fecha": "12/05/2026",
+          "_signedBy": "person_LM_001",
+          "_signedAt": "2026-05-12T12:00:00.000Z",
+          "_signatureHashRef": "227F446B4BC3"
+        },
+        {
+          "rol": "Revisor (Process Owner)",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "13/05/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-05-13T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        },
+        {
+          "rol": "Aprobador (Jefe de Validaciones)",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "14/05/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-05-14T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        },
+        {
+          "rol": "Aprobador (Gerente QA)",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "14/05/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-05-14T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        }
+      ],
+      "rolesPlaceholder": [
+        "Ejecutor (Validador)",
+        "Revisor (Process Owner)",
+        "Aprobador (Jefe de Validaciones)",
+        "Aprobador (Gerente QA)"
+      ],
+      "nota": "PQ APROBADA — Sistema apto para liberación productiva GxP en el alcance del paquete DRP-SIS-001."
+    }
+  ]
+}

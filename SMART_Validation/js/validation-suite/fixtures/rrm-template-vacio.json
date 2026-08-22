@@ -1,0 +1,144 @@
+{
+  "schemaVersion": "1.0",
+  "type": "RRM",
+  "package": {
+    "code": "",
+    "systemName": "",
+    "systemVersion": "",
+    "systemSubtitle": "",
+    "client": "",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": null
+  },
+  "document": {
+    "code": "",
+    "titleEs": "MATRIZ DE REQUERIMIENTOS REGULATORIOS",
+    "titleEn": "REGULATORY REQUIREMENTS MATRIX (RRM)",
+    "headerTitle": "Matriz de Requerimientos Regulatorios (RRM)",
+    "version": "1.0",
+    "issueDate": "",
+    "status": "Borrador",
+    "processOwner": "",
+    "gampCategory": "",
+    "normativeFramework": "",
+    "extras": {
+      "Documento base (URS)": "",
+      "RA Global (HLRA)": "",
+      "Normas mapeadas": "",
+      "GAPs identificados": ""
+    }
+  },
+  "controlCambios": [],
+  "matrizAprobaciones": [
+    { "rol": "Redactor (Validador)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Revisor (Process Owner)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+  ],
+  "trazabilidad": {
+    "recibeDe": ["URS", "HLRA", "RA"],
+    "alimentaA": ["MTR", "POQ"]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO",
+      "bloques": []
+    },
+    {
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido",
+      "incluido": [],
+      "subExcluido": "2.2 Excluido",
+      "excluido": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESPONSABILIDADES",
+      "columnas": ["Rol", "Responsabilidad"],
+      "widths": [160, 295],
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DEFINICIONES Y ABREVIATURAS",
+      "columnas": ["Término", "Definición"],
+      "widths": [125, 330],
+      "filas": []
+    },
+    {
+      "tipo": "texto",
+      "titulo": "METODOLOGÍA DE MAPEO",
+      "bloques": []
+    },
+    {
+      "tipo": "tabla-norma",
+      "titulo": "<NORMA 1 — ej: ANMAT 4159/2023 ANEXO VI>",
+      "intro": "",
+      "cobertura": "",
+      "filas": []
+    },
+    {
+      "tipo": "tabla-norma",
+      "titulo": "<NORMA 2 — ej: 21 CFR PART 11 (FDA)>",
+      "intro": "",
+      "cobertura": "",
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "ANÁLISIS DE BRECHAS REGULATORIAS — RESUMEN",
+      "intro": "Sección OPCIONAL. Si el sistema no presenta GAPs, eliminar esta tabla y las tarjetas-gap-rrm que la siguen, o reemplazar por un texto: 'No se identificaron brechas regulatorias durante el mapeo realizado.'",
+      "columnas": ["GAP-ID", "Tipo", "Norma", "Impacto", "URS Afectados", "Estado"],
+      "widths": [50, 60, 90, 75, 100, 80],
+      "filas": []
+    },
+    {
+      "tipo": "tarjeta-gap-rrm",
+      "id": "GAP-XXX",
+      "severidad": "GAP Mayor | GAP Menor | NC Crítico | NC Menor",
+      "titulo": "",
+      "norma": "",
+      "requisito": "",
+      "impacto": "",
+      "descripcion": "",
+      "ursAfectados": "",
+      "controlesCompensatorios": [],
+      "accion": "",
+      "requiereFirma": false
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESUMEN DE CUMPLIMIENTO NORMATIVO",
+      "columnas": ["Norma", "Total Arts.", "CUMPLE", "PARCIAL/GAP", "N/A", "Observación"],
+      "widths": [125, 50, 50, 60, 35, 135],
+      "filas": []
+    },
+    {
+      "tipo": "caja-conclusion",
+      "titulo": "CONCLUSIÓN Y DECISIÓN FORMAL",
+      "parrafos": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS DOCUMENTALES",
+      "columnas": ["Ref.", "Documento", "Descripción"],
+      "widths": [40, 165, 250],
+      "filas": []
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de esta RRM.",
+      "firmas": [],
+      "rolesPlaceholder": [
+        "Redactor (Validador)",
+        "Revisor (Process Owner)",
+        "Aprobador (Jefe de Validaciones)",
+        "Aprobador (Gerente QA)"
+      ],
+      "nota": ""
+    }
+  ]
+}

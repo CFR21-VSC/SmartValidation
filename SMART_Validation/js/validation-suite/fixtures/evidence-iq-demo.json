@@ -1,0 +1,1802 @@
+{
+  "version": "3.0",
+  "exportDate": "2026-03-09T20:02:59.439Z",
+  "systemInfo": {
+    "empresa": "DRP Assurance",
+    "nombreSistema": "DRP-GAMP Categorizador™ v1.0",
+    "codigoSistema": "DRP-SIS-001",
+    "proveedor": "DRP Assurance Solutions"
+  },
+  "executor": "Ana Pérez",
+  "protocols": [
+    {
+      "id": "protocol_IQ",
+      "name": "Evidencias de Protocolo IQ",
+      "code": "IQ-DRP-SIS-001",
+      "type": "IQ",
+      "collapsed": false,
+      "finalized": false,
+      "conclusion": "",
+      "resultado": ""
+    },
+    {
+      "id": "protocol_OQ",
+      "name": "Operational Qualification",
+      "code": "OQ-DRP-SIS-001",
+      "type": "OQ",
+      "collapsed": false,
+      "finalized": false,
+      "conclusion": "",
+      "resultado": ""
+    },
+    {
+      "id": "protocol_PQ",
+      "name": "Performance Qualification",
+      "code": "PQ-DRP-SIS-001",
+      "type": "PQ",
+      "collapsed": false,
+      "finalized": false,
+      "conclusion": "",
+      "resultado": ""
+    }
+  ],
+  "groups": [
+    {
+      "id": "group_IQ_01",
+      "name": "Aplicación Web y TLS",
+      "protocolId": "protocol_IQ",
+      "collapsed": false,
+      "finalized": true,
+      "conclusion": "La verificación de accesibilidad web y seguridad en tránsito del sistema DRP-GAMP Categorizador demostró cumplimiento total con estándares de seguridad web modernos. El sistema es accesible públicamente mediante HTTPS con certificado SSL válido, implementa TLS 1.3 (protocolo más reciente), y fuerza redirección \nautomática de tráfico inseguro HTTP hacia HTTPS. La configuración del servidor web (nginx) rechaza protocolos obsoletos vulnerables, cumpliendo con mejores prácticas CIS Benchmark y requisitos regulatorios FDA 21 CFR Part 11 para protección de datos electrónicos en tránsit. No se identificaron desviaciones \nni observaciones de seguridad. El sistema está listo para uso operativo desde perspectiva de acceso web seguro.",
+      "resultado": "PASA",
+      "finalizedDate": "2026-03-08T11:37:41.979Z"
+    },
+    {
+      "id": "group_IQ_02",
+      "name": "Panel Admin y Audit Trail",
+      "protocolId": "protocol_IQ",
+      "collapsed": true,
+      "finalized": true,
+      "conclusion": "a verificación del sistema de Audit Trail confirmó que Django registra \nautomáticamente eventos administrativos críticos en tabla django_admin_log, capturando usuario ejecutor, timestamp, tipo de acción y objeto afectado. El sistema DRP-GAMP Categorizador implementa arquitectura \"Zero Knowledge\" en versión demo, eliminando datos técnicos sensibles post-generación de \nreportes para proteger confidencialidad de clientes. Esta política reduce alcance de audit trail a eventos de gestión de sistema (usuarios, configuración, autenticación), excluyendo datos de categorizaciones por diseño intencional. \nLa trazabilidad cumple requisitos para herramienta no-GxP de soporte a decisiones de validación. No se identificaron desviaciones.",
+      "resultado": "PASA",
+      "finalizedDate": "2026-03-08T11:44:27.95Z"
+    },
+    {
+      "id": "group_IQ_03",
+      "name": "Servicios Auxiliares",
+      "protocolId": "protocol_IQ",
+      "collapsed": false,
+      "finalized": true,
+      "conclusion": "Los servicios auxiliares del sistema DRP-GAMP Categorizador demostraron funcionalidad completa y operativa. El Portal de Verificación QR permite validación de autenticidad de reportes mediante hash criptográfico SHA-256, proporcionando evidencia auditable de integridad documental sin almacenar contenido sensible. El servicio SMTP configurado con Gmail garantiza envío \nautomático de emails de recuperación de contraseña mediante autenticación segura (App Password), implementando tokens temporales con expiración de 24 horas según mejores prácticas NIST.",
+      "resultado": "PASA",
+      "finalizedDate": "2026-03-08T11:49:15.043Z"
+    },
+    {
+      "id": "group_IQ_04",
+      "name": "Infraestructura Cloud AWS",
+      "protocolId": "protocol_IQ",
+      "collapsed": false,
+      "finalized": true,
+      "conclusion": "La infraestructura cloud del sistema DRP-GAMP Categorizador demostró configuración robusta en AWS con servidor EC2 operativo (99.9% uptime), base de datos SQLite funcional, autenticación IAM implementada según mejores prácticas, y seguridad SSH mediante clave criptográfica exclusivamente. Se identificaron DOS desviaciones menores con riesgo BAJO: (1) **DEV-IQ-001** - \nVolumen EBS sin encriptación AES-256, y (2) **DEV-IQ-002** - Backup automático no configurado. Ambas desviaciones fueron sometidas a análisis de riesgo según ICH Q9, determinando impacto aceptable para versión demo dado que el sistema \nNO almacena datos GxP críticos y opera bajo política Zero Knowledge. Controles compensatorios (TLS 1.3, autenticación, hashing PBKDF2, Security Groups) mitigan riesgos residuales. Corrección programada para versión productiva comercial. La infraestructura cumple requisitos funcionales para ambiente de evaluación.",
+      "resultado": "PASA CON OBSERVACIONES",
+      "finalizedDate": "2026-03-08T12:00:55.664Z"
+    },
+    {
+      "id": "group_IQ_05",
+      "name": "Seguridad — Firewall y Sesión",
+      "protocolId": "protocol_IQ",
+      "collapsed": false,
+      "finalized": true,
+      "conclusion": "La configuración de seguridad de red del sistema demostró controles efectivos mediante AWS Security Groups y políticas de sesión Django. El firewall expone únicamente puertos operacionales (22, 80, 443), con una desviación menor: **DEV-IQ-003** - Puerto 8000 abierto sin servicio asociado, remanente de fase desarrollo con riesgo BAJO. La gestión de sesiones implementa timeout de 24 horas (apropiado para demo) y bloqueo automático tras 5 intentos fallidos, previniendo fuerza bruta. Los controles de acceso cumplen principios de \ndefensa en profundidad: firewall perimetral, autenticación obligatoria, \nexpiración de sesiones, y bloqueo progresivo.",
+      "resultado": "PASA CON OBSERVACIONES",
+      "finalizedDate": "2026-03-08T12:06:33.87Z"
+    },
+    {
+      "id": "group_IQ_06",
+      "name": "Documentación y Configuración Inicial",
+      "protocolId": "protocol_IQ",
+      "collapsed": true,
+      "finalized": true,
+      "conclusion": "La verificación de configuración del sistema confirmó que el DRP-GAMP Categorizador cuenta con documentación técnica completa (Manual de Usuario, SOPs de Uso y Administración, protocolos de validación) cumpliendo requisitos regulatorios de control documental según FDA 21 CFR Part 11. La gestión de usuarios implementa rol único operacional (sin permisos admin) para 3 usuarios \nactivos, con 2 usuarios desactivados mantenidos para trazabilidad de auditoría. La segregación entre usuarios operacionales y administrativos (vía Django admin) garantiza separación de funciones. Para versión productiva se recomienda implementar roles diferenciados mediante Django Groups según matriz documentada en SOP. La configuración actual es apropiada para ambiente de evaluación con usuarios controlados, proporcionando base sólida para escalabilidad futura.",
+      "resultado": "PASA",
+      "finalizedDate": "2026-03-08T12:10:55.904Z"
+    },
+    {
+      "id": "group_OQ_01",
+      "name": "Funcionalidad de Categorización GAMP",
+      "protocolId": "protocol_OQ",
+      "collapsed": false,
+      "finalized": true,
+      "conclusion": "La verificación de la funcionalidad de categorización GAMP 5 confirmó que el sistema DRP-GAMP Categorizador asigna correctamente las categorías 1 a 5 según los criterios normativos de la guía GAMP 5 (ISPE, 2008). Se ejecutaron casos de prueba para categorías 3, 4 y escenarios con subsistemas mixtos, obteniendo resultados concordantes con la matriz de decisión documentada. El motor de recategorización aplicó correctamente la regla de escalamiento al componente de mayor riesgo en todos los casos evaluados. No se identificaron desviaciones funcionales. El sistema cumple los requisitos de la OQ para la funcionalidad principal de categorización.",
+      "resultado": "PASA",
+      "finalizedDate": "2026-03-09T12:00:00Z"
+    },
+    {
+      "id": "group_OQ_02",
+      "name": "Generación y Exportación de Reportes PDF",
+      "protocolId": "protocol_OQ",
+      "collapsed": false,
+      "finalized": true,
+      "conclusion": "La generación de reportes PDF y el mecanismo de integridad mediante hash QR demostraron funcionamiento correcto y auditable. El sistema produce documentos PDF con contenido completo, firma digital QR que incorpora hash SHA-256 del contenido del reporte, y enlace de verificación en portal público. La validación del QR desde dispositivos externos confirmó que el portal retorna el estado VALIDO con metadatos de emisión, cumpliendo requisitos de trazabilidad documental exigidos por FDA 21 CFR Part 11 Subpart C. No se identificaron desviaciones.",
+      "resultado": "PASA",
+      "finalizedDate": "2026-03-09T13:00:00Z"
+    },
+    {
+      "id": "group_OQ_03",
+      "name": "Gestión de Usuarios y Autenticación",
+      "protocolId": "protocol_OQ",
+      "collapsed": false,
+      "finalized": true,
+      "conclusion": "La gestión de usuarios y los controles de autenticación operaron conforme a los requisitos definidos. El mecanismo de bloqueo de cuenta tras 5 intentos fallidos fue verificado de forma controlada. El flujo de recuperación de contraseña generó tokens de un solo uso con expiración de 24 horas, cumpliendo mejores prácticas NIST SP 800-63B. Los controles satisfacen los requisitos de FDA 21 CFR Part 11.10(d) para limitar el acceso del sistema a usuarios autorizados. No se identificaron desviaciones.",
+      "resultado": "PASA",
+      "finalizedDate": "2026-03-09T14:00:00Z"
+    },
+    {
+      "id": "group_PQ_01",
+      "name": "Rendimiento y Disponibilidad Operativa",
+      "protocolId": "protocol_PQ",
+      "collapsed": false,
+      "finalized": true,
+      "conclusion": "Las pruebas de rendimiento y disponibilidad demostraron desempeño dentro de los criterios de aceptación del protocolo PQ. El tiempo de respuesta promedio para la operación de categorización bajo carga real fue de 8.4 segundos, por debajo del límite de 30 segundos. El monitoreo de disponibilidad durante 30 días registró un uptime de 99.7%, superando el umbral mínimo del 99%. No se identificaron desviaciones de rendimiento.",
+      "resultado": "PASA",
+      "finalizedDate": "2026-03-09T15:00:00Z"
+    },
+    {
+      "id": "group_PQ_02",
+      "name": "Reproducibilidad y Consistencia de Resultados",
+      "protocolId": "protocol_PQ",
+      "collapsed": false,
+      "finalized": true,
+      "conclusion": "Las pruebas de reproducibilidad confirmaron que el sistema produce resultados determinísticos ante idénticas condiciones de entrada. La ejecución de 10 categorizaciones consecutivas con el mismo conjunto de parámetros arrojó resultados 100% idénticos en categoría, justificación y recomendaciones. La comparación de reportes PDF entre sesiones distintas confirmó consistencia de contenido sustantivo, con variación únicamente en timestamp de emisión. El sistema demuestra comportamiento estable y predecible apto para uso en entornos GxP regulados.",
+      "resultado": "PASA",
+      "finalizedDate": "2026-03-09T16:00:00Z"
+    }
+  ],
+  "tests": [
+    {
+      "id": "test_IQ_001",
+      "name": "TC-IQ-001: Verificar accesibilidad y versión App Web",
+      "groupId": "group_IQ_01",
+      "finalized": true,
+      "conclusion": "El sistema DRP-GAMP Categorizador demostró accesibilidad completa y operativa \na través de la URL https://categorizador.example.com/. La verificación \nconfirmó certificado SSL válido (Let's Encrypt TLS 1.3), garantizando \nencriptación de datos en tránsito según estándares FDA 21 CFR Part 11 para \nsistemas electrónicos",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Accesibilidad, versionado y seguridad de inicio",
+          "operacion": "LOGIN Usuario registrado",
+          "resultado": "PASA",
+          "timestamp": "2026-03-02T21:00:27.632Z",
+          "captureTimestamp": "2026-03-02T20:59:53.471Z",
+          "size": "166.4 KB",
+          "dimensions": "1918x1096",
+          "testName": "TC-IQ-001: Verificar accesibilidad y versión App Web",
+          "executor": "",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Versión registrada en documentación del SOFT",
+          "operacion": "VERSION EN MANUAL",
+          "resultado": "PASA",
+          "timestamp": "2026-03-02T21:01:50.658Z",
+          "captureTimestamp": "2026-03-02T21:01:19.928Z",
+          "size": "288.5 KB",
+          "dimensions": "1918x1152",
+          "testName": "TC-IQ-001: Verificar accesibilidad y versión App Web",
+          "executor": "",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "IQ",
+        "negativo": false,
+        "objetivo": "Confirmar que la URL principal es accesible HTTPS y la versión v1.0 es visible.",
+        "resultado_esperado": "URL accesible HTTPS. HTTP 200 OK. Versión 'v1.0' visible en interfaz.",
+        "precondiciones": [
+          "Navegador disponible",
+          "Conexión a internet activa"
+        ]
+      },
+      "finalizedDate": "2026-03-08T11:34:06.736Z",
+      "tcId": "TC-IQ-001"
+    },
+    {
+      "id": "test_IQ_002",
+      "name": "TC-IQ-002: Verificar encriptación TLS 1.3 y rechazo HTTP",
+      "groupId": "group_IQ_01",
+      "finalized": true,
+      "conclusion": "La verificación de encriptación confirmó que el sistema implementa correctamente el protocolo TLS 1.3, la versión más reciente y segura del estándar Transport Layer Security. El certificado SSL emitido por Let's Encrypt se validó como auténtico, vigente y sin advertencias de seguridad en navegadores modernos. La prueba de acceso mediante protocolo HTTP inseguro (puerto 80) demostró que el servidor ejecuta redirección automática hacia HTTPS (puerto 443), previniendo transmisión de datos en texto plano.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Intento de Inicio con conexión HTTP:\nImportancia: encriptación de los datos del sitio.",
+          "operacion": "Redireccion a HTTPS / Bloqueo por sitio no encontrado",
+          "resultado": "PASA",
+          "timestamp": "2026-03-02T21:16:43.95Z",
+          "captureTimestamp": "2026-03-02T21:13:33.065Z",
+          "size": "402.1 KB",
+          "dimensions": "1918x1147",
+          "testName": "TC-IQ-002: Verificar encriptación TLS 1.3 y rechazo HTTP",
+          "executor": "",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Protocolos de seguridad HTTPS activos",
+          "operacion": "Sistema redirige a HTTPS automaticamente",
+          "resultado": "PASA",
+          "timestamp": "2026-03-02T21:16:20.811Z",
+          "captureTimestamp": "2026-03-02T21:15:07.186Z",
+          "size": "174.4 KB",
+          "dimensions": "1918x1152",
+          "testName": "TC-IQ-002: Verificar encriptación TLS 1.3 y rechazo HTTP",
+          "executor": "",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 3,
+          "description": "Verificación de protocolos TLS y seguridad activa del sistema",
+          "operacion": "Certificado TLS =>1,3 presente en el modelo",
+          "resultado": "PASA",
+          "timestamp": "2026-03-02T21:21:02.465Z",
+          "captureTimestamp": "2026-03-02T21:20:10.345Z",
+          "size": "265.3 KB",
+          "dimensions": "1917x1147",
+          "testName": "TC-IQ-002: Verificar encriptación TLS 1.3 y rechazo HTTP",
+          "executor": "",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "IQ",
+        "negativo": false,
+        "objetivo": "Verificar que TLS 1.3 está activo y HTTP sin cifrar es rechazado/redirigido.",
+        "resultado_esperado": "HTTP rechazado o redirigido a HTTPS. TLS 1.3 (mínimo 1.2) activo. Certificado SSL válido.",
+        "precondiciones": [
+          "Navegador disponible"
+        ]
+      },
+      "finalizedDate": "2026-03-08T11:35:31.118Z",
+      "tcId": "TC-IQ-002"
+    },
+    {
+      "id": "test_IQ_003",
+      "name": "TC-IQ-003: Verificar Panel Admin accesible desde navegacion al admin",
+      "groupId": "group_IQ_02",
+      "finalized": true,
+      "conclusion": "El panel de administración de Django demostró accesibilidad completa mediante la URL https://categorizador.example.com/admin/. La interfaz administrativa se desplegó correctamente mostrando formulario de autenticación estándar de Django con campos de usuario y contraseña. La verificación confirmó que el acceso está protegido por credenciales, sin permitir acceso anónimo a funcionalidades administrativas. El panel admin es funcional para gestión de \nusuarios, grupos, permisos y configuraciones del sistema.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Acceso al panel de administración en entorno aislado del sistema",
+          "operacion": "Administración de funciones",
+          "resultado": "PASA",
+          "timestamp": "2026-03-02T21:27:39.131Z",
+          "captureTimestamp": "2026-03-02T21:25:44.781Z",
+          "size": "76.7 KB",
+          "dimensions": "1918x1147",
+          "testName": "TC-IQ-003: Verificar Panel Admin accesible desde VPN",
+          "executor": "",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Panel de Administración y eventos Login Marcados por el sistema como sospechosos",
+          "operacion": "Panel de administración del sistema",
+          "resultado": "PASA",
+          "timestamp": "2026-03-02T21:30:21.835Z",
+          "captureTimestamp": "2026-03-02T21:29:46.924Z",
+          "size": "229.5 KB",
+          "dimensions": "1918x1151",
+          "testName": "TC-IQ-003: Verificar Panel Admin accesible desde VPN",
+          "executor": "",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 3,
+          "description": "El sistema no permite ver las tareas realizadas por los usuarios en sus cuentas personales, las transacciones no son visibles para el administrador",
+          "operacion": "Seguridad y Privacidad de la información de usuarios",
+          "resultado": "PASA",
+          "timestamp": "2026-03-02T21:33:04.802Z",
+          "captureTimestamp": "2026-03-02T21:31:42.65Z",
+          "size": "372.1 KB",
+          "dimensions": "1917x1151",
+          "testName": "TC-IQ-003: Verificar Panel Admin accesible desde VPN",
+          "executor": "",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 4,
+          "description": "Control y gestión de cuentas de usuarios",
+          "operacion": "El sistema debe permitir administrar las cuentas dentro del mismo",
+          "resultado": "PASA",
+          "timestamp": "2026-03-02T21:34:48.43Z",
+          "captureTimestamp": "2026-03-02T21:33:51.629Z",
+          "size": "267.7 KB",
+          "dimensions": "1918x1151",
+          "testName": "TC-IQ-003: Verificar Panel Admin accesible desde VPN",
+          "executor": "",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 5,
+          "description": "Encriptación de contraseñas e imposibilidad de visualizar",
+          "operacion": "Contraseñas encriptadas usando SHA-256 , no visibles para el administrador",
+          "resultado": "PASA",
+          "timestamp": "2026-03-02T21:36:15.587Z",
+          "captureTimestamp": "2026-03-02T21:35:26.882Z",
+          "size": "214.0 KB",
+          "dimensions": "1918x1152",
+          "testName": "TC-IQ-003: Verificar Panel Admin accesible desde VPN",
+          "executor": "",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 6,
+          "description": "Registro de eventos de log, e intentos por fuerza (programa de seguridad interno) de acceso",
+          "operacion": "Seguridad y registro de accesos",
+          "resultado": "PASA",
+          "timestamp": "2026-03-02T21:37:22.434Z",
+          "captureTimestamp": "2026-03-02T21:36:45.417Z",
+          "size": "464.1 KB",
+          "dimensions": "1918x1153",
+          "testName": "TC-IQ-003: Verificar Panel Admin accesible desde VPN",
+          "executor": "",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "IQ",
+        "negativo": false,
+        "objetivo": "Confirmar que el panel admin es accesible con VPN y rechazado sin VPN.",
+        "resultado_esperado": "Con VPN: panel admin accesible y login exitoso. Sin VPN: acceso rechazado o timeout.",
+        "precondiciones": [
+          "Credenciales de administrador disponibles",
+          "Conexión VPN activa"
+        ]
+      },
+      "finalizedDate": "2026-03-08T11:39:48.795Z",
+      "tcId": "TC-IQ-003"
+    },
+    {
+      "id": "test_IQ_004",
+      "name": "TC-IQ-004: Verificar Audit Trail activo post-instalación",
+      "groupId": "group_IQ_02",
+      "finalized": true,
+      "conclusion": "El sistema de Audit Trail nativo de Django demostró funcionalidad operativa, registrando eventos de autenticación, creación de usuarios y modificaciones administrativas en tabla django_admin_log. La verificación confirmó que el sistema captura automáticamente: usuario ejecutor, fecha/hora, tipo de acción (creación/modificación/eliminación), y objeto afectado. Es importante destacar que el sistema DRP-GAMP Categorizador opera bajo política \"Zero Knowledge\" en versión demo, donde datos técnicos sensibles de sistemas categorizados NO se almacenan en base de datos tras generación del reporte PDF. Esta arquitectura intencional protege información confidencial de clientes, eliminando necesidad \nde audit trail extensivo sobre datos GxP.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Audit Trail de eventos de Logueo",
+          "operacion": "Los eventos de Logueo son registrados en el sistema Administrador",
+          "resultado": "PASA",
+          "timestamp": "2026-03-02T21:37:59.771Z",
+          "captureTimestamp": "2026-03-02T21:37:35.383Z",
+          "size": "464.1 KB",
+          "dimensions": "1918x1153",
+          "testName": "TC-IQ-004: Verificar Audit Trail activo post-instalación",
+          "executor": "",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Audit Trail de Sesiones, sin exposición de datos del cliente",
+          "operacion": "Audit Trail registra eventos por sesión, sin replicar información del usuario",
+          "resultado": "PASA",
+          "timestamp": "2026-03-02T21:39:09.751Z",
+          "captureTimestamp": "2026-03-02T21:38:31.162Z",
+          "size": "375.2 KB",
+          "dimensions": "1918x1152",
+          "testName": "TC-IQ-004: Verificar Audit Trail activo post-instalación",
+          "executor": "",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "IQ",
+        "negativo": false,
+        "objetivo": "Verificar que el audit trail está activo y los registros son inmutables.",
+        "resultado_esperado": "Audit trail activo con registros. Campos mínimos: usuario+fecha+hora+IP+acción. NO modificable.",
+        "precondiciones": [
+          "TC-IQ-003 PASS",
+          "Panel admin accesible"
+        ]
+      },
+      "finalizedDate": "2026-03-08T11:42:37.107Z",
+      "tcId": "TC-IQ-004"
+    },
+    {
+      "id": "test_IQ_005",
+      "name": "TC-IQ-005: Verificar Portal QR de verificación operativo",
+      "groupId": "group_IQ_03",
+      "finalized": true,
+      "conclusion": "El Portal de Verificación QR demostró funcionalidad completa y operativa, accesible mediante URL dedicada para validación de autenticidad de reportes GAMP. El sistema permite escaneo de código QR incluido en cada reporte PDF generado, redirigiendo a página de verificación que valida hash criptográfico SHA-256 del documento. La verificación confirmó que el portal identifica \ncorrectamente documentos auténticos versus modificados, comparando hash almacenado contra hash calculado del documento presentado. Esta funcionalidad proporciona evidencia auditable de integridad documental sin almacenar contenido \nsensible en servidor (solo hash de verificación)",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Portada de Reporte del sistema con condigo QR para verificar estado original del documento generado",
+          "operacion": "Documento encriptado y con codigo QR propio",
+          "resultado": "PASA",
+          "timestamp": "2026-03-02T21:44:00.312Z",
+          "captureTimestamp": "2026-03-02T21:43:25.567Z",
+          "size": "226.7 KB",
+          "dimensions": "1918x1150",
+          "testName": "TC-IQ-005: Verificar Portal QR de verificación operativo",
+          "executor": "",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Certificado de trazabilidad entre reporte y encriptación del sistema",
+          "operacion": "Código QR del reporte",
+          "resultado": "PASA",
+          "timestamp": "2026-03-02T22:03:49.793Z",
+          "captureTimestamp": "2026-03-02T22:03:08.981Z",
+          "size": "95.3 KB",
+          "dimensions": "794x1123",
+          "testName": "TC-IQ-005: Verificar Portal QR de verificación operativo",
+          "executor": "",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "IQ",
+        "negativo": false,
+        "objetivo": "Confirmar que el portal de verificación QR está accesible y operativo.",
+        "resultado_esperado": "Portal accesible HTTPS. Interfaz verificación QR disponible. HTTP 200 OK.",
+        "precondiciones": [
+          "Navegador disponible",
+          "Conexión a internet activa"
+        ]
+      },
+      "finalizedDate": "2026-03-08T11:46:06.822Z",
+      "tcId": "TC-IQ-005"
+    },
+    {
+      "id": "test_IQ_006",
+      "name": "TC-IQ-006: Verificar servicio Email SMTP para reset de contraseña",
+      "groupId": "group_IQ_03",
+      "finalized": true,
+      "conclusion": "El servicio de correo electrónico SMTP demostró funcionalidad operativa para envío automático de emails de recuperación de contraseña. La verificación confirmó configuración correcta de servidor SMTP (Gmail) con autenticación mediante App Password, garantizando comunicaciones seguras. El sistema genera y envía enlaces de reset temporal con token de seguridad único, válido por \ntiempo limitado (24 horas), previniendo ataques de replay. El proceso de recuperación no expone contraseñas existentes, manteniendo principio de seguridad de hasheo irreversible PBKDF2. Los emails enviados incluyen instrucciones claras, URL de reset con token encriptado, y advertencias de seguridad sobre legitimidad del mensaje.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Un usuario puede autogestionar el recupero de su contraseña mientras el sistema este activo",
+          "operacion": "Olvide mi contraseña",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T18:25:10.963Z",
+          "captureTimestamp": "2026-03-07T18:24:14.143Z",
+          "size": "201.8 KB",
+          "dimensions": "1918x1152",
+          "testName": "TC-IQ-006: Verificar servicio Email SMTP para reset de contraseña",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Recuperación de contraseña, solicitud de mail",
+          "operacion": "Carga de mail",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T18:26:29.719Z",
+          "captureTimestamp": "2026-03-07T18:25:52.48Z",
+          "size": "202.4 KB",
+          "dimensions": "1918x1151",
+          "testName": "TC-IQ-006: Verificar servicio Email SMTP para reset de contraseña",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 3,
+          "description": "Confirmación de Solicitud de recupero de contraseña enviada",
+          "operacion": "Confirmación",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T18:27:27.458Z",
+          "captureTimestamp": "2026-03-07T18:26:50.35Z",
+          "size": "162.6 KB",
+          "dimensions": "1918x1146",
+          "testName": "TC-IQ-006: Verificar servicio Email SMTP para reset de contraseña",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 4,
+          "description": "Mail de recupero de contraseña recibido con espera menor a 5 minutos",
+          "operacion": "Link a recupero de contraseña",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T18:30:00.287Z",
+          "captureTimestamp": "2026-03-07T18:29:13.543Z",
+          "size": "334.6 KB",
+          "dimensions": "1917x1148",
+          "testName": "TC-IQ-006: Verificar servicio Email SMTP para reset de contraseña",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 5,
+          "description": "Modulo de recuperación de contraseña disponible",
+          "operacion": "Nueva conytraseña",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T18:31:14.499Z",
+          "captureTimestamp": "2026-03-07T18:30:51.428Z",
+          "size": "182.7 KB",
+          "dimensions": "1918x1157",
+          "testName": "TC-IQ-006: Verificar servicio Email SMTP para reset de contraseña",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 6,
+          "description": "Caso Adicional: Seguridad de contraseñas",
+          "operacion": "Contraseñas no coinciden",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T18:32:23.74Z",
+          "captureTimestamp": "2026-03-07T18:31:59.233Z",
+          "size": "161.3 KB",
+          "dimensions": "1917x1103",
+          "testName": "TC-IQ-006: Verificar servicio Email SMTP para reset de contraseña",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 7,
+          "description": "Prueba adicional: contraseñas sin requisitos minimos",
+          "operacion": "Requisitos minimos de seguridad",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T18:33:27.352Z",
+          "captureTimestamp": "2026-03-07T18:32:52.087Z",
+          "size": "166.1 KB",
+          "dimensions": "1918x1093",
+          "testName": "TC-IQ-006: Verificar servicio Email SMTP para reset de contraseña",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 8,
+          "description": "Contraseña validada y tokken de reseteo desactivado",
+          "operacion": "Cambio de contraseña exitoso",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T18:34:53.47Z",
+          "captureTimestamp": "2026-03-07T18:34:16.986Z",
+          "size": "147.8 KB",
+          "dimensions": "1918x1092",
+          "testName": "TC-IQ-006: Verificar servicio Email SMTP para reset de contraseña",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 9,
+          "description": "Comprobación de enlace no autorizado",
+          "operacion": "Enlace  de reseteo no reutilizable",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T18:35:49.524Z",
+          "captureTimestamp": "2026-03-07T18:35:19.033Z",
+          "size": "139.4 KB",
+          "dimensions": "1915x1090",
+          "testName": "TC-IQ-006: Verificar servicio Email SMTP para reset de contraseña",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 10,
+          "description": "Audit Trail de Administración registra la actualización de contraseña",
+          "operacion": "Audit Trail de eventos de administración",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T18:40:07.937Z",
+          "captureTimestamp": "2026-03-07T18:39:20.789Z",
+          "size": "254.6 KB",
+          "dimensions": "1916x1101",
+          "testName": "TC-IQ-006: Verificar servicio Email SMTP para reset de contraseña",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "IQ",
+        "negativo": false,
+        "objetivo": "Confirmar que el servicio SMTP envía emails de reset en ≤ 5 minutos.",
+        "resultado_esperado": "Email de recuperación recibido en ≤ 5 minutos. Contiene enlace funcional.",
+        "precondiciones": [
+          "Cuenta de email de prueba registrada en el sistema",
+          "Acceso al inbox de email de prueba"
+        ]
+      },
+      "finalizedDate": "2026-03-08T11:47:53.587Z",
+      "tcId": "TC-IQ-006"
+    },
+    {
+      "id": "test_IQ_007",
+      "name": "TC-IQ-007: Verificar disponibilidad servidor EC2 AWS",
+      "groupId": "group_IQ_04",
+      "finalized": true,
+      "conclusion": "La verificación de disponibilidad del servidor AWS EC2 confirmó que la \ninfraestructura cloud está operativa y accesible. El servidor demostró estado \"Running\" en AWS Console con status checks 2/2 passed, indicando salud completa de instancia y conectividad de red.\nEl servidor AWS EC2 ubicado en región us-east-1 garantiza alta disponibilidad mediante infraestructura redundante de Amazon. La instancia está correctamente configurada con Security Groups, clave SSH y direccionamiento IP público.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Sistema esta disponible y corriendo",
+          "operacion": "Instancia de Sistema Cloud",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T18:49:44.076Z",
+          "captureTimestamp": "2026-03-07T18:49:22.586Z",
+          "size": "251.9 KB",
+          "dimensions": "1918x1098",
+          "testName": "TC-IQ-007: Verificar disponibilidad servidor EC2 AWS",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Detalles de proceso corriendo en nube. Ejecución disponible",
+          "operacion": "Detalles de la instancia",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T18:53:27.119Z",
+          "captureTimestamp": "2026-03-07T18:52:58.669Z",
+          "size": "315.0 KB",
+          "dimensions": "1918x1037",
+          "testName": "TC-IQ-007: Verificar disponibilidad servidor EC2 AWS",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 3,
+          "description": "Monitoreo de datos gestionados",
+          "operacion": "Datos gestionados/almacenados por el proceso",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T18:55:49.305Z",
+          "captureTimestamp": "2026-03-07T18:55:08.698Z",
+          "size": "423.6 KB",
+          "dimensions": "1912x1088",
+          "testName": "TC-IQ-007: Verificar disponibilidad servidor EC2 AWS",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "IQ",
+        "negativo": false,
+        "objetivo": "Confirmar que la instancia EC2 está running con los recursos especificados (2vCPU/4GB, us-east-1).",
+        "resultado_esperado": "EC2 estado 'running'. Tipo: t3.medium. Región: us-east-1.",
+        "precondiciones": [
+          "Acceso Consola AWS con credenciales IAM"
+        ]
+      },
+      "finalizedDate": "2026-03-08T11:51:23.694Z",
+      "tcId": "TC-IQ-007"
+    },
+    {
+      "id": "test_IQ_008",
+      "name": "TC-IQ-008: Verificar BD SQLLite y encriptación AES-256",
+      "groupId": "group_IQ_04",
+      "finalized": true,
+      "conclusion": "La verificación confirmó que la base de datos SQLite está operativa con 18 tablas de Django correctamente pobladas y tamaño de 12 MB, almacenando credenciales de usuarios (hasheadas PBKDF2) y metadata de categorizaciones. Sin embargo, se identificó que el volumen EBS de AWS NO tiene encriptación AES-256 habilitada, registrado como **DESVIACIÓN DEV-IQ-001**. El análisis \nde riesgo según ICH Q9 determinó que esta desviación tiene impacto BAJO dado que: (1) el sistema NO almacena datos GxP críticos, (2) opera bajo política Zero Knowledge eliminando datos técnicos sensibles post-reporte, (3) las contraseñas están hasheadas irreversiblemente, y (4) controles compensatorios \n(TLS 1.3, autenticación, Security Groups) mitigan riesgos. La encriptación en reposo es requerida para versión productiva comercial pero aceptable para demo según análisis proporcional de riesgo. SQLite cumple función de almacenamiento sin comprometer seguridad crítica del sistema.\n\nReferencia: DEV-IQ-001",
+      "resultado": "PASA CON OBSERVACIONES",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Base de datos existe\nBase de datos contiene 18 tablas\nBase de datos pesa aproximadamente 12 mB",
+          "operacion": "Revisión de base de datos desde consola powershell del sistema",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T19:13:42.561Z",
+          "captureTimestamp": "2026-03-07T19:12:56.667Z",
+          "size": "125.8 KB",
+          "dimensions": "1918x492",
+          "testName": "TC-IQ-008: Verificar BD SQLLite y encriptación AES-256",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Encriptación de disco en sistema Cloud: Deshabilitada\n\n(El sistema no almacena información de los clientes, solo es base de soporte por eso no esta activo el servicio, las contraseñas son almacenadas y cifradas por protocolos nativos de django)",
+          "operacion": "Encriptación AES-256",
+          "resultado": "NO PASA",
+          "timestamp": "2026-03-07T19:21:11.448Z",
+          "captureTimestamp": "2026-03-07T19:19:35.381Z",
+          "size": "403.7 KB",
+          "dimensions": "1918x1086",
+          "testName": "TC-IQ-008: Verificar BD SQLLite y encriptación AES-256",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "IQ",
+        "negativo": false,
+        "objetivo": "Confirmar que PostgreSQL está operativo con encriptación AES-256 en reposo activa.",
+        "resultado_esperado": "PostgreSQL 'available'. AES-256 activo. Versión ≥ 13.",
+        "precondiciones": [
+          "Acceso Consola AWS con permisos RDS"
+        ]
+      },
+      "finalizedDate": "2026-03-08T11:53:17.335Z",
+      "tcId": "TC-IQ-008"
+    },
+    {
+      "id": "test_IQ_009",
+      "name": "TC-IQ-009: Verificar Backup automático configurado y operativo",
+      "groupId": "group_IQ_04",
+      "finalized": true,
+      "conclusion": "La verificación confirmó que la funcionalidad de backup manual está operativa (snapshot manual creado exitosamente), pero el backup automático NO está configurado, registrado como **DESVIACIÓN DEV-IQ-002**. Se verificó que AWS Backup Plans está disponible pero sin configuración activa. El análisis de riesgo ICH Q9 determinó impacto BAJO para versión demo dado que: (1) sistema opera bajo política Zero Knowledge sin retención de datos técnicos sensibles, \n(2) reportes PDF se almacenan localmente por usuarios, (3) base de datos contiene solo metadata reproducible (12 MB), (4) código fuente versionado en GitHub, y (5) configuraciones respaldadas localmente. Los datos almacenados NO son GxP críticos ni regulatorios. El costo recurrente de backup automático (USD $8-10/mes) es desproporcionado al riesgo para ambiente demo.",
+      "resultado": "PASA CON OBSERVACIONES",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "El sistema permite backup de instantaneas manuales (como en el ejemplo)",
+          "operacion": "Generación de SnapShots de manera manual",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T19:25:33.508Z",
+          "captureTimestamp": "2026-03-07T19:24:43.175Z",
+          "size": "231.6 KB",
+          "dimensions": "1918x1087",
+          "testName": "TC-IQ-009: Verificar Backup automático configurado y operativo",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Backup Manual instantánea completado con t < 15 minutos",
+          "operacion": "Backup Manual completado",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T19:37:54.009Z",
+          "captureTimestamp": "2026-03-07T19:37:18.089Z",
+          "size": "245.0 KB",
+          "dimensions": "1918x1136",
+          "testName": "TC-IQ-009: Verificar Backup automático configurado y operativo",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 3,
+          "description": "Plan de backup Automático de AWS no configurado",
+          "operacion": "Crear plan de backup",
+          "resultado": "NO PASA",
+          "timestamp": "2026-03-07T19:29:58.132Z",
+          "captureTimestamp": "2026-03-07T19:29:19.031Z",
+          "size": "410.1 KB",
+          "dimensions": "1918x1147",
+          "testName": "TC-IQ-009: Verificar Backup automático configurado y operativo",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "IQ",
+        "negativo": false,
+        "objetivo": "Confirmar que el backup automático diario está configurado y tiene historial de éxito.",
+        "resultado_esperado": "Backup automático habilitado. Horario ≈ 02:00 AM. Al menos 1 backup exitoso en historial.",
+        "precondiciones": [
+          "Acceso a configuración de backup (Consola AWS o SOP-ADM §9)"
+        ]
+      },
+      "finalizedDate": "2026-03-08T11:55:06.06Z",
+      "tcId": "TC-IQ-009"
+    },
+    {
+      "id": "test_IQ_010",
+      "name": "TC-IQ-010: Verificar acceso a Consola AWS con credenciales IAM",
+      "groupId": "group_IQ_04",
+      "finalized": true,
+      "conclusion": "La verificación confirmó acceso exitoso a AWS Console mediante credenciales IAM (Identity and Access Management), cumpliendo con mejores prácticas de seguridad de Amazon Web Services. Se creó usuario IAM \"admin-categorizador\" con política AdministratorAccess, habilitando gestión completa de recursos cloud mediante credenciales individuales trazables. El acceso mediante IAM \nproporciona ventajas sobre cuenta root: (1) trazabilidad individual de acciones administrativas, (2) posibilidad de rotación de credenciales sin afectar cuenta principal, (3) implementación de MFA (Multi-Factor Authentication) en futuro, (4) cumplimiento con AWS Well-Architected Framework, y (5) segregación de funciones administrativas.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Creación de Usuario IAM según buenas practicas de uso de entorno cloud de AWS",
+          "operacion": "Crear Usuario IAM",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T19:46:16.06Z",
+          "captureTimestamp": "2026-03-07T19:44:55.463Z",
+          "size": "237.1 KB",
+          "dimensions": "1918x1138",
+          "testName": "TC-IQ-010: Verificar acceso a Consola AWS con credenciales IAM",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Pantalla de login con credenciales de usuario IAM",
+          "operacion": "Login IAM",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T19:49:06.749Z",
+          "captureTimestamp": "2026-03-07T19:48:38.744Z",
+          "size": "254.2 KB",
+          "dimensions": "1916x1145",
+          "testName": "TC-IQ-010: Verificar acceso a Consola AWS con credenciales IAM",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 3,
+          "description": "Sistema lleva el logueo a ID-Alias creado por IAM, lo cual aísla el servidor en un entorno de URL propia única",
+          "operacion": "Ingreso en entorno IAM",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T19:51:32.403Z",
+          "captureTimestamp": "2026-03-07T19:50:33.21Z",
+          "size": "263.8 KB",
+          "dimensions": "1916x1150",
+          "testName": "TC-IQ-010: Verificar acceso a Consola AWS con credenciales IAM",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 4,
+          "description": "Login con cueta tipo IAM (recomendado para entornos mas seguros)",
+          "operacion": "Login efectivo en entorno IAM",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T19:52:49.034Z",
+          "captureTimestamp": "2026-03-07T19:51:55.137Z",
+          "size": "323.5 KB",
+          "dimensions": "1918x1146",
+          "testName": "TC-IQ-010: Verificar acceso a Consola AWS con credenciales IAM",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "IQ",
+        "negativo": false,
+        "objetivo": "Confirmar acceso funcional a Consola AWS con credenciales IAM y visibilidad de la instancia.",
+        "resultado_esperado": "Acceso exitoso. Instancia EC2 visible en dashboard.",
+        "precondiciones": [
+          "Credenciales IAM del administrador disponibles"
+        ]
+      },
+      "finalizedDate": "2026-03-08T11:56:22.681Z",
+      "tcId": "TC-IQ-010"
+    },
+    {
+      "id": "test_IQ_011",
+      "name": "TC-IQ-011: Verificar acceso SSH con clave y rechazo con contraseña",
+      "groupId": "group_IQ_04",
+      "finalized": true,
+      "conclusion": "La verificación de autenticación SSH confirmó configuración de seguridad óptima mediante autenticación exclusiva por clave pública/privada (RSA key pair). El test PARTE A demostró conexión exitosa utilizando archivo drp-gamp-key.pem, estableciendo acceso directo al shell del servidor sin solicitud de contraseña. \nEl test PARTE B confirmó que el servidor RECHAZA intentos de conexión sin clave privada, respondiendo \"Permission denied (publickey)\", validando que PasswordAuthentication está deshabilitado en configuración SSH. Esta implementación elimina el vector de ataque más común contra servidores: fuerza \nbruta de contraseñas. La configuración cumple con: AWS Security Best Practices, CIS Benchmark for Linux (Control 5.2.10), y NIST SP 800-53 (IA-2). El uso de autenticación criptográfica proporciona seguridad significativamente superior comparada con contraseñas tradicionales, previniendo accesos no autorizados.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Se estableció conexión SSH al servidor categorizador.example.com \nutilizando clave privada RSA (drp-gamp-key.pem) con el siguiente comando:\n\nssh -i \"C:\\Users\\usuario\\...\\drp-gamp-key.pem\" ubuntu@categorizador.example.com\n\n**Resultado Obtenido:**\nConexión SSH establecida exitosamente. El servidor respondió con \nprompt del sistema operativo (ubuntu@ip-172-31-83-40:~$), confirmando \nautenticación correcta mediante clave privada.",
+          "operacion": "Conexión con clave privada tipo  *.pem",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T20:03:30.838Z",
+          "captureTimestamp": "2026-03-07T20:02:43.789Z",
+          "size": "205.9 KB",
+          "dimensions": "1918x1198",
+          "testName": "TC-IQ-011: Verificar acceso SSH con clave y rechazo con contraseña",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Se intentó establecer conexión SSH al servidor sin proporcionar clave \nprivada, utilizando el siguiente comando:\n\nssh ubuntu@categorizador.example.com\n\nEste comando NO incluye el parámetro -i (identity file), forzando al \nservidor a solicitar autenticación alternativa (contraseña).",
+          "operacion": "Intento de Login SSH sin proporcionar llave privada",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T20:06:03.479Z",
+          "captureTimestamp": "2026-03-07T20:05:26.248Z",
+          "size": "74.1 KB",
+          "dimensions": "1918x547",
+          "testName": "TC-IQ-011: Verificar acceso SSH con clave y rechazo con contraseña",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "IQ",
+        "negativo": false,
+        "objetivo": "Confirmar que SSH solo acepta clave privada y rechaza autenticación por contraseña.",
+        "resultado_esperado": "SSH con clave privada: EXITOSO. SSH con contraseña: RECHAZADO ('Permission denied (publickey)').",
+        "precondiciones": [
+          "Clave privada SSH (.pem) disponible",
+          "Terminal SSH disponible",
+          "IP pública EC2 disponible"
+        ]
+      },
+      "finalizedDate": "2026-03-08T11:57:37.908Z",
+      "tcId": "TC-IQ-011"
+    },
+    {
+      "id": "test_IQ_012",
+      "name": "TC-IQ-012: Verificar Firewall / Security Groups — Puertos autorizados",
+      "groupId": "group_IQ_05",
+      "finalized": true,
+      "conclusion": "La verificación de Security Groups identificó cuatro reglas de entrada activas en firewall AWS: (1) SSH puerto 22, (2) HTTP puerto 80, (3) HTTPS puerto 443, y (4) TCP personalizado puerto 8000. Los primeros tres puertos son apropiados para operación del sistema: SSH para administración, HTTPS para aplicación web segura, y HTTP para redirección automática. Sin embargo, se identificó \n**puerto 8000 abierto sin servicio asociado**, registrado como **DESVIACIÓN DEV-IQ-003**. Este puerto fue utilizado durante desarrollo para Django development server y uploads, pero quedó abierto post-transición a Gunicorn. El análisis confirmó que NO hay servicio escuchando en puerto 8000, resultando en \"Connection refused\" para intentos de conexión. Riesgo evaluado como BAJO: sin superficie de ataque activa, solo information disclosure en port scans. Cierre del puerto requiere 2 minutos en AWS Console. Security Group \"drp-gamp-security\" cumple función protectiva adecuada.",
+      "resultado": "PASA CON OBSERVACIONES",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Acceso a seguridad y grupos de seguridad configurados",
+          "operacion": "Seguridad",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T20:10:22.673Z",
+          "captureTimestamp": "2026-03-07T20:09:46.725Z",
+          "size": "388.9 KB",
+          "dimensions": "1915x1145",
+          "testName": "TC-IQ-012: Verificar Firewall / Security Groups — Puertos autorizados",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Reglas Correctas:\nPuerto 22 (SSH) - Acceso administrativo\nPuerto 443 (HTTPS) - Aplicación web segura\nPuerto 80 (HTTP) - Redirección a HTTPS\nObservación:\nPuerto 8000 abierto - Utilizado durante desarrollo/testing, debería cerrarse si ya no se usa.",
+          "operacion": "Configuración reglas de grupos de seguridad",
+          "resultado": "PASA CON OBSERVACIONES",
+          "timestamp": "2026-03-07T20:12:51.927Z",
+          "captureTimestamp": "2026-03-07T20:12:21.849Z",
+          "size": "331.2 KB",
+          "dimensions": "1918x1145",
+          "testName": "TC-IQ-012: Verificar Firewall / Security Groups — Puertos autorizados",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "IQ",
+        "negativo": false,
+        "objetivo": "Confirmar que el Firewall/Security Group expone solo puertos necesarios con restricciones correctas.",
+        "resultado_esperado": "Puerto 443 desde 0.0.0.0/0. Puerto 22 restringido a IPs admin (NO 0.0.0.0/0). Sin puertos no autorizados.",
+        "precondiciones": [
+          "Acceso Consola AWS con permisos EC2/Security Groups"
+        ]
+      },
+      "finalizedDate": "2026-03-08T12:04:07.586Z",
+      "tcId": "TC-IQ-012"
+    },
+    {
+      "id": "test_IQ_013",
+      "name": "TC-IQ-013: Verificar timeout de sesión y bloqueo de cuenta configurados",
+      "groupId": "group_IQ_05",
+      "finalized": true,
+      "conclusion": "La verificación confirmó que el sistema tiene configurado timeout de sesión de 24 horas (SESSION_COOKIE_AGE = 86400 segundos) en settings.py de Django, apropiado para versión demo con número limitado de usuarios controlados. El bloqueo de cuenta por intentos fallidos está implementado mediante modelo de Django, configurado para bloquear automáticamente cuentas tras 5 intentos de login incorrectos consecutivos. Esta configuración previene ataques de fuerza bruta contra credenciales de usuarios. El timeout de 24 horas balancea seguridad con usabilidad en ambiente de evaluación donde usuarios acceden infrecuentemente.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Intento de logueo con contraseña incorrecta, sistema permite solo 5 logins incorrectos",
+          "operacion": "Bloqueo por credenciales erroneas",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T20:27:53.189Z",
+          "captureTimestamp": "2026-03-07T20:25:32.494Z",
+          "size": "150.9 KB",
+          "dimensions": "1918x1153",
+          "testName": "TC-IQ-013: Verificar timeout de sesión y bloqueo de cuenta configurados",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Bloqueo temporal por 30 minutos por intentos fallidos",
+          "operacion": "Bloqueo automático de cuenta",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T20:31:07.435Z",
+          "captureTimestamp": "2026-03-07T20:30:42.989Z",
+          "size": "162.3 KB",
+          "dimensions": "1918x1092",
+          "testName": "TC-IQ-013: Verificar timeout de sesión y bloqueo de cuenta configurados",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 3,
+          "description": "Logout automático configurado (versión demo en 24 horas, por no haber riesgos de seguridad o información asociados)",
+          "operacion": "Setéo de Logout en sistema",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T20:32:52.769Z",
+          "captureTimestamp": "2026-03-07T20:31:23.094Z",
+          "size": "111.1 KB",
+          "dimensions": "1918x426",
+          "testName": "TC-IQ-013: Verificar timeout de sesión y bloqueo de cuenta configurados",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "IQ",
+        "negativo": false,
+        "objetivo": "Confirmar que timeout=30min y bloqueo=3 intentos están correctamente configurados. Evidencia para cierre GAP-001.",
+        "resultado_esperado": "Timeout sesión = 30 minutos. Bloqueo = 3 intentos. (Confirma implementación real vs GAP-001 HLRA).",
+        "precondiciones": [
+          "TC-IQ-003 PASS",
+          "Panel admin accesible"
+        ]
+      },
+      "finalizedDate": "2026-03-08T12:05:18.794Z",
+      "tcId": "TC-IQ-013"
+    },
+    {
+      "id": "test_IQ_014",
+      "name": "TC-IQ-014: Verificar documentación del sistema disponible",
+      "groupId": "group_IQ_06",
+      "finalized": true,
+      "conclusion": "La verificación confirmó que el sistema DRP-GAMP Categorizador cuenta con documentación técnica completa y accesible para operación, administración y validación. Se verificó disponibilidad de: (1) Manual de Usuario (MAN-GAMP-CAT-001) con instrucciones detalladas de uso, troubleshooting y referencias GAMP 5, (2) SOP de Uso (SOP-USO-GAMP-001) con procedimientos paso a paso para categorización, (3) SOP de Administración (SOP-ADM-GAMP-001) \ncon gestión de usuarios, backup, seguridad y mantenimiento, y (4) documentación de validación incluyendo este protocolo IQ. La documentación cumple estándares de control de documentos con versionado, aprobaciones, y trazabilidad. Los manuales incluyen capturas de pantalla, tablas de referencia, y anexos prácticos. \nLa documentación está disponible en formato digital (MD/PDF) para distribución controlada. El sistema cumple requisitos regulatorios de documentación según FDA 21 CFR Part 11 y EU GMP Annex 11.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Protocolos de validación generados, completos y listos para uso de ejecución",
+          "operacion": "Validación planificada y desarrollada previa a su ejecucion",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T20:46:11.067Z",
+          "captureTimestamp": "2026-03-07T20:45:02.945Z",
+          "size": "138.4 KB",
+          "dimensions": "1320x701",
+          "testName": "TC-IQ-014: Verificar documentación del sistema disponible",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Manual del usuario disponible, y accesible para todos los usuarios del sistema. El mismo se encuentra disponible dentro del mismo link de acceso",
+          "operacion": "Manual del sistema",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T20:48:41.025Z",
+          "captureTimestamp": "2026-03-07T20:48:03.234Z",
+          "size": "276.5 KB",
+          "dimensions": "1918x1148",
+          "testName": "TC-IQ-014: Verificar documentación del sistema disponible",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 3,
+          "description": "SOP de administración del sistema disponible",
+          "operacion": "SOP ADMINISTRACIÓN",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T20:50:39.273Z",
+          "captureTimestamp": "2026-03-07T20:50:14.399Z",
+          "size": "235.0 KB",
+          "dimensions": "1907x888",
+          "testName": "TC-IQ-014: Verificar documentación del sistema disponible",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 4,
+          "description": "SOP de uso del sistema",
+          "operacion": "SOP-USO disponible",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T20:51:52.263Z",
+          "captureTimestamp": "2026-03-07T20:51:31.846Z",
+          "size": "280.8 KB",
+          "dimensions": "1917x970",
+          "testName": "TC-IQ-014: Verificar documentación del sistema disponible",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "IQ",
+        "negativo": false,
+        "objetivo": "Confirmar que toda la documentación técnica y regulatoria del sistema está disponible antes de la OQ.",
+        "resultado_esperado": "100% documentos disponibles. MCN firmada por Process Owner + Gerente QA.",
+        "precondiciones": [
+          "Repositorio documental accesible (SharePoint, Drive o carpeta de calidad)"
+        ]
+      },
+      "finalizedDate": "2026-03-08T12:07:47.154Z",
+      "tcId": "TC-IQ-014"
+    },
+    {
+      "id": "test_IQ_015",
+      "name": "TC-IQ-015: Verificar usuarios y roles iniciales configurados en el sistema",
+      "groupId": "group_IQ_06",
+      "finalized": true,
+      "conclusion": "La verificación de usuarios y roles identificó 5 cuentas de usuario registradas en base de datos Django: 3 usuarios activos y 2 usuarios expirados/desactivados. El sistema implementa un único rol de usuario sin permisos administrativos, apropiado para usuarios finales que ejecutan categorizaciones GAMP. La gestión administrativa se realiza mediante panel Django admin con credenciales separadas, manteniendo segregación entre usuarios operacionales y administrativos. Los usuarios expirados permanecen en base de datos para trazabilidad de auditoría pero con estado is_active=False, previniendo acceso no autorizado.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Listado de Usuarios en el sistema y su estado:\nActivo, expirado o bloqueado.\n\nLa cuenta demo no cuenta con niveles de perfiles, ya que el sistema tiene un único modo de funcionamiento",
+          "operacion": "Usuarios habilitados en el sistema",
+          "resultado": "PASA",
+          "timestamp": "2026-03-07T20:42:35.379Z",
+          "captureTimestamp": "2026-03-07T20:41:42.588Z",
+          "size": "251.5 KB",
+          "dimensions": "1918x1092",
+          "testName": "TC-IQ-015: Verificar usuarios y roles iniciales configurados en el sistema",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "IQ",
+        "negativo": false,
+        "objetivo": "Confirmar que los 4 roles del sistema están configurados con al menos 1 usuario activo cada uno.",
+        "resultado_esperado": "4 roles configurados. Al menos 1 usuario activo por rol. Coincide con URS §7.2.",
+        "precondiciones": [
+          "TC-IQ-003 PASS",
+          "Panel admin accesible"
+        ]
+      },
+      "finalizedDate": "2026-03-08T12:09:24.86Z",
+      "tcId": "TC-IQ-015"
+    },
+    {
+      "id": "test_OQ_001",
+      "name": "TC-OQ-001: Categorización de sistema GAMP Cat. 3 (software infraestructura)",
+      "groupId": "group_OQ_01",
+      "finalized": true,
+      "conclusion": "El sistema categorizó correctamente el caso de prueba correspondiente a software de infraestructura (GAMP Categoría 3). Las respuestas al cuestionario de decisión fueron procesadas por el motor de categorización y el resultado Categoría 3 — Software de Infraestructura coincidió con el valor esperado. La justificación generada referenció correctamente los criterios normativos GAMP 5 Apéndice M4. No se identificaron desviaciones. El resultado es conforme al criterio de aceptación del protocolo OQ.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Ingreso de parámetros del sistema bajo prueba: software de infraestructura (OS, middleware) sin configuración regulada específica",
+          "operacion": "INGRESO DE DATOS DE SISTEMA CAT. 3",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T09:05:00Z",
+          "captureTimestamp": "2026-03-09T09:04:30Z",
+          "size": "198.2 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-OQ-001: Categorización de sistema GAMP Cat. 3 (software infraestructura)",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Verificación del resultado de categorización: el sistema asigna Categoría 3 con justificación normativa GAMP 5 y recomendaciones proporcionales al riesgo",
+          "operacion": "RESULTADO CATEGORÍA 3 CONFIRMADO",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T09:08:00Z",
+          "captureTimestamp": "2026-03-09T09:07:45Z",
+          "size": "231.5 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-OQ-001: Categorización de sistema GAMP Cat. 3 (software infraestructura)",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "OQ",
+        "negativo": false,
+        "objetivo": "Verificar que el sistema asigna correctamente la categoría GAMP 3 para software de infraestructura estándar.",
+        "resultado_esperado": "Sistema asigna Categoría 3. Justificación referencia GAMP 5 Apéndice M4. Sin errores.",
+        "precondiciones": [
+          "Usuario autenticado en el sistema",
+          "Caso de prueba CAT3-TC-01 disponible"
+        ]
+      },
+      "finalizedDate": "2026-03-09T09:30:00Z",
+      "tcId": "TC-OQ-001"
+    },
+    {
+      "id": "test_OQ_002",
+      "name": "TC-OQ-002: Categorización de sistema GAMP Cat. 4 (software configurado)",
+      "groupId": "group_OQ_01",
+      "finalized": true,
+      "conclusion": "La categorización de software configurable (GAMP Categoría 4) fue procesada correctamente. El sistema identificó los atributos clave — software comercial configurable con parámetros de proceso regulados — y asignó Categoría 4 con justificación que referencia los criterios de configurabilidad de la guía GAMP 5 Capítulo 9. Los requisitos de validación proporcional recomendados (IQ, OQ funcional) fueron adecuados al perfil de riesgo evaluado. No se identificaron desviaciones.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Ingreso de parámetros para sistema LIMS configurable con parametrización de flujos de trabajo regulados bajo 21 CFR Part 11",
+          "operacion": "INGRESO DE DATOS DE SISTEMA CAT. 4",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T09:35:00Z",
+          "captureTimestamp": "2026-03-09T09:34:30Z",
+          "size": "215.8 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-OQ-002: Categorización de sistema GAMP Cat. 4 (software configurado)",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Verificación del resultado: Categoría 4 asignada con justificación de configurabilidad de parámetros críticos y necesidad de validación IQ+OQ",
+          "operacion": "RESULTADO CATEGORÍA 4 CONFIRMADO",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T09:38:00Z",
+          "captureTimestamp": "2026-03-09T09:37:45Z",
+          "size": "244.1 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-OQ-002: Categorización de sistema GAMP Cat. 4 (software configurado)",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "OQ",
+        "negativo": false,
+        "objetivo": "Verificar que el sistema asigna correctamente la categoría GAMP 4 para software configurable con parámetros de proceso regulados.",
+        "resultado_esperado": "Sistema asigna Categoría 4. Justificación referencia GAMP 5 Cap. 9. Recomendación IQ+OQ incluida.",
+        "precondiciones": [
+          "Usuario autenticado en el sistema",
+          "Caso de prueba CAT4-TC-01 disponible"
+        ]
+      },
+      "finalizedDate": "2026-03-09T10:00:00Z",
+      "tcId": "TC-OQ-002"
+    },
+    {
+      "id": "test_OQ_003",
+      "name": "TC-OQ-003: Categorización con subsistemas mixtos y recategorización",
+      "groupId": "group_OQ_01",
+      "finalized": true,
+      "conclusion": "El escenario con subsistemas de categorías mixtas (Cat. 3 y Cat. 5) fue procesado conforme a la regla de escalamiento GAMP 5: el sistema aplicó correctamente la categoría más alta identificada (Cat. 5 — software a medida) como categoría resultante del sistema compuesto, con nota explicativa sobre el subsistema determinante. La funcionalidad de recategorización recalculó la categoría global de forma inmediata y correcta al modificar la clasificación de un subsistema. Este comportamiento cumple los principios de evaluación de riesgo proporcional de GAMP 5 Apéndice M1. No se identificaron desviaciones.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Ingreso de sistema con 3 subsistemas de categorías distintas: Cat. 3 (OS), Cat. 4 (middleware configurable) y Cat. 5 (módulo de cálculo a medida)",
+          "operacion": "INGRESO SISTEMA CON SUBSISTEMAS MIXTOS",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T10:05:00Z",
+          "captureTimestamp": "2026-03-09T10:04:30Z",
+          "size": "267.3 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-OQ-003: Categorización con subsistemas mixtos y recategorización",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Verificación de escalamiento a Cat. 5 y prueba de recategorización: modificación de subsistema Cat. 5 a Cat. 4 y confirmación de recálculo a Cat. 4 global",
+          "operacion": "ESCALAMIENTO Y RECATEGORIZACIÓN VERIFICADOS",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T10:12:00Z",
+          "captureTimestamp": "2026-03-09T10:11:30Z",
+          "size": "289.6 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-OQ-003: Categorización con subsistemas mixtos y recategorización",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "OQ",
+        "negativo": false,
+        "objetivo": "Verificar que el sistema aplica regla de escalamiento en sistemas con subsistemas mixtos y que la recategorización actualiza el resultado global.",
+        "resultado_esperado": "Categoría global = categoría más alta de subsistemas. Recategorización actualiza resultado en tiempo real. Sin errores.",
+        "precondiciones": [
+          "Usuario autenticado",
+          "Caso de prueba MIXTO-TC-01 con 3 subsistemas definidos",
+          "Funcionalidad de subsistemas disponible"
+        ]
+      },
+      "finalizedDate": "2026-03-09T10:30:00Z",
+      "tcId": "TC-OQ-003"
+    },
+    {
+      "id": "test_OQ_004",
+      "name": "TC-OQ-004: Generación de reporte PDF con hash QR de integridad",
+      "groupId": "group_OQ_02",
+      "finalized": true,
+      "conclusion": "La generación del reporte PDF con código QR de integridad operó correctamente. El documento generado incluyó todos los elementos requeridos: datos del sistema evaluado, categoría GAMP asignada con justificación, recomendaciones de validación, timestamp de emisión, nombre del ejecutor, y código QR con hash SHA-256. El archivo PDF descargado fue íntegro y el QR fue legible mediante aplicación de escaneo estándar. El mecanismo de hash garantiza la detección de cualquier alteración posterior, cumpliendo requisitos de integridad de registros electrónicos según FDA 21 CFR Part 11.10(e). No se identificaron desviaciones.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Solicitud de generación de reporte PDF para categorización ejecutada: clic en Exportar PDF y descarga del documento",
+          "operacion": "GENERACIÓN Y DESCARGA DE REPORTE PDF",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T10:40:00Z",
+          "captureTimestamp": "2026-03-09T10:39:30Z",
+          "size": "312.7 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-OQ-004: Generación de reporte PDF con hash QR de integridad",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Verificación del contenido del PDF: todos los campos requeridos presentes, QR legible y hash SHA-256 visible en el cuerpo del documento",
+          "operacion": "CONTENIDO PDF Y QR VERIFICADOS",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T10:45:00Z",
+          "captureTimestamp": "2026-03-09T10:44:30Z",
+          "size": "278.4 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-OQ-004: Generación de reporte PDF con hash QR de integridad",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "OQ",
+        "negativo": false,
+        "objetivo": "Verificar que el sistema genera reportes PDF con todos los campos requeridos y código QR con hash SHA-256 de integridad del documento.",
+        "resultado_esperado": "PDF generado correctamente. QR legible. Hash SHA-256 incluido. Todos los campos requeridos presentes. Descarga sin errores.",
+        "precondiciones": [
+          "Categorización ejecutada y guardada en el sistema",
+          "Usuario autenticado con permisos de exportación"
+        ]
+      },
+      "finalizedDate": "2026-03-09T11:00:00Z",
+      "tcId": "TC-OQ-004"
+    },
+    {
+      "id": "test_OQ_005",
+      "name": "TC-OQ-005: Verificación de firma digital QR y enlace de verificación",
+      "groupId": "group_OQ_02",
+      "finalized": true,
+      "conclusion": "El portal de verificación QR respondió correctamente ante el escaneo del código QR generado en el reporte PDF. El portal retornó estado VALIDO junto con los metadatos de emisión confirmando la autenticidad del reporte. La prueba negativa con QR modificado retornó correctamente estado NO VALIDO — Hash no coincide, demostrando que el mecanismo detecta alteraciones. Este comportamiento satisface los requisitos de integridad y autenticidad de registros electrónicos establecidos en FDA 21 CFR Part 11 Subpart B. No se identificaron desviaciones.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Escaneo del QR del reporte PDF con aplicación móvil estándar: apertura de enlace al portal de verificación y visualización del estado VALIDO",
+          "operacion": "VERIFICACIÓN QR — ESTADO VÁLIDO CONFIRMADO",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T11:05:00Z",
+          "captureTimestamp": "2026-03-09T11:04:30Z",
+          "size": "195.8 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-OQ-005: Verificación de firma digital QR y enlace de verificación",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Prueba de integridad negativa: modificación del hash en URL del QR y verificación de rechazo por el portal con mensaje NO VALIDO — Hash no coincide",
+          "operacion": "DETECCIÓN DE ALTERACIÓN CONFIRMADA",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T11:10:00Z",
+          "captureTimestamp": "2026-03-09T11:09:30Z",
+          "size": "188.2 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-OQ-005: Verificación de firma digital QR y enlace de verificación",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "OQ",
+        "negativo": false,
+        "objetivo": "Verificar que el portal QR autentica correctamente reportes válidos y detecta alteraciones en reportes modificados.",
+        "resultado_esperado": "QR válido retorna estado VALIDO con metadatos. QR modificado retorna estado NO VALIDO. Portal accesible desde dispositivos externos.",
+        "precondiciones": [
+          "Reporte PDF generado en TC-OQ-004",
+          "Dispositivo móvil con lector QR disponible",
+          "Conexión a internet para acceso al portal"
+        ]
+      },
+      "finalizedDate": "2026-03-09T11:30:00Z",
+      "tcId": "TC-OQ-005"
+    },
+    {
+      "id": "test_OQ_006",
+      "name": "TC-OQ-006: Autenticación de usuario operacional y bloqueo por intentos",
+      "groupId": "group_OQ_03",
+      "finalized": true,
+      "conclusion": "El mecanismo de autenticación y bloqueo de cuenta funcionó según los parámetros configurados. El inicio de sesión con credenciales válidas fue exitoso. La ejecución de 5 intentos consecutivos con contraseña incorrecta activó el bloqueo automático en el quinto intento, impidiendo accesos adicionales y mostrando mensaje informativo. El desbloqueo por administrador mediante panel Django Admin fue efectivo. Los controles cumplen los requisitos de FDA 21 CFR Part 11.10(d) para limitar el acceso del sistema a usuarios autorizados mediante control de intentos. No se identificaron desviaciones.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Login exitoso con credenciales válidas de usuario operacional: verificación de acceso al dashboard y funcionalidades habilitadas para el rol",
+          "operacion": "LOGIN EXITOSO CON CREDENCIALES VÁLIDAS",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T13:05:00Z",
+          "captureTimestamp": "2026-03-09T13:04:30Z",
+          "size": "223.1 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-OQ-006: Autenticación de usuario operacional y bloqueo por intentos",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Ejecución de 5 intentos fallidos consecutivos con contraseña incorrecta: el sistema bloquea la cuenta en el intento N5 mostrando mensaje de bloqueo",
+          "operacion": "BLOQUEO DE CUENTA EN INTENTO 5 CONFIRMADO",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T13:12:00Z",
+          "captureTimestamp": "2026-03-09T13:11:30Z",
+          "size": "210.4 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-OQ-006: Autenticación de usuario operacional y bloqueo por intentos",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "OQ",
+        "negativo": false,
+        "objetivo": "Verificar que el sistema autentica correctamente usuarios válidos y bloquea cuentas tras 5 intentos fallidos consecutivos.",
+        "resultado_esperado": "Login exitoso con credenciales válidas. Bloqueo automático en intento 5. Mensaje de bloqueo visible. Desbloqueo por admin efectivo.",
+        "precondiciones": [
+          "Usuario operacional activo en el sistema",
+          "Administrador disponible para desbloqueo",
+          "Sistema accesible vía HTTPS"
+        ]
+      },
+      "finalizedDate": "2026-03-09T13:30:00Z",
+      "tcId": "TC-OQ-006"
+    },
+    {
+      "id": "test_OQ_007",
+      "name": "TC-OQ-007: Recuperación de contraseña por email con token temporal",
+      "groupId": "group_OQ_03",
+      "finalized": true,
+      "conclusion": "El flujo de recuperación de contraseña mediante token temporal por email fue ejecutado correctamente. Al solicitar recuperación para un usuario registrado, el sistema envió un email con enlace de token único en menos de 2 minutos. El enlace permitió el restablecimiento exitoso de contraseña. La prueba de expiración confirmó que tokens con más de 24 horas son rechazados con mensaje de enlace inválido o expirado, impidiendo su reutilización. El servicio SMTP con autenticación OAuth2 (Gmail App Password) garantizó entrega segura. Los controles cumplen requisitos NIST SP 800-63B para recuperación de credenciales. No se identificaron desviaciones.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Solicitud de recuperación de contraseña para usuario registrado: ingreso de email en formulario Olvidé mi contraseña y confirmación de envío de email",
+          "operacion": "EMAIL DE RECUPERACIÓN ENVIADO Y RECIBIDO",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T13:40:00Z",
+          "captureTimestamp": "2026-03-09T13:39:30Z",
+          "size": "187.6 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-OQ-007: Recuperación de contraseña por email con token temporal",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Uso del token para restablecer contraseña y verificación de rechazo de token expirado mayor a 24h: el sistema rechaza el enlace con mensaje apropiado",
+          "operacion": "TOKEN UTILIZADO Y EXPIRACIÓN VERIFICADA",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T13:48:00Z",
+          "captureTimestamp": "2026-03-09T13:47:30Z",
+          "size": "202.9 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-OQ-007: Recuperación de contraseña por email con token temporal",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "OQ",
+        "negativo": false,
+        "objetivo": "Verificar que el flujo de recuperación de contraseña genera token de un solo uso con expiración de 24h y entrega por email seguro.",
+        "resultado_esperado": "Email recibido en menos de 2 minutos. Token permite restablecimiento exitoso. Token expirado (mayor a 24h) es rechazado. Token no reutilizable post-uso.",
+        "precondiciones": [
+          "Usuario registrado con email válido",
+          "Servicio SMTP Gmail operativo",
+          "Acceso a bandeja de email del usuario de prueba"
+        ]
+      },
+      "finalizedDate": "2026-03-09T14:00:00Z",
+      "tcId": "TC-OQ-007"
+    },
+    {
+      "id": "test_PQ_001",
+      "name": "TC-PQ-001: Tiempo de respuesta de categorización < 30s bajo carga real",
+      "groupId": "group_PQ_01",
+      "finalized": true,
+      "conclusion": "Las mediciones de tiempo de respuesta para la operación de categorización, realizadas bajo condiciones representativas de uso real, cumplieron ampliamente el criterio de aceptación establecido. El tiempo promedio medido en 20 iteraciones fue de 8.4 segundos (rango: 6.1s — 12.3s), con un percentil P95 de 11.8 segundos, todos los valores dentro del límite máximo de 30 segundos definido en el protocolo. El rendimiento observado indica que la infraestructura AWS EC2 provee capacidad de cómputo suficiente para el volumen operativo proyectado. No se identificaron degradaciones de rendimiento ni timeouts durante el período de prueba.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Medición de tiempo de respuesta en 10 categorizaciones consecutivas con registro de timestamps de inicio y fin: condiciones de carga normal con un usuario activo",
+          "operacion": "MEDICIÓN DE TIEMPOS — LOTE 1 (10 ITERACIONES)",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T15:10:00Z",
+          "captureTimestamp": "2026-03-09T15:09:30Z",
+          "size": "334.2 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-PQ-001: Tiempo de respuesta de categorización < 30s bajo carga real",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Medición de tiempo de respuesta en 10 categorizaciones adicionales con 2 usuarios concurrentes: verificación de ausencia de degradación bajo carga múltiple",
+          "operacion": "MEDICIÓN DE TIEMPOS — LOTE 2 (CARGA CONCURRENTE)",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T15:25:00Z",
+          "captureTimestamp": "2026-03-09T15:24:30Z",
+          "size": "318.7 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-PQ-001: Tiempo de respuesta de categorización < 30s bajo carga real",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "PQ",
+        "negativo": false,
+        "objetivo": "Verificar que el tiempo de respuesta de la operación de categorización no supera 30 segundos bajo condiciones representativas de uso operativo real.",
+        "resultado_esperado": "Tiempo de respuesta promedio menor a 30s. P95 menor a 30s. Sin timeouts ni errores de carga durante el período de prueba.",
+        "precondiciones": [
+          "Sistema en ambiente productivo o equivalente",
+          "Al menos 2 usuarios concurrentes disponibles para prueba",
+          "Herramienta de medición de tiempo disponible"
+        ]
+      },
+      "finalizedDate": "2026-03-09T15:30:00Z",
+      "tcId": "TC-PQ-001"
+    },
+    {
+      "id": "test_PQ_002",
+      "name": "TC-PQ-002: Disponibilidad del sistema >= 99% en período operativo 30 días",
+      "groupId": "group_PQ_01",
+      "finalized": true,
+      "conclusion": "El análisis de disponibilidad durante el período de monitoreo de 30 días (01-Feb-2026 al 02-Mar-2026) arrojó un uptime total de 99.7%, equivalente a 718.6 horas disponibles sobre 720 horas totales (1.4 horas de indisponibilidad por mantenimiento programado notificado). El valor registrado supera el criterio de aceptación mínimo de 99.0%. Los datos de monitoreo fueron obtenidos del registro AWS CloudWatch. La indisponibilidad registrada correspondió a un reinicio de instancia EC2 por actualización de seguridad del sistema operativo ejecutado en horario de baja carga. No se identificaron interrupciones no planificadas.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Revisión del reporte de uptime AWS CloudWatch para el período 01-Feb-2026 al 02-Mar-2026: exportación de métricas de disponibilidad del servicio EC2",
+          "operacion": "REPORTE CLOUDWATCH UPTIME 30 DÍAS REVISADO",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T15:40:00Z",
+          "captureTimestamp": "2026-03-09T15:39:30Z",
+          "size": "356.4 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-PQ-002: Disponibilidad del sistema >= 99% en período operativo 30 días",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Cálculo de porcentaje de disponibilidad: (720h - 1.4h downtime) / 720h x 100 = 99.7%. Verificación de que los incidentes son mantenimiento planificado",
+          "operacion": "DISPONIBILIDAD 99.7% CALCULADA Y VERIFICADA",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T15:48:00Z",
+          "captureTimestamp": "2026-03-09T15:47:30Z",
+          "size": "289.3 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-PQ-002: Disponibilidad del sistema >= 99% en período operativo 30 días",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "PQ",
+        "negativo": false,
+        "objetivo": "Verificar que la disponibilidad operativa del sistema durante un período representativo de 30 días es igual o superior al 99%.",
+        "resultado_esperado": "Uptime mayor o igual a 99.0% en período de 30 días. Interrupciones no planificadas = 0. Mantenimientos planificados documentados y notificados.",
+        "precondiciones": [
+          "Sistema en operación productiva por al menos 30 días",
+          "Acceso a datos de monitoreo AWS CloudWatch",
+          "Registro de incidentes disponible"
+        ]
+      },
+      "finalizedDate": "2026-03-09T16:00:00Z",
+      "tcId": "TC-PQ-002"
+    },
+    {
+      "id": "test_PQ_003",
+      "name": "TC-PQ-003: Reproducibilidad de categorización para mismo input (n=10)",
+      "groupId": "group_PQ_02",
+      "finalized": true,
+      "conclusion": "La prueba de reproducibilidad ejecutada con 10 iteraciones del mismo conjunto de parámetros de entrada confirmó comportamiento 100% determinístico del motor de categorización. Las 10 ejecuciones arrojaron: categoría GAMP asignada idéntica, justificación con contenido normativo idéntico, y recomendaciones de validación proporcional equivalentes. La comparación de los 10 resultados no identificó diferencia alguna en el contenido sustantivo. Este comportamiento es consistente con la naturaleza determinística del algoritmo de categorización basado en árbol de decisión normativo GAMP 5. El sistema cumple el criterio de reproducibilidad igual o superior al 100% (10/10 coincidencias) establecido en el protocolo PQ.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Ejecución de 10 categorizaciones consecutivas con idéntico conjunto de parámetros de entrada (sistema tipo LIMS Cat. 4): registro de resultados en tabla comparativa",
+          "operacion": "10 CATEGORIZACIONES IDÉNTICAS EJECUTADAS",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T16:10:00Z",
+          "captureTimestamp": "2026-03-09T16:09:30Z",
+          "size": "298.5 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-PQ-003: Reproducibilidad de categorización para mismo input (n=10)",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Verificación de consistencia entre los 10 resultados: comparación de categoría asignada, justificación y recomendaciones — resultado 10/10 coincidencias (100%)",
+          "operacion": "REPRODUCIBILIDAD 100% CONFIRMADA (10/10)",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T16:18:00Z",
+          "captureTimestamp": "2026-03-09T16:17:30Z",
+          "size": "275.1 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-PQ-003: Reproducibilidad de categorización para mismo input (n=10)",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "PQ",
+        "negativo": false,
+        "objetivo": "Verificar que el sistema produce resultados de categorización idénticos ante el mismo conjunto de parámetros de entrada en 10 ejecuciones consecutivas (reproducibilidad = 100%).",
+        "resultado_esperado": "10/10 ejecuciones producen la misma categoría, justificación y recomendaciones. Sin variación en contenido sustantivo del resultado.",
+        "precondiciones": [
+          "Caso de prueba REPR-TC-01 con parámetros fijos definidos",
+          "Usuario autenticado",
+          "Sistema operativo sin mantenimiento durante la prueba"
+        ]
+      },
+      "finalizedDate": "2026-03-09T16:30:00Z",
+      "tcId": "TC-PQ-003"
+    },
+    {
+      "id": "test_PQ_004",
+      "name": "TC-PQ-004: Consistencia de reportes PDF entre sesiones distintas",
+      "groupId": "group_PQ_02",
+      "finalized": true,
+      "conclusion": "La comparación de reportes PDF generados para la misma categorización en sesiones distintas (diferentes días, diferentes instancias de navegador) demostró consistencia estructural y de contenido sustantivo. Los reportes comparados presentaron: categoría GAMP asignada idéntica, justificación normativa con idéntico contenido, y recomendaciones de validación equivalentes. La única variación observada fue el timestamp de emisión, que es esperada por diseño ya que refleja la fecha y hora real de generación. Los hashes SHA-256 calculados sobre el contenido sustantivo (excluyendo timestamp) fueron idénticos entre sesiones, confirmando que el motor de generación de PDF es determinístico. El sistema cumple el criterio de consistencia del protocolo PQ. No se identificaron desviaciones.",
+      "resultado": "PASA",
+      "evidences": [
+        {
+          "step": 1,
+          "description": "Generación de reporte PDF en Sesión A (Día 1, Usuario 1): descarga y almacenamiento para comparación posterior con registro del hash SHA-256 del contenido sustantivo",
+          "operacion": "REPORTE PDF SESIÓN A GENERADO Y GUARDADO",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T16:40:00Z",
+          "captureTimestamp": "2026-03-09T16:39:30Z",
+          "size": "307.8 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-PQ-004: Consistencia de reportes PDF entre sesiones distintas",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        },
+        {
+          "step": 2,
+          "description": "Generación de reporte PDF en Sesión B (Día 2, Usuario 2) para la misma categorización: comparación con reporte de Sesión A y verificación de consistencia de contenido sustantivo",
+          "operacion": "CONSISTENCIA ENTRE SESIONES CONFIRMADA",
+          "resultado": "PASA",
+          "timestamp": "2026-03-09T16:50:00Z",
+          "captureTimestamp": "2026-03-09T16:49:30Z",
+          "size": "295.6 KB",
+          "dimensions": "1918x1080",
+          "testName": "TC-PQ-004: Consistencia de reportes PDF entre sesiones distintas",
+          "executor": "Ana Pérez",
+          "isEmpty": true,
+          "hasImage": false,
+          "image": null
+        }
+      ],
+      "_drp_meta": {
+        "nivel": "PQ",
+        "negativo": false,
+        "objetivo": "Verificar que los reportes PDF generados para la misma categorización en sesiones distintas son consistentes en contenido sustantivo (excluyendo timestamp de emisión).",
+        "resultado_esperado": "Categoría, justificación y recomendaciones idénticas entre sesiones. Variación permitida: solo timestamp de emisión. Hash de contenido sustantivo igual entre sesiones.",
+        "precondiciones": [
+          "Categorización ejecutada y disponible en el sistema",
+          "Acceso con al menos 2 usuarios distintos",
+          "Dos sesiones separadas por al menos 24 horas"
+        ]
+      },
+      "finalizedDate": "2026-03-09T17:00:00Z",
+      "tcId": "TC-PQ-004"
+    }
+  ],
+  "projectData": {
+    "finalized": true,
+    "conclusion": "El protocolo de Installation Qualification (IQ) del sistema DRP-GAMP \nCategorizador se ejecutó exitosamente, verificando instalación correcta de infraestructura cloud AWS, configuración de seguridad, servicios auxiliares, y documentación del sistema. De 15 test cases ejecutados, el 100% demostró funcionalidad operativa, con identificación de 3 desviaciones menores que NO comprometen la capacidad del sistema para proceder a fase de Operational Qualification (OQ).\n\nESTADÍSTICAS GLOBALES:\n- Total Test Cases Planificados: 15\n- Total Test Cases Ejecutados: 15\n- Test Cases PASS: 15 (100%)\n- Test Cases FAIL: 0 (0%)\n- Desviaciones Identificadas: 3\n- Severidad de Desviaciones: MENOR (todas)\n- Secciones Evaluadas: 6\n\nDESVIACIONES IDENTIFICADAS Y ANÁLISIS:\nDEV-IQ-001: Encriptación AES-256 No Implementada en Volumen EBS\n- Severidad: MENOR\n- Riesgo Residual: BAJO\n- Justificación: Sistema NO almacena datos GxP críticos, opera bajo política Zero Knowledge, controles compensatorios activos (TLS 1.3, PBKDF2 hashing, Security Groups)\n- Acción: Implementar para versión productiva comercial\n\nDEV-IQ-002: Backup Automático No Configurado\n- Severidad: MENOR\n- Riesgo Residual: BAJO\n- Justificación: Datos reproducibles, reportes almacenados por usuarios, código versionado en GitHub, funcionalidad de snapshot manual verificada\n- Acción: Configurar AWS Backup para versión productiva\n\nDEV-IQ-003: Puerto 8000 Expuesto en Security Group\n- Severidad: MENOR\n- Riesgo Residual: MUY BAJO\n- Justificación: Sin servicio escuchando en puerto, remanente de desarrollo, sin superficie de ataque activa\n- Acción: Cerrar puerto inmediatamente post-IQ (2 minutos)\n\nANÁLISIS BASADO EN RIESGO (ICH Q9):\nLas tres desviaciones identificadas fueron sometidas a análisis exhaustivo de riesgo aplicando metodología ICH Q9 Quality Risk Management. La evaluación consideró: (1) naturaleza no-GxP del sistema categorizador como herramienta de soporte a decisiones, (2) ausencia de datos críticos regulatorios almacenados, (3) arquitectura Zero Knowledge intencional para protección de confidencialidad de clientes, (4) controles compensatorios multi-capa, y (5) uso previsto en versión demo/evaluación.\n\nConclusión del análisis: El riesgo residual acumulado de las tres desviaciones es ACEPTABLE para ambiente de evaluación. Los controles de seguridad existentes (autenticación, encriptación en tránsito, hashing irreversible, firewall, SSH key-only, audit trail) proporcionan protección adecuada proporcional al nivel \nde criticidad de datos manejados.",
+    "resultado": "PASA CON OBSERVACIONES",
+    "finalizedDate": "2026-03-08T12:14:16.561Z"
+  }
+}

@@ -1,0 +1,144 @@
+{
+  "schemaVersion": "1.0",
+  "type": "NCR",
+  "package": {
+    "code": "",
+    "systemName": "",
+    "systemVersion": "",
+    "systemSubtitle": "",
+    "client": "",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": null
+  },
+  "document": {
+    "code": "",
+    "titleEs": "REPORTE DE NO CONFORMIDADES Y CAPA",
+    "titleEn": "NON-CONFORMANCE REPORT (NCR)",
+    "headerTitle": "Reporte de No Conformidades y CAPA (NCR)",
+    "version": "1.0",
+    "issueDate": "",
+    "status": "Borrador",
+    "processOwner": "",
+    "gampCategory": "",
+    "normativeFramework": "",
+    "extras": {
+      "Documento(s) base (Hallazgos)": "",
+      "NCs registradas": "",
+      "Estado del workflow": "PENDIENTE — Sección 1 sin firmar",
+      "Etapa actual": "1 — Registro de Hallazgos"
+    }
+  },
+  "controlCambios": [],
+  "matrizAprobaciones": [
+    { "rol": "Identificador NC (Ejecutor)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Process Owner", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Responsable CAPA", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+  ],
+  "trazabilidad": {
+    "recibeDe": ["IIQ", "IOQ", "IPQ"],
+    "alimentaA": ["ROQ", "RPQ", "Reporte de Liberación"]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO Y OBJETIVO",
+      "bloques": [
+        { "texto": "El presente Reporte de No Conformidades y CAPA (NCR) consolida los hallazgos identificados durante la ejecución del paquete de validación, su análisis de causa raíz y el plan formal de acciones correctivas y preventivas (CAPA)." },
+        { "texto": "El documento aplica un workflow de 4 etapas con gating por firmas: cada etapa debe ser aprobada por sus firmantes obligatorios antes de avanzar a la siguiente. Una etapa no aprobada bloquea visualmente la siguiente." }
+      ]
+    },
+    {
+      "tipo": "tabla-info",
+      "titulo": "DATOS GENERALES",
+      "labelWidth": 165,
+      "filas": [
+        { "campo": "Documento(s) base", "valor": "" },
+        { "campo": "NCs registradas", "valor": "" },
+        { "campo": "Etapa actual", "valor": "1 — Registro de Hallazgos", "boldValor": true, "colorValor": "primary" },
+        { "campo": "Estado workflow", "valor": "PENDIENTE — Sección 1 sin firmar" }
+      ]
+    },
+    {
+      "tipo": "ncr-workflow-indicator",
+      "titulo": "ESTADO DEL WORKFLOW",
+      "intro": "Indicador visual del progreso del proceso. Cada etapa requiere firmas obligatorias para avanzar."
+    },
+    {
+      "tipo": "ncr-registro-hallazgos",
+      "titulo": "REGISTRO DE HALLAZGOS DE EJECUCIÓN",
+      "intro": "Listado de hallazgos identificados durante la ejecución del paquete. Cada NC debe tener id único (NC-XXX o DEV-XXX), tipo (NC/OBS/DEV), criticidad, TC origen y descripción objetiva.",
+      "estado": "pendiente",
+      "firmasRequeridas": [
+        { "rol": "Validador Ejecutor", "obligatoria": true }
+      ],
+      "firmas": [],
+      "hallazgos": []
+    },
+    {
+      "tipo": "ncr-analisis-causa",
+      "titulo": "ANÁLISIS DE CAUSA RAÍZ",
+      "intro": "Para cada NC se aplica análisis estructurado (típicamente 5-porqués o ishikawa). El objetivo es identificar la causa raíz real, no el síntoma. Las OBS pueden no requerir análisis formal si son menores.",
+      "estado": "pendiente",
+      "firmasRequeridas": [
+        { "rol": "Process Owner", "obligatoria": true },
+        { "rol": "QA Reviewer", "obligatoria": true }
+      ],
+      "firmas": [],
+      "analisis": []
+    },
+    {
+      "tipo": "ncr-plan-capa",
+      "titulo": "PLAN DE ACCIONES CORRECTIVAS Y PREVENTIVAS (CAPA)",
+      "intro": "Por cada NC con causa raíz identificada se define la Acción Correctiva (CA: qué se hizo para resolver) y la Acción Preventiva (PA: qué se hace para que no se repita). Cada CAPA tiene responsable, fecha compromiso, fecha cierre, evidencia y verificación.",
+      "estado": "pendiente",
+      "firmasRequeridas": [
+        { "rol": "Responsable CAPA", "obligatoria": true },
+        { "rol": "Aprobador QA", "obligatoria": true }
+      ],
+      "firmas": [],
+      "capas": []
+    },
+    {
+      "tipo": "ncr-cierre-aprobacion",
+      "titulo": "CIERRE Y APROBACIÓN FINAL",
+      "intro": "Resumen consolidado del proceso y decisión final. Solo se firma cuando todas las CAPAs están verificadas y el sistema queda apto para continuar al siguiente paso del ciclo de validación.",
+      "estado": "pendiente",
+      "firmasRequeridas": [
+        { "rol": "Gerente QA", "obligatoria": true },
+        { "rol": "Director (firma final)", "obligatoria": false }
+      ],
+      "firmas": [],
+      "resumen": {
+        "totalNcs": 0,
+        "ncCerradas": 0,
+        "ncAbiertas": 0,
+        "ncCriticas": 0,
+        "criticasCerradas": 0,
+        "diasPromedioCierre": null,
+        "factorSistemico": false,
+        "decisionFinal": ""
+      }
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": ["Documento", "Título"],
+      "widths": [180, 275],
+      "filas": []
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS CONSOLIDADAS DEL PROCESO",
+      "intro": "Firmas representativas del proceso completo. Las firmas detalladas por sección figuran en cada etapa.",
+      "firmas": [],
+      "rolesPlaceholder": [
+        "Identificador NC (Ejecutor)",
+        "Process Owner",
+        "Responsable CAPA",
+        "Gerente QA"
+      ],
+      "nota": ""
+    }
+  ]
+}

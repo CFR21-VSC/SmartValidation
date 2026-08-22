@@ -1,0 +1,1269 @@
+{
+  "schemaVersion": "1.0",
+  "type": "RRM",
+  "package": {
+    "code": "DRP-SIS-001",
+    "systemName": "DRP-GAMP Categorizador™",
+    "systemVersion": "1.1",
+    "systemSubtitle": "Sistema de Categorización GAMP 5",
+    "client": "Emara SRL",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": 2026
+  },
+  "document": {
+    "code": "RRM-DRP-SIS-001",
+    "titleEs": "MATRIZ DE REQUERIMIENTOS REGULATORIOS",
+    "titleEn": "REGULATORY REQUIREMENTS MATRIX (RRM)",
+    "headerTitle": "Matriz de Requerimientos Regulatorios (RRM)",
+    "version": "1.0",
+    "issueDate": "Marzo 2026",
+    "status": "Aprobado",
+    "processOwner": "Ana Pérez",
+    "gampCategory": "GAMP 3 — Software Estándar Configurable",
+    "normativeFramework": "ANMAT 4159/2023 | 21 CFR Part 11 | EU Annex 11 | ICH Q9 R1 | GAMP 5 2da Ed.",
+    "extras": {
+      "Documento base (URS)": "URS-DRP-SIS-001 v1.0 — 55 requerimientos (50 funcionales + 5 NF)",
+      "RA Global (HLRA)": "32 — Bajo-Medio (GAMP 3)",
+      "Normas mapeadas": "5 dimensiones: ANMAT, FDA, EMA, ICH, ISPE",
+      "GAPs identificados": "4 (2 Mayores / 2 Menores) — todos con controles compensatorios"
+    }
+  },
+  "controlCambios": [
+    {
+      "version": "1.0",
+      "fecha": "Mar 2026",
+      "autor": "A. Pérez — Process Owner / Validador",
+      "descripcion": "Emisión inicial. Mapeo de 5 normas. 4 GAPs identificados con controles compensatorios."
+    }
+  ],
+  "matrizAprobaciones": [
+    {
+      "rol": "Redactor (Validador)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "15/03/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-03-15T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "15/03/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-03-15T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    },
+    {
+      "rol": "Aprobador (Jefe de Validaciones)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "15/03/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-03-15T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "15/03/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-03-15T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    }
+  ],
+  "trazabilidad": {
+    "recibeDe": [
+      "URS",
+      "HLRA",
+      "RA"
+    ],
+    "alimentaA": [
+      "MTR",
+      "POQ"
+    ]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO",
+      "bloques": [
+        {
+          "texto": "El presente documento constituye la Matriz de Requerimientos Regulatorios (RRM) del sistema DRP-GAMP Categorizador™ v1.0 (DRP-SIS-001), desarrollado por DRP Assurance. Su propósito es demostrar de forma sistemática, trazable y auditable el cumplimiento regulatorio del sistema mediante la vinculación bidireccional de:"
+        },
+        {
+          "bullets": [
+            "Requerimientos de Usuario (URS-DRP-SIS-001 v1.0) — 55 requerimientos (50 funcionales + 5 no funcionales).",
+            "Normas regulatorias aplicables: ANMAT 4159/2023 Anexo VI, 21 CFR Part 11 (FDA), EU Annex 11 / PIC/S PI 011-3, ICH Q9 R1 (2023) y GAMP 5 Segunda Edición (2022).",
+            "Hallazgos de riesgo documentados en HLRA-DRP-SIS-001 v1.0 (RA Global = 32, GAMP 3, 4 GAPs).",
+            "Test cases de calificación (POQ — pendientes de generación en Fase 6)."
+          ]
+        },
+        {
+          "texto": "Este documento permite dar respuesta inmediata y documentada a cualquier requerimiento regulatorio en contexto de auditoría, interna o de organismo regulatorio."
+        }
+      ]
+    },
+    {
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido",
+      "incluido": [
+        "DRP-GAMP Categorizador™ v1.0, URL https://categorizador.example.com/, 9 módulos funcionales.",
+        "Todos los roles del sistema (Usuario Final, Auditor QA, Administrador, Gerente).",
+        "Mercados regulatorios: Argentina (ANMAT), Estados Unidos (FDA), Europa (EMA / PIC/S)."
+      ],
+      "subExcluido": "2.2 Excluido",
+      "excluido": [
+        "Infraestructura cloud subyacente (AWS, PostgreSQL — calificada por proveedor de hosting).",
+        "Funcionalidades de versión Pro no disponibles en v1.0 (2FA, Excel, JSON, Blockchain).",
+        "21 CFR Part 11 Subpart C §11.200–§11.300 (sistema no implementa firma electrónica nativa — GAP-002 documentado)."
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESPONSABILIDADES",
+      "columnas": [
+        "Rol",
+        "Responsabilidad"
+      ],
+      "widths": [
+        160,
+        295
+      ],
+      "filas": [
+        [
+          "Validador CSV",
+          "Crear, mantener y actualizar la RRM. Asegurar trazabilidad completa entre URS, normas y test cases."
+        ],
+        [
+          "Process Owner (A. Pérez)",
+          "Validar mapeo URS → Normas. Aceptar formalmente los GAPs identificados."
+        ],
+        [
+          "QA Regulatorio",
+          "Revisar completitud del mapeo normativo. Validar controles compensatorios propuestos."
+        ],
+        [
+          "Gerente QA",
+          "Aprobación final del documento. Co-firmante en aceptación de GAPs Mayores."
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DEFINICIONES Y ABREVIATURAS",
+      "columnas": [
+        "Término",
+        "Definición"
+      ],
+      "widths": [
+        125,
+        330
+      ],
+      "filas": [
+        [
+          "RRM",
+          "Regulatory Requirements Matrix. Documento que vincula requerimientos del sistema con normas regulatorias, demostrando trazabilidad bidireccional."
+        ],
+        [
+          "URS",
+          "User Requirement Specification — Especificación de Requerimientos de Usuario."
+        ],
+        [
+          "GAP",
+          "Brecha: requisito regulatorio no cubierto o parcialmente cubierto por el sistema."
+        ],
+        [
+          "Control Compensatorio",
+          "Medida alternativa que mitiga el riesgo de un GAP identificado."
+        ],
+        [
+          "RA Global",
+          "Índice de Apreciación de Riesgo. RA Global del sistema = 32 (Bajo-Medio) según HLRA."
+        ],
+        [
+          "GAMP 3",
+          "Software estándar (COTS) configurable. Categoría asignada al DRP-GAMP Categorizador™."
+        ],
+        [
+          "Trazabilidad Forward",
+          "Norma → URS → Test Case → Evidencia."
+        ],
+        [
+          "Trazabilidad Backward",
+          "Evidencia → Test Case → URS → Norma."
+        ],
+        [
+          "CUMPLE",
+          "El sistema implementa el requisito normativo. URS asociado verificable en OQ."
+        ],
+        [
+          "PARCIAL",
+          "Cumplimiento parcial. GAP menor identificado con control compensatorio."
+        ],
+        [
+          "GAP",
+          "Brecha regulatoria. Documentada con control compensatorio y aceptación requerida."
+        ],
+        [
+          "N/A",
+          "No aplica al sistema en su versión/configuración actual. Justificación documentada."
+        ]
+      ]
+    },
+    {
+      "tipo": "texto",
+      "titulo": "METODOLOGÍA DE MAPEO",
+      "bloques": [
+        {
+          "texto": "El mapeo normativo sigue la metodología DRP Assurance de 5 dimensiones, una por cada norma regulatoria aplicable al sistema:"
+        },
+        {
+          "subtitulo": "Dimensión 1 — ANMAT 4159/2023 Anexo VI"
+        },
+        {
+          "texto": "Norma obligatoria para mercado argentino, equivalente a EU GMP Annex 11. Se mapea punto por punto del Anexo VI."
+        },
+        {
+          "subtitulo": "Dimensión 2 — 21 CFR Part 11 (FDA)"
+        },
+        {
+          "texto": "Aplica a registros electrónicos GxP. Subpart C excluida del alcance (sin firma electrónica nativa — GAP-002 documentado)."
+        },
+        {
+          "subtitulo": "Dimensión 3 — EU Annex 11 / PIC/S PI 011-3"
+        },
+        {
+          "texto": "Documentadas como equivalencias ANMAT ↔ EU Annex 11 para validez ante inspecciones internacionales."
+        },
+        {
+          "subtitulo": "Dimensión 4 — ICH Q9 R1 (2023)"
+        },
+        {
+          "texto": "Demuestra enfoque de Gestión de Riesgos de Calidad (QRM). Evidenciado por HLRA y RA."
+        },
+        {
+          "subtitulo": "Dimensión 5 — GAMP 5 Segunda Edición (2022)"
+        },
+        {
+          "texto": "Demuestra adherencia a buenas prácticas de validación. Justifica la proporcionalidad de la estrategia."
+        },
+        {
+          "texto": "Para cada artículo/punto se documenta: aplicabilidad, estado de cumplimiento, URS vinculados, referencias a RA, y TC-OQ estimado."
+        }
+      ]
+    },
+    {
+      "tipo": "tabla-norma",
+      "titulo": "ANMAT 4159/2023 ANEXO VI",
+      "intro": "Norma de referencia: ANMAT Disposición 4159/2023, Anexo VI — Guía de Buenas Prácticas de Sistemas Informatizados (Argentina). Equivalente a EU GMP Annex 11.",
+      "cobertura": "Cobertura: 15/15 puntos evaluados | 11 CUMPLEN | 4 PARCIAL/GAP documentado",
+      "filas": [
+        {
+          "punto": "1",
+          "requisito": "Gestión de Riesgos — El enfoque de validación debe basarse en riesgo documentado.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "URS-NF-001 | URS-NF-003 | URS-NF-004",
+          "raRef": "HLRA §1 | RA Global = 32",
+          "tcOq": "TC-OQ-001 al TC-OQ-006",
+          "observaciones": "Metodología FMEA aplicada. 24 riesgos RA, todos ≤ 6 (Bajo). HLRA §5–§9 documenta la estrategia basada en riesgo."
+        },
+        {
+          "punto": "2",
+          "requisito": "Personal — El personal debe estar formado y calificado para operar el sistema informatizado.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "—",
+          "raRef": "—",
+          "tcOq": "—",
+          "observaciones": "SOP-USO-GAMP-001 y SOP-ADM-GAMP-001 definen procedimientos de uso y administración. Formación del personal en documentación externa al sistema."
+        },
+        {
+          "punto": "3",
+          "requisito": "Proveedores — Debe existir un acuerdo técnico formal con el proveedor del sistema.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "—",
+          "raRef": "HLRA §6",
+          "tcOq": "TC-IQ-001",
+          "observaciones": "DRP Assurance es proveedor y validador. Acuerdo técnico implícito. HLRA §6 documenta la evaluación del proveedor."
+        },
+        {
+          "punto": "4",
+          "requisito": "Validación — El sistema debe estar validado mediante protocolo formal (IQ/OQ/PQ según aplique).",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "Todos los URS (55)",
+          "raRef": "VP §3–§7",
+          "tcOq": "PIQ + POQ completos",
+          "observaciones": "VP-DRP-SIS-001 define estrategia IQ + OQ. GAMP 3: sin PQ requerida. Protocolos en generación Fase 6."
+        },
+        {
+          "punto": "5",
+          "requisito": "Datos — Los datos deben verificarse en el punto de entrada cuando proceda.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "URS-021 al URS-028 | URS-NF-004",
+          "raRef": "RA-009",
+          "tcOq": "TC-OQ-009 al TC-OQ-012",
+          "observaciones": "El cuestionario adaptativo valida respuestas en tiempo real. SHA-256 garantiza integridad del output (reporte PDF)."
+        },
+        {
+          "punto": "6",
+          "requisito": "Exactitud de entradas — Los datos ingresados manualmente deben verificarse.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "URS-017 al URS-020",
+          "raRef": "RA-010",
+          "tcOq": "TC-OQ-009",
+          "observaciones": "El módulo de Registro de Sistema requiere confirmación explícita antes de categorizar. Validación de campos obligatorios."
+        },
+        {
+          "punto": "7.1",
+          "requisito": "Almacenamiento de datos — Los registros electrónicos deben almacenarse de forma segura y con retención definida.",
+          "aplica": "Sí",
+          "estado": "PARCIAL",
+          "urs": "URS-NF-004 | URS-NF-005",
+          "raRef": "HLRA GAP-003",
+          "tcOq": "TC-OQ-020",
+          "observaciones": "GAP-003: reportes PDF no almacenados en el sistema (responsabilidad del cliente). Control comp.: SHA-256 + SOP-USO §8.3."
+        },
+        {
+          "punto": "8",
+          "requisito": "Impresiones — Los registros impresos deben identificar si son originales o copias.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "URS-035 al URS-039",
+          "raRef": "RA-014",
+          "tcOq": "TC-OQ-013 al TC-OQ-016",
+          "observaciones": "El reporte PDF de 4 páginas incluye identificación única del documento, QR de verificación y SHA-256 en página 1."
+        },
+        {
+          "punto": "9",
+          "requisito": "Auditoría — Debe existir audit trail que registre creación, modificación y borrado de registros críticos GxP.",
+          "aplica": "Sí",
+          "estado": "PARCIAL",
+          "urs": "URS-006 | URS-NF-003 | URS-001 al URS-003",
+          "raRef": "RA-001 a RA-003 | GAP-001 / GAP-002",
+          "tcOq": "TC-OQ-006",
+          "observaciones": "Audit trail digital cumple. GAP-001: inconsistencia documental 3 vs 5 intentos (NC menor). GAP-002: sin firma electrónica nativa — control comp.: firma manuscrita + SHA-256."
+        },
+        {
+          "punto": "10",
+          "requisito": "Gestión de Cambios — Los cambios al sistema deben controlarse formalmente.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "—",
+          "raRef": "VP §8",
+          "tcOq": "—",
+          "observaciones": "VP-DRP-SIS-001 §8 define procedimiento de gestión de cambios post-validación."
+        },
+        {
+          "punto": "11",
+          "requisito": "Seguridad — Acceso al sistema restringido por roles y perfiles.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "URS-001 al URS-016 | URS-NF-001",
+          "raRef": "RA-001 al RA-006",
+          "tcOq": "TC-OQ-001 al TC-OQ-008",
+          "observaciones": "Autenticación email+contraseña. 2 roles diferenciados. Bloqueo 5 intentos. Timeout 30 min. Audit trail de accesos."
+        },
+        {
+          "punto": "12",
+          "requisito": "Gestión de Incidencias — Registro y seguimiento de incidencias del sistema.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "URS-NF-001",
+          "raRef": "GAP-004",
+          "tcOq": "—",
+          "observaciones": "GAP-004 (sin 2FA, GAP Menor). Controles compensatorios: política contraseñas + bloqueo 5 intentos + timeout + log accesos. Proporcionado para GAMP 3, RA=32."
+        },
+        {
+          "punto": "13",
+          "requisito": "Firmas electrónicas — Si el sistema usa firmas electrónicas, deben ser conformes a regulación.",
+          "aplica": "Parcial",
+          "estado": "PARCIAL",
+          "urs": "URS-NF-004 (Exclusión URS §9)",
+          "raRef": "GAP-002",
+          "tcOq": "TC-OQ-018",
+          "observaciones": "GAP-002 Mayor: sin firma electrónica nativa. Campos de texto en PDF no son firmas reguladas. Control: firma manuscrita + SHA-256 (inmutable)."
+        },
+        {
+          "punto": "14",
+          "requisito": "Continuidad de negocio — Debe existir plan de backup y recuperación ante desastres.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "URS-NF-005 | URS-048",
+          "raRef": "IRA-014 | IRA-015",
+          "tcOq": "TC-IQ-010",
+          "observaciones": "Backup diario automático documentado en SOP-ADM §9. RTO/RPO a definir cuantitativamente en Fase 6."
+        },
+        {
+          "punto": "15",
+          "requisito": "Archivado — Los registros electrónicos deben archivarse con retención según reglamentación.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "URS-NF-004 | URS-NF-005",
+          "raRef": "GAP-003",
+          "tcOq": "—",
+          "observaciones": "SOP-USO §8.3 define retención por cliente. SHA-256 garantiza integridad del archivo independiente del soporte."
+        }
+      ]
+    },
+    {
+      "tipo": "tabla-norma",
+      "titulo": "21 CFR PART 11 (FDA)",
+      "intro": "Norma de referencia: 21 CFR Part 11 — Electronic Records; Electronic Signatures (FDA, USA). Vigente desde 1997, última revisión interpretativa 2003.",
+      "cobertura": "Cobertura: 16/16 artículos evaluados | 11 CUMPLEN | 1 NO CUMPLE (GAP-002 Mayor) | 4 N/A (Subpart C excluida con justificación)",
+      "filas": [
+        {
+          "subheader": "SUBPART B — REGISTROS ELECTRÓNICOS (§ 11.10 — Controles para sistemas cerrados)"
+        },
+        {
+          "punto": "§ 11.10(a)",
+          "requisito": "Sistema validado para garantizar exactitud, confiabilidad y funcionamiento consistente.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "Todos los URS (55)",
+          "raRef": "VP §4–§7",
+          "tcOq": "PIQ + POQ",
+          "observaciones": "VP documenta el protocolo de validación completo (IQ + OQ). Todos los URS son verificables."
+        },
+        {
+          "punto": "§ 11.10(b)",
+          "requisito": "Registros legibles, inalterables y disponibles durante el período de retención.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "URS-035 al URS-039 | URS-NF-004",
+          "raRef": "RA-014",
+          "tcOq": "TC-OQ-013",
+          "observaciones": "Reportes PDF inmutables post-generación (SHA-256). Verificación en https://verify.example.com/."
+        },
+        {
+          "punto": "§ 11.10(c)",
+          "requisito": "Registros recuperables y legibles durante todo el período requerido.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "URS-NF-004 | URS-NF-005",
+          "raRef": "GAP-003",
+          "tcOq": "TC-IQ-010",
+          "observaciones": "QR de verificación permite recuperación de datos. SHA-256 garantiza autenticidad. Control de archivo en SOP-USO §8.3."
+        },
+        {
+          "punto": "§ 11.10(d)",
+          "requisito": "Acceso limitado a usuarios autorizados según rol.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "URS-001 al URS-016",
+          "raRef": "RA-001 al RA-006",
+          "tcOq": "TC-OQ-001 al TC-OQ-008",
+          "observaciones": "4 roles con permisos diferenciados. Autenticación por credenciales únicas. Bloqueo 5 intentos. Timeout 30 min."
+        },
+        {
+          "punto": "§ 11.10(e)",
+          "requisito": "Audit trail computer-generated, time-stamped que registra acciones del usuario.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "URS-006 | URS-049 | URS-NF-003",
+          "raRef": "RA-024",
+          "tcOq": "TC-OQ-006 | TC-OQ-019",
+          "observaciones": "Audit trail no modificable ni eliminable por ningún rol. Registro automático de usuario, fecha, hora (segundos), IP."
+        },
+        {
+          "punto": "§ 11.10(f)",
+          "requisito": "Operational system checks para forzar secuencia de pasos.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "URS-021 al URS-023",
+          "raRef": "RA-011",
+          "tcOq": "TC-OQ-009",
+          "observaciones": "Lógica adaptativa Q1→Q2→Q3 con validación de secuencia. Sistema impide saltar pasos del cuestionario."
+        },
+        {
+          "punto": "§ 11.10(g)",
+          "requisito": "Authority checks para asegurar que solo individuos autorizados firman/usan el sistema.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "URS-007 al URS-016 | URS-NF-001",
+          "raRef": "RA-007 al RA-009",
+          "tcOq": "TC-OQ-007 al TC-OQ-008",
+          "observaciones": "Matriz de roles con permisos no intercambiables. Usuario Final no accede a admin panel."
+        },
+        {
+          "punto": "§ 11.10(h)",
+          "requisito": "Device checks para validar la fuente de datos.",
+          "aplica": "No",
+          "estado": "N/A",
+          "urs": "—",
+          "raRef": "—",
+          "tcOq": "—",
+          "observaciones": "Sistema no recibe datos de dispositivos externos. Solo input manual del usuario autenticado."
+        },
+        {
+          "punto": "§ 11.10(i)",
+          "requisito": "Controles para personas con acceso al sistema (training documentado).",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "—",
+          "raRef": "—",
+          "tcOq": "—",
+          "observaciones": "SOP-USO-GAMP-001 documenta procedimientos. Training del personal externo al sistema."
+        },
+        {
+          "punto": "§ 11.10(j)",
+          "requisito": "Establecimiento de políticas relevantes para responsabilidad de firmas electrónicas.",
+          "aplica": "Parcial",
+          "estado": "PARCIAL",
+          "urs": "Exclusión URS §9",
+          "raRef": "GAP-002",
+          "tcOq": "—",
+          "observaciones": "GAP-002: sin firma electrónica nativa. Control compensatorio: firma manuscrita sobre PDF impreso + SHA-256."
+        },
+        {
+          "punto": "§ 11.10(k)",
+          "requisito": "Controles para revisión de configuración del sistema.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "URS-NF-002",
+          "raRef": "VP §8",
+          "tcOq": "TC-IQ-003",
+          "observaciones": "Panel de administración auditable. Cambios de configuración registrados en audit trail."
+        },
+        {
+          "subheader": "SUBPART C — FIRMAS ELECTRÓNICAS (§ 11.50–§ 11.300)"
+        },
+        {
+          "punto": "§ 11.50",
+          "requisito": "Manifestaciones de firma — La firma electrónica debe contener nombre, fecha, hora y motivo.",
+          "aplica": "No",
+          "estado": "N/A",
+          "urs": "Exclusión URS §9",
+          "raRef": "GAP-002",
+          "tcOq": "—",
+          "observaciones": "Subpart C excluida del alcance. GAP-002 documentado. Sistema usa firma manuscrita sobre PDF impreso."
+        },
+        {
+          "punto": "§ 11.70",
+          "requisito": "Vinculación firma-registro — La firma electrónica debe estar vinculada al registro firmado.",
+          "aplica": "No",
+          "estado": "N/A",
+          "urs": "Exclusión URS §9",
+          "raRef": "GAP-002",
+          "tcOq": "—",
+          "observaciones": "Subpart C excluida. Control compensatorio: SHA-256 vincula contenido del reporte al hash impreso."
+        },
+        {
+          "punto": "§ 11.100",
+          "requisito": "Requerimientos generales para firmas electrónicas.",
+          "aplica": "No",
+          "estado": "N/A",
+          "urs": "Exclusión URS §9",
+          "raRef": "GAP-002",
+          "tcOq": "—",
+          "observaciones": "Subpart C excluida del alcance del sistema en versión v1.0."
+        },
+        {
+          "punto": "§ 11.200–§ 11.300",
+          "requisito": "Componentes de firma electrónica (biometría, ID/contraseña).",
+          "aplica": "No",
+          "estado": "N/A",
+          "urs": "Exclusión URS §9",
+          "raRef": "GAP-002",
+          "tcOq": "—",
+          "observaciones": "Subpart C excluida con justificación documentada en RRM §2.2 y §6.2."
+        }
+      ]
+    },
+    {
+      "tipo": "tabla-norma",
+      "titulo": "EU ANNEX 11 / PIC/S PI 011-3",
+      "intro": "Norma de referencia: EU GMP Annex 11 — Computerised Systems (European Commission). PIC/S PI 011-3 — Good Practices for Computerised Systems in Regulated GxP Environments.",
+      "cobertura": "Cobertura: 17 puntos evaluados | 11 CUMPLEN (todos equivalentes a ANMAT) | 6 referencia cruzada documentada",
+      "filas": [
+        {
+          "punto": "Pto. 1",
+          "requisito": "Risk Management — Risk-based approach to validation.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "Ver ANMAT §1",
+          "raRef": "HLRA + RA",
+          "tcOq": "—",
+          "observaciones": "Equivalente a ANMAT §1. HLRA + RA documentan el enfoque de gestión de riesgos."
+        },
+        {
+          "punto": "Pto. 4",
+          "requisito": "Validation — Documentation, IQ/OQ/PQ.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "Ver ANMAT §4",
+          "raRef": "VP",
+          "tcOq": "PIQ + POQ",
+          "observaciones": "Equivalente a ANMAT §4. VP-DRP-SIS-001 define el protocolo completo."
+        },
+        {
+          "punto": "Pto. 7",
+          "requisito": "Data — Storage, accuracy, retrieval.",
+          "aplica": "Sí",
+          "estado": "PARCIAL",
+          "urs": "Ver ANMAT §7.1",
+          "raRef": "GAP-003",
+          "tcOq": "TC-OQ-020",
+          "observaciones": "GAP-003 documentado. Control comp.: SHA-256 + SOP-USO §8.3."
+        },
+        {
+          "punto": "Pto. 9",
+          "requisito": "Audit Trails — Record of changes to GxP-relevant data.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "Ver ANMAT §9",
+          "raRef": "RA-024",
+          "tcOq": "TC-OQ-006",
+          "observaciones": "Audit trail digital inmutable. Equivalente directo a ANMAT §9."
+        },
+        {
+          "punto": "Pto. 12",
+          "requisito": "Security — Authentication, access control, password management.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "Ver ANMAT §11",
+          "raRef": "RA-001 al RA-006",
+          "tcOq": "TC-OQ-001 al 008",
+          "observaciones": "GAP-004 (sin 2FA): controles compensatorios proporcionales para GAMP 3, RA=32."
+        },
+        {
+          "punto": "Pto. 14",
+          "requisito": "Electronic Signatures — Conformance with regulation.",
+          "aplica": "Parcial",
+          "estado": "PARCIAL",
+          "urs": "Exclusión URS §9",
+          "raRef": "GAP-002",
+          "tcOq": "TC-OQ-018",
+          "observaciones": "GAP-002 Mayor — equivalente a 21 CFR Part 11 Subpart C. Mismos controles compensatorios."
+        }
+      ]
+    },
+    {
+      "tipo": "tabla-norma",
+      "titulo": "ICH Q9 R1 (2023) — QUALITY RISK MANAGEMENT",
+      "intro": "Norma de referencia: ICH Q9 R1 — Quality Risk Management. International Council for Harmonisation, revisión 2023.",
+      "cobertura": "Cobertura: 6 principios evaluados | 6 CUMPLEN — cumplimiento total del enfoque QRM",
+      "filas": [
+        {
+          "punto": "1",
+          "requisito": "Evaluación de riesgo basada en conocimiento científico y protección al paciente.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "URS-NF-001 al NF-005",
+          "raRef": "HLRA + RA + IRA",
+          "tcOq": "—",
+          "observaciones": "FMEA aplicada en RA. Análisis basado en URS extraídos de documentación oficial del sistema."
+        },
+        {
+          "punto": "2",
+          "requisito": "El nivel de esfuerzo proporcional al nivel de riesgo.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "Todos los URS",
+          "raRef": "RA Global = 32",
+          "tcOq": "—",
+          "observaciones": "GAMP 3 + RA Bajo-Medio justifica estrategia proporcionada (sin PQ, sin 2FA, sin firma electrónica nativa)."
+        },
+        {
+          "punto": "3",
+          "requisito": "Documentación rigurosa del proceso de gestión de riesgos.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "—",
+          "raRef": "HLRA + RA + IRA + RRM",
+          "tcOq": "—",
+          "observaciones": "Paquete completo documenta el proceso QRM: HLRA (alto nivel) → RA (FMEA) → IRA (componentes) → RRM (mapeo normativo)."
+        },
+        {
+          "punto": "4",
+          "requisito": "Identificación, análisis y evaluación sistemática de riesgos.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "—",
+          "raRef": "RA: 24 riesgos en 6 módulos",
+          "tcOq": "—",
+          "observaciones": "Granularidad por modo de fallo (RA) + por componente (IRA). Cobertura total de funciones GxP."
+        },
+        {
+          "punto": "5",
+          "requisito": "Comunicación efectiva de los resultados de riesgo a stakeholders.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "—",
+          "raRef": "Matriz de aprobaciones",
+          "tcOq": "—",
+          "observaciones": "Cada documento del paquete tiene matriz de aprobaciones formal. Aceptación de GAPs requiere firma de Process Owner + Gerente QA."
+        },
+        {
+          "punto": "6",
+          "requisito": "Revisión periódica del riesgo durante el ciclo de vida.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "—",
+          "raRef": "VP §8 (gestión de cambios)",
+          "tcOq": "—",
+          "observaciones": "VP §8 define revisión periódica de riesgos post-validación. Cambios al sistema disparan revisión del RA."
+        }
+      ]
+    },
+    {
+      "tipo": "tabla-norma",
+      "titulo": "GAMP 5 SEGUNDA EDICIÓN (2022)",
+      "intro": "Norma de referencia: ISPE GAMP 5 — A Risk-Based Approach to Compliant GxP Computerized Systems. Segunda Edición, 2022.",
+      "cobertura": "Cobertura: 11 capítulos evaluados | 10 CUMPLEN | 1 N/A justificada (Cap. PQ no aplica para GAMP 3)",
+      "filas": [
+        {
+          "punto": "Cap. 1",
+          "requisito": "Introducción y conceptos fundamentales del marco GAMP 5.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "—",
+          "raRef": "VP §1",
+          "tcOq": "—",
+          "observaciones": "VP fundamenta la aplicación de GAMP 5 al sistema."
+        },
+        {
+          "punto": "Cap. 2",
+          "requisito": "Conceptos clave: Risk-based approach, Quality Risk Management.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "—",
+          "raRef": "HLRA + RA",
+          "tcOq": "—",
+          "observaciones": "HLRA aplica QRM desde inicio del proyecto. RA detalla por modo de fallo."
+        },
+        {
+          "punto": "Cap. 3",
+          "requisito": "Categorización del software (1, 3, 4, 5).",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "URS-027 | URS-028",
+          "raRef": "HLRA §4",
+          "tcOq": "TC-OQ-012",
+          "observaciones": "Sistema clasificado GAMP 3 en HLRA §4. URS-028 prohíbe explícitamente asignación de GAMP 2 (categoría obsoleta)."
+        },
+        {
+          "punto": "Cap. 4 Planificación",
+          "requisito": "Plan de validación proporcional al riesgo.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "—",
+          "raRef": "VP completo",
+          "tcOq": "—",
+          "observaciones": "VP-DRP-SIS-001 documenta planificación. PV define 3 semanas para Fase 6 (Reporte). PV define 3 semanas."
+        },
+        {
+          "punto": "Cap. 5 Especificación",
+          "requisito": "Documentar qué debe hacer el sistema (URS) y cómo (FRS/DS).",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "URS con 55 requerimientos",
+          "raRef": "URS-DRP-SIS-001",
+          "tcOq": "—",
+          "observaciones": "DS pendiente (sistema GAMP 3 — nivel de documentación proporcional)."
+        },
+        {
+          "punto": "Cap. 6 Verificación y Validación",
+          "requisito": "Verificar mediante IQ/OQ/PQ según aplique por categoría.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "—",
+          "raRef": "VP §5",
+          "tcOq": "PIQ + POQ (Fase 6)",
+          "observaciones": "GAMP 3: IQ + OQ. Sin PQ (sistema no impacta directamente producto). VP §5 documenta alcance."
+        },
+        {
+          "punto": "Cap. 7 Gestión de Datos",
+          "requisito": "Los datos GxP deben ser precisos, completos e inalterables.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "URS-NF-003 | URS-NF-004",
+          "raRef": "RA-018 al RA-024",
+          "tcOq": "—",
+          "observaciones": "SHA-256 garantiza integridad. Audit trail completo. URS-NF-003 y URS-NF-004."
+        },
+        {
+          "punto": "Cap. 8 Infraestructura",
+          "requisito": "La infraestructura (HW, SW, red) debe estar calificada.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "—",
+          "raRef": "IRA-DRP-SIS-001",
+          "tcOq": "PIQ (Fase 6)",
+          "observaciones": "Infraestructura AWS calificada por proveedor. IRA documenta 16 componentes. PIQ los calificará."
+        },
+        {
+          "punto": "Cap. 9 Gestión de Proveedores",
+          "requisito": "Evaluación y calificación del proveedor del sistema.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "—",
+          "raRef": "HLRA §6",
+          "tcOq": "—",
+          "observaciones": "DRP Assurance es proveedor y desarrollador. Evaluación en HLRA §6. Acuerdo técnico implícito."
+        },
+        {
+          "punto": "Cap. 10 Gestión de Cambios",
+          "requisito": "Los cambios post-validación deben evaluarse y controlarse.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "—",
+          "raRef": "VP §8 | RRM",
+          "tcOq": "—",
+          "observaciones": "VP §8 define procedimiento de gestión de cambios. RRM permite evaluar impacto normativo de cambios."
+        },
+        {
+          "punto": "Cap. 11 Retiro",
+          "requisito": "Plan para el retiro controlado del sistema al fin de su vida útil.",
+          "aplica": "Sí",
+          "estado": "CUMPLE",
+          "urs": "—",
+          "raRef": "VP §8.4",
+          "tcOq": "—",
+          "observaciones": "Documentado en VP §8.4. Procedimiento de archivado y migración."
+        }
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "ANÁLISIS DE BRECHAS REGULATORIAS — RESUMEN",
+      "intro": "Se identificaron 4 brechas regulatorias durante el proceso de intake y análisis documental. Todas están documentadas en HLRA-DRP-SIS-001 §10 y referenciadas en este RRM. A continuación se presenta el análisis consolidado con los controles compensatorios propuestos.",
+      "columnas": [
+        "GAP-ID",
+        "Tipo",
+        "Norma",
+        "Impacto",
+        "URS Afectados",
+        "Estado"
+      ],
+      "widths": [
+        50,
+        60,
+        90,
+        75,
+        100,
+        80
+      ],
+      "filas": [
+        [
+          "GAP-001",
+          "NC Menor",
+          "ANMAT §9",
+          "BAJO — inconsistencia documental",
+          "URS-003",
+          {
+            "text": "Control comp. definido",
+            "color": "#B85F0F",
+            "bold": true,
+            "fontSize": 8
+          }
+        ],
+        [
+          "GAP-002",
+          "GAP Mayor",
+          "ANMAT §9, §13 | 21 CFR §11.50",
+          "MEDIO — sin firma electrónica nativa",
+          "Exclusión URS §9",
+          {
+            "text": "Aceptado con firma formal",
+            "color": "#A52A2A",
+            "bold": true,
+            "fontSize": 8
+          }
+        ],
+        [
+          "GAP-003",
+          "GAP Mayor",
+          "ANMAT §7.1 | 21 CFR §11.10(b)",
+          "MEDIO — almacenamiento en cliente",
+          "URS-NF-004 | URS-NF-005",
+          {
+            "text": "Aceptado con firma formal",
+            "color": "#A52A2A",
+            "bold": true,
+            "fontSize": 8
+          }
+        ],
+        [
+          "GAP-004",
+          "GAP Menor",
+          "ANMAT §12 | EU Annex 11 §12",
+          "BAJO — sin 2FA",
+          "URS-NF-001",
+          {
+            "text": "Aceptado con control comp.",
+            "color": "#B85F0F",
+            "bold": true,
+            "fontSize": 8
+          }
+        ]
+      ]
+    },
+    {
+      "tipo": "tarjeta-gap-rrm",
+      "id": "GAP-001",
+      "severidad": "NC Menor",
+      "titulo": "Inconsistencia Documental — Intentos de Bloqueo",
+      "norma": "ANMAT 4159/2023 Punto 9 | EU Annex 11 Point 9",
+      "requisito": "El audit trail y los controles de acceso deben ser consistentes en toda la documentación del sistema.",
+      "impacto": "BAJO — La funcionalidad de seguridad no está comprometida. Solo inconsistencia documental.",
+      "descripcion": "El Manual de Usuario (MAN-GAMP-CAT-001 §5.2) indica bloqueo de cuenta tras 3 intentos fallidos. El SOP de Administración (SOP-ADM-GAMP-001 §6.3) indica 5 intentos. El sistema real implementa el bloqueo a los 5 intentos (verificado durante intake).",
+      "ursAfectados": "URS-003 (Bloqueo de cuenta tras 5 intentos) NO se ve afectado, URS contempla bloqueo formal.",
+      "controlesCompensatorios": "Corregir SOP-ADM-GAMP-001 Sección 6.3 para que indique '3 intentos' en consistencia con el Manual y la implementación real. Corregir previamente al inicio de la ejecución OQ.",
+      "accion": "Emitir SOP-ADM-GAMP-001 v1.1 con corrección del párrafo §6.3. Aprobación requerida antes del cierre de validación. No requiere firma adicional sobre este documento.",
+      "requiereFirma": false
+    },
+    {
+      "tipo": "tarjeta-gap-rrm",
+      "id": "GAP-002",
+      "severidad": "GAP Mayor",
+      "titulo": "Sin Firma Electrónica Nativa",
+      "norma": "ANMAT 4159/2023 Puntos 9 y 13 | 21 CFR Part 11 Subpart C (§11.50, §11.70, §11.100, §11.200) | EU Annex 11 Point 14",
+      "requisito": "El sistema debe implementar firmas electrónicas reguladas cuando los registros electrónicos requieran aprobación formal.",
+      "impacto": "MEDIO — Los campos de texto en el reporte PDF (Página 4: 'Nombre del ejecutor' y 'Nombre del revisor') no son firmas electrónicas reguladas conforme a 21 CFR Part 11 Subpart C.",
+      "descripcion": "El DRP-GAMP Categorizador™ v1.0 no implementa firma electrónica nativa. Las firmas del ejecutor y revisor en el reporte PDF son campos de texto libre, sin mecanismo criptográfico de vinculación a la identidad del firmante. La firma electrónica está en el roadmap de versión Pro.",
+      "ursAfectados": "Exclusión URS §9 | URS-NF-004 (integridad SHA-256 como control comp.)",
+      "controlesCompensatorios": [
+        "Firma manuscrita del ejecutor y revisor sobre el reporte PDF impreso en papel.",
+        "El hash SHA-256 es generado en el momento de creación del reporte, previo a la impresión, garantizando la inmutabilidad del contenido firmado.",
+        "SOP-USO-GAMP-001 establece el procedimiento de archivo controlado del reporte firmado.",
+        "21 CFR Part 11 Subpart C excluida explícitamente de esta validación con justificación documentada en RRM §6.2."
+      ],
+      "accion": "Process Owner (Ana Pérez) y Gerente QA deben firmar este documento (Sección Matriz de Aprobaciones) para formalizar la aceptación del GAP. Considerar implementación de firma electrónica en versión Pro para eliminar el GAP.",
+      "requiereFirma": true
+    },
+    {
+      "tipo": "tarjeta-gap-rrm",
+      "id": "GAP-003",
+      "severidad": "GAP Mayor",
+      "titulo": "Reportes GxP No Almacenados en el Sistema",
+      "norma": "ANMAT 4159/2023 Punto 7.1 (Integridad y Retención de Datos) | 21 CFR Part 11 §11.10(b) y §11.10(c) | EU Annex 11 Point 7.1",
+      "requisito": "Los registros electrónicos GxP deben ser almacenados de forma segura por el sistema o con un mecanismo equivalente.",
+      "impacto": "MEDIO — El sistema genera reportes PDF auditables pero no los almacena internamente. La responsabilidad del archivo y retención recae en el cliente/usuario.",
+      "descripcion": "Por razones de seguridad documental y modelo de negocio (versión gratuita sin almacenamiento en servidor), los reportes PDF generados son descargados por el usuario y almacenados en su infraestructura. El sistema no mantiene una copia interna de los reportes generados más allá del historial de categorizaciones en el audit trail.",
+      "ursAfectados": "URS-NF-004 (integridad SHA-256) | URS-NF-005 (backup)",
+      "controlesCompensatorios": [
+        "El hash SHA-256 garantiza la integridad del documento independientemente del medio de almacenamiento.",
+        "El portal https://verify.example.com/ permite verificar la autenticidad de cualquier reporte mediante su código QR.",
+        "SOP-USO-GAMP-001 Sección 8.3 define el procedimiento de archivo controlado (servidor de calidad, SharePoint o QMS del cliente).",
+        "El audit trail del sistema registra metadatos de cada categorización (usuario, fecha, hora, resultado) aunque no el PDF completo."
+      ],
+      "accion": "Process Owner y Gerente QA deben firmar este documento. El cliente debe documentar en su SOP corporativo el procedimiento de archivo y retención de reportes, incluyendo período de retención según normativa aplicable.",
+      "requiereFirma": true
+    },
+    {
+      "tipo": "tarjeta-gap-rrm",
+      "id": "GAP-004",
+      "severidad": "GAP Menor",
+      "titulo": "Autenticación de Dos Factores (2FA) No Implementada",
+      "norma": "ANMAT 4159/2023 Punto 12 (Gestión de Incidencias y Control de Acceso) | EU Annex 11 Point 12",
+      "requisito": "Las guías regulatorias recomiendan autenticación robusta para sistemas que gestionan datos GxP.",
+      "impacto": "BAJO — La ausencia de 2FA representa un riesgo controlable mediante las medidas compensatorias implementadas. Para GAMP 3 con RA=32 (Bajo-Medio), los controles son proporcionados.",
+      "descripcion": "Las guías regulatorias actuales recomiendan autenticación de múltiples factores para sistemas con datos GxP. El 2FA está en el roadmap del sistema (versión Pro) pero no está disponible en la versión 1.0 bajo validación. NOTA: Los estándares actuales hablan de autenticación 'robusta', y las medidas compensatorias implementadas satisfacen este requisito para el nivel de riesgo del sistema.",
+      "ursAfectados": "URS-001 | URS-002 | URS-003 | URS-006 | URS-NF-001",
+      "controlesCompensatorios": [
+        "Política de contraseñas con requisitos de complejidad documentada en SOP-ADM §6.1 (mínimo 8 caracteres, combinación de letras/números/símbolos).",
+        "Timeout automático de sesión: 30 minutos de inactividad (URS-002).",
+        "Bloqueo automático tras 5 intentos fallidos consecutivos (URS-003).",
+        "Registro de todos los accesos con fecha, hora e IP en audit trail (URS-006).",
+        "Acceso restringido al panel de administración (URS-009)."
+      ],
+      "accion": "Documentar en SOP-ADM §6.1 la política de contraseñas completa (complejidad, vigencia, reutilización). Considerar implementación de 2FA en versión Pro. No requiere firma adicional sobre este documento.",
+      "requiereFirma": false
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESUMEN DE CUMPLIMIENTO NORMATIVO",
+      "columnas": [
+        "Norma",
+        "Total Arts.",
+        "CUMPLE",
+        "PARCIAL/GAP",
+        "N/A",
+        "Observación"
+      ],
+      "widths": [
+        125,
+        50,
+        50,
+        60,
+        35,
+        135
+      ],
+      "filas": [
+        [
+          "ANMAT 4159/2023 Anexo VI",
+          {
+            "text": "15",
+            "alignment": "center"
+          },
+          {
+            "text": "11",
+            "alignment": "center",
+            "color": "#1E7E34",
+            "bold": true
+          },
+          {
+            "text": "4",
+            "alignment": "center",
+            "color": "#B85F0F",
+            "bold": true
+          },
+          {
+            "text": "0",
+            "alignment": "center"
+          },
+          "GAP-001, 002, 003, 004 documentados"
+        ],
+        [
+          "21 CFR Part 11 (FDA)",
+          {
+            "text": "16",
+            "alignment": "center"
+          },
+          {
+            "text": "11",
+            "alignment": "center",
+            "color": "#1E7E34",
+            "bold": true
+          },
+          {
+            "text": "1",
+            "alignment": "center",
+            "color": "#B85F0F",
+            "bold": true
+          },
+          {
+            "text": "4",
+            "alignment": "center",
+            "color": "#717D8A"
+          },
+          "Subpart C excluida (GAP-002). N/A con justificación."
+        ],
+        [
+          "EU Annex 11 / PIC/S PI 011-3",
+          {
+            "text": "6",
+            "alignment": "center"
+          },
+          {
+            "text": "6",
+            "alignment": "center",
+            "color": "#1E7E34",
+            "bold": true
+          },
+          {
+            "text": "—",
+            "alignment": "center"
+          },
+          {
+            "text": "—",
+            "alignment": "center"
+          },
+          "Equivalentes a ANMAT. GAP-002, 003, 004 cubiertos."
+        ],
+        [
+          "ICH Q9 R1 (2023)",
+          {
+            "text": "6",
+            "alignment": "center"
+          },
+          {
+            "text": "6",
+            "alignment": "center",
+            "color": "#1E7E34",
+            "bold": true
+          },
+          {
+            "text": "0",
+            "alignment": "center"
+          },
+          {
+            "text": "0",
+            "alignment": "center"
+          },
+          "Cumplimiento total del enfoque QRM."
+        ],
+        [
+          "GAMP 5 — 2da Ed. (2022)",
+          {
+            "text": "11",
+            "alignment": "center"
+          },
+          {
+            "text": "10",
+            "alignment": "center",
+            "color": "#1E7E34",
+            "bold": true
+          },
+          {
+            "text": "0",
+            "alignment": "center"
+          },
+          {
+            "text": "1",
+            "alignment": "center",
+            "color": "#717D8A"
+          },
+          "Cap. PQ N/A justificado para GAMP 3."
+        ],
+        [
+          {
+            "text": "TOTAL",
+            "bold": true,
+            "fillColor": "#EAF1F8"
+          },
+          {
+            "text": "54",
+            "alignment": "center",
+            "bold": true,
+            "fillColor": "#EAF1F8"
+          },
+          {
+            "text": "44 (81%)",
+            "alignment": "center",
+            "bold": true,
+            "color": "#1E7E34",
+            "fillColor": "#EAF1F8"
+          },
+          {
+            "text": "5 (9%)",
+            "alignment": "center",
+            "bold": true,
+            "color": "#B85F0F",
+            "fillColor": "#EAF1F8"
+          },
+          {
+            "text": "5 (9%)",
+            "alignment": "center",
+            "bold": true,
+            "color": "#717D8A",
+            "fillColor": "#EAF1F8"
+          },
+          {
+            "text": "4 GAPs con controles compensatorios",
+            "italics": true,
+            "fillColor": "#EAF1F8"
+          }
+        ]
+      ]
+    },
+    {
+      "tipo": "caja-conclusion",
+      "titulo": "CONCLUSIÓN Y DECISIÓN FORMAL",
+      "parrafos": [
+        "El DRP-GAMP Categorizador™ v1.0 (DRP-SIS-001) demuestra un nivel de cumplimiento normativo sustancial y proporcional a su categoría GAMP 3 y nivel de riesgo (RA Global = 32, Bajo-Medio). El 81% de los artículos normativos evaluados cumplen de forma directa con los requerimientos documentados en el URS-DRP-SIS-001 v1.0.",
+        "Las 4 brechas regulatorias identificadas (GAP-001 a GAP-004) han sido documentadas, evaluadas en términos de impacto GxP y se han definido controles compensatorios proporcionales al riesgo del sistema. Todos los controles compensatorios son suficientes para soportar la estrategia de validación bajo el marco GAMP 5 Segunda Edición.",
+        "La presente RRM constituye el documento de referencia único para demostrar cumplimiento regulatorio durante inspecciones y auditorías, internas o de organismos regulatorios (ANMAT, FDA, EMA). La trazabilidad bidireccional URS ↔ Normas ↔ TC-OQ permite respuesta inmediata ante cualquier observación regulatoria.",
+        "DECISIÓN: el sistema se encuentra en condiciones de continuar con la Fase 6 (Generación de Protocolos PIQ + POQ) una vez que el Process Owner y Gerente QA formalicen la aceptación de los GAP-002 y GAP-003 mediante su firma en la Matriz de Aprobaciones de este documento."
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS DOCUMENTALES",
+      "columnas": [
+        "Ref.",
+        "Documento",
+        "Descripción"
+      ],
+      "widths": [
+        40,
+        165,
+        250
+      ],
+      "filas": [
+        [
+          "[1]",
+          "ANMAT Disposición 4159/2023",
+          "Guía de Buenas Prácticas de Sistemas Informatizados — Anexo VI. Argentina."
+        ],
+        [
+          "[2]",
+          "21 CFR Part 11",
+          "Electronic Records; Electronic Signatures. FDA, USA. Vigente desde 1997."
+        ],
+        [
+          "[3]",
+          "EU GMP Annex 11",
+          "Computerised Systems. European Commission, última revisión 2011."
+        ],
+        [
+          "[4]",
+          "PIC/S PI 011-3",
+          "Good Practices for Computerised Systems in Regulated GxP Environments. 2007."
+        ],
+        [
+          "[5]",
+          "ICH Q9 R1 (2023)",
+          "Quality Risk Management. International Council for Harmonisation, 2023."
+        ],
+        [
+          "[6]",
+          "ISPE GAMP 5, 2da Ed. (2022)",
+          "A Risk-Based Approach to Compliant GxP Computerized Systems."
+        ],
+        [
+          "[7]",
+          "HLRA-DRP-SIS-001 v1.0",
+          "High Level Risk Assessment del DRP-GAMP Categorizador™. DRP Assurance, Feb-2026."
+        ],
+        [
+          "[8]",
+          "URS-DRP-SIS-001 v1.0",
+          "Especificación de Requerimientos de Usuario. DRP Assurance, Feb-2026."
+        ],
+        [
+          "[9]",
+          "VP-DRP-SIS-001 v1.0",
+          "Plan de Validación. DRP Assurance, Feb-2026."
+        ],
+        [
+          "[10]",
+          "RA-DRP-SIS-001 v1.0",
+          "Análisis de Riesgo (FMEA). DRP Assurance, Feb-2026."
+        ],
+        [
+          "[11]",
+          "IRA-DRP-SIS-001 v1.0",
+          "Análisis de Riesgo de Componentes / Infraestructura. DRP Assurance, Feb-2026."
+        ],
+        [
+          "[12]",
+          "MAN-GAMP-CAT-001 v1.0",
+          "Manual de Usuario del Sistema. DRP Assurance, 2025."
+        ],
+        [
+          "[13]",
+          "SOP-USO-GAMP-001 v1.0",
+          "SOP de Uso del Sistema. DRP Assurance, 2025."
+        ],
+        [
+          "[14]",
+          "SOP-ADM-GAMP-001 v1.0",
+          "SOP de Administración del Sistema. DRP Assurance, 2025."
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de esta RRM. Los GAPs de severidad Mayor (GAP-002 y GAP-003) requieren firma formal de Process Owner + Gerente QA — ver tarjetas individuales para detalle.",
+      "firmas": [],
+      "rolesPlaceholder": [
+        "Redactor (Validador)",
+        "Revisor (Process Owner)",
+        "Aprobador (Jefe de Validaciones)",
+        "Aprobador (Gerente QA)"
+      ],
+      "nota": "La aceptación de GAPs Mayores (GAP-002 y GAP-003) requiere firma de Process Owner + Gerente QA en esta tabla. Sin estas firmas el documento queda en estado Borrador."
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "1.0",
+  "type": "EVIR",
+  "package": {
+    "code": "",
+    "client": ""
+  },
+  "document": {
+    "titleEs": "Informe de Validación de Planilla de Cálculo",
+    "version": "1.0",
+    "status": "draft",
+    "issueDate": ""
+  },
+  "spreadsheet": {
+    "fileName": "",
+    "purpose": "",
+    "gampCategory": "Cat 4",
+    "department": "",
+    "responsible": "",
+    "version": "v1.0",
+    "sheets": [],
+    "hasVBA": false,
+    "hasExternalLinks": false,
+    "hasProtection": false
+  },
+  "resultados": {
+    "totalTestCases": 0,
+    "pasados": 0,
+    "fallados": 0,
+    "pendientes": 0,
+    "fechaEjecucion": "",
+    "ejecutadoPor": ""
+  },
+  "secciones": [
+    {
+      "numero": "1",
+      "titulo": "RESUMEN EJECUTIVO",
+      "tipo": "texto",
+      "contenido": ""
+    },
+    {
+      "numero": "2",
+      "titulo": "RESULTADOS DE PRUEBAS",
+      "tipo": "tabla-resumen-pruebas",
+      "testCases": [
+        {
+          "id": "TC-001",
+          "descripcion": "",
+          "resultadoEsperado": "",
+          "resultadoReal": "",
+          "resultado": "PASA",
+          "observaciones": ""
+        },
+        {
+          "id": "TC-002",
+          "descripcion": "",
+          "resultadoEsperado": "",
+          "resultadoReal": "",
+          "resultado": "PASA",
+          "observaciones": ""
+        },
+        {
+          "id": "TC-003",
+          "descripcion": "",
+          "resultadoEsperado": "",
+          "resultadoReal": "",
+          "resultado": "PASA",
+          "observaciones": ""
+        }
+      ]
+    },
+    {
+      "numero": "3",
+      "titulo": "DESVÍOS Y OBSERVACIONES",
+      "tipo": "tabla",
+      "columnas": ["ID Desvío", "TC Relacionado", "Descripción", "Acción Correctiva", "Estado"],
+      "filas": []
+    },
+    {
+      "numero": "4",
+      "titulo": "CONCLUSIÓN Y ESTADO DE VALIDACIÓN",
+      "tipo": "caja-estado-validacion",
+      "estado": "APROBADA",
+      "contenido": ""
+    },
+    {
+      "numero": "5",
+      "titulo": "FIRMAS",
+      "tipo": "tabla-firmas-final"
+    }
+  ]
+}

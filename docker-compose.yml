@@ -1,0 +1,13 @@
+services:
+  smart-validation:
+    build: .
+    ports:
+      - "11294:8080"        # localhost:11294  →  igual que hoy sin Docker
+    volumes:
+      - ./data:/data        # SQLite + fotos + exports persisten entre reinicios
+    env_file:
+      - SMART_Validation/.env   # ANTHROPIC_API_KEY y AUTH_* van aquí
+    environment:
+      - ENV=development     # sin Secure cookie en local
+      - DATA_DIR=/data
+    restart: unless-stopped

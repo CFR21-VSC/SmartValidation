@@ -1,0 +1,109 @@
+{
+  "schemaVersion": "1.0",
+  "type": "PPQ",
+  "package": {
+    "code": "",
+    "systemName": "",
+    "systemVersion": "",
+    "systemSubtitle": "",
+    "client": "",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": null
+  },
+  "document": {
+    "code": "",
+    "titleEs": "PROTOCOLO DE CALIFICACIÓN DE PERFORMANCE",
+    "titleEn": "PERFORMANCE QUALIFICATION PROTOCOL (PPQ)",
+    "headerTitle": "Protocolo de Calificación de Performance (PPQ)",
+    "version": "1.0",
+    "issueDate": "",
+    "status": "Borrador",
+    "processOwner": "",
+    "gampCategory": "",
+    "normativeFramework": "",
+    "extras": {
+      "URL Sistema": "",
+      "Documento base (URS + RA)": "",
+      "Total TCs PQ": "",
+      "TCs negativos": "",
+      "Pre-requisito": "PIQ + POQ aprobados (todos los TCs PASS) antes de iniciar"
+    }
+  },
+  "controlCambios": [],
+  "matrizAprobaciones": [
+    { "rol": "Redactor (Validador)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Revisor (Process Owner)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+  ],
+  "trazabilidad": {
+    "recibeDe": ["URS", "RA", "RRM", "MTR", "PIQ", "POQ"],
+    "alimentaA": ["IPQ", "RPQ"]
+  },
+  "secciones": [
+    { "tipo": "texto", "titulo": "PROPÓSITO Y OBJETIVO", "bloques": [] },
+    {
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido",
+      "incluido": [],
+      "subExcluido": "2.2 Excluido",
+      "excluido": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DOCUMENTOS DE REFERENCIA",
+      "columnas": ["Documento", "Título y Versión"],
+      "widths": [180, 275],
+      "filas": []
+    },
+    {
+      "tipo": "tabla-info",
+      "titulo": "CONDICIONES DE EJECUCIÓN",
+      "labelWidth": 165,
+      "filas": [
+        { "campo": "Ambiente", "valor": "" },
+        { "campo": "Pre-requisitos", "valor": "" },
+        { "campo": "Herramientas", "valor": "" },
+        { "campo": "Usuarios reales / cuentas", "valor": "" },
+        { "campo": "Criterio global", "valor": "100% de TCs con resultado PASS bajo condiciones representativas del uso productivo. Cualquier FAIL requiere NC documentada y CAPA antes de aprobar PQ.", "boldValor": true, "colorValor": "primary" }
+      ]
+    },
+    {
+      "tipo": "matriz-tc",
+      "titulo": "RESUMEN DE TEST CASES PQ",
+      "intro": "Listado consolidado de Test Cases de Calificación de Performance. Cada TC representa un escenario de uso productivo verificable contra criterios de aceptación operacionales reales. Los TCs negativos (verifican rechazo correcto del sistema bajo condiciones límite) están marcados con la etiqueta NEG.",
+      "columnasVisibles": ["tcId", "titulo", "grupo", "tipoTC", "raScore", "nivel", "ursVinculados"],
+      "tcs": []
+    },
+    {
+      "tipo": "tabla-test-case",
+      "titulo": "TEST CASES — PERFORMANCE QUALIFICATION",
+      "intro": "Cada Test Case define un escenario de uso real con procedimiento numerado, condiciones de ejecución y resultado esperado por paso. Durante la ejecución (IPQ), cada paso será marcado con su resultado real, screenshots, ejecutor, fecha y firma.",
+      "agruparPorGrupo": true,
+      "schemaModo": "procedimiento",
+      "tcs": []
+    },
+    { "tipo": "texto", "titulo": "JUSTIFICACIÓN DE PROPORCIONALIDAD (CRITICAL THINKING)", "bloques": [] },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": ["Documento", "Título"],
+      "widths": [180, 275],
+      "filas": []
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal del Protocolo de Calificación de Performance.",
+      "firmas": [],
+      "rolesPlaceholder": [
+        "Redactor (Validador)",
+        "Revisor (Process Owner)",
+        "Aprobador (Jefe de Validaciones)",
+        "Aprobador (Gerente QA)"
+      ],
+      "nota": ""
+    }
+  ]
+}

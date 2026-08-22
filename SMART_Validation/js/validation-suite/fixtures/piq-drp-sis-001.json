@@ -1,0 +1,971 @@
+{
+  "schemaVersion": "1.0",
+  "type": "PIQ",
+  "package": {
+    "code": "DRP-SIS-001",
+    "systemName": "DRP-GAMP Categorizador™",
+    "systemVersion": "1.1",
+    "systemSubtitle": "Sistema de Categorización GAMP 5",
+    "client": "Emara SRL",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": 2026
+  },
+  "document": {
+    "code": "PIQ-DRP-SIS-001",
+    "titleEs": "PROTOCOLO DE CALIFICACIÓN DE INSTALACIÓN",
+    "titleEn": "INSTALLATION QUALIFICATION PROTOCOL (PIQ)",
+    "headerTitle": "Protocolo de Calificación de Instalación (PIQ)",
+    "version": "1.0",
+    "issueDate": "Marzo 2026",
+    "status": "Aprobado",
+    "processOwner": "Ana Pérez",
+    "gampCategory": "GAMP 3 — Software Estándar Configurable",
+    "normativeFramework": "ANMAT 4159/2023 | 21 CFR Part 11 | EU Annex 11 | GAMP 5 §8.2 | FDA CSA 2022",
+    "extras": {
+      "URL Sistema": "https://categorizador.example.com/",
+      "Documento base (IRA)": "IRA-DRP-SIS-001 v1.0 — 16 componentes",
+      "Total TCs IQ": "15 TCs (12 ALTO / 2 MEDIO / 2 BAJO)",
+      "Enfoque": "CSA (Computer Software Assurance) — risk-based, criterios consolidados"
+    }
+  },
+  "controlCambios": [
+    {
+      "version": "1.0",
+      "fecha": "Mar 2026",
+      "autor": "Ana Pérez — Process Owner / Validador",
+      "descripcion": "Emisión inicial. 15 TCs IQ generados con enfoque CSA. Basado en IRA-DRP-SIS-001 v1.0."
+    }
+  ],
+  "matrizAprobaciones": [
+    {
+      "rol": "Redactor (Validador)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "01/03/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-03-01T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "01/03/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-03-01T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    },
+    {
+      "rol": "Aprobador (Jefe de Validaciones)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "01/03/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-03-01T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "01/03/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-03-01T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    }
+  ],
+  "trazabilidad": {
+    "schemaVersion": "2.0",
+    "recibeDe": [
+      {
+        "tipo": "URS",
+        "code": "URS-DRP-SIS-001",
+        "version": "v1.0",
+        "fechaCongelado": "01/03/2026",
+        "items": [
+          "URS-001",
+          "URS-002",
+          "URS-003",
+          "URS-005",
+          "URS-006",
+          "URS-007",
+          "URS-008",
+          "URS-009",
+          "URS-010",
+          "URS-011",
+          "URS-012",
+          "URS-013",
+          "URS-014",
+          "URS-015",
+          "URS-016",
+          "URS-041",
+          "URS-044",
+          "URS-045",
+          "URS-046",
+          "URS-048"
+        ],
+        "itemsCount": 20,
+        "estado": "aprobado",
+        "_auto": true
+      },
+      {
+        "tipo": "RA",
+        "code": "RA-DRP-SIS-001",
+        "version": "v1.0",
+        "fechaCongelado": "01/03/2026",
+        "items": [
+          "RA-002",
+          "RA-005",
+          "RA-009",
+          "RA-019",
+          "RA-021",
+          "RA-022",
+          "RA-023",
+          "RA-024"
+        ],
+        "itemsCount": 8,
+        "estado": "aprobado",
+        "_auto": true
+      },
+      {
+        "tipo": "IRA",
+        "code": "IRA-DRP-SIS-001",
+        "version": "v1.0",
+        "fechaCongelado": "01/03/2026",
+        "items": [
+          "COMP-INF-01",
+          "COMP-INF-02",
+          "COMP-INF-03",
+          "COMP-INF-04",
+          "COMP-INF-05",
+          "COMP-SEC-01",
+          "COMP-SEC-02",
+          "COMP-SEC-03",
+          "COMP-SW-01",
+          "COMP-SW-02",
+          "COMP-SW-03",
+          "COMP-SW-06",
+          "COMP-SW-07"
+        ],
+        "itemsCount": 13,
+        "estado": "aprobado",
+        "_auto": true
+      }
+    ],
+    "alimentaA": [
+      "IIQ",
+      "RIQ"
+    ]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO Y OBJETIVO",
+      "bloques": [
+        {
+          "texto": "El presente Protocolo de Calificación de Instalación (PIQ) tiene por objeto verificar y documentar que el sistema DRP-GAMP Categorizador™ v1.0 (DRP-SIS-001) está correctamente instalado, configurado y disponible conforme a las especificaciones documentadas en el IRA-DRP-SIS-001 v1.0 y los requerimientos del URS-DRP-SIS-001 v1.0."
+        },
+        {
+          "texto": "La Calificación de Instalación (IQ) demuestra que la infraestructura (hardware, software base, red, seguridad y servicios auxiliares) cumple con los criterios de aceptación previamente definidos y que el entorno de operación es adecuado para proceder con la Calificación Operacional (OQ)."
+        },
+        {
+          "texto": "Enfoque metodológico: este protocolo aplica los principios de Computer Software Assurance (CSA, FDA 2022) — verificación basada en riesgo, criterios consolidados, evidencia proporcionada al impacto. Se evita la prescripción de scripts micro-detallados paso a paso (típicos del CSV tradicional) en favor de criterios de aceptación claros y evidencia consolidada."
+        }
+      ]
+    },
+    {
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido",
+      "incluido": [
+        "16 componentes documentados en IRA-DRP-SIS-001 v1.0, agrupados en 5 categorías funcionales.",
+        "Aplicación Web, Seguridad TLS, Panel Admin, Servicios Auxiliares, Infraestructura Cloud AWS y Documentación.",
+        "15 Test Cases con profundidad asignada según RA Score del IRA (ALTO/MEDIO/BAJO)."
+      ],
+      "subExcluido": "2.2 Excluido",
+      "excluido": [
+        "Funcionalidades operacionales del sistema (alcanzadas en OQ).",
+        "Integración con sistemas externos (no aplica v1.0).",
+        "Validación de desempeño bajo carga (no aplica para GAMP 3).",
+        "Performance Qualification (PQ) — no aplica para sistemas GAMP 3."
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DOCUMENTOS DE REFERENCIA",
+      "columnas": [
+        "Documento",
+        "Título y Versión"
+      ],
+      "widths": [
+        180,
+        275
+      ],
+      "filas": [
+        [
+          "HLRA-DRP-SIS-001 v1.0",
+          "High Level Risk Assessment — DRP-GAMP Categorizador™"
+        ],
+        [
+          "URS-DRP-SIS-001 v1.0",
+          "Especificación de Requerimientos de Usuario (55 URS)"
+        ],
+        [
+          "IRA-DRP-SIS-001 v1.0",
+          "Análisis de Riesgo de Componentes (16 componentes)"
+        ],
+        [
+          "RA-DRP-SIS-001 v1.0",
+          "Análisis de Riesgos Operativo FMEA"
+        ],
+        [
+          "RRM-DRP-SIS-001 v1.0",
+          "Matriz de Requerimientos Regulatorios"
+        ],
+        [
+          "MTR-DRP-SIS-001 v1.0",
+          "Matriz de Trazabilidad de Requisitos"
+        ],
+        [
+          "VP-DRP-SIS-001 v1.0",
+          "Plan de Validación"
+        ],
+        [
+          "MAN-GAMP-CAT-001 v1.0",
+          "Manual de Usuario del Sistema"
+        ],
+        [
+          "SOP-ADM-GAMP-001 v1.0",
+          "SOP de Administración del Sistema"
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla-info",
+      "titulo": "CONDICIONES DE EJECUCIÓN",
+      "labelWidth": 165,
+      "filas": [
+        {
+          "campo": "Ambiente",
+          "valor": "Productivo (https://categorizador.example.com/) en estado operacional normal"
+        },
+        {
+          "campo": "Pre-requisitos",
+          "valor": "Sistema operativo. Credenciales de administrador disponibles. Credenciales AWS IAM disponibles. Acceso SSH con clave privada disponible."
+        },
+        {
+          "campo": "Herramientas",
+          "valor": "Navegador web (Chrome/Brave/Edge). Terminal SSH (PuTTY / macOS Terminal / Linux). Acceso a Consola AWS. Gestor de Evidencias 3.0 (para captura de evidencias)."
+        },
+        {
+          "campo": "Criterio global",
+          "valor": "100% de TCs con resultado PASS. Cualquier FAIL requiere NC documentada y CAPA antes de proceder a OQ.",
+          "boldValor": true,
+          "colorValor": "primary"
+        }
+      ]
+    },
+    {
+      "tipo": "matriz-tc",
+      "titulo": "MATRIZ UNIFICADA DE TEST CASES",
+      "intro": "Vista ejecutiva de los 15 TCs definidos para la IQ. Cada TC vincula un componente del IRA con su URS y RA correspondientes. La columna 'Profundidad' deriva del RA Score: ALTO → Exhaustiva, MEDIO → Estándar, BAJO → Básica.",
+      "tcs": [
+        {
+          "tcId": "TC-IQ-001",
+          "titulo": "Verificar accesibilidad y versión App Web",
+          "componente": "COMP-SW-01",
+          "raScore": 27,
+          "ursVinculados": [
+            "URS-044"
+          ],
+          "raVinculado": "RA-021",
+          "grupo": "Aplicación Web",
+          "profundidad": "Exhaustiva"
+        },
+        {
+          "tcId": "TC-IQ-002",
+          "titulo": "Verificar encriptación TLS 1.3 y rechazo HTTP",
+          "componente": "COMP-SEC-01",
+          "raScore": 27,
+          "ursVinculados": [
+            "URS-045"
+          ],
+          "raVinculado": "RA-022",
+          "grupo": "Seguridad TLS",
+          "profundidad": "Exhaustiva"
+        },
+        {
+          "tcId": "TC-IQ-003",
+          "titulo": "Verificar Panel Admin con credencial admin independiente",
+          "componente": "COMP-SW-02",
+          "raScore": 27,
+          "ursVinculados": [
+            "URS-008"
+          ],
+          "raVinculado": "RA-009",
+          "grupo": "Panel Admin",
+          "profundidad": "Exhaustiva"
+        },
+        {
+          "tcId": "TC-IQ-004",
+          "titulo": "Verificar Audit Trail activo post-instalación",
+          "componente": "COMP-SW-06",
+          "raScore": 27,
+          "ursVinculados": [
+            "URS-006"
+          ],
+          "raVinculado": "RA-024",
+          "grupo": "Panel Admin",
+          "profundidad": "Exhaustiva"
+        },
+        {
+          "tcId": "TC-IQ-005",
+          "titulo": "Verificar Portal QR de verificación operativo",
+          "componente": "COMP-SW-03",
+          "raScore": 18,
+          "ursVinculados": [
+            "URS-041"
+          ],
+          "raVinculado": "RA-019",
+          "grupo": "Servicios Auxiliares",
+          "profundidad": "Exhaustiva"
+        },
+        {
+          "tcId": "TC-IQ-006",
+          "titulo": "Verificar servicio Email SMTP para reset",
+          "componente": "COMP-SW-07",
+          "raScore": 4,
+          "ursVinculados": [
+            "URS-005"
+          ],
+          "raVinculado": "RA-005",
+          "grupo": "Servicios Auxiliares",
+          "profundidad": "Básica"
+        },
+        {
+          "tcId": "TC-IQ-007",
+          "titulo": "Verificar disponibilidad servidor EC2 AWS",
+          "componente": "COMP-INF-01",
+          "raScore": 18,
+          "ursVinculados": [
+            "URS-044"
+          ],
+          "raVinculado": "RA-021",
+          "grupo": "Infraestructura Cloud AWS",
+          "profundidad": "Exhaustiva"
+        },
+        {
+          "tcId": "TC-IQ-008",
+          "titulo": "Verificar BD SQLite y encriptación AES-256",
+          "componente": "COMP-INF-02",
+          "raScore": 27,
+          "ursVinculados": [
+            "URS-046"
+          ],
+          "raVinculado": "RA-022",
+          "grupo": "Infraestructura Cloud AWS",
+          "profundidad": "Exhaustiva"
+        },
+        {
+          "tcId": "TC-IQ-009",
+          "titulo": "Verificar Backup automático configurado",
+          "componente": "COMP-INF-03",
+          "raScore": 18,
+          "ursVinculados": [
+            "URS-048"
+          ],
+          "raVinculado": "RA-023",
+          "grupo": "Infraestructura Cloud AWS",
+          "profundidad": "Exhaustiva"
+        },
+        {
+          "tcId": "TC-IQ-010",
+          "titulo": "Verificar acceso Consola AWS IAM",
+          "componente": "COMP-INF-04",
+          "raScore": 4,
+          "ursVinculados": [],
+          "raVinculado": "—",
+          "grupo": "Infraestructura Cloud AWS",
+          "profundidad": "Básica"
+        },
+        {
+          "tcId": "TC-IQ-011",
+          "titulo": "Verificar acceso SSH con clave (rechazo por password)",
+          "componente": "COMP-INF-05",
+          "raScore": 8,
+          "ursVinculados": [],
+          "raVinculado": "—",
+          "grupo": "Infraestructura Cloud AWS",
+          "profundidad": "Estándar"
+        },
+        {
+          "tcId": "TC-IQ-012",
+          "titulo": "Verificar Firewall / Security Groups puertos",
+          "componente": "COMP-SEC-02",
+          "raScore": 18,
+          "ursVinculados": [
+            "URS-045"
+          ],
+          "raVinculado": "RA-022",
+          "grupo": "Seguridad",
+          "profundidad": "Exhaustiva"
+        },
+        {
+          "tcId": "TC-IQ-013",
+          "titulo": "Verificar timeout de sesión y bloqueo configurados",
+          "componente": "COMP-SEC-03",
+          "raScore": 12,
+          "ursVinculados": [
+            "URS-002",
+            "URS-003"
+          ],
+          "raVinculado": "RA-002",
+          "grupo": "Seguridad",
+          "profundidad": "Exhaustiva"
+        },
+        {
+          "tcId": "TC-IQ-014",
+          "titulo": "Verificar documentación del sistema disponible",
+          "componente": "—",
+          "raScore": null,
+          "ursVinculados": [
+            "URS-001"
+          ],
+          "raVinculado": "—",
+          "grupo": "Documentación",
+          "profundidad": "Básica"
+        },
+        {
+          "tcId": "TC-IQ-015",
+          "titulo": "Verificar usuarios y roles iniciales configurados",
+          "componente": "—",
+          "raScore": null,
+          "ursVinculados": [
+            "URS-007",
+            "URS-008",
+            "URS-009",
+            "URS-010",
+            "URS-011",
+            "URS-012",
+            "URS-013",
+            "URS-014",
+            "URS-015",
+            "URS-016"
+          ],
+          "raVinculado": "—",
+          "grupo": "Documentación",
+          "profundidad": "Estándar"
+        }
+      ]
+    },
+    {
+      "tipo": "tabla-test-case",
+      "titulo": "TEST CASES — INSTALLATION QUALIFICATION",
+      "intro": "Cada Test Case define los criterios de verificación del componente instalado y la evidencia esperada. Durante la ejecución (IIQ), cada TC será completado con el resultado observado, ejecutor, fecha y evidencias capturadas vía Gestor de Evidencias.",
+      "agruparPorGrupo": true,
+      "tcs": [
+        {
+          "tcId": "TC-IQ-001",
+          "titulo": "Verificar accesibilidad y versión App Web",
+          "componente": "COMP-SW-01",
+          "componenteDesc": "App Web (https://categorizador.example.com/)",
+          "raScore": 27,
+          "ursVinculados": [
+            "URS-044"
+          ],
+          "raVinculado": "RA-021",
+          "grupo": "Aplicación Web",
+          "profundidad": "Exhaustiva",
+          "objetivo": "Confirmar que la URL principal del sistema es accesible mediante HTTPS, devuelve HTTP 200, y la versión v1.0 es visible en la interfaz sin autenticación.",
+          "precondiciones": [
+            "Sistema iniciado y operacional.",
+            "Navegador Chrome o Brave/Edge disponible.",
+            "Conexión a internet activa."
+          ],
+          "criterios": [
+            "Endpoint HTTPS responde 200 OK.",
+            "Versión publicada coincide con la documentada (v1.0).",
+            "Sin advertencias de certificado en el navegador."
+          ],
+          "evidenciaEsperada": "Screenshot de la pantalla principal con URL completa visible y versión legible en footer/header/about."
+        },
+        {
+          "tcId": "TC-IQ-002",
+          "titulo": "Verificar encriptación TLS 1.3 y rechazo HTTP",
+          "componente": "COMP-SEC-01",
+          "componenteDesc": "Encriptación TLS 1.3 (Let's Encrypt)",
+          "raScore": 27,
+          "ursVinculados": [
+            "URS-045"
+          ],
+          "raVinculado": "RA-022",
+          "grupo": "Seguridad TLS",
+          "profundidad": "Exhaustiva",
+          "objetivo": "Verificar que el sistema opera exclusivamente sobre TLS 1.3, que las conexiones HTTP sin cifrar son rechazadas o redirigidas a HTTPS, y que el certificado SSL es válido.",
+          "precondiciones": [
+            "Navegador disponible.",
+            "Herramienta de inspección de red disponible (DevTools F12 → Network o curl)."
+          ],
+          "criterios": [
+            "HTTP rechazado o redirigido automáticamente a HTTPS.",
+            "Certificado SSL válido y vigente.",
+            "TLS 1.3 (mínimo TLS 1.2) activo en la conexión."
+          ],
+          "evidenciaEsperada": "Screenshot del panel de certificado del navegador mostrando versión TLS y validez. Adicionalmente, captura del intento HTTP rechazado/redirigido.",
+          "notas": "GAP-002 (RRM §9): sin firma electrónica nativa — no impacta este TC."
+        },
+        {
+          "tcId": "TC-IQ-003",
+          "titulo": "Verificar Panel Admin con credencial admin independiente",
+          "componente": "COMP-SW-02",
+          "componenteDesc": "Panel de Administración (URL aislada)",
+          "raScore": 27,
+          "ursVinculados": [
+            "URS-008"
+          ],
+          "raVinculado": "RA-009",
+          "grupo": "Panel de Administración",
+          "profundidad": "Exhaustiva",
+          "objetivo": "Confirmar que el panel de administración del sistema es accesible únicamente con credencial de administrador independiente de las credenciales de la aplicación principal.",
+          "precondiciones": [
+            "Credenciales de administrador disponibles.",
+            "Navegador disponible."
+          ],
+          "criterios": [
+            "Panel admin accesible únicamente con credencial admin.",
+            "Login con credenciales de usuario regular es rechazado.",
+            "Contraseñas almacenadas de forma encriptada y no visualizables.",
+            "Eventos de login (exitoso y fallido) registrados en log de seguridad."
+          ],
+          "evidenciaEsperada": "Screenshot del panel admin con login exitoso. Screenshot del intento de login con credencial regular rechazado. Captura de log mostrando registro de intentos."
+        },
+        {
+          "tcId": "TC-IQ-004",
+          "titulo": "Verificar Audit Trail activo post-instalación",
+          "componente": "COMP-SW-06",
+          "componenteDesc": "Módulo Audit Trail",
+          "raScore": 27,
+          "ursVinculados": [
+            "URS-006"
+          ],
+          "raVinculado": "RA-024",
+          "grupo": "Panel de Administración",
+          "profundidad": "Exhaustiva",
+          "objetivo": "Verificar que el módulo de Audit Trail está activo, registra automáticamente cada login y acción crítica, y que los registros son inmutables.",
+          "precondiciones": [
+            "Acceso al panel admin.",
+            "Permisos de visualización del audit trail."
+          ],
+          "criterios": [
+            "Audit trail registra automáticamente cada login con usuario, fecha, hora (segundos) e IP.",
+            "Los registros son inmutables (sin opción de edición o eliminación desde UI).",
+            "Audit trail accesible solo desde rol Auditor / Admin."
+          ],
+          "evidenciaEsperada": "Screenshot del audit trail mostrando registros recientes con timestamp e IP. Verificación de inmutabilidad (intento de modificación rechazado o ausente)."
+        },
+        {
+          "tcId": "TC-IQ-005",
+          "titulo": "Verificar Portal QR de verificación operativo",
+          "componente": "COMP-SW-03",
+          "componenteDesc": "Portal de Verificación (https://verify.example.com/)",
+          "raScore": 18,
+          "ursVinculados": [
+            "URS-041"
+          ],
+          "raVinculado": "RA-019",
+          "grupo": "Servicios Auxiliares",
+          "profundidad": "Exhaustiva",
+          "objetivo": "Confirmar que el portal de verificación pública está operativo y permite validar reportes mediante código QR / hash SHA-256.",
+          "precondiciones": [
+            "URL del portal accesible.",
+            "Reporte PDF de prueba generado previamente con QR."
+          ],
+          "criterios": [
+            "Portal responde HTTP 200 en URL pública.",
+            "Formulario de verificación visible y funcional.",
+            "Verificación de código QR / hash funcional contra base de datos."
+          ],
+          "evidenciaEsperada": "Screenshot del portal con formulario visible. Screenshot de verificación exitosa con reporte de prueba."
+        },
+        {
+          "tcId": "TC-IQ-006",
+          "titulo": "Verificar servicio Email SMTP para reset",
+          "componente": "COMP-SW-07",
+          "componenteDesc": "Servicio Email/SMTP (Gmail App Password)",
+          "raScore": 4,
+          "ursVinculados": [
+            "URS-005"
+          ],
+          "raVinculado": "RA-005",
+          "grupo": "Servicios Auxiliares",
+          "profundidad": "Básica",
+          "objetivo": "Confirmar que el servicio SMTP está configurado y los emails de recuperación de contraseña se envían correctamente.",
+          "precondiciones": [
+            "Cuenta de email de prueba disponible para recibir el reset."
+          ],
+          "criterios": [
+            "Solicitud de reset desde la UI dispara envío de email.",
+            "Email recibido en bandeja de entrada en menos de 5 minutos.",
+            "Link de reset presente y válido por 24 horas."
+          ],
+          "evidenciaEsperada": "Screenshot de la solicitud de reset desde la UI. Screenshot del email recibido con link visible."
+        },
+        {
+          "tcId": "TC-IQ-007",
+          "titulo": "Verificar disponibilidad servidor EC2 AWS",
+          "componente": "COMP-INF-01",
+          "componenteDesc": "Servidor EC2 t3.medium (us-east-1)",
+          "raScore": 18,
+          "ursVinculados": [
+            "URS-044"
+          ],
+          "raVinculado": "RA-021",
+          "grupo": "Infraestructura Cloud AWS",
+          "profundidad": "Exhaustiva",
+          "objetivo": "Verificar que la instancia EC2 que aloja la aplicación está activa, en la región correcta, y con el tipo de instancia documentado.",
+          "precondiciones": [
+            "Acceso a Consola AWS con credenciales IAM.",
+            "Permisos de lectura sobre EC2."
+          ],
+          "criterios": [
+            "Instancia EC2 en estado 'running'.",
+            "Región: us-east-1 confirmada en consola.",
+            "Tipo de instancia: t3.medium (2vCPU / 4GB RAM)."
+          ],
+          "evidenciaEsperada": "Screenshot de Consola AWS EC2 mostrando instancia activa con región y tipo visibles."
+        },
+        {
+          "tcId": "TC-IQ-008",
+          "titulo": "Verificar BD SQLite y encriptación AES-256",
+          "componente": "COMP-INF-02",
+          "componenteDesc": "Base de Datos SQLite (almacena usuarios, categorizaciones, audit trail)",
+          "raScore": 27,
+          "ursVinculados": [
+            "URS-046"
+          ],
+          "raVinculado": "RA-022",
+          "grupo": "Infraestructura Cloud AWS",
+          "profundidad": "Exhaustiva",
+          "objetivo": "Confirmar que la base de datos está activa, accesible solo por la aplicación, y que la encriptación AES-256 en reposo está habilitada.",
+          "precondiciones": [
+            "Acceso SSH al servidor disponible.",
+            "Permisos para inspeccionar configuración de BD."
+          ],
+          "criterios": [
+            "Base de datos responde a queries de la aplicación (verificado via login funcional).",
+            "Encriptación AES-256 confirmada vía configuración del servicio.",
+            "Acceso a archivo de BD restringido a usuario de aplicación (chmod ≤ 600)."
+          ],
+          "evidenciaEsperada": "Screenshot de configuración mostrando AES-256 habilitado. Output de comando ls -la mostrando permisos restringidos."
+        },
+        {
+          "tcId": "TC-IQ-009",
+          "titulo": "Verificar Backup automático configurado",
+          "componente": "COMP-INF-03",
+          "componenteDesc": "Backup Automático Diario (02:00 AM)",
+          "raScore": 18,
+          "ursVinculados": [
+            "URS-048"
+          ],
+          "raVinculado": "RA-023",
+          "grupo": "Infraestructura Cloud AWS",
+          "profundidad": "Exhaustiva",
+          "objetivo": "Confirmar que el backup automático está programado y ejecutándose correctamente, con histórico verificable.",
+          "precondiciones": [
+            "Acceso al panel de administración o consola de servicios.",
+            "Histórico de backups disponible."
+          ],
+          "criterios": [
+            "Schedule de backup activo (diario 02:00 AM).",
+            "Último backup exitoso documentado con fecha.",
+            "Política de retención de backups configurada."
+          ],
+          "evidenciaEsperada": "Screenshot del panel de backups mostrando histórico, fecha del último backup, estado OK."
+        },
+        {
+          "tcId": "TC-IQ-010",
+          "titulo": "Verificar acceso Consola AWS IAM",
+          "componente": "COMP-INF-04",
+          "componenteDesc": "Consola AWS IAM (administración cloud)",
+          "raScore": 4,
+          "ursVinculados": [],
+          "raVinculado": "—",
+          "grupo": "Infraestructura Cloud AWS",
+          "profundidad": "Básica",
+          "objetivo": "Confirmar acceso funcional a Consola AWS para administración cloud.",
+          "precondiciones": [
+            "Credenciales IAM válidas."
+          ],
+          "criterios": [
+            "Login a Consola AWS exitoso.",
+            "EC2 visible en dashboard."
+          ],
+          "evidenciaEsperada": "Screenshot del dashboard AWS con instancia visible."
+        },
+        {
+          "tcId": "TC-IQ-011",
+          "titulo": "Verificar acceso SSH con clave (rechazo por password)",
+          "componente": "COMP-INF-05",
+          "componenteDesc": "Acceso SSH al servidor EC2",
+          "raScore": 8,
+          "ursVinculados": [],
+          "raVinculado": "—",
+          "grupo": "Infraestructura Cloud AWS",
+          "profundidad": "Estándar",
+          "objetivo": "Confirmar que SSH solo acepta autenticación por clave privada y rechaza intentos por contraseña.",
+          "precondiciones": [
+            "Clave privada SSH disponible.",
+            "Cliente SSH configurado."
+          ],
+          "criterios": [
+            "Login SSH con clave privada exitoso.",
+            "Login SSH con contraseña rechazado (PasswordAuthentication=no en sshd_config).",
+            "Configuración persistente tras reinicio."
+          ],
+          "evidenciaEsperada": "Screenshot del login SSH exitoso con clave. Screenshot del rechazo de login con contraseña."
+        },
+        {
+          "tcId": "TC-IQ-012",
+          "titulo": "Verificar Firewall / Security Groups puertos",
+          "componente": "COMP-SEC-02",
+          "componenteDesc": "Firewall AWS Security Groups",
+          "raScore": 18,
+          "ursVinculados": [
+            "URS-045"
+          ],
+          "raVinculado": "RA-022",
+          "grupo": "Seguridad",
+          "profundidad": "Exhaustiva",
+          "objetivo": "Confirmar que solo los puertos necesarios están abiertos al público y que SSH está restringido a IPs autorizadas.",
+          "precondiciones": [
+            "Acceso a Consola AWS Security Groups."
+          ],
+          "criterios": [
+            "Puerto 443 (HTTPS): abierto a 0.0.0.0/0.",
+            "Puerto 80 (HTTP): cerrado o redirige a 443.",
+            "Puerto 22 (SSH): solo IPs admin autorizadas (no 0.0.0.0/0).",
+            "Otros puertos: cerrados por default."
+          ],
+          "evidenciaEsperada": "Screenshot del Security Group mostrando reglas de inbound con puertos y rangos IP."
+        },
+        {
+          "tcId": "TC-IQ-013",
+          "titulo": "Verificar timeout de sesión y bloqueo configurados",
+          "componente": "COMP-SEC-03",
+          "componenteDesc": "Política de Contraseñas / Timeout / Bloqueo",
+          "raScore": 12,
+          "ursVinculados": [
+            "URS-002",
+            "URS-003"
+          ],
+          "raVinculado": "RA-002",
+          "grupo": "Seguridad",
+          "profundidad": "Exhaustiva",
+          "objetivo": "Confirmar que los controles compensatorios sin 2FA están configurados correctamente (timeout de sesión, bloqueo por intentos, complejidad de contraseña).",
+          "precondiciones": [
+            "Acceso al panel de configuración de seguridad."
+          ],
+          "criterios": [
+            "Timeout de sesión: 30 minutos de inactividad.",
+            "Bloqueo automático tras 3 intentos fallidos consecutivos.",
+            "Política de contraseñas: mínimo 8 caracteres, complejidad alta.",
+            "Configuración persistente en BD/config file."
+          ],
+          "evidenciaEsperada": "Screenshot de la configuración mostrando los valores. Adicional: prueba funcional de timeout (esperar 30 min con sesión idle)."
+        },
+        {
+          "tcId": "TC-IQ-014",
+          "titulo": "Verificar documentación del sistema disponible",
+          "componente": "—",
+          "componenteDesc": "Documentación técnica del sistema",
+          "raScore": null,
+          "ursVinculados": [
+            "URS-001"
+          ],
+          "raVinculado": "—",
+          "grupo": "Documentación",
+          "profundidad": "Básica",
+          "objetivo": "Confirmar que la documentación oficial del sistema (Manual + SOPs) está disponible para usuarios autorizados.",
+          "precondiciones": [
+            "Acceso al repositorio documental."
+          ],
+          "criterios": [
+            "MAN-GAMP-CAT-001 v1.0 disponible y vigente.",
+            "SOP-USO-GAMP-001 v1.0 disponible y vigente.",
+            "SOP-ADM-GAMP-001 v1.0 disponible y vigente."
+          ],
+          "evidenciaEsperada": "Screenshot del listado de documentos en el repositorio con versiones visibles."
+        },
+        {
+          "tcId": "TC-IQ-015",
+          "titulo": "Verificar usuarios y roles iniciales configurados",
+          "componente": "—",
+          "componenteDesc": "Gestión inicial de usuarios y roles",
+          "raScore": null,
+          "ursVinculados": [
+            "URS-007",
+            "URS-008",
+            "URS-009",
+            "URS-010",
+            "URS-011",
+            "URS-012",
+            "URS-013",
+            "URS-014",
+            "URS-015",
+            "URS-016"
+          ],
+          "raVinculado": "—",
+          "grupo": "Documentación",
+          "profundidad": "Estándar",
+          "objetivo": "Confirmar que los usuarios y roles iniciales del sistema están correctamente configurados según matriz de roles.",
+          "precondiciones": [
+            "Panel admin accesible.",
+            "Listado oficial de usuarios iniciales."
+          ],
+          "criterios": [
+            "4 roles definidos: Usuario Final, Auditor QA, Administrador, Gerente.",
+            "Permisos de cada rol diferenciados según URS-009 al URS-012.",
+            "Usuarios iniciales creados con credenciales temporales que fuerzan cambio en primer acceso (URS-004)."
+          ],
+          "evidenciaEsperada": "Screenshot del panel admin mostrando matriz de usuarios y roles. Verificación de permisos diferenciados."
+        }
+      ]
+    },
+    {
+      "tipo": "texto",
+      "titulo": "JUSTIFICACIÓN DE PROPORCIONALIDAD (CRITICAL THINKING)",
+      "bloques": [
+        {
+          "texto": "Este protocolo aplica los principios de Computer Software Assurance (CSA, FDA Draft Guidance 2022) — un enfoque proporcional al riesgo que reemplaza el viejo paradigma del CSV (Computer System Validation) prescriptivo."
+        },
+        {
+          "subtitulo": "Decisiones de proporcionalidad"
+        },
+        {
+          "bullets": [
+            "GAMP 3 (Software Estándar Configurable) + RA Global Bajo-Medio (32) → la profundidad de IQ se ajusta al riesgo. No se exigen scripts micro-prescriptivos.",
+            "12/15 TCs son ALTO (Verificación Exhaustiva) — concentración estructural en componentes críticos del SaaS centralizado, no un hallazgo regulatorio adverso.",
+            "2 TCs MEDIO (verificación estándar): SSH y Política de Contraseñas. Componentes auxiliares con controles compensatorios.",
+            "2 TCs BAJO (verificación básica): SMTP y Consola IAM. No impactan integridad de datos GxP directamente.",
+            "Sin PQ (Performance Qualification) — no aplica para GAMP 3 sin impacto directo sobre el producto."
+          ]
+        },
+        {
+          "subtitulo": "Cobertura URS↔TC-IQ"
+        },
+        {
+          "texto": "La Matriz de Trazabilidad (MTR-DRP-SIS-001) confirma que los 15 TCs cubren los URS de infraestructura y autenticación (URS-001 a URS-016, URS-044 a URS-046, URS-048). El resto de los URS (funcionales) se verifica en el POQ."
+        },
+        {
+          "subtitulo": "Aceptación del enfoque"
+        },
+        {
+          "texto": "El nivel de evidencia consolidada definida en cada TC es suficiente para demostrar que el sistema está correctamente instalado y configurado conforme a las especificaciones del IRA. Hallazgos durante la ejecución se documentan en el IIQ-DRP-SIS-001 (informe de ejecución), no en este protocolo."
+        }
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": [
+        "Documento",
+        "Título"
+      ],
+      "widths": [
+        180,
+        275
+      ],
+      "filas": [
+        [
+          "FDA Draft Guidance 2022",
+          "Computer Software Assurance for Production and Quality System Software"
+        ],
+        [
+          "GAMP 5 — 2da Ed. 2022",
+          "Risk-Based Approach to Compliant GxP Computerized Systems (ISPE)"
+        ],
+        [
+          "GAMP 5 §8.2",
+          "Installation Qualification — Risk-based approach"
+        ],
+        [
+          "ICH Q9 R1 (2023)",
+          "Quality Risk Management"
+        ],
+        [
+          "ANMAT 4159/2023 Anexo VI",
+          "Guía de Buenas Prácticas de Sistemas Informatizados"
+        ],
+        [
+          "EU Annex 11",
+          "Computerised Systems (EMA)"
+        ],
+        [
+          "21 CFR Part 11",
+          "Electronic Records; Electronic Signatures (FDA)"
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal del Protocolo de Calificación de Instalación (PIQ). La ejecución de los TCs definidos en este protocolo se documenta en el IIQ-DRP-SIS-001.",
+      "firmas": [
+        {
+          "rol": "Redactor (Validador)",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "01/03/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-03-01T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        },
+        {
+          "rol": "Revisor (Process Owner)",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "01/03/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-03-01T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        },
+        {
+          "rol": "Aprobador (Jefe de Validaciones)",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "01/03/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-03-01T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        },
+        {
+          "rol": "Aprobador (Gerente QA)",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "01/03/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-03-01T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        }
+      ],
+      "nota": "Documento sujeto a firma electrónica."
+    }
+  ],
+  "referenceConfig": {
+    "URS": {
+      "code": "URS-DRP-SIS-001",
+      "version": "v1.0",
+      "fechaCongelado": "01/03/2026"
+    },
+    "RA": {
+      "code": "RA-DRP-SIS-001",
+      "version": "v1.0",
+      "fechaCongelado": "01/03/2026"
+    },
+    "IRA": {
+      "code": "IRA-DRP-SIS-001",
+      "version": "v1.0",
+      "fechaCongelado": "01/03/2026"
+    }
+  }
+}

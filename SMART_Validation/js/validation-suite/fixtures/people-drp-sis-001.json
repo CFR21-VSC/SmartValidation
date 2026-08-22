@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.0",
+  "type": "PEOPLE",
+  "packageCode": "DRP-SIS-001",
+  "personas": [
+    {
+      "id": "person_AP_001",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "rol": "Sponsor / Process Owner",
+      "email": "aperez@example.com",
+      "esMaestro": true,
+      "pinHash": "158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab",
+      "createdAt": "2026-02-01T09:00:00.000Z",
+      "updatedAt": "2026-02-01T09:00:00.000Z"
+    },
+    {
+      "id": "person_CR_001",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "rol": "Gerente QA / Validador",
+      "email": "crodriguez@example.com",
+      "esMaestro": false,
+      "pinHash": "158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab",
+      "createdAt": "2026-02-01T09:00:00.000Z",
+      "updatedAt": "2026-02-01T09:00:00.000Z"
+    },
+    {
+      "id": "person_LM_001",
+      "nombre": "Laura Martínez",
+      "iniciales": "LM",
+      "rol": "Auditor QA Externo (PQ)",
+      "email": "lmartinez@ext-example.com",
+      "esMaestro": false,
+      "pinHash": "158a323a7ba44870f23d96f1516dd70aa48e9a72db4ebb026b0a89e212a208ab",
+      "createdAt": "2026-02-01T09:00:00.000Z",
+      "updatedAt": "2026-02-01T09:00:00.000Z"
+    }
+  ]
+}

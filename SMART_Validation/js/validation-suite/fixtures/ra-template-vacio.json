@@ -1,0 +1,149 @@
+{
+  "schemaVersion": "1.0",
+  "type": "RA",
+  "package": {
+    "code": "",
+    "systemName": "",
+    "systemVersion": "",
+    "systemSubtitle": "",
+    "client": "",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": null
+  },
+  "document": {
+    "code": "",
+    "titleEs": "ANÁLISIS DE RIESGOS OPERATIVO",
+    "titleEn": "RISK ANALYSIS — OPERATIONAL (FMEA)",
+    "headerTitle": "Análisis de Riesgos Operativo (RA)",
+    "version": "1.0",
+    "issueDate": "",
+    "status": "Borrador",
+    "processOwner": "",
+    "gampCategory": "",
+    "normativeFramework": "",
+    "extras": {
+      "Documento base (URS)": "",
+      "Metodología": "FMEA — ICH Q9 R1 — GAMP 5 2da Ed.",
+      "Total riesgos evaluados": ""
+    }
+  },
+  "controlCambios": [],
+  "matrizAprobaciones": [
+    { "rol": "Redactor (Validador)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Revisor (Process Owner)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+  ],
+  "trazabilidad": {
+    "recibeDe": ["HLRA", "URS"],
+    "alimentaA": ["MTR", "POQ"]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO",
+      "bloques": []
+    },
+    {
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido",
+      "incluido": [],
+      "subExcluido": "2.2 Excluido",
+      "excluido": []
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "3. METODOLOGÍA FMEA",
+      "intro": ""
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "3.1 Enfoque",
+      "intro": ""
+    },
+    {
+      "tipo": "escalas-fmea",
+      "titulo": "3.2 Escalas de Puntuación",
+      "escalaS": [
+        { "valor": 1, "nivel": "Baja", "descripcion": "" },
+        { "valor": 2, "nivel": "Media", "descripcion": "" },
+        { "valor": 3, "nivel": "Alta", "descripcion": "" }
+      ],
+      "escalaP": [
+        { "valor": 1, "nivel": "Baja", "descripcion": "" },
+        { "valor": 2, "nivel": "Media", "descripcion": "" },
+        { "valor": 3, "nivel": "Alta", "descripcion": "" }
+      ],
+      "escalaD": [
+        { "valor": 1, "nivel": "Alta detección", "descripcion": "" },
+        { "valor": 2, "nivel": "Media detección", "descripcion": "" },
+        { "valor": 3, "nivel": "Baja detección", "descripcion": "" }
+      ],
+      "niveles": [
+        { "rango": "1-6", "nivel": "BAJO", "accion": "Aceptable. Monitoreo estándar." },
+        { "rango": "7-14", "nivel": "MEDIO", "accion": "Mitigación obligatoria. TC dedicado en OQ." },
+        { "rango": "15-27", "nivel": "ALTO", "accion": "Requiere control compensatorio documentado." }
+      ],
+      "nota": "Objetivo de mitigación: todos los riesgos con RI ALTO (≥15) deberán reducirse a RR MEDIO o BAJO tras aplicar controles. La SEVERIDAD nunca se reduce con mitigación: es propiedad inherente del peligro."
+    },
+    {
+      "tipo": "tabla-fmea",
+      "titulo": "MATRIZ DE RIESGOS FMEA",
+      "intro": "",
+      "filas": [
+        { "subheader": "MÓDULO X — <Nombre del módulo>" },
+        {
+          "id": "RA-001",
+          "urs": "URS-001",
+          "peligro": "",
+          "S": 0, "P": 0, "D": 0,
+          "control": "",
+          "RR": 0
+        }
+      ],
+      "notaInferior": "LA SEVERIDAD NO PUEDE DISMINUIRSE CON MITIGACIÓN, YA QUE ES INHERENTE AL PELIGRO ASOCIADO Y NO ES POSIBLE DE MITIGAR."
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESUMEN DE RESULTADOS",
+      "intro": "",
+      "columnas": ["Módulo", "Riesgos evaluados", "RI ALTO (≥15)", "RI MEDIO (7-14)", "RR ALTO"],
+      "widths": [165, 80, 70, 80, 60],
+      "filas": []
+    },
+    {
+      "tipo": "caja-conclusion",
+      "titulo": "Conclusión",
+      "parrafos": []
+    },
+    {
+      "tipo": "aceptacion-riesgo-residual",
+      "titulo": "ACEPTACIÓN FORMAL DEL RIESGO RESIDUAL",
+      "conclusion": "",
+      "items": [],
+      "firmas": [],
+      "rolesPlaceholder": ["Process Owner", "Gerente QA"]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": ["Código / Referencia", "Título"],
+      "widths": [180, 275],
+      "filas": []
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal del Análisis de Riesgos Operativo.",
+      "firmas": [],
+      "rolesPlaceholder": [
+        "Redactor (Validador)",
+        "Revisor (Process Owner)",
+        "Aprobador (Jefe de Validaciones)",
+        "Aprobador (Gerente QA)"
+      ],
+      "nota": ""
+    }
+  ]
+}

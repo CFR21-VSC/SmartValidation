@@ -1,0 +1,244 @@
+{
+  "schemaVersion": "1.0",
+  "type": "RIQ",
+  "etapa": "IQ",
+  "package": {
+    "code": "DRP-SIS-001",
+    "systemName": "DRP-GAMP Categorizador™",
+    "systemVersion": "1.1",
+    "systemSubtitle": "Sistema de Categorización GAMP 5",
+    "client": "Emara SRL",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": 2026
+  },
+  "document": {
+    "code": "RIQ-DRP-SIS-001",
+    "titleEs": "REPORTE DE CALIFICACIÓN IQ — LIBERACIÓN DE ETAPA",
+    "titleEn": "QUALIFICATION RELEASE REPORT (RIQ)",
+    "headerTitle": "Reporte de Calificación IQ (RIQ)",
+    "version": "1.0",
+    "issueDate": "Marzo 2026",
+    "status": "Aprobado",
+    "processOwner": "Ana Pérez",
+    "gampCategory": "GAMP 3 — Software Estándar Configurable",
+    "normativeFramework": "ANMAT 4159/2023 | 21 CFR Part 11 | EU Annex 11 | GAMP 5 §8 | FDA CSA 2022",
+    "extras": {
+      "Etapa cubierta": "PIQ → IIQ → RIQ",
+      "Documento base (Informe)": "IIQ-DRP-SIS-001 v1.0",
+      "NCR consolidado": "— No aplica (sin hallazgos en IQ) —",
+      "Decisión": "APROBADO"
+    }
+  },
+  "controlCambios": [
+    {
+      "version": "1.0",
+      "fecha": "Mar 2026",
+      "autor": "Ana Pérez — Process Owner",
+      "descripcion": "Emisión inicial del RIQ. Cierre de la fase IQ con 15/15 TCs PASS. Sin hallazgos. Sistema apto para iniciar Calificación Operacional (OQ)."
+    }
+  ],
+  "matrizAprobaciones": [
+    {
+      "rol": "Sponsor / Director",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "20/03/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-03-20T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    },
+    {
+      "rol": "Gerente QA",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "20/03/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-03-20T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Process Owner",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "20/03/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-03-20T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    }
+  ],
+  "trazabilidad": {
+    "schemaVersion": "2.0",
+    "recibeDe": [
+      {
+        "tipo": "IIQ",
+        "code": "IIQ-DRP-SIS-001",
+        "version": "v1.0",
+        "estado": "aprobado",
+        "_auto": true
+      }
+    ],
+    "alimentaA": [
+      "OQ — Calificación Operacional"
+    ]
+  },
+  "secciones": [
+    {
+      "tipo": "release-portada-decision",
+      "titulo": "DECISIÓN DE LIBERACIÓN",
+      "decision": "APROBADO",
+      "subtitulo": "Cierre formal de la fase de Calificación de Instalación"
+    },
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO Y ALCANCE",
+      "bloques": [
+        {
+          "texto": "El presente Reporte de Calificación de Instalación (RIQ) documenta el cierre formal de la fase IQ del sistema DRP-GAMP Categorizador™ v1.1 (paquete DRP-SIS-001)."
+        },
+        {
+          "texto": "La aprobación de este reporte autoriza el avance del sistema a la fase OQ. La presente decisión queda registrada y firmada conforme al QMS GxP de DRP Assurance."
+        }
+      ]
+    },
+    {
+      "tipo": "release-resumen-ejecutivo",
+      "titulo": "RESUMEN EJECUTIVO",
+      "intro": "Indicadores consolidados de la fase IQ. Métricas calculadas a partir del paquete documental cargado en el suite (informe IIQ + NCR asociado cuando aplica).",
+      "kpis": {
+        "totalTcsProtocolos": 15,
+        "totalTcsEjecutados": 15,
+        "pass": 15,
+        "fail": 0,
+        "obs": 0,
+        "na": 0,
+        "pendiente": 0,
+        "negativos": 0,
+        "negativosFail": 0,
+        "cobertura": 100,
+        "estadoGlobal": "APROBADO",
+        "hallazgosTotal": 0,
+        "hallazgosCerrados": 0,
+        "hallazgosAbiertos": 0,
+        "criticasAbiertas": 0
+      },
+      "fundamento": "Los 15 Test Cases del PIQ fueron ejecutados con resultado 100% PASS (incluidos los TCs de infraestructura, conectividad, deploy productivo y seguridad básica). No se identificaron hallazgos. La infraestructura del sistema está calificada y apta para soportar la fase OQ."
+    },
+    {
+      "tipo": "release-trazabilidad-cierre",
+      "titulo": "TRAZABILIDAD DEL CIERRE",
+      "intro": "Documentos base referenciados en este reporte. La aprobación implica que cada uno está en estado válido al momento del cierre.",
+      "documentos": [
+        {
+          "codigo": "URS-DRP-SIS-001",
+          "tipo": "URS",
+          "version": "v1.0",
+          "estado": "Aprobado",
+          "observacion": "User Requirements Specification — congelado"
+        },
+        {
+          "codigo": "RA-DRP-SIS-001",
+          "tipo": "RA",
+          "version": "v1.0",
+          "estado": "Aprobado",
+          "observacion": "Risk Assessment — 24 riesgos identificados"
+        },
+        {
+          "codigo": "PIQ-DRP-SIS-001",
+          "tipo": "PIQ",
+          "version": "v1.0",
+          "estado": "Aprobado",
+          "observacion": "Protocolo IQ — 15 TCs definidos"
+        },
+        {
+          "codigo": "IIQ-DRP-SIS-001",
+          "tipo": "IIQ",
+          "version": "v1.0",
+          "estado": "Aprobado",
+          "observacion": "Informe IQ — 15/15 PASS"
+        }
+      ]
+    },
+    {
+      "tipo": "release-condicionantes",
+      "titulo": "CONDICIONANTES DE LA APROBACIÓN",
+      "intro": "Obligaciones que el sponsor exige cumplir aún tras la aprobación.",
+      "condicionantes": []
+    },
+    {
+      "tipo": "release-decision-formal",
+      "titulo": "DECISIÓN FORMAL Y AUTORIZACIÓN",
+      "decision": "APROBADO",
+      "textoFormal": "Por la presente se autoriza formalmente el avance del sistema DRP-GAMP Categorizador™ v1.1 a la fase de Calificación Operacional (OQ). La infraestructura calificada por el IIQ se considera estable y suficiente para soportar la ejecución del POQ-DRP-SIS-001. Esta autorización es trazable y queda firmada por los responsables ejecutivos abajo identificados."
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": [
+        "Documento",
+        "Título"
+      ],
+      "widths": [
+        180,
+        275
+      ],
+      "filas": [
+        [
+          "IIQ-DRP-SIS-001 v1.0",
+          "Informe de Calificación de Instalación — base técnica de esta liberación"
+        ],
+        [
+          "GAMP 5 Second Edition (2022)",
+          "A Risk-Based Approach to Compliant GxP Computerized Systems"
+        ],
+        [
+          "ANMAT 4159/2023",
+          "Buenas Prácticas de Validación de Sistemas Computarizados — Argentina"
+        ],
+        [
+          "21 CFR Part 11",
+          "Electronic Records / Electronic Signatures"
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS EJECUTIVAS",
+      "intro": "Firmas que autorizan la decisión de liberación. Sponsor / Director y Gerente QA son obligatorios.",
+      "firmas": [
+        {
+          "rol": "Sponsor / Director",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "20/03/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-03-20T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        },
+        {
+          "rol": "Gerente QA",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "20/03/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-03-20T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        },
+        {
+          "rol": "Process Owner",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "20/03/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-03-20T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        }
+      ],
+      "rolesPlaceholder": [
+        "Sponsor / Director",
+        "Gerente QA",
+        "Process Owner"
+      ],
+      "nota": "IQ APROBADA. Sistema autorizado para iniciar POQ-DRP-SIS-001."
+    }
+  ]
+}

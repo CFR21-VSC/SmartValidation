@@ -1,0 +1,129 @@
+{
+  "schemaVersion": "1.0",
+  "type": "VSR",
+  "package": {
+    "code": "",
+    "systemName": "",
+    "systemVersion": "",
+    "systemSubtitle": "",
+    "client": "",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": null
+  },
+  "document": {
+    "code": "",
+    "titleEs": "REPORTE MAESTRO DE VALIDACIÓN — CICLO COMPLETO",
+    "titleEn": "VALIDATION SUMMARY REPORT (VSR)",
+    "headerTitle": "Reporte Maestro de Validación (VSR)",
+    "version": "1.0",
+    "issueDate": "",
+    "status": "Borrador",
+    "processOwner": "",
+    "gampCategory": "",
+    "normativeFramework": "",
+    "extras": {
+      "Paquete documental": "",
+      "Ciclo cubierto": "",
+      "Período de validación": "",
+      "Decisión global": "PENDIENTE"
+    }
+  },
+  "controlCambios": [],
+  "matrizAprobaciones": [
+    { "rol": "Sponsor", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Director Técnico", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Gerente QA", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Process Owner", "nombre": "", "iniciales": "", "fecha": "" }
+  ],
+  "trazabilidad": {
+    "recibeDe": ["RIQ", "ROQ", "RPQ", "NCR"],
+    "alimentaA": ["Sistema productivo GxP", "Auditoría regulatoria"]
+  },
+  "secciones": [
+    {
+      "tipo": "vsr-portada-final",
+      "titulo": "AUTORIZACIÓN MAESTRA DE VALIDACIÓN",
+      "decision": "PENDIENTE",
+      "subtitulo": "",
+      "statsResumen": {}
+    },
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO Y ALCANCE",
+      "bloques": [
+        { "texto": "El presente Reporte Maestro de Validación (VSR) constituye el documento ejecutivo final del ciclo de validación del sistema." },
+        { "texto": "Su propósito es consolidar en un único documento toda la evidencia del ciclo, permitir lectura ejecutiva por auditor regulatorio y registrar la decisión formal de validación." }
+      ]
+    },
+    {
+      "tipo": "tabla-info",
+      "titulo": "IDENTIFICACIÓN DEL SISTEMA VALIDADO",
+      "labelWidth": 165,
+      "filas": [
+        { "campo": "Sistema", "valor": "", "boldValor": true, "colorValor": "primary" },
+        { "campo": "Cliente", "valor": "" },
+        { "campo": "URL Productiva", "valor": "" },
+        { "campo": "Categoría GAMP", "valor": "" },
+        { "campo": "Código del paquete", "valor": "" },
+        { "campo": "Período de validación", "valor": "" },
+        { "campo": "Decisión global", "valor": "PENDIENTE", "boldValor": true, "colorValor": "accent" }
+      ]
+    },
+    {
+      "tipo": "release-resumen-ejecutivo",
+      "titulo": "RESUMEN EJECUTIVO DEL CICLO",
+      "intro": "Indicadores consolidados del ciclo completo. Métricas auto-calculadas desde el paquete cargado.",
+      "kpis": {
+        "totalTcsEjecutados": null, "pass": null, "fail": null, "obs": null, "na": null,
+        "cobertura": null, "hallazgosTotal": null, "hallazgosCerrados": null, "hallazgosAbiertos": null,
+        "criticasAbiertas": null, "negativos": null, "negativosFail": null, "estadoGlobal": ""
+      },
+      "fundamento": ""
+    },
+    {
+      "tipo": "vsr-inventario-paquete",
+      "titulo": "INVENTARIO DEL PAQUETE DOCUMENTAL",
+      "intro": "Listado completo de los documentos del paquete validado, agrupados por fase del ciclo.",
+      "documentos": []
+    },
+    {
+      "tipo": "vsr-cronologia-fases",
+      "titulo": "CRONOLOGÍA DE FASES DEL CICLO",
+      "intro": "Líneas de cierre de cada fase del ciclo.",
+      "fases": [
+        { "codigo": "IQ", "label": "Calificación de Instalación", "cierre": "", "estado": "pendiente" },
+        { "codigo": "OQ", "label": "Calificación Operacional", "cierre": "", "estado": "pendiente" },
+        { "codigo": "PQ", "label": "Calificación de Performance", "cierre": "", "estado": "pendiente" },
+        { "codigo": "VSR", "label": "Validación Completa", "cierre": "", "estado": "pendiente" }
+      ]
+    },
+    {
+      "tipo": "vsr-hallazgos-resumen",
+      "titulo": "HALLAZGOS Y CAPAs CONSOLIDADOS DEL CICLO",
+      "intro": "Recolección de todas las No Conformidades identificadas durante el ciclo.",
+      "hallazgos": []
+    },
+    {
+      "tipo": "vsr-decision-final",
+      "titulo": "DECISIÓN FORMAL DE VALIDACIÓN",
+      "decision": "PENDIENTE",
+      "textoFormal": "",
+      "validez": ""
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS NORMATIVAS",
+      "columnas": ["Documento", "Título"],
+      "widths": [180, 275],
+      "filas": []
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS EJECUTIVAS DE VALIDACIÓN",
+      "intro": "Firmas ejecutivas finales. Sponsor, Director Técnico y Gerente QA obligatorios.",
+      "firmas": [],
+      "rolesPlaceholder": ["Sponsor", "Director Técnico", "Gerente QA", "Process Owner"],
+      "nota": ""
+    }
+  ]
+}

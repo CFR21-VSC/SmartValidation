@@ -1,0 +1,4 @@
+# Python 3.11+ required.
+# psycopg2-binary is only used when DATABASE_URL is set (PostgreSQL / Railway).
+# In local dev (no DATABASE_URL), only the standard library is needed.
+psycopg2-binary>=2.9

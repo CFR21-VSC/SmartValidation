@@ -1,0 +1,108 @@
+{
+  "schemaVersion": "1.0",
+  "type": "IOQ",
+  "package": {
+    "code": "",
+    "systemName": "",
+    "systemVersion": "",
+    "systemSubtitle": "",
+    "client": "",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": null
+  },
+  "document": {
+    "code": "",
+    "titleEs": "INFORME DE CALIFICACIÓN OPERACIONAL",
+    "titleEn": "OPERATIONAL QUALIFICATION REPORT (IOQ)",
+    "headerTitle": "Informe de Calificación Operacional (IOQ)",
+    "version": "1.0",
+    "issueDate": "",
+    "status": "Borrador",
+    "processOwner": "",
+    "gampCategory": "",
+    "normativeFramework": "",
+    "extras": {
+      "Documento base (POQ)": "",
+      "Total TCs ejecutados": "",
+      "TCs negativos ejecutados": "",
+      "Resultado global": "",
+      "Decisión": ""
+    }
+  },
+  "controlCambios": [],
+  "matrizAprobaciones": [
+    { "rol": "Ejecutor (Validador)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Revisor (Process Owner)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+  ],
+  "trazabilidad": {
+    "recibeDe": ["POQ"],
+    "alimentaA": ["ROQ", "PPQ"]
+  },
+  "secciones": [
+    { "tipo": "texto", "titulo": "PROPÓSITO Y OBJETIVO", "bloques": [] },
+    {
+      "tipo": "tabla-info",
+      "titulo": "DATOS DE EJECUCIÓN",
+      "labelWidth": 165,
+      "filas": [
+        { "campo": "Protocolo ejecutado", "valor": "", "boldValor": true, "colorValor": "primary" },
+        { "campo": "Fecha de ejecución", "valor": "" },
+        { "campo": "Ejecutor", "valor": "" },
+        { "campo": "Ambiente", "valor": "" },
+        { "campo": "Total TCs ejecutados", "valor": "", "boldValor": true, "colorValor": "accent" },
+        { "campo": "TCs negativos ejecutados", "valor": "" },
+        { "campo": "Hallazgos / Desvíos", "valor": "", "boldValor": true }
+      ]
+    },
+    {
+      "tipo": "matriz-tc",
+      "titulo": "MATRIZ DE TEST CASES OQ — RESULTADOS DE EJECUCIÓN",
+      "intro": "",
+      "columnasVisibles": ["tcId", "titulo", "grupo", "tipoTC", "raScore", "nivel", "ursVinculados", "estado", "ejecutor", "fechaEjecucion", "evidenciasCount"],
+      "tcs": []
+    },
+    {
+      "tipo": "tabla-test-case",
+      "titulo": "DETALLE DE EJECUCIÓN POR TEST CASE",
+      "intro": "",
+      "agruparPorGrupo": true,
+      "schemaModo": "procedimiento",
+      "tcs": []
+    },
+    {
+      "tipo": "resumen-ejecucion-oq",
+      "titulo": "RESUMEN DE EJECUCIÓN",
+      "intro": "Estadística consolidada de los TCs ejecutados, agrupados por categoría funcional. TCs negativos contabilizados separadamente.",
+      "tcs": []
+    },
+    {
+      "tipo": "hallazgos-consolidados",
+      "titulo": "HALLAZGOS Y DESVÍOS",
+      "intro": "Recolección consolidada de hallazgos identificados durante la ejecución de los TCs OQ. Cada hallazgo debe trazarse a NC/CAPA correspondiente.",
+      "tcs": []
+    },
+    { "tipo": "caja-conclusion", "titulo": "CONCLUSIÓN Y DECISIÓN FORMAL", "parrafos": [] },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": ["Documento", "Título"],
+      "widths": [180, 275],
+      "filas": []
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN Y APROBACIÓN",
+      "intro": "Las firmas siguientes evidencian la ejecución, revisión y aprobación formal del Informe de Calificación Operacional.",
+      "firmas": [],
+      "rolesPlaceholder": [
+        "Ejecutor (Validador)",
+        "Revisor (Process Owner)",
+        "Aprobador (Jefe de Validaciones)",
+        "Aprobador (Gerente QA)"
+      ],
+      "nota": ""
+    }
+  ]
+}

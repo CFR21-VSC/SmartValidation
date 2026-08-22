@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "1.0",
+  "type": "TEST",
+  "package": {
+    "code": "DRP-SIS-001",
+    "systemName": "DRP-GAMP Categorizador™",
+    "systemVersion": "v1.1",
+    "systemSubtitle": "Sistema de Categorización GAMP 5",
+    "client": "DRP Assurance",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": 2026
+  },
+  "document": {
+    "code": "TEST-DRP-SIS-001",
+    "titleEs": "DOCUMENTO DE PRUEBA",
+    "titleEn": "TEST DOCUMENT",
+    "headerTitle": "Documento de Prueba",
+    "version": "1.0",
+    "issueDate": "2026-04-15",
+    "status": "Borrador",
+    "processOwner": "Federico Bongiovanni",
+    "gampCategory": "GAMP 3 — Software Estándar Comercial",
+    "normativeFramework": "ANMAT 4159/2023 Anexo VI | ICH Q9 | GAMP 5"
+  },
+  "controlCambios": [
+    { "version": "1.0", "fecha": "2026-04-15", "autor": "Federico Bongiovanni", "descripcion": "Versión inicial de prueba" },
+    { "version": "0.2", "fecha": "2026-04-16", "autor": "Federico Bongiovanni", "descripcion": "Ajustes menores" }
+  ],
+  "matrizAprobaciones": [
+    { "rol": "Redactor (Validador)", "nombre": "Lucas Santarenz", "iniciales": "LS", "fecha": "2026-04-15" },
+    { "rol": "Revisor (Process Owner)", "nombre": "Federico Bongiovanni", "iniciales": "FB", "fecha": "2026-04-15" },
+    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "Lucas Santarenz", "iniciales": "LS", "fecha": "2026-04-15" },
+    { "rol": "Aprobador (Gerente QA)", "nombre": "Federico Bongiovanni", "iniciales": "FB", "fecha": "2026-04-15" },
+    { "rol": "Aprobador (Cliente - Director Calidad)", "nombre": "Juan Pérez", "iniciales": "JP", "fecha": "2026-04-16" },
+    { "rol": "Aprobador (Cliente - Process Owner)", "nombre": "María García", "iniciales": "MG", "fecha": "2026-04-16" }
+  ],
+  "trazabilidad": {
+    "recibeDe": [],
+    "alimentaA": ["VP", "RA"]
+  },
+  "secciones": []
+}

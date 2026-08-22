@@ -1,0 +1,972 @@
+{
+  "schemaVersion": "1.0",
+  "type": "VP",
+  "package": {
+    "code": "DRP-SIS-001",
+    "systemName": "DRP-GAMP Categorizador™",
+    "systemVersion": "1.1",
+    "systemSubtitle": "Sistema de Categorización GAMP 5",
+    "client": "Emara SRL",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": 2026
+  },
+  "document": {
+    "code": "VP-DRP-SIS-001",
+    "titleEs": "PLAN DE VALIDACIÓN",
+    "titleEn": "VALIDATION PLAN (VP)",
+    "headerTitle": "Plan de Validación (VP)",
+    "version": "1.0",
+    "issueDate": "Febrero 2026",
+    "status": "Aprobado",
+    "processOwner": "Ana Pérez",
+    "gampCategory": "GAMP 3 — Software Estándar Comercial",
+    "normativeFramework": "ANMAT 4159/2023 Anexo VI | ICH Q9 | GAMP 5",
+    "extras": {
+      "Documento base (HLRA)": "HLRA-DRP-SIS-001 v1.0",
+      "Tipo de Validación": "Prospectiva — Sistema ya operativo en producción"
+    }
+  },
+  "controlCambios": [
+    {
+      "version": "v.1",
+      "fecha": "Feb 2026",
+      "autor": "Ana Pérez",
+      "descripcion": "Versión inicial"
+    }
+  ],
+  "matrizAprobaciones": [
+    {
+      "rol": "Redactor (Validador)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "15/02/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-02-15T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "15/02/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-02-15T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    },
+    {
+      "rol": "Aprobador (Jefe de Validaciones)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "15/02/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-02-15T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "15/02/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-02-15T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    }
+  ],
+  "trazabilidad": {
+    "recibeDe": [
+      "HLRA"
+    ],
+    "alimentaA": [
+      "URS",
+      "RA",
+      "IRA",
+      "MCN",
+      "PIQ",
+      "POQ"
+    ]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO",
+      "bloques": [
+        {
+          "texto": "El presente Plan de Validación (VP) establece la estrategia, alcance, responsabilidades, documentos a generar, cronograma y criterios de aceptación para la validación del sistema DRP-GAMP Categorizador™ (DRP-SIS-001), conforme a los lineamientos de GAMP 5 Segunda Edición (2022), ANMAT 4159/2023 Anexo VI e ICH Q9."
+        },
+        {
+          "texto": "Este documento toma como input el análisis de criticidad de alto nivel (HLRA-DRP-SIS-001 v1.0), que determinó la categoría GAMP 3 y un IRO de 32 (nivel Bajo-Medio), y lo traduce en un plan de acción concreto, ejecutable y auditable."
+        }
+      ],
+      "numero": 1
+    },
+    {
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido en este Plan",
+      "incluido": [
+        "Sistema: DRP-GAMP Categorizador™, versión 1.0 — URL: https://categorizador.example.com/",
+        "Organización: DRP Assurance — Mercado regulatorio: Argentina (ANMAT)",
+        "Fases cubiertas: Especificación (URS) → Análisis de riesgos (RA/IRA) → Cumplimiento normativo (MCN) → Calificación (IQ/OQ) → Cierre (Informe Final)",
+        "Tipo de validación: Prospectiva. Aunque el sistema se encuentra operativo, la documentación de validación formal se genera por primera vez."
+      ],
+      "subExcluido": "2.2 Excluido de este Plan",
+      "excluido": [
+        "Infraestructura cloud subyacente (AWS EC2, SQLlite) — calificada por el proveedor de hosting",
+        "Validación desde perspectiva del desarrollador (GAMP 5 interno de DRP Assurance)",
+        "Performance Qualification (PQ/PPQ): No aplica para GAMP 3 con IRO 32. Sin métricas de performance GxP críticas. Justificación: sistema de apoyo a decisiones, no de control de proceso productivo."
+      ],
+      "numero": 2
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESPONSABILIDADES",
+      "columnas": [
+        "Rol",
+        "Nombre",
+        "Responsabilidad principal"
+      ],
+      "widths": [
+        120,
+        130,
+        205
+      ],
+      "filas": [
+        [
+          "Project Manager / Validador",
+          "Ana Pérez",
+          "Liderar el proyecto de validación. Generar, revisar y mantener todos los documentos. Coordinar la ejecución de protocolos."
+        ],
+        [
+          "Process Owner",
+          "Ana Pérez",
+          "Revisar y aprobar documentos técnicos. Proveer información funcional del sistema. Aceptar el sistema para uso en producción."
+        ],
+        [
+          "Administrador del Sistema",
+          "Ana Pérez",
+          "Proveer acceso a entornos. Ejecutar configuraciones técnicas. Soporte durante IQ."
+        ],
+        [
+          "QA / Revisor Regulatorio",
+          "Carlos Rodríguez",
+          "Aprobar documentos antes de ejecución. Verificar cumplimiento regulatorio. Revisar desviaciones y NCs."
+        ],
+        [
+          "Ejecutor de Protocolos",
+          "Carlos Rodríguez",
+          "Ejecutar los test cases del PIQ y POQ. Registrar evidencias y firmar resultados."
+        ]
+      ],
+      "numero": 3
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DEFINICIONES",
+      "columnas": [
+        "Término",
+        "Definición"
+      ],
+      "widths": [
+        110,
+        345
+      ],
+      "filas": [
+        [
+          "Validación",
+          "Proceso documentado que proporciona evidencia objetiva de que un sistema cumple consistentemente con su uso previsto y los requisitos regulatorios aplicables"
+        ],
+        [
+          "IQ — Installation Qualification",
+          "Calificación de instalación: verifica que el sistema está instalado correctamente según las especificaciones del proveedor y la organización"
+        ],
+        [
+          "OQ — Operational Qualification",
+          "Calificación operacional: verifica que el sistema opera correctamente dentro de los límites definidos y cumple los requerimientos funcionales (URS)"
+        ],
+        [
+          "PQ — Performance Qualification",
+          "Calificación de performance: verifica que el sistema opera de forma consistente y reproducible bajo condiciones reales. No aplica para este proyecto."
+        ],
+        [
+          "URS",
+          "User Requirements Specification — Documento que especifica todos los requerimientos del usuario de forma verificable, trazable y cuantificable"
+        ],
+        [
+          "TC — Test Case",
+          "Caso de prueba: conjunto de pasos, datos de entrada, criterios de aceptación y acciones de verificación para evaluar un requerimiento específico"
+        ],
+        [
+          "GAMP 5",
+          "Good Automated Manufacturing Practice — Guía de la ISPE para validación de sistemas computarizados basada en riesgo (2da Ed., 2022)"
+        ],
+        [
+          "NC — No Conformidad",
+          "Incumplimiento de un criterio de aceptación establecido en un protocolo de calificación"
+        ],
+        [
+          "CAPA",
+          "Corrective and Preventive Action — Acción correctiva y preventiva para resolver una NC y evitar su recurrencia"
+        ],
+        [
+          "Desviación",
+          "Incumplimiento de un procedimiento durante la ejecución, sin afectar necesariamente el criterio de aceptación del TC"
+        ],
+        [
+          "MCN",
+          "Matriz de Cumplimiento Normativo — Documento que vincula cada URS con las normas regulatorias aplicables, evidenciando trazabilidad bidireccional"
+        ],
+        [
+          "IRO",
+          "Índice de Riesgo Operativo — calculado como producto de 6 factores (P×G×D×I×PR×S)"
+        ],
+        [
+          "IRA",
+          "Installation Risk Assessment — Análisis de riesgo de los componentes del sistema calculado como producto de 3 factores (P×D×S)"
+        ],
+        [
+          "NOTIF",
+          "Identificación, categorización y tratamiento de hallazgos"
+        ],
+        [
+          "RIQ/ROQ",
+          "Reporte de liberación del sistema"
+        ],
+        [
+          "IF",
+          "Informe Final de dictamen del sistema"
+        ]
+      ],
+      "numero": 4
+    },
+    {
+      "tipo": "tabla-info",
+      "titulo": "REFERENCIA AL HLRA — ESTRATEGIA BASADA EN RIESGO",
+      "intro": "Este Plan de Validación se basa íntegramente en los hallazgos del documento HLRA-DRP-SIS-001 v1.0. Los datos clave que guían las decisiones de este VP son:",
+      "labelWidth": 170,
+      "filas": [
+        {
+          "campo": "Categoría GAMP",
+          "valor": "GAMP 3 — COTS No Configurado (Software Estándar Comercial)",
+          "boldValor": true,
+          "colorValor": "primary"
+        },
+        {
+          "campo": "IRO Calculado",
+          "valor": "32 — Nivel BAJO-MEDIO (rango 1-50)",
+          "boldValor": true,
+          "colorValor": "accent"
+        },
+        {
+          "campo": "Fórmula IRO aplicada",
+          "valor": "P(2) × G(1) × D(2) × I(2) × PR(2) × S(2) = 32"
+        },
+        {
+          "campo": "Tipo de validación",
+          "valor": "Prospectiva — documentación formal generada por primera vez"
+        },
+        {
+          "campo": "GAPs identificados",
+          "valor": "4 GAPs (1 NC Menor, 2 Mayores aceptados, 1 Menor aceptado) — Ninguno bloqueante"
+        },
+        {
+          "campo": "Funciones críticas",
+          "valor": "8 funciones críticas/altas identificadas — todas verificadas en OQ"
+        },
+        {
+          "campo": "PPQ",
+          "valor": "No aplica — sistema de apoyo a decisiones sin métricas de performance GxP"
+        }
+      ],
+      "numero": 5
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DOCUMENTOS DEL PROYECTO DE VALIDACIÓN",
+      "intro": "El paquete documental completo para GAMP 3 con IRO 32 comprende los siguientes documentos. La secuencia refleja dependencias: cada documento hace referencia al anterior.",
+      "columnas": [
+        "#",
+        "Código",
+        "Documento",
+        "Responsable"
+      ],
+      "widths": [
+        25,
+        130,
+        175,
+        125
+      ],
+      "filas": [
+        [
+          "1",
+          "HLRA-DRP-SIS-001",
+          "High Level Risk Assessment",
+          "Ana Pérez"
+        ],
+        [
+          "2",
+          "VP-DRP-SIS-001",
+          "Plan de Validación",
+          "Ana Pérez"
+        ],
+        [
+          "3",
+          "URS-DRP-SIS-001",
+          "User Requirements Specification",
+          "Ana Pérez"
+        ],
+        [
+          "4",
+          "RA-DRP-SIS-001",
+          "Risk Assessment (operativo)",
+          "Ana Pérez"
+        ],
+        [
+          "5",
+          "IRA-DRP-SIS-001",
+          "Installation Risk Assessment (componentes)",
+          "Ana Pérez"
+        ],
+        [
+          "6",
+          "PIQ-DRP-SIS-001",
+          "Protocolo de Calificación de Instalación",
+          "Ana Pérez"
+        ],
+        [
+          "7",
+          "POQ-DRP-SIS-001",
+          "Protocolo de Calificación Operacional",
+          "Ana Pérez"
+        ],
+        [
+          "8",
+          "MCN-DRP-SIS-001",
+          "Matriz de Cumplimiento Normativo",
+          "Ana Pérez"
+        ],
+        [
+          "9",
+          "MTR-DRP-SIS-001",
+          "Matriz de Trazabilidad",
+          "Ana Pérez"
+        ],
+        [
+          "10",
+          "RIQ-DRP-SIS-001",
+          "Reporte de Calificación de Instalación",
+          "Ana Pérez"
+        ],
+        [
+          "11",
+          "ROQ-DRP-SIS-001",
+          "Reporte de Calificación Operacional",
+          "Ana Pérez"
+        ],
+        [
+          "12",
+          "NOTIF-DRP-SIS-001",
+          "Notificaciones de hallazgos y NCs",
+          "Ana Pérez"
+        ],
+        [
+          "13",
+          "IF-DRP-SIS-001",
+          "Informe de Validación Final",
+          "Ana Pérez"
+        ]
+      ],
+      "numero": 6
+    },
+    {
+      "tipo": "caja-nota",
+      "titulo": "Notas sobre el paquete documental",
+      "parrafos": [
+        "Al momento de aprobación de este Plan, todos los documentos del paquete (excepto HLRA y este VP) están en estado Pendiente por avance natural del desarrollo. La completitud y aprobación de cada uno se verifica al momento del cierre del Informe Final.",
+        "Documentos NO aplicables para GAMP 3: FRS, DS/DDS, DQ (solo GAMP 5), PPQ (sin métricas de performance GxP). Todos justificados en HLRA-DRP-SIS-001 Sección 6.3."
+      ],
+      "numero": null
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "CRONOGRAMA DEL PROYECTO",
+      "intro": "Estimación basada en GAMP 3 — IRO Bajo-Medio. Tiempo total estimado: 3 semanas calendario desde aprobación de este VP.",
+      "columnas": [
+        "Semana",
+        "Actividades",
+        "Documentos generados",
+        "Hito de cierre"
+      ],
+      "widths": [
+        50,
+        175,
+        130,
+        100
+      ],
+      "filas": [
+        [
+          {
+            "text": "S1",
+            "alignment": "center",
+            "bold": true
+          },
+          {
+            "bullets": [
+              "Aprobación VP",
+              "Redacción URS (extraer de Manual + SOPs)",
+              "Análisis de riesgos RA",
+              "Análisis por componentes IRA"
+            ]
+          },
+          {
+            "bullets": [
+              "URS-DRP-SIS-001",
+              "RA-DRP-SIS-001",
+              "IRA-DRP-SIS-001"
+            ]
+          },
+          "URS aprobado por Process Owner"
+        ],
+        [
+          {
+            "text": "S2",
+            "alignment": "center",
+            "bold": true
+          },
+          {
+            "bullets": [
+              "Generación MCN (vincula URS ↔ Normas)",
+              "Redacción PIQ (test cases IQ)",
+              "Redacción POQ (test cases OQ, basado en URS)"
+            ]
+          },
+          {
+            "bullets": [
+              "MCN-DRP-SIS-001",
+              "PIQ-DRP-SIS-001",
+              "POQ-DRP-SIS-001"
+            ]
+          },
+          "Protocolos aprobados — listos para ejecución"
+        ],
+        [
+          {
+            "text": "S3",
+            "alignment": "center",
+            "bold": true
+          },
+          {
+            "bullets": [
+              "Ejecución PIQ + captura evidencias IQ",
+              "Ejecución POQ + captura evidencias OQ",
+              "Redacción RIQ + ROQ",
+              "Redacción Informe Final",
+              "Cierre formal del proyecto"
+            ]
+          },
+          {
+            "bullets": [
+              "RIQ-DRP-SIS-001",
+              "ROQ-DRP-SIS-001",
+              "IF-DRP-SIS-001"
+            ]
+          },
+          "Informe Final aprobado — Sistema validado"
+        ]
+      ],
+      "numero": 7
+    },
+    {
+      "tipo": "caja-nota",
+      "parrafos": [
+        "Nota: El cronograma puede ajustarse si se identifican desviaciones o NCs durante la ejecución que requieran investigación y CAPA antes del cierre."
+      ]
+    },
+    {
+      "tipo": "texto",
+      "titulo": "ALCANCE DE CALIFICACIÓN IQ / OQ",
+      "contenido": "Esta sección define el alcance funcional de las calificaciones IQ y OQ. El Performance Qualification (PQ) está justificadamente excluido para esta categoría GAMP.",
+      "numero": 8
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "8.1 Installation Qualification (IQ)",
+      "intro": "La IQ verifica que el sistema está correctamente instalado, accesible y configurado según las especificaciones del proveedor. Para un sistema SaaS como el categorizador, la IQ se centra en verificar la disponibilidad del servicio, la seguridad del acceso y la infraestructura de soporte documental."
+    },
+    {
+      "tipo": "tabla",
+      "columnas": [
+        "Área de verificación IQ",
+        "Qué se verifica",
+        "Criterio de aceptación"
+      ],
+      "widths": [
+        140,
+        195,
+        120
+      ],
+      "filas": [
+        [
+          "Accesibilidad del sistema",
+          "URL activa, certificado SSL válido (TLS 1.3), tiempo de respuesta",
+          "Sistema accesible, HTTPS vigente"
+        ],
+        [
+          "Versión del sistema",
+          "Número de versión 1.0 visible en interfaz",
+          "Versión = 1.0"
+        ],
+        [
+          "Autenticación",
+          "Login con credenciales válidas; rechazo con credenciales inválidas",
+          "Acceso correcto / rechazo correcto"
+        ],
+        [
+          "Control de sesión",
+          "Timeout de 30 min por inactividad verificado (24 horas en versión demo)",
+          "Sesión expira ≤ 30 min o 24 hs en versión demo"
+        ],
+        [
+          "Bloqueo de cuenta",
+          "Cuenta bloqueada tras 5 intentos fallidos consecutivos",
+          "Bloqueo exactamente al 3er intento"
+        ],
+        [
+          "Separación de roles",
+          "Usuario Final, Auditor QA, Admin — permisos diferenciados",
+          "Permisos según matriz SOP-ADM Sección 6.2"
+        ],
+        [
+          "Disponibilidad / SLA",
+          "Sistema disponible durante horario laboral",
+          "Acceso confirmado ≥ 99.9%"
+        ],
+        [
+          "Backup y recuperación",
+          "Confirmación de backup configurado (registro en SOP-ADM)",
+          "Backup documentado y activo"
+        ],
+        [
+          "Documentación disponible",
+          "Manual (integrado), SOP-USO y SOP-ADM accesibles",
+          "3 documentos disponibles"
+        ]
+      ]
+    },
+    {
+      "tipo": "caja-nota",
+      "titulo": "Criterio de aceptación IQ",
+      "parrafos": [
+        "100% de TCs con resultado PASA o PASA CON OBSERVACIONES. Cualquier NO PASA detiene la ejecución y abre una NC."
+      ],
+      "numero": null
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "8.2 Operational Qualification (OQ)",
+      "intro": "La OQ verifica que el sistema opera correctamente según los requerimientos del usuario (URS). Cada test case del POQ referencia al menos un URS y produce evidencia documental (screenshot o registro firmado)."
+    },
+    {
+      "tipo": "tabla",
+      "columnas": [
+        "Área funcional OQ",
+        "Qué se verifica",
+        "Prioridad"
+      ],
+      "widths": [
+        150,
+        230,
+        75
+      ],
+      "filas": [
+        [
+          "Cuestionario adaptativo",
+          "Flujo de 3-5 preguntas adaptativas según tipo de sistema",
+          {
+            "text": "Crítica",
+            "alignment": "center",
+            "bold": true,
+            "color": "#C0392B"
+          }
+        ],
+        [
+          "Categorización GAMP",
+          "Resultado correcto para cada categoría (1, 3, 4, 5) con casos de prueba específicos",
+          {
+            "text": "Crítica",
+            "alignment": "center",
+            "bold": true,
+            "color": "#C0392B"
+          }
+        ],
+        [
+          "Índice de confianza",
+          "Valor ≥ 90% requerido para categoría auditable; <90% solicita info adicional",
+          {
+            "text": "Crítica",
+            "alignment": "center",
+            "bold": true,
+            "color": "#C0392B"
+          }
+        ],
+        [
+          "Generación reporte PDF",
+          "PDF generado correctamente con 4 páginas, datos correctos del sistema evaluado",
+          {
+            "text": "Crítica",
+            "alignment": "center",
+            "bold": true,
+            "color": "#C0392B"
+          }
+        ],
+        [
+          "Integridad SHA-256 + QR",
+          "Hash generado, verificación QR exitosa, PDF no alterable post-generación",
+          {
+            "text": "Crítica",
+            "alignment": "center",
+            "bold": true,
+            "color": "#C0392B"
+          }
+        ],
+        [
+          "Audit trail de accesos",
+          "Registro con fecha, hora e IP generado tras cada login",
+          {
+            "text": "Alta",
+            "alignment": "center",
+            "bold": true,
+            "color": "#E67E22"
+          }
+        ],
+        [
+          "Asistente GAMPI",
+          "Ayuda contextual disponible en los 3 niveles para cada pregunta",
+          {
+            "text": "Media",
+            "alignment": "center",
+            "color": "#717D8A"
+          }
+        ],
+        [
+          "Troubleshooting",
+          "Mensajes de error correctos (403, 500, sesión expirada)",
+          {
+            "text": "Media",
+            "alignment": "center",
+            "color": "#717D8A"
+          }
+        ],
+        [
+          "Recuperación de contraseña",
+          "Flujo de reset funcional, enlace válido 24 hs",
+          {
+            "text": "Media",
+            "alignment": "center",
+            "color": "#717D8A"
+          }
+        ]
+      ]
+    },
+    {
+      "tipo": "caja-nota",
+      "titulo": "Ratio TC/URS y criterio de aceptación OQ",
+      "parrafos": [
+        "Ratio TC/URS objetivo (GAMP 3): 1:1 a 1.2:1. Se estiman entre 25-35 test cases en el POQ, uno por cada requerimiento del URS.",
+        "Criterio de aceptación OQ: ≥ 95% de TCs con resultado PASA o PASA CON OBSERVACIONES. NCs críticas: 0 abiertas al momento del cierre. NCs mayores: cerradas con CAPA aprobada."
+      ],
+      "numero": null
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "8.3 Performance Qualification (PQ) — No Aplica"
+    },
+    {
+      "tipo": "caja-justificacion",
+      "titulo": "Justificación de exclusión de PQ",
+      "parrafos": [
+        "El DRP-GAMP Categorizador™ es un sistema de apoyo a decisiones de validación. No controla procesos de manufactura, no genera datos de producto ni tiene métricas de performance críticas que deban demostrarse bajo condiciones reales de producción sostenida.",
+        "Según GAMP 5 Sección 8.4 y la guía ISPE para GAMP 3, el PQ es opcional y se omite cuando no existen KPIs de performance con impacto GxP directo. El IRO de 32 (Bajo-Medio) respalda esta decisión."
+      ],
+      "numero": null
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "GESTIÓN DE DESVIACIONES Y NO CONFORMIDADES",
+      "intro": "9.1 Clasificación de severidad",
+      "columnas": [
+        "Severidad",
+        "Definición",
+        "Acción requerida"
+      ],
+      "widths": [
+        80,
+        215,
+        160
+      ],
+      "filas": [
+        [
+          {
+            "text": "CRÍTICA",
+            "alignment": "center",
+            "bold": true,
+            "color": "#C0392B"
+          },
+          "TC falla y el fallo afecta directamente la integridad de datos GxP, seguridad del sistema o funcionalidad crítica (autenticación, SHA-256, generación reporte)",
+          "Detener ejecución. CAPA inmediata. No liberar sistema hasta cierre. Aprobación del Gerente QA requerida."
+        ],
+        [
+          {
+            "text": "MAYOR",
+            "alignment": "center",
+            "bold": true,
+            "color": "#E67E22"
+          },
+          "TC falla en función importante pero no crítica, o se desvía del procedimiento con impacto potencial en la calidad de la evidencia",
+          "Documentar NC. Investigar causa raíz. CAPA con plazo definido. Aprobación de QA requerida para cierre."
+        ],
+        [
+          {
+            "text": "MENOR",
+            "alignment": "center",
+            "bold": true,
+            "color": "#2980B9"
+          },
+          "TC falla en función de baja criticidad, o se detecta una desviación procedimental sin impacto en resultados",
+          "Documentar. Acción correctiva. Puede cerrar el validador con aprobación documentada."
+        ]
+      ],
+      "numero": 9
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "9.1 Decisiones de ejecución — Criterios de resultado"
+    },
+    {
+      "tipo": "tabla-decisiones-tc",
+      "titulo": "",
+      "intro": "Cada test case ejecutado durante el IQ y el OQ produce uno de los siguientes 4 resultados posibles. La acción derivada de cada resultado es definitoria para el avance o detención de la fase de calificación.",
+      "numero": null
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "9.2 Proceso de documentación y cierre",
+      "intro": "Toda NC se documenta en el momento de detección, con los siguientes campos mínimos:"
+    },
+    {
+      "tipo": "tabla-info",
+      "labelWidth": 130,
+      "filas": [
+        {
+          "campo": "NC-ID",
+          "valor": "Identificador único: NC-[Código Sistema]-[Número secuencial]. Ej: NC-SIS001-001"
+        },
+        {
+          "campo": "TC referenciado",
+          "valor": "Código del test case que generó la NC"
+        },
+        {
+          "campo": "Descripción del fallo",
+          "valor": "Qué pasó, qué resultado se obtuvo vs. qué resultado se esperaba"
+        },
+        {
+          "campo": "Severidad",
+          "valor": "Crítica / Mayor / Menor según clasificación Sección 9.1"
+        },
+        {
+          "campo": "Causa raíz",
+          "valor": "Análisis de por qué ocurrió el fallo"
+        },
+        {
+          "campo": "CAPA",
+          "valor": "Acción correctiva + plazo de implementación + responsable"
+        },
+        {
+          "campo": "Resultado re-test",
+          "valor": "Si aplica: re-ejecución del TC tras la corrección"
+        },
+        {
+          "campo": "Estado / Cierre",
+          "valor": "Abierta / Cerrada + fecha de cierre + firmante"
+        }
+      ]
+    },
+    {
+      "tipo": "texto",
+      "titulo": "GESTIÓN DE CAMBIOS",
+      "bloques": [
+        {
+          "subtitulo": "10.1 Durante la validación",
+          "texto": "Si durante la ejecución de los protocolos se detecta un cambio en el sistema (versión, configuración, infraestructura):",
+          "bullets": [
+            "Cambio en versión del sistema → Detener ejecución → Evaluar impacto → Re-aprobar protocolo afectado → Re-ejecutar TCs impactados",
+            "Cambio en documentación → Control de versiones → Nueva revisión → Nueva aprobación antes de continuar",
+            "Cambio en alcance → Actualizar VP → Re-aprobación del VP → Comunicar a todos los firmantes"
+          ]
+        }
+      ],
+      "numero": 10
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "10.1 Sistema en producción (post-validación)",
+      "intro": "Cualquier cambio al sistema post-validación deberá evaluarse mediante un proceso de Change Control formal:"
+    },
+    {
+      "tipo": "tabla",
+      "columnas": [
+        "Tipo de cambio",
+        "Evaluación requerida",
+        "Posible acción"
+      ],
+      "widths": [
+        180,
+        160,
+        115
+      ],
+      "filas": [
+        [
+          "Actualización de versión mayor (ej: 1.0 → 2.0)",
+          "Evaluación de impacto completa",
+          "Re-validación total o parcial"
+        ],
+        [
+          "Actualización menor / bug fix",
+          "Análisis de impacto en funciones críticas",
+          "Re-ejecución de TCs afectados"
+        ],
+        [
+          "Cambio en infraestructura AWS",
+          "Evaluación de impacto en IQ",
+          "Re-ejecución parcial IQ"
+        ],
+        [
+          "Cambio en SOPs o documentación",
+          "Revisión de impacto en protocolos",
+          "Actualización documental"
+        ]
+      ]
+    },
+    {
+      "tipo": "caja-criterio",
+      "titulo": "El sistema se considera VALIDADO cuando se cumplen TODOS los siguientes criterios",
+      "numero": null
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "CRITERIOS DE ACEPTACIÓN GENERALES",
+      "columnas": [
+        "#",
+        "Criterio",
+        "Verificación"
+      ],
+      "widths": [
+        25,
+        270,
+        160
+      ],
+      "filas": [
+        [
+          "1",
+          "IQ: 100% de test cases con resultado PASA (incluye PASA CON OBSERVACIONES)",
+          "Informe IIQ-DRP-SIS-001 / Reporte RIQ-DRP-SIS-001"
+        ],
+        [
+          "2",
+          "OQ: ≥ 95% de test cases con resultado PASA (incluye PASA CON OBSERVACIONES)",
+          "Informe IOQ-DRP-SIS-001 / Reporte ROQ-DRP-SIS-001"
+        ],
+        [
+          "3",
+          "0 NCs críticas abiertas al momento del cierre",
+          "Registro de NCs en ROQ/RIQ"
+        ],
+        [
+          "4",
+          "100% de NCs mayores cerradas con CAPA aprobada",
+          "Sección de NCs en Informe Final"
+        ],
+        [
+          "5",
+          "100% de URS trazados a al menos un TC con resultado PASA",
+          "Matriz de trazabilidad en Informe Final"
+        ],
+        [
+          "6",
+          "Todos los GAPs documentados en HLRA tienen control compensatorio aceptado",
+          "MCN-DRP-SIS-001"
+        ],
+        [
+          "7",
+          "Informe Final firmado por Process Owner y Gerente QA",
+          "IF-DRP-SIS-001"
+        ]
+      ],
+      "numero": 11
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": [
+        "Código / Referencia",
+        "Título"
+      ],
+      "widths": [
+        180,
+        275
+      ],
+      "filas": [
+        [
+          "HLRA-DRP-SIS-001 v1.0",
+          "Análisis de Calificación y Criticidad GxP — DRP-GAMP Categorizador™"
+        ],
+        [
+          "MAN-GAMP-CAT-001 v1.0",
+          "Manual de Usuario — DRP-GAMP Categorizador™"
+        ],
+        [
+          "SOP-USO-GAMP-001 v1.0",
+          "Procedimiento de Uso del Sistema"
+        ],
+        [
+          "SOP-ADM-GAMP-001 v1.0",
+          "Procedimiento de Administración del Sistema"
+        ],
+        [
+          "ANMAT 4159/2023 Anexo VI",
+          "Guía de Buenas Prácticas de Sistemas Informatizados — ANMAT Argentina"
+        ],
+        [
+          "GAMP 5 — 2da Ed. 2022",
+          "Risk-Based Approach to Compliant GxP Computerized Systems (ISPE)"
+        ],
+        [
+          "ICH Q9 R1 (2023)",
+          "Quality Risk Management"
+        ],
+        [
+          "21 CFR Part 11",
+          "Electronic Records; Electronic Signatures (FDA)"
+        ],
+        [
+          "EU Annex 11",
+          "Computerised Systems (EMA)"
+        ]
+      ],
+      "numero": 12
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de este documento. La trazabilidad legal queda registrada en el log adjunto al paquete de validación.",
+      "firmas": [],
+      "rolesPlaceholder": [
+        "Ejecutor (Validador)",
+        "Revisor (Process Owner)",
+        "Aprobador (Jefe de Validaciones)",
+        "Aprobador (Gerente QA)"
+      ],
+      "nota": "Documento sujeto a firma electrónica. La firma manuscrita en este recuadro solo aplica como respaldo físico cuando no es viable la firma digital.",
+      "numero": 13
+    }
+  ]
+}

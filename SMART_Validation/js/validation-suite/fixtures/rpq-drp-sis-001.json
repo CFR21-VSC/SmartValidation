@@ -1,0 +1,266 @@
+{
+  "schemaVersion": "1.0",
+  "type": "RPQ",
+  "etapa": "PQ",
+  "package": {
+    "code": "DRP-SIS-001",
+    "systemName": "DRP-GAMP Categorizador™",
+    "systemVersion": "1.1",
+    "systemSubtitle": "Sistema de Categorización GAMP 5",
+    "client": "Emara SRL",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": 2026
+  },
+  "document": {
+    "code": "RPQ-DRP-SIS-001",
+    "titleEs": "REPORTE DE CALIFICACIÓN PQ — LIBERACIÓN DE ETAPA",
+    "titleEn": "QUALIFICATION RELEASE REPORT (RPQ)",
+    "headerTitle": "Reporte de Calificación PQ (RPQ)",
+    "version": "1.0",
+    "issueDate": "Mayo 2026",
+    "status": "Aprobado",
+    "processOwner": "Ana Pérez",
+    "gampCategory": "GAMP 3 — Software Estándar Configurable",
+    "normativeFramework": "ANMAT 4159/2023 | 21 CFR Part 11 | EU Annex 11 | GAMP 5 §8 | FDA CSA 2022",
+    "extras": {
+      "Etapa cubierta": "PPQ → IPQ → RPQ",
+      "Documento base (Informe)": "IPQ-DRP-SIS-001 v1.0",
+      "NCR consolidado": "NCR-DRP-SIS-001 v1.0 (CERRADO)",
+      "Decisión": "APROBADO"
+    }
+  },
+  "controlCambios": [
+    {
+      "version": "1.0",
+      "fecha": "May 2026",
+      "autor": "Ana Pérez — Process Owner",
+      "descripcion": "Emisión inicial del RPQ. Cierre del ciclo IQ/OQ/PQ del paquete DRP-SIS-001. Sistema apto para LIBERACIÓN PRODUCTIVA GxP. Sin hallazgos durante PQ."
+    }
+  ],
+  "matrizAprobaciones": [
+    {
+      "rol": "Sponsor / Director",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "15/05/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-05-15T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    },
+    {
+      "rol": "Gerente QA",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "15/05/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-05-15T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Process Owner",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "15/05/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-05-15T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    }
+  ],
+  "trazabilidad": {
+    "schemaVersion": "2.0",
+    "recibeDe": [
+      {
+        "tipo": "IPQ",
+        "code": "IPQ-DRP-SIS-001",
+        "version": "v1.0",
+        "estado": "aprobado",
+        "_auto": true
+      },
+      {
+        "tipo": "ROQ",
+        "code": "ROQ-DRP-SIS-001",
+        "version": "v1.0",
+        "estado": "aprobado",
+        "_auto": true
+      }
+    ],
+    "alimentaA": [
+      "LIBERACIÓN PRODUCTIVA GxP"
+    ]
+  },
+  "secciones": [
+    {
+      "tipo": "release-portada-decision",
+      "titulo": "DECISIÓN DE LIBERACIÓN",
+      "decision": "APROBADO",
+      "subtitulo": "Cierre del ciclo de validación · LIBERACIÓN PRODUCTIVA GxP"
+    },
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO Y ALCANCE",
+      "bloques": [
+        {
+          "texto": "El presente Reporte de Calificación de Performance (RPQ) documenta el cierre formal del ciclo completo de validación del sistema DRP-GAMP Categorizador™ v1.1 (paquete DRP-SIS-001)."
+        },
+        {
+          "texto": "La aprobación de este reporte AUTORIZA la liberación productiva del sistema bajo el QMS GxP de DRP Assurance. Es el documento ejecutivo final del paquete de validación."
+        }
+      ]
+    },
+    {
+      "tipo": "release-resumen-ejecutivo",
+      "titulo": "RESUMEN EJECUTIVO",
+      "intro": "Indicadores consolidados de la fase PQ. Métricas calculadas a partir del paquete documental cargado en el suite (informe IPQ + NCR asociado cuando aplica).",
+      "kpis": {
+        "totalTcsProtocolos": 70,
+        "totalTcsEjecutados": 70,
+        "pass": 69,
+        "fail": 0,
+        "obs": 1,
+        "na": 0,
+        "pendiente": 0,
+        "negativos": 3,
+        "negativosFail": 0,
+        "cobertura": 100,
+        "estadoGlobal": "APROBADO CON OBS",
+        "hallazgosTotal": 2,
+        "hallazgosCerrados": 2,
+        "hallazgosAbiertos": 0,
+        "criticasAbiertas": 0
+      },
+      "fundamento": "Los 8 TCs del PPQ fueron ejecutados con resultado 8/8 PASS por auditor externo independiente (Laura Martínez, Auditor QA). Todas las métricas de performance objetivo (email <2min, PDF <30s, QR <3s, concurrencia 15-simultánea) se observaron dentro de los límites declarados. Se demostró robustez frente a detección de fraude (TC-PQ-006 NEGATIVO). Sin hallazgos durante PQ. Sistema apto para liberación productiva GxP."
+    },
+    {
+      "tipo": "release-trazabilidad-cierre",
+      "titulo": "TRAZABILIDAD DEL CIERRE",
+      "intro": "Documentos base referenciados en este reporte. La aprobación implica que cada uno está en estado válido al momento del cierre.",
+      "documentos": [
+        {
+          "codigo": "PPQ-DRP-SIS-001",
+          "tipo": "PPQ",
+          "version": "v1.0",
+          "estado": "Aprobado",
+          "observacion": "Protocolo PQ — 8 TCs end-to-end"
+        },
+        {
+          "codigo": "IPQ-DRP-SIS-001",
+          "tipo": "IPQ",
+          "version": "v1.0",
+          "estado": "Aprobado",
+          "observacion": "8/8 PASS · auditor externo"
+        },
+        {
+          "codigo": "ROQ-DRP-SIS-001",
+          "tipo": "ROQ",
+          "version": "v1.0",
+          "estado": "Aprobado",
+          "observacion": "Pre-requisito: OQ cerrada"
+        },
+        {
+          "codigo": "RIQ-DRP-SIS-001",
+          "tipo": "RIQ",
+          "version": "v1.0",
+          "estado": "Aprobado",
+          "observacion": "Pre-requisito: IQ cerrada"
+        },
+        {
+          "codigo": "NCR-DRP-SIS-001",
+          "tipo": "NCR",
+          "version": "v1.0",
+          "estado": "Aprobado",
+          "observacion": "Hallazgos previos cerrados"
+        }
+      ]
+    },
+    {
+      "tipo": "release-condicionantes",
+      "titulo": "CONDICIONANTES DE LA APROBACIÓN",
+      "intro": "Obligaciones que el sponsor exige cumplir aún tras la aprobación.",
+      "condicionantes": []
+    },
+    {
+      "tipo": "release-decision-formal",
+      "titulo": "DECISIÓN FORMAL Y AUTORIZACIÓN",
+      "decision": "APROBADO",
+      "textoFormal": "Por la presente se autoriza formalmente la LIBERACIÓN PRODUCTIVA del sistema DRP-GAMP Categorizador™ v1.1 bajo el alcance del paquete DRP-SIS-001. La performance verificada por el IPQ bajo auditoría externa independiente demuestra que el sistema opera de forma robusta en condiciones representativas del uso real productivo, incluyendo la detección correcta de escenarios de fraude. El sistema queda apto para su uso productivo GxP. Esta autorización cierra formalmente el ciclo de validación del paquete y queda firmada por los responsables ejecutivos."
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": [
+        "Documento",
+        "Título"
+      ],
+      "widths": [
+        180,
+        275
+      ],
+      "filas": [
+        [
+          "IPQ-DRP-SIS-001 v1.0",
+          "Informe de Calificación de Performance — 8/8 PASS auditor externo"
+        ],
+        [
+          "ROQ-DRP-SIS-001 v1.0",
+          "Reporte de Calificación OQ — pre-requisito"
+        ],
+        [
+          "RIQ-DRP-SIS-001 v1.0",
+          "Reporte de Calificación IQ — pre-requisito"
+        ],
+        [
+          "GAMP 5 Second Edition (2022) §8.4",
+          "Performance Qualification"
+        ],
+        [
+          "FDA CSA (2022)",
+          "Computer Software Assurance — proporcionalidad aplicada"
+        ],
+        [
+          "21 CFR Part 11",
+          "Electronic Records / Electronic Signatures"
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS EJECUTIVAS",
+      "intro": "Firmas que autorizan la decisión de liberación. Sponsor / Director y Gerente QA son obligatorios.",
+      "firmas": [
+        {
+          "rol": "Sponsor / Director",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "15/05/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-05-15T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        },
+        {
+          "rol": "Gerente QA",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "15/05/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-05-15T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        },
+        {
+          "rol": "Process Owner",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "15/05/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-05-15T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        }
+      ],
+      "rolesPlaceholder": [
+        "Sponsor / Director",
+        "Gerente QA",
+        "Process Owner"
+      ],
+      "nota": "PQ APROBADA · CICLO DE VALIDACIÓN CERRADO · Sistema LIBERADO PRODUCTIVO GxP."
+    }
+  ]
+}

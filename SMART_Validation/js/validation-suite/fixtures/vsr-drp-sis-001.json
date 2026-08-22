@@ -1,0 +1,491 @@
+{
+  "schemaVersion": "1.0",
+  "type": "VSR",
+  "package": {
+    "code": "DRP-SIS-001",
+    "systemName": "DRP-GAMP Categorizador™",
+    "systemVersion": "1.1",
+    "systemSubtitle": "Sistema de Categorización GAMP 5",
+    "client": "Emara SRL",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": 2026
+  },
+  "document": {
+    "code": "VSR-DRP-SIS-001",
+    "titleEs": "REPORTE MAESTRO DE VALIDACIÓN — CICLO COMPLETO",
+    "titleEn": "VALIDATION SUMMARY REPORT (VSR)",
+    "headerTitle": "Reporte Maestro de Validación (VSR)",
+    "version": "1.0",
+    "issueDate": "Mayo 2026",
+    "status": "Aprobado",
+    "processOwner": "Ana Pérez",
+    "gampCategory": "GAMP 3 — Software Estándar Configurable",
+    "normativeFramework": "ANMAT 4159/2023 | 21 CFR Part 11 | EU Annex 11 | GAMP 5 (Second Edition 2022) | FDA CSA 2022",
+    "extras": {
+      "Paquete documental": "DRP-SIS-001 (17 documentos)",
+      "Ciclo cubierto": "HLRA → VP → URS → ... → RPQ",
+      "Período de validación": "Marzo 2026 — Mayo 2026",
+      "Decisión global": "SISTEMA VALIDADO Y AUTORIZADO PARA USO PRODUCTIVO GxP"
+    }
+  },
+  "controlCambios": [
+    {
+      "version": "1.0",
+      "fecha": "May 2026",
+      "autor": "Ana Pérez — Process Owner",
+      "descripcion": "Emisión inicial del VSR consolidando el ciclo completo de validación del paquete DRP-SIS-001. Reúne los 17 documentos del paquete con sus métricas y decisiones de cada fase. Sistema validado sin condicionantes residuales — todas las NCs identificadas durante OQ fueron cerradas vía NCR antes del cierre del ciclo."
+    }
+  ],
+  "matrizAprobaciones": [
+    {
+      "rol": "Sponsor",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "20/05/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-05-20T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    },
+    {
+      "rol": "Director Técnico",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "20/05/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-05-20T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Gerente QA",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "20/05/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-05-20T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    },
+    {
+      "rol": "Process Owner",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "20/05/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-05-20T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    }
+  ],
+  "trazabilidad": {
+    "schemaVersion": "2.0",
+    "recibeDe": [
+      {
+        "tipo": "RIQ",
+        "code": "RIQ-DRP-SIS-001",
+        "version": "v1.0",
+        "estado": "aprobado",
+        "_auto": true
+      },
+      {
+        "tipo": "ROQ",
+        "code": "ROQ-DRP-SIS-001",
+        "version": "v1.0",
+        "estado": "aprobado",
+        "_auto": true
+      },
+      {
+        "tipo": "RPQ",
+        "code": "RPQ-DRP-SIS-001",
+        "version": "v1.0",
+        "estado": "aprobado",
+        "_auto": true
+      },
+      {
+        "tipo": "NCR",
+        "code": "NCR-DRP-SIS-001",
+        "version": "v1.0",
+        "estado": "aprobado",
+        "_auto": true
+      }
+    ],
+    "alimentaA": [
+      "Sistema productivo GxP",
+      "Auditoría regulatoria",
+      "Revisión periódica de validación"
+    ]
+  },
+  "secciones": [
+    {
+      "tipo": "vsr-portada-final",
+      "titulo": "AUTORIZACIÓN MAESTRA DE VALIDACIÓN",
+      "decision": "SISTEMA VALIDADO",
+      "subtitulo": "Sistema DRP-GAMP Categorizador™ v1.1 — Paquete DRP-SIS-001",
+      "statsResumen": {
+        "totalDocs": 17,
+        "totalTcs": 70,
+        "cobertura": 100,
+        "ncsGestionadas": 2
+      }
+    },
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO Y ALCANCE",
+      "bloques": [
+        {
+          "texto": "El presente Reporte Maestro de Validación (VSR) constituye el documento ejecutivo final del ciclo de validación del sistema DRP-GAMP Categorizador™ v1.1 bajo el alcance del paquete documental DRP-SIS-001."
+        },
+        {
+          "texto": "Su propósito es consolidar en un único documento toda la evidencia del ciclo (HLRA→VP→URS→FRS→DS→RA→IRA→RRM→MTR→PIQ→IIQ→RIQ→POQ→IOQ→NCR→ROQ→PPQ→IPQ→RPQ), permitir la lectura ejecutiva por parte de un auditor regulatorio y registrar la decisión formal de validación del sistema."
+        },
+        {
+          "texto": "Este documento se emite tras la aprobación del RPQ y de todos los reportes de fase. Es el último documento del paquete de validación y representa la autorización del sistema para uso productivo GxP, hasta la siguiente revalidación periódica o por cambio significativo."
+        }
+      ]
+    },
+    {
+      "tipo": "tabla-info",
+      "titulo": "IDENTIFICACIÓN DEL SISTEMA VALIDADO",
+      "labelWidth": 165,
+      "filas": [
+        {
+          "campo": "Sistema",
+          "valor": "DRP-GAMP Categorizador™ v1.1",
+          "boldValor": true,
+          "colorValor": "primary"
+        },
+        {
+          "campo": "Cliente",
+          "valor": "DRP Assurance"
+        },
+        {
+          "campo": "URL Productiva",
+          "valor": "https://categorizador.example.com/"
+        },
+        {
+          "campo": "Categoría GAMP",
+          "valor": "GAMP 3 — Software Estándar Configurable"
+        },
+        {
+          "campo": "Código del paquete",
+          "valor": "DRP-SIS-001"
+        },
+        {
+          "campo": "Período de validación",
+          "valor": "01/03/2026 — 20/05/2026 (2.5 meses)"
+        },
+        {
+          "campo": "Decisión global",
+          "valor": "SISTEMA VALIDADO — apto para uso productivo GxP",
+          "boldValor": true,
+          "colorValor": "accent"
+        }
+      ]
+    },
+    {
+      "tipo": "release-resumen-ejecutivo",
+      "titulo": "RESUMEN EJECUTIVO DEL CICLO",
+      "intro": "Indicadores consolidados del ciclo completo. Métricas calculadas desde el paquete documental.",
+      "kpis": {
+        "totalTcsProtocolos": 70,
+        "totalTcsEjecutados": 70,
+        "pass": 69,
+        "fail": 0,
+        "obs": 1,
+        "na": 0,
+        "pendiente": 0,
+        "negativos": 3,
+        "negativosFail": 0,
+        "cobertura": 100,
+        "estadoGlobal": "APROBADO CON OBS",
+        "hallazgosTotal": 2,
+        "hallazgosCerrados": 2,
+        "hallazgosAbiertos": 0,
+        "criticasAbiertas": 0
+      },
+      "fundamento": "El ciclo de validación cubrió 70 TCs ejecutados a lo largo de 3 fases (IQ/OQ/PQ) con resultado final 100% PASS (incluidos 3 TCs negativos). Se identificaron 2 NCs durante OQ — ambas cerradas vía NCR con CAPAs verificadas y trazables. La PQ fue conducida por auditor externo independiente (Laura Martínez), sin hallazgos. El sistema cumple los criterios de validación bajo el alcance del paquete documental DRP-SIS-001."
+    },
+    {
+      "tipo": "vsr-inventario-paquete",
+      "titulo": "INVENTARIO DEL PAQUETE DOCUMENTAL",
+      "intro": "Listado completo de los documentos del paquete validado, agrupados por fase del ciclo. Todos en estado aprobado al momento del cierre.",
+      "documentos": [
+        {
+          "codigo": "HLRA-DRP-SIS-001",
+          "tipo": "HLRA",
+          "version": "1",
+          "estado": "Aprobado",
+          "observacion": "ANÁLISIS DE CALIFICACIÓN Y CRITICIDAD GxP"
+        },
+        {
+          "codigo": "VP-DRP-SIS-001",
+          "tipo": "VP",
+          "version": "1.0",
+          "estado": "Aprobado",
+          "observacion": "PLAN DE VALIDACIÓN"
+        },
+        {
+          "codigo": "URS-DRP-SIS-001",
+          "tipo": "URS",
+          "version": "1.0",
+          "estado": "Aprobado",
+          "observacion": "ESPECIFICACIÓN DE REQUERIMIENTOS DE USUARIO"
+        },
+        {
+          "codigo": "RA-DRP-SIS-001",
+          "tipo": "RA",
+          "version": "1.0",
+          "estado": "Aprobado",
+          "observacion": "ANÁLISIS DE RIESGOS OPERATIVO"
+        },
+        {
+          "codigo": "IRA-DRP-SIS-001",
+          "tipo": "IRA",
+          "version": "1.0",
+          "estado": "Aprobado",
+          "observacion": "ANÁLISIS DE RIESGOS DE COMPONENTES"
+        },
+        {
+          "codigo": "RRM-DRP-SIS-001",
+          "tipo": "RRM",
+          "version": "1.0",
+          "estado": "Aprobado",
+          "observacion": "MATRIZ DE REQUERIMIENTOS REGULATORIOS"
+        },
+        {
+          "codigo": "MTR-DRP-SIS-001",
+          "tipo": "MTR",
+          "version": "1.0",
+          "estado": "Aprobado",
+          "observacion": "MATRIZ DE TRAZABILIDAD DE REQUISITOS"
+        },
+        {
+          "codigo": "PIQ-DRP-SIS-001",
+          "tipo": "PIQ",
+          "version": "1.0",
+          "estado": "Aprobado",
+          "observacion": "PROTOCOLO DE CALIFICACIÓN DE INSTALACIÓN"
+        },
+        {
+          "codigo": "IIQ-DRP-SIS-001",
+          "tipo": "IIQ",
+          "version": "1.0",
+          "estado": "Aprobado",
+          "observacion": "INFORME DE CALIFICACIÓN DE INSTALACIÓN"
+        },
+        {
+          "codigo": "RIQ-DRP-SIS-001",
+          "tipo": "RIQ",
+          "version": "1.0",
+          "estado": "Aprobado",
+          "observacion": "REPORTE DE CALIFICACIÓN IQ — LIBERACIÓN DE ETAPA"
+        },
+        {
+          "codigo": "POQ-DRP-SIS-001",
+          "tipo": "POQ",
+          "version": "1.0",
+          "estado": "Aprobado",
+          "observacion": "PROTOCOLO DE CALIFICACIÓN OPERACIONAL"
+        },
+        {
+          "codigo": "IOQ-DRP-SIS-001",
+          "tipo": "IOQ",
+          "version": "1.0",
+          "estado": "Aprobado",
+          "observacion": "INFORME DE CALIFICACIÓN OPERACIONAL"
+        },
+        {
+          "codigo": "NCR-DRP-SIS-001",
+          "tipo": "NCR",
+          "version": "1.0",
+          "estado": "Aprobado",
+          "observacion": "REPORTE DE NO CONFORMIDADES Y CAPA"
+        },
+        {
+          "codigo": "ROQ-DRP-SIS-001",
+          "tipo": "ROQ",
+          "version": "1.0",
+          "estado": "Aprobado",
+          "observacion": "REPORTE DE CALIFICACIÓN OQ — LIBERACIÓN DE ETAPA"
+        },
+        {
+          "codigo": "PPQ-DRP-SIS-001",
+          "tipo": "PPQ",
+          "version": "1.0",
+          "estado": "Aprobado",
+          "observacion": "PROTOCOLO DE CALIFICACIÓN DE PERFORMANCE"
+        },
+        {
+          "codigo": "IPQ-DRP-SIS-001",
+          "tipo": "IPQ",
+          "version": "1.0",
+          "estado": "Aprobado",
+          "observacion": "INFORME DE CALIFICACIÓN DE PERFORMANCE"
+        },
+        {
+          "codigo": "RPQ-DRP-SIS-001",
+          "tipo": "RPQ",
+          "version": "1.0",
+          "estado": "Aprobado",
+          "observacion": "REPORTE DE CALIFICACIÓN PQ — LIBERACIÓN DE ETAPA"
+        }
+      ]
+    },
+    {
+      "tipo": "vsr-cronologia-fases",
+      "titulo": "CRONOLOGÍA DE FASES DEL CICLO",
+      "intro": "Líneas de cierre de cada fase del ciclo. La aprobación de la fase posterior requirió la aprobación de la anterior.",
+      "fases": [
+        {
+          "codigo": "IQ",
+          "label": "Calificación de Instalación",
+          "cierre": "20/03/2026",
+          "estado": "aprobada"
+        },
+        {
+          "codigo": "OQ",
+          "label": "Calificación Operacional",
+          "cierre": "26/04/2026",
+          "estado": "aprobada"
+        },
+        {
+          "codigo": "PQ",
+          "label": "Calificación de Performance",
+          "cierre": "15/05/2026",
+          "estado": "aprobada"
+        },
+        {
+          "codigo": "VSR",
+          "label": "Validación Completa",
+          "cierre": "20/05/2026",
+          "estado": "aprobada"
+        }
+      ]
+    },
+    {
+      "tipo": "vsr-hallazgos-resumen",
+      "titulo": "HALLAZGOS Y CAPAs CONSOLIDADOS DEL CICLO",
+      "intro": "Recolección de todas las No Conformidades identificadas durante el ciclo. Todas cerradas con sus CAPAs verificadas antes del cierre del VSR.",
+      "hallazgos": [
+        {
+          "id": "NC-001",
+          "criticidad": "OBSERVACIÓN",
+          "severidad": "BAJO",
+          "tcRef": "TC-OQ-024",
+          "descripcion": "En Firefox, el filtro de fecha por rango personalizado no muestra el calendar picker (input vacío). Funcional en Chrome. Bug menor de UI sin impacto en datos.",
+          "accion": "Aplicado fix CSS en commit b3a4f12 (24/04/2026). Calendar picker visible en Firefox tras refresh. Re-verificado por LS el 24/04/2026 — OK.",
+          "estado": "CERRADO"
+        },
+        {
+          "id": "NC-002",
+          "criticidad": "NC CRÍTICA",
+          "severidad": "ALTO",
+          "tcRef": "TC-OQ-032",
+          "descripcion": "En primera ejecución, el hash SHA-256 mostrado en el portal QR público no coincidía con el hash calculado independientemente sobre el PDF, cuando el nombre del sistema contenía caracteres especiales (acentos / ñ). Causa raíz: la función de generación de hash no aplicaba normalización UTF-8 antes del cálculo. Impacto: la promesa central del sistema (verificabilidad del PDF) quedaba comprometida para nombres con caracteres no-ASCII.",
+          "accion": "CAPA aplicada: fix de normalización UTF-8 (NFC) antes del cálculo de hash en commit a8d2e91 (22/04/2026). Re-deploy productivo el 22/04/2026 18:00. Re-ejecución del TC completa el 23/04/2026 → PASS. Adicionalmente: re-verificación de los hashes de los 47 sistemas previamente categorizados — todos confirmados consistentes (los previos no contenían caracteres especiales). Trazabilidad de la NC y su cierre registrada en sistema de gestión de NC.",
+          "estado": "CERRADO"
+        }
+      ]
+    },
+    {
+      "tipo": "vsr-decision-final",
+      "titulo": "DECISIÓN FORMAL DE VALIDACIÓN",
+      "decision": "SISTEMA VALIDADO",
+      "textoFormal": "Por la presente se declara formalmente que el sistema DRP-GAMP Categorizador™ v1.1 (paquete DRP-SIS-001) ha completado satisfactoriamente el ciclo de validación bajo los marcos normativos GAMP 5 (Second Edition 2022), FDA CSA 2022, EU Annex 11, 21 CFR Part 11 y ANMAT 4159/2023. Se AUTORIZA su uso productivo GxP en el alcance del paquete documental. El sistema queda registrado como VALIDADO en el QMS de DRP Assurance, hasta su próxima revalidación periódica (anual) o por cambio significativo declarado.",
+      "validez": "Validez plena hasta 20/05/2027 (revalidación anual) o hasta la declaración de un cambio significativo que dispare revalidación parcial vía Control de Cambios."
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS NORMATIVAS",
+      "columnas": [
+        "Documento",
+        "Título"
+      ],
+      "widths": [
+        180,
+        275
+      ],
+      "filas": [
+        [
+          "GAMP 5 Second Edition (2022)",
+          "A Risk-Based Approach to Compliant GxP Computerized Systems"
+        ],
+        [
+          "FDA CSA (2022)",
+          "Computer Software Assurance for Production and Quality System Software"
+        ],
+        [
+          "EU Annex 11 (2011)",
+          "Computerised Systems — Validation principles"
+        ],
+        [
+          "21 CFR Part 11",
+          "Electronic Records / Electronic Signatures"
+        ],
+        [
+          "ANMAT 4159/2023",
+          "Buenas Prácticas de Validación de Sistemas Computarizados — Argentina"
+        ],
+        [
+          "ICH Q9",
+          "Quality Risk Management"
+        ],
+        [
+          "ISO/IEC 25010:2011",
+          "Software product quality — Performance efficiency characteristics"
+        ],
+        [
+          "ISO 13485 §8.5.2",
+          "Acciones correctivas — referencia metodológica de CAPA"
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS EJECUTIVAS DE VALIDACIÓN",
+      "intro": "Firmas ejecutivas finales del proceso de validación. Sponsor, Director Técnico y Gerente QA son obligatorios. La firma del Process Owner certifica la operación del sistema.",
+      "firmas": [
+        {
+          "rol": "Sponsor",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "20/05/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-05-20T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        },
+        {
+          "rol": "Director Técnico",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "20/05/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-05-20T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        },
+        {
+          "rol": "Gerente QA",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "20/05/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-05-20T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        },
+        {
+          "rol": "Process Owner",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "20/05/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-05-20T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        }
+      ],
+      "rolesPlaceholder": [
+        "Sponsor",
+        "Director Técnico",
+        "Gerente QA",
+        "Process Owner"
+      ],
+      "nota": "Sistema VALIDADO en estado APROBADO. Documento de cierre del ciclo. Próxima revalidación: 20/05/2027."
+    }
+  ]
+}

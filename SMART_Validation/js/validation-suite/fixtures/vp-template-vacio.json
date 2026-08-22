@@ -1,0 +1,214 @@
+{
+  "schemaVersion": "1.0",
+  "type": "VP",
+  "package": {
+    "code": "",
+    "systemName": "",
+    "systemVersion": "",
+    "systemSubtitle": "",
+    "client": "",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": null
+  },
+  "document": {
+    "code": "",
+    "titleEs": "PLAN DE VALIDACIÓN",
+    "titleEn": "VALIDATION PLAN (VP)",
+    "headerTitle": "Plan de Validación (VP)",
+    "version": "1.0",
+    "issueDate": "",
+    "status": "Borrador",
+    "processOwner": "",
+    "gampCategory": "",
+    "normativeFramework": "",
+    "extras": {
+      "Documento base (HLRA)": "",
+      "Tipo de Validación": ""
+    }
+  },
+  "controlCambios": [],
+  "matrizAprobaciones": [
+    { "rol": "Redactor (Validador)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Revisor (Process Owner)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+  ],
+  "trazabilidad": {
+    "recibeDe": ["HLRA"],
+    "alimentaA": ["URS", "RA", "IRA", "MCN", "PIQ", "POQ"]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO",
+      "bloques": []
+    },
+    {
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido en este Plan",
+      "incluido": [],
+      "subExcluido": "2.2 Excluido de este Plan",
+      "excluido": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESPONSABILIDADES",
+      "columnas": ["Rol", "Nombre", "Responsabilidad principal"],
+      "widths": [120, 130, 205],
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DEFINICIONES",
+      "columnas": ["Término", "Definición"],
+      "widths": [110, 345],
+      "filas": []
+    },
+    {
+      "tipo": "tabla-info",
+      "titulo": "REFERENCIA AL HLRA — ESTRATEGIA BASADA EN RIESGO",
+      "intro": "",
+      "labelWidth": 170,
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DOCUMENTOS DEL PROYECTO DE VALIDACIÓN",
+      "intro": "",
+      "columnas": ["#", "Código", "Documento", "Responsable"],
+      "widths": [25, 130, 175, 125],
+      "filas": []
+    },
+    {
+      "tipo": "caja-nota",
+      "titulo": "Notas sobre el paquete documental",
+      "parrafos": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "CRONOGRAMA DEL PROYECTO",
+      "intro": "",
+      "columnas": ["Semana", "Actividades", "Documentos generados", "Hito de cierre"],
+      "widths": [50, 175, 130, 100],
+      "filas": []
+    },
+    {
+      "tipo": "texto",
+      "titulo": "ALCANCE DE CALIFICACIÓN IQ / OQ",
+      "contenido": ""
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "8.1 Installation Qualification (IQ)",
+      "intro": ""
+    },
+    {
+      "tipo": "tabla",
+      "columnas": ["Área de verificación IQ", "Qué se verifica", "Criterio de aceptación"],
+      "widths": [140, 195, 120],
+      "filas": []
+    },
+    {
+      "tipo": "caja-nota",
+      "titulo": "Criterio de aceptación IQ",
+      "parrafos": ["100% de TCs con resultado PASA o PASA CON OBSERVACIONES. Cualquier NO PASA detiene la ejecución y abre una NC."]
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "8.2 Operational Qualification (OQ)",
+      "intro": ""
+    },
+    {
+      "tipo": "tabla",
+      "columnas": ["Área funcional OQ", "Qué se verifica", "Prioridad"],
+      "widths": [150, 230, 75],
+      "filas": []
+    },
+    {
+      "tipo": "caja-nota",
+      "titulo": "Criterio de aceptación OQ",
+      "parrafos": ["≥ 95% de TCs con resultado PASA o PASA CON OBSERVACIONES. NCs críticas: 0 abiertas al momento del cierre. NCs mayores: cerradas con CAPA aprobada."]
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "8.3 Performance Qualification (PQ)",
+      "intro": ""
+    },
+    {
+      "tipo": "caja-justificacion",
+      "titulo": "",
+      "parrafos": []
+    },
+    {
+      "tipo": "tabla-decisiones-tc",
+      "titulo": "DECISIONES DE EJECUCIÓN — CRITERIOS DE RESULTADO",
+      "intro": "Cada test case ejecutado durante el IQ y el OQ produce uno de los siguientes 4 resultados posibles. La acción derivada de cada resultado es definitoria para el avance o detención de la fase de calificación."
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "GESTIÓN DE DESVIACIONES Y NO CONFORMIDADES",
+      "intro": "10.1 Clasificación de severidad",
+      "columnas": ["Severidad", "Definición", "Acción requerida"],
+      "widths": [80, 215, 160],
+      "filas": []
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "10.2 Proceso de documentación y cierre",
+      "intro": "Toda NC se documenta en el momento de detección, con los siguientes campos mínimos:"
+    },
+    {
+      "tipo": "tabla-info",
+      "labelWidth": 130,
+      "filas": []
+    },
+    {
+      "tipo": "texto",
+      "titulo": "GESTIÓN DE CAMBIOS",
+      "bloques": []
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "11.2 Post-validación (sistema en producción)",
+      "intro": ""
+    },
+    {
+      "tipo": "tabla",
+      "columnas": ["Tipo de cambio", "Evaluación requerida", "Posible acción"],
+      "widths": [180, 160, 115],
+      "filas": []
+    },
+    {
+      "tipo": "caja-criterio",
+      "titulo": "El sistema se considera VALIDADO cuando se cumplen TODOS los siguientes criterios"
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "CRITERIOS DE ACEPTACIÓN GENERALES",
+      "columnas": ["#", "Criterio", "Verificación"],
+      "widths": [25, 270, 160],
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": ["Código / Referencia", "Título"],
+      "widths": [180, 275],
+      "filas": []
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de este documento.",
+      "firmas": [],
+      "rolesPlaceholder": [
+        "Ejecutor (Validador)",
+        "Revisor (Process Owner)",
+        "Aprobador (Jefe de Validaciones)",
+        "Aprobador (Gerente QA)"
+      ],
+      "nota": ""
+    }
+  ]
+}

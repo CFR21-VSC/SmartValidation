@@ -1,0 +1,2 @@
+# Sin dependencias externas — sólo biblioteca estándar de Python 3.11+
+# Este archivo existe para que Railway/Nixpacks detecte el runtime de Python.

@@ -1,0 +1,687 @@
+{
+  "schemaVersion": "1.0",
+  "type": "HLRA",
+  "package": {
+    "code": "DRP-SIS-001",
+    "systemName": "DRP-GAMP Categorizador™",
+    "systemVersion": "1.0",
+    "systemSubtitle": "Sistema de Categorización GAMP 5",
+    "client": "Emara SRL",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": 2026
+  },
+  "document": {
+    "code": "HLRA-DRP-SIS-001",
+    "titleEs": "ANÁLISIS DE CALIFICACIÓN Y CRITICIDAD GxP",
+    "titleEn": "QUALIFICATION AND GxP CRITICALITY ASSESSMENT (HLRA)",
+    "headerTitle": "Análisis de Calificación y Criticidad GxP",
+    "version": "1",
+    "issueDate": "Febrero 2026",
+    "status": "Aprobado",
+    "processOwner": "Ana Pérez",
+    "gampCategory": "GAMP 3 — Software Estándar Comercial",
+    "normativeFramework": "ANMAT 4159/2023 Anexo VI | ICH Q9 | GAMP 5"
+  },
+  "controlCambios": [
+    {
+      "version": "1.0",
+      "fecha": "Feb 2026",
+      "autor": "Ana Pérez",
+      "descripcion": "Versión inicial"
+    }
+  ],
+  "matrizAprobaciones": [
+    {
+      "rol": "Redactor (Validador)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "08/02/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-02-08T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "08/02/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-02-08T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    },
+    {
+      "rol": "Aprobador (Jefe de Validaciones)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "08/02/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-02-08T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "08/02/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-02-08T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    }
+  ],
+  "trazabilidad": {
+    "recibeDe": [],
+    "alimentaA": [
+      "VP",
+      "RA"
+    ]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO",
+      "contenido": "El presente documento constituye el Análisis de Criticidad de Alto Nivel (High Level Risk Assessment - HLRA) del sistema DRP-GAMP Categorizador™, desarrollado y provisto por DRP Assurance Solutions. Su propósito es determinar la categoría GAMP 5 aplicable desde la perspectiva del cliente/usuario final, establecer el nivel de riesgo operativo (RA), identificar los procesos GxP impactados y definir la estrategia de validación a seguir, en cumplimiento con la normativa ANMAT 4159/2023 Anexo VI, ICH Q9 y la guía GAMP 5 Segunda Edición (2022)."
+    },
+    {
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido en el análisis",
+      "incluido": [
+        "Sistema: DRP-GAMP Categorizador™ versión 1.1",
+        "Acceso vía URL: https://categorizador.example.com/",
+        "Funcionalidades: Categorización GAMP, generación de reportes PDF, verificación QR/SHA-256",
+        "Roles de usuario: Usuario Final y Administrador del sistema",
+        "Marco normativo: ANMAT 4159/2023 Anexo VI (mercado argentino)"
+      ],
+      "subExcluido": "2.2 Excluido del análisis",
+      "excluido": [
+        "Infraestructura cloud subyacente (AWS EC2, SQLLite, Nginx) — cubierta por calificación de infraestructura del proveedor, no accesible para usuarios",
+        "Código fuente y lógica de desarrollo interno (perspectiva GAMP 5 del desarrollador)",
+        "Sistemas externos integrados al categorizador"
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESPONSABILIDADES",
+      "columnas": [
+        "Rol",
+        "Responsabilidad"
+      ],
+      "widths": [
+        200,
+        255
+      ],
+      "filas": [
+        [
+          "Equipo de Validaciones (DRP Assurance)",
+          "Redactar y mantener este HLRA; ejecutar el proceso de validación"
+        ],
+        [
+          "Process Owner (Ana Pérez)",
+          "Revisar y aprobar la categorización GAMP y la estrategia de validación"
+        ],
+        [
+          "QA / Gerente de Calidad",
+          "Aprobar el documento y supervisar el cumplimiento regulatorio"
+        ],
+        [
+          "IT / Administrador del Sistema",
+          "Proveer información técnica de infraestructura y accesos"
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DEFINICIONES",
+      "columnas": [
+        "Término",
+        "Definición"
+      ],
+      "widths": [
+        80,
+        375
+      ],
+      "filas": [
+        [
+          "GAMP 5",
+          "Good Automated Manufacturing Practice — Guía de validación de sistemas computarizados (ISPE, 2da Ed. 2022)"
+        ],
+        [
+          "HLRA",
+          "High Level Risk Assessment — Análisis de criticidad de alto nivel que determina categoría GAMP y estrategia de validación"
+        ],
+        [
+          "RA",
+          "Risk Assessment — Análisis de riesgo operativo calculado mediante fórmula multidimensional (P×G×D×I×PR×S)"
+        ],
+        [
+          "GAMP 3",
+          "Categoría de software comercial estándar (COTS) sin configuración GxP específica por parte del usuario"
+        ],
+        [
+          "GxP",
+          "Conjunto de regulaciones de buenas prácticas (GMP, GLP, GCP) aplicables a industrias reguladas"
+        ],
+        [
+          "Datos GxP",
+          "Datos que impactan directa o indirectamente la calidad del producto, seguridad del paciente o integridad de registros"
+        ],
+        [
+          "COTS",
+          "Commercial Off-The-Shelf — Software comercial estándar adquirido sin modificaciones de código"
+        ],
+        [
+          "SHA-256",
+          "Algoritmo criptográfico de hash que garantiza la integridad e inalterabilidad de los reportes generados"
+        ],
+        [
+          "GAP",
+          "Brecha regulatoria: requisito normativo no cubierto completamente por el sistema, que requiere control compensatorio"
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla-info",
+      "titulo": "DESCRIPCIÓN DEL SISTEMA",
+      "filas": [
+        {
+          "campo": "Nombre Comercial",
+          "valor": "DRP-GAMP Categorizador™"
+        },
+        {
+          "campo": "Código de Inventario",
+          "valor": "DRP-SIS-001"
+        },
+        {
+          "campo": "Vendor / Proveedor",
+          "valor": "DRP Assurance Solutions"
+        },
+        {
+          "campo": "Versión Validada",
+          "valor": "1.1"
+        },
+        {
+          "campo": "Tipo de Sistema",
+          "valor": "Aplicación Web SaaS (Software as a Service)"
+        },
+        {
+          "campo": "URL de Acceso",
+          "valor": "https://categorizador.example.com/"
+        },
+        {
+          "campo": "Hosting",
+          "valor": "AWS EC2, Región US-East-1 (N. Virginia)"
+        },
+        {
+          "campo": "Disponibilidad SLA",
+          "valor": "99.9%"
+        },
+        {
+          "campo": "Estado",
+          "valor": "En producción Version Demo (sistema ya operativo)"
+        }
+      ]
+    },
+    {
+      "tipo": "arbol-decision-gamp",
+      "titulo": "CATEGORIZACIÓN GAMP",
+      "intro": "El DRP-GAMP Categorizador™ es provisto por DRP Assurance Solutions como un producto comercial de software disponible en modalidad SaaS. Desde la perspectiva del cliente/usuario final, el sistema se utiliza tal como es provisto por el vendor, sin posibilidad de modificar parámetros de configuración GxP, workflows, código fuente, ni estructura de base de datos.",
+      "preguntas": [
+        {
+          "pregunta": "¿Es infraestructura base (SO, BD, red)?",
+          "respuesta": "No → Descarta GAMP 1"
+        },
+        {
+          "pregunta": "¿Es software comercial estándar (COTS)?",
+          "respuesta": "Sí — SaaS provisto por vendor"
+        },
+        {
+          "pregunta": "¿El usuario puede realizar configuración GxP significativa?",
+          "respuesta": "No → el usuario no puede configurar workflows, campos ni lógica del sistema"
+        },
+        {
+          "pregunta": "¿Conclusión?",
+          "respuesta": "GAMP 3 — Software Estándar Comercial"
+        }
+      ]
+    },
+    {
+      "tipo": "caja-resultado",
+      "titulo": "GAMP 3 — COTS NO CONFIGURADO (Software Estándar)",
+      "subtitulo": "El usuario recibe y utiliza el software tal como es provisto por el vendor, sin configuración GxP",
+      "icono": "OK",
+      "color": "primary"
+    },
+    {
+      "tipo": "tabla-docs-aplicables",
+      "titulo": "Implicaciones para la Validación",
+      "intro": "La categoría GAMP 3 implica que la validación se enfoca en verificar que el software funciona correctamente para el uso previsto, confiando en el testing del vendor para las funciones estándar del producto.",
+      "filas": [
+        {
+          "documento": "HLRA",
+          "estado": "Obligatorio",
+          "aplicacion": "Este documento"
+        },
+        {
+          "documento": "Plan de Validación (VP)",
+          "estado": "Obligatorio",
+          "aplicacion": "A generar"
+        },
+        {
+          "documento": "URS",
+          "estado": "Obligatorio",
+          "aplicacion": "A generar"
+        },
+        {
+          "documento": "FRS",
+          "estado": "No aplica",
+          "aplicacion": "GAMP 3 no requiere"
+        },
+        {
+          "documento": "DS / DDS",
+          "estado": "Opcional",
+          "aplicacion": "No se generará"
+        },
+        {
+          "documento": "DQ",
+          "estado": "No aplica",
+          "aplicacion": "Solo GAMP 5"
+        },
+        {
+          "documento": "RA + IRA",
+          "estado": "Obligatorio",
+          "aplicacion": "A generar"
+        },
+        {
+          "documento": "MCN — Matriz Cumplimiento Normativo",
+          "estado": "Obligatorio",
+          "aplicacion": "Diferenciador DRP"
+        },
+        {
+          "documento": "PIQ + RIQ",
+          "estado": "Obligatorio",
+          "aplicacion": "A generar"
+        },
+        {
+          "documento": "POQ + ROQ",
+          "estado": "Obligatorio",
+          "aplicacion": "A generar"
+        },
+        {
+          "documento": "PPQ",
+          "estado": "No aplica",
+          "aplicacion": "Sin métricas de performance GxP"
+        },
+        {
+          "documento": "Informe de Validación Final",
+          "estado": "Obligatorio",
+          "aplicacion": "A generar"
+        }
+      ]
+    },
+    {
+      "tipo": "formula-rai",
+      "titulo": "ANÁLISIS DE CRITICIDAD OPERATIVA",
+      "intro": "El Índice de Riesgo Operativo (IRO) se calcula mediante la siguiente fórmula multidimensional, basada en la metodología GAMP 5 e ICH Q9 (se incluye la categoría GAMP como factor de riesgo extra):",
+      "formula": "IRO = P × G × D × I × PR × S",
+      "factores": [
+        {
+          "var": "P",
+          "factor": "Proceso",
+          "descripcion": "Impacto en proceso GxP. El categorizador apoya decisiones de validación que impactan compliance",
+          "escala": "1-3",
+          "valor": 2
+        },
+        {
+          "var": "G",
+          "factor": "GAMP",
+          "descripcion": "Categoría GAMP del sistema. GAMP 3 = riesgo bajo-medio",
+          "escala": "1-3",
+          "valor": 1
+        },
+        {
+          "var": "D",
+          "factor": "Dato GxP",
+          "descripcion": "Los reportes PDF son evidencia auditable usada en planes de validación regulatorios",
+          "escala": "1-3",
+          "valor": 2
+        },
+        {
+          "var": "I",
+          "factor": "Impacto",
+          "descripcion": "Impacto en calidad/seguridad del producto final. Sistema de apoyo, no de control de manufactura",
+          "escala": "1-3",
+          "valor": 2
+        },
+        {
+          "var": "PR",
+          "factor": "Proveedor",
+          "descripcion": "DRP Assurance provee documentación (Manual, SOPs). Proveedor conocido con soporte",
+          "escala": "1-3",
+          "valor": 2
+        },
+        {
+          "var": "S",
+          "factor": "Servicio",
+          "descripcion": "Sistema con manual de usuario, SOPs de uso y administración disponibles",
+          "escala": "1-3",
+          "valor": 2
+        }
+      ]
+    },
+    {
+      "tipo": "box-resultado-rai",
+      "titulo": "Resultado IRO",
+      "labelCalculo": "IRO CALCULADO",
+      "calculo": "2 × 1 × 2 × 2 × 2 × 2 = 32",
+      "nivel": "BAJO",
+      "rangos": "Rango: 1-50 = Bajo | 51-200 = Bajo-Medio / Medio | 201-486 = Alto"
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "PROCESOS GxP IMPACTADOS",
+      "columnas": [
+        "Proceso GxP",
+        "Función del sistema",
+        "Criticidad"
+      ],
+      "widths": [
+        150,
+        205,
+        100
+      ],
+      "filas": [
+        [
+          "Planificación de validación",
+          "El reporte define qué tipo de validación realizar según categoría GAMP",
+          "Alta — impacta estrategia regulatoria"
+        ],
+        [
+          "Gestión documental de calidad",
+          "Genera evidencia auditable (reporte PDF SHA-256) utilizada en expedientes de validación",
+          "Alta — dato auditable"
+        ],
+        [
+          "Cumplimiento regulatorio",
+          "Mapeo de categoría GAMP a requisitos FDA, EU Annex 11, ANMAT",
+          "Alta — referencia normativa"
+        ],
+        [
+          "Auditorías internas / externas",
+          "Los reportes se presentan como evidencia de decisiones de categorización en auditorías",
+          "Media-Alta"
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "FUNCIONES CRÍTICAS GxP",
+      "columnas": [
+        "Función",
+        "Impacto GxP",
+        "Criticidad",
+        "Verif. OQ"
+      ],
+      "widths": [
+        125,
+        195,
+        70,
+        65
+      ],
+      "filas": [
+        [
+          "Autenticación y control de acceso",
+          "Garantiza que solo usuarios autorizados categoricen sistemas",
+          "Crítica",
+          "Sí"
+        ],
+        [
+          "Cuestionario adaptativo de categorización",
+          "Determina la categoría GAMP que define la estrategia de validación",
+          "Crítica",
+          "Sí"
+        ],
+        [
+          "Generación de reporte PDF",
+          "Produce evidencia auditable con valor regulatorio",
+          "Crítica",
+          "Sí"
+        ],
+        [
+          "Integridad SHA-256 + QR",
+          "Garantiza inalterabilidad del documento — clave para 21 CFR Part 11 y ANMAT Punto 13",
+          "Crítica",
+          "Sí"
+        ],
+        [
+          "Índice de confianza ≥ 90%",
+          "Asegura que la categorización tiene base suficiente para ser auditable",
+          "Alta",
+          "Sí"
+        ],
+        [
+          "Audit trail de accesos",
+          "Registro de quién accedió, cuándo y desde qué IP — requisito ANMAT Punto 9",
+          "Alta",
+          "Sí"
+        ],
+        [
+          "Bloqueo de cuenta (3 intentos)",
+          "Control de acceso — mitigación de acceso no autorizado",
+          "Alta",
+          "Sí"
+        ],
+        [
+          "Timeout de sesión 30 minutos",
+          "Control de sesión inactiva",
+          "Media",
+          "Sí"
+        ]
+      ]
+    },
+    {
+      "tipo": "tarjeta-gap",
+      "id": "GAP-001",
+      "titulo": "Inconsistencia documental: intentos de bloqueo",
+      "severidad": "MENOR",
+      "severidadLabel": "NC Menor",
+      "norma": "ANMAT 4159/2023 Punto 9",
+      "descripcion": "El Manual de Usuario (MAN-GAMP-CAT-001) indica bloqueo de cuenta tras 3 intentos fallidos, mientras que el SOP de Administración (SOP-ADM-GAMP-001) indica 5 intentos. El sistema real implementa el bloqueo a los 5 intentos.",
+      "control": "Corregir SOP-ADM-GAMP-001 Sección 6.3 para que indique '3 intentos' en consistencia con el Manual y la implementación real. Aprobación de la corrección requerida antes del cierre de validación.",
+      "impacto": "Bajo. No afecta la funcionalidad de seguridad; solo inconsistencia documental."
+    },
+    {
+      "tipo": "tarjeta-gap",
+      "id": "GAP-002",
+      "titulo": "Sin firma electrónica nativa",
+      "severidad": "MAYOR",
+      "severidadLabel": "GAP Mayor — Aceptado con control compensatorio",
+      "norma": "ANMAT 4159/2023 Punto 9 | 21 CFR Part 11 Subpart C",
+      "descripcion": "El sistema no implementa firma electrónica nativa. Las firmas del ejecutor y revisor en el reporte PDF (Página 4) son campos de texto, no firmas electrónicas reguladas según 21 CFR Part 11 Subpart C.",
+      "control": "(1) Firma manuscrita del ejecutor y revisor sobre reporte PDF impreso. (2) La integridad del documento queda garantizada por el hash SHA-256 generado en el momento de creación, previo a la firma. (3) El SOP-USO-GAMP-001 establece el procedimiento de archivo controlado. (4) Se excluye explícitamente la aplicación de 21 CFR Part 11 Subpart C §11.200 en la MCN, con justificación documentada.",
+      "aceptacion": "Firma del Process Owner y Gerente QA sobre este documento."
+    },
+    {
+      "tipo": "tarjeta-gap",
+      "id": "GAP-003",
+      "titulo": "Reportes GxP no almacenados en el sistema",
+      "severidad": "MAYOR",
+      "severidadLabel": "GAP Mayor — Aceptado con control compensatorio",
+      "norma": "ANMAT 4159/2023 Punto 7.1 — Integridad y retención de datos",
+      "descripcion": "El sistema genera reportes PDF auditables pero no los almacena internamente. Por razones de seguridad documental y modelo de negocio (versión gratuita), la responsabilidad del archivo recae en el cliente/usuario.",
+      "control": "(1) El SHA-256 garantiza integridad del documento independientemente del medio de almacenamiento. (2) El SOP-USO-GAMP-001 Sección 8.3 define procedimiento de archivo controlado (servidor de calidad, SharePoint o QMS). (3) La MCN documentará explícitamente la responsabilidad del cliente sobre la retención según política corporativa y ciclo de vida del sistema."
+    },
+    {
+      "tipo": "tarjeta-gap",
+      "id": "GAP-004",
+      "titulo": "Autenticación de dos factores (2FA) no implementada",
+      "severidad": "MENOR",
+      "severidadLabel": "GAP Menor — Aceptado con control compensatorio",
+      "norma": "ANMAT 4159/2023 Punto 12 | EU Annex 11 Punto 12",
+      "descripcion": "Las guías regulatorias recomiendan autenticación robusta. El 2FA está en el roadmap de la versión Pro del sistema pero no está disponible en la versión actual.",
+      "control": "(1) Política de contraseñas con complejidad mínima documentada en SOP-ADM. (2) Timeout de sesión de 30 minutos. (3) Bloqueo automático tras 3 intentos fallidos. (4) Registro de todos los accesos con fecha, hora e IP. (5) Acceso restringido a panel de administración.",
+      "impacto": "Para GAMP 3 con RA = 32 (Bajo-Medio), los controles compensatorios son proporcionados y aceptables."
+    },
+    {
+      "tipo": "texto",
+      "titulo": "ESTRATEGIA DE VALIDACIÓN",
+      "bloques": [
+        {
+          "subtitulo": "11.1 Enfoque General",
+          "texto": "La validación del DRP-GAMP Categorizador™ se realizará bajo un enfoque prospectivo basado en riesgo, conforme a los lineamientos de GAMP 5 Segunda Edición para sistemas GAMP 3. La estrategia se basa en:",
+          "bullets": [
+            "Confianza en el Testing del vendor para las funciones estándar del producto",
+            "Verificación funcional de las funciones críticas GxP identificadas en la Sección 9",
+            "Documentación de los GAPs y sus controles compensatorios (Sección 10)",
+            "Testing basado en riesgo: mayor cobertura para funciones críticas, testing reducido para funciones de menor impacto"
+          ]
+        }
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "Documentos de la Validación",
+      "columnas": [
+        "#",
+        "Código",
+        "Documento",
+        "Responsable"
+      ],
+      "widths": [
+        25,
+        110,
+        200,
+        120
+      ],
+      "filas": [
+        [
+          "1",
+          "HLRA-DRP-SIS-001",
+          "High Level Risk Assessment",
+          "Ana Pérez"
+        ],
+        [
+          "2",
+          "VP-DRP-SIS-001",
+          "Plan de Validación",
+          "Ana Pérez"
+        ],
+        [
+          "3",
+          "URS-DRP-SIS-001",
+          "User Requirements Specification",
+          "Ana Pérez"
+        ],
+        [
+          "4",
+          "RA-DRP-SIS-001",
+          "Risk Assessment (operativo)",
+          "Ana Pérez"
+        ],
+        [
+          "5",
+          "IRA-DRP-SIS-001",
+          "Installation Risk Assessment (componentes)",
+          "Ana Pérez"
+        ],
+        [
+          "6",
+          "PIQ-DRP-SIS-001 y 002",
+          "Protocolo de Calificación de Instalación",
+          "Ana Pérez"
+        ],
+        [
+          "7",
+          "POQ-DRP-SIS-001 y 002",
+          "Protocolo de Calificación Operacional",
+          "Ana Pérez"
+        ],
+        [
+          "8",
+          "MCN-DRP-SIS-001",
+          "Matriz de Cumplimiento Normativo",
+          "Ana Pérez"
+        ],
+        [
+          "9",
+          "MTR-DRP-SIS-001",
+          "Matriz de trazabilidad de requerimientos",
+          "Ana Pérez"
+        ],
+        [
+          "10",
+          "RIQ-DRP-SIS-001",
+          "Reporte de Calificación de Instalación",
+          "Ana Pérez"
+        ]
+      ]
+    },
+    {
+      "tipo": "caja-conclusion",
+      "titulo": "CONCLUSIÓN",
+      "parrafos": [
+        "El sistema DRP-GAMP Categorizador™ (DRP-SIS-001) ha sido analizado y categorizado como GAMP 3 — Software Estándar Comercial desde la perspectiva del cliente/usuario final, conforme a la metodología GAMP 5 Segunda Edición (2022) y los lineamientos de ANMAT 4159/2023 Anexo VI.",
+        "El IRO (Índice de Riesgo Operativo) calculado es 32 (Nivel BAJO-MEDIO), lo que indica que la validación requerida es proporcional al riesgo: testing funcional de las funciones críticas identificadas, con énfasis en la integridad de los reportes (SHA-256/QR), el control de acceso y el audit trail.",
+        "Se identificaron 4 GAPs regulatorios (1 menor, 2 mayores, 1 menor), todos con controles compensatorios documentados y aceptables para GAMP 3. Ningún GAP es bloqueante para continuar con la validación."
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": [
+        "Código / Referencia",
+        "Título"
+      ],
+      "widths": [
+        180,
+        275
+      ],
+      "filas": [
+        [
+          "MAN-GAMP-CAT-001 v1.0",
+          "Manual de Usuario — DRP-GAMP Categorizador™"
+        ],
+        [
+          "SOP-USO-GAMP-001 v1.0",
+          "Procedimiento de Uso del Sistema DRP-GAMP Categorizador™"
+        ],
+        [
+          "SOP-ADM-GAMP-001 v1.0",
+          "Procedimiento de Administración del Sistema DRP-GAMP Categorizador™"
+        ],
+        [
+          "ANMAT 4159/2023 Anexo VI",
+          "Guía de Buenas Prácticas de Sistemas Informatizados — ANMAT Argentina"
+        ],
+        [
+          "GAMP 5 — 2da Ed. 2022",
+          "Good Practice Guide: A Risk-Based Approach to Compliant GxP Computerized Systems (ISPE)"
+        ],
+        [
+          "ICH Q9 R1 (2023)",
+          "Quality Risk Management"
+        ],
+        [
+          "21 CFR Part 11",
+          "Electronic Records; Electronic Signatures (FDA)"
+        ],
+        [
+          "EU Annex 11",
+          "Computerised Systems (EMA, revisión 2011)"
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de este documento. La trazabilidad legal queda registrada en el log de DocuSign adjunto al paquete de validación.",
+      "firmas": [],
+      "rolesPlaceholder": [
+        "Ejecutor (Validador)",
+        "Revisor (Process Owner)",
+        "Aprobador (Jefe de Validaciones)",
+        "Aprobador (Gerente QA)"
+      ],
+      "nota": "Documento sujeto a firma electrónica. La firma manuscrita en este recuadro solo aplica como respaldo físico cuando no es viable la firma digital."
+    }
+  ]
+}

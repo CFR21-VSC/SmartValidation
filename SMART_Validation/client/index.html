@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SMART Validation — Suite de Revisión</title>
+
+  <script src="/lib/pdfmake.min.js"></script>
+  <script src="/lib/vfs_fonts.js"></script>
+  <script src="/js/validation-suite/core/template-base.js"></script>
+  <script src="/js/validation-suite/core/shared-renderers.js"></script>
+  <script src="/js/validation-suite/core/document-renderer.js"></script>
+  <script src="/js/validation-suite/templates/_iq-shared.js"></script>
+  <script src="/js/validation-suite/templates/hlra.js"></script>
+  <script src="/js/validation-suite/templates/vp.js"></script>
+  <script src="/js/validation-suite/templates/urs.js"></script>
+  <script src="/js/validation-suite/templates/frs.js"></script>
+  <script src="/js/validation-suite/templates/ds.js"></script>
+  <script src="/js/validation-suite/templates/ra.js"></script>
+  <script src="/js/validation-suite/templates/ira.js"></script>
+  <script src="/js/validation-suite/templates/rrm.js"></script>
+  <script src="/js/validation-suite/templates/mtr.js"></script>
+  <script src="/js/validation-suite/templates/piq.js"></script>
+  <script src="/js/validation-suite/templates/iiq.js"></script>
+  <script src="/js/validation-suite/templates/poq.js"></script>
+  <script src="/js/validation-suite/templates/ioq.js"></script>
+  <script src="/js/validation-suite/templates/ppq.js"></script>
+  <script src="/js/validation-suite/templates/ipq.js"></script>
+  <script src="/js/validation-suite/templates/ncr.js"></script>
+  <script src="/js/validation-suite/templates/release-report.js"></script>
+  <script src="/js/validation-suite/templates/vsr.js"></script>
+  <script src="/js/validation-suite/templates/aex.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #0b1621; color: #dde6f0; min-height: 100vh; }
+    .app { max-width: 960px; margin: 0 auto; padding: 20px 16px; }
+
+    .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; padding:12px 18px; background:#0f1e2e; border:1px solid #1e3550; border-radius:12px; }
+    .header-brand { font-size:10px; color:#3a6a9a; text-transform:uppercase; letter-spacing:1.2px; margin-bottom:2px; }
+    .header-user  { font-size:14px; font-weight:600; color:#eef3f8; }
+
+    .screen { display:none; }
+    .screen.active { display:block; }
+
+    /* Cards */
+    .card { background:#0f1e2e; border:1px solid #1e3550; border-radius:12px; padding:16px 18px; margin-bottom:10px; cursor:pointer; transition:border-color .15s,background .15s; }
+    .card:hover { border-color:#2a6aaa; background:#132030; }
+    .card.no-hover { cursor:default; }
+    .card.no-hover:hover { border-color:#1e3550; background:#0f1e2e; }
+    .card-title { font-weight:600; font-size:14px; color:#eef3f8; }
+    .card-sub   { font-size:12px; color:#7a9ab8; margin-top:3px; }
+    .card-meta  { font-size:11px; color:#4a6a86; margin-top:2px; }
+    .card-row   { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+
+    /* Badges */
+    .badge { display:inline-block; padding:3px 9px; border-radius:5px; font-size:10px; font-weight:700; letter-spacing:.4px; text-transform:uppercase; flex-shrink:0; }
+    .badge-draft        { background:#162030; color:#4a6a86; border:1px solid #1e3550; }
+    .badge-for_review   { background:#1a2a08; color:#7ac449; border:1px solid #2a4a10; }
+    .badge-reviewed     { background:#0e2540; color:#5aaade; border:1px solid #1e4070; }
+    .badge-approved     { background:#0e2820; color:#27c459; border:1px solid #1e4830; }
+    .badge-needs_revision { background:#2a1808; color:#e8943a; border:1px solid #4a2808; }
+    .badge-pending      { background:#1a1808; color:#c4a427; border:1px solid #3a2808; }
+    .badge-signed       { background:#0e2820; color:#27c459; border:1px solid #1e4830; }
+    .badge-cancelled    { background:#2a1520; color:#e87a8a; border:1px solid #5a2030; }
+
+    /* PIN setup */
+    .pin-wrap { display:flex; align-items:center; justify-content:center; min-height:80vh; }
+    .pin-card { background:#0f1e2e; border:1px solid #1e3550; border-radius:16px; padding:40px 36px; width:100%; max-width:380px; text-align:center; }
+    .pin-icon  { width:52px; height:52px; background:linear-gradient(135deg,#1a6e3e,#27a459); border-radius:14px; display:inline-flex; align-items:center; justify-content:center; font-size:24px; margin-bottom:18px; }
+    .pin-title { font-size:18px; font-weight:700; color:#eef3f8; margin-bottom:5px; }
+    .pin-desc  { font-size:13px; color:#4a6a86; margin-bottom:24px; line-height:1.5; }
+    .pin-label { font-size:11px; color:#4a6a86; text-align:left; margin-bottom:5px; text-transform:uppercase; letter-spacing:.8px; }
+    .pin-field { width:100%; background:#0b1621; border:1.5px solid #1e3550; border-radius:10px; padding:11px 14px; font-size:20px; letter-spacing:8px; color:#eef3f8; outline:none; text-align:center; margin-bottom:14px; transition:border-color .15s; }
+    .pin-field:focus { border-color:#27a459; }
+
+    /* Buttons */
+    .btn { padding:10px 20px; border-radius:9px; border:none; font-size:13px; font-weight:600; cursor:pointer; transition:opacity .15s; }
+    .btn:disabled { opacity:.45; cursor:not-allowed; }
+    .btn-primary { background:#27a459; color:#fff; }
+    .btn-primary:hover:not(:disabled) { opacity:.88; }
+    .btn-full { width:100%; margin-top:8px; }
+    .btn-ghost { background:transparent; border:1px solid #1e3550; color:#5a7a96; }
+    .btn-ghost:hover { border-color:#2a5a8a; color:#dde6f0; }
+    .btn-blue  { background:#1a5aaa; color:#fff; }
+    .btn-blue:hover:not(:disabled)  { opacity:.88; }
+    .btn-warn  { background:#8a3a10; color:#fff; }
+    .btn-warn:hover:not(:disabled) { opacity:.88; }
+    .btn-sm { padding:7px 14px; font-size:12px; }
+
+    .alert { padding:10px 13px; border-radius:8px; font-size:13px; margin:8px 0; line-height:1.4; }
+    .alert-error   { background:#2a1520; border:1px solid #5a2030; color:#e87a8a; }
+    .alert-success { background:#0e2820; border:1px solid #1a5a30; color:#5ace88; }
+    .alert-warn    { background:#2a1a08; border:1px solid #5a3a10; color:#e8a45a; }
+
+    .back-btn { display:inline-flex; align-items:center; gap:5px; color:#3a6a9a; font-size:13px; font-weight:500; cursor:pointer; margin-bottom:16px; border:none; background:none; padding:0; }
+    .back-btn:hover { color:#dde6f0; }
+
+    .section-title { font-size:17px; font-weight:700; color:#eef3f8; margin-bottom:3px; }
+    .section-sub   { font-size:13px; color:#4a6a86; margin-bottom:18px; }
+
+    /* Pending dashboard */
+    .pending-group { margin-bottom:24px; }
+    .pending-group-title { font-size:11px; font-weight:700; color:#3a8ace; text-transform:uppercase; letter-spacing:.8px; margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid #1a3050; }
+    .pending-status-row { display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap; }
+
+    /* PDF viewer */
+    .doc-toolbar { display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+    .doc-toolbar-title { flex:1; font-size:16px; font-weight:700; color:#eef3f8; min-width:0; }
+    .pdf-wrap { background:#06101a; border:1px solid #1e3550; border-radius:12px; overflow:hidden; margin-bottom:16px; min-height:400px; display:flex; align-items:center; justify-content:center; }
+    .pdf-wrap iframe { width:100%; height:72vh; border:none; display:block; }
+    .pdf-msg { color:#3a6a9a; font-size:13px; padding:40px; text-align:center; }
+    .pdf-err { color:#e87a8a; font-size:13px; padding:40px; text-align:center; }
+
+    /* Panels */
+    .panel { background:#0f1e2e; border:1px solid #1e3550; border-radius:12px; margin-bottom:14px; overflow:hidden; }
+    .panel-hdr { padding:13px 18px; font-size:12px; font-weight:700; color:#3a8ace; text-transform:uppercase; letter-spacing:.8px; border-bottom:1px solid #1a3050; }
+    .panel-body { padding:16px 18px; }
+
+    /* Comments */
+    .comment-item { border-bottom:1px solid #132030; padding:10px 0; }
+    .comment-item:last-child { border-bottom:none; }
+    .comment-meta { font-size:11px; color:#4a6a86; margin-bottom:4px; }
+    .comment-body { font-size:13px; color:#b8cce0; line-height:1.5; white-space:pre-wrap; }
+    .comment-form { margin-top:12px; border-top:1px solid #1a3050; padding-top:12px; }
+    .form-label { font-size:11px; color:#4a6a86; text-transform:uppercase; letter-spacing:.7px; display:block; margin-bottom:5px; }
+    .form-select, .form-input, .form-textarea {
+      width:100%; background:#0b1621; border:1.5px solid #1e3550; border-radius:8px;
+      padding:9px 12px; font-size:13px; color:#dde6f0; outline:none; font-family:inherit;
+      transition:border-color .15s; margin-bottom:10px;
+    }
+    .form-select:focus, .form-input:focus, .form-textarea:focus { border-color:#2a6aaa; }
+    .form-textarea { resize:vertical; min-height:60px; }
+    .form-pin { font-size:20px; letter-spacing:8px; text-align:center; }
+
+    /* Modal */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:1000; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal-box { background:#0f1e2e; border:1px solid #1e3550; border-radius:16px; padding:30px 26px; width:100%; max-width:400px; }
+    .modal-title { font-size:16px; font-weight:700; color:#eef3f8; margin-bottom:4px; }
+    .modal-desc  { font-size:13px; color:#4a6a86; margin-bottom:20px; line-height:1.4; }
+    .modal-actions { display:flex; gap:10px; margin-top:4px; }
+
+    .placeholder { text-align:center; padding:48px 16px; color:#3a5a76; font-size:14px; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- PIN Setup -->
+  <div id="screen-pin" class="screen">
+    <div class="pin-wrap">
+      <div class="pin-card">
+        <div class="pin-icon">🔐</div>
+        <div class="pin-title">Configurar PIN de acceso</div>
+        <div class="pin-desc">Establecé un PIN numérico de 6 a 8 dígitos. Lo usarás para firmar documentos.</div>
+        <div id="pin-error" class="alert alert-error" style="display:none"></div>
+        <div class="pin-label">Nuevo PIN</div>
+        <input id="pin-new" type="password" inputmode="numeric" maxlength="8" class="pin-field" placeholder="••••••" oninput="this.value=this.value.replace(/\D/g,'')">
+        <div class="pin-label">Confirmar PIN</div>
+        <input id="pin-confirm" type="password" inputmode="numeric" maxlength="8" class="pin-field" placeholder="••••••" oninput="this.value=this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter')submitPin()">
+        <button class="btn btn-primary btn-full" onclick="submitPin()">Establecer PIN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="screen-dashboard" class="screen">
+    <div class="header">
+      <div>
+        <div class="header-brand">SMART Validation — Suite de Revisión y Aprobación</div>
+        <div class="header-user" id="hdr-user"></div>
+      </div>
+      <button class="btn btn-ghost" onclick="logout()">Cerrar sesión</button>
+    </div>
+    <div id="dashboard-body"><div class="placeholder">Cargando...</div></div>
+  </div>
+
+  <!-- Document List -->
+  <div id="screen-docs" class="screen">
+    <div class="header">
+      <div>
+        <div class="header-brand">SMART Validation — Suite de Revisión y Aprobación</div>
+        <div class="header-user" id="hdr-user-docs"></div>
+      </div>
+      <button class="btn btn-ghost" onclick="logout()">Cerrar sesión</button>
+    </div>
+    <button class="back-btn" onclick="goDashboard()">&#8592; Inicio</button>
+    <div class="section-title" id="docs-title"></div>
+    <div class="section-sub" id="docs-sub"></div>
+    <div id="doc-list"><div class="placeholder">Cargando...</div></div>
+  </div>
+
+  <!-- Document Viewer -->
+  <div id="screen-doc" class="screen">
+    <div class="header">
+      <div>
+        <div class="header-brand">SMART Validation — Suite de Revisión y Aprobación</div>
+        <div class="header-user" id="hdr-user-doc"></div>
+      </div>
+      <button class="btn btn-ghost" onclick="logout()">Cerrar sesión</button>
+    </div>
+    <button class="back-btn" onclick="goDocs()">&#8592; Documentos</button>
+
+    <div class="doc-toolbar">
+      <div class="doc-toolbar-title" id="doc-title-bar"></div>
+      <div id="doc-meta-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"></div>
+      <button class="btn btn-ghost btn-sm" onclick="downloadPdf()" id="btn-download" style="display:none">⬇ PDF</button>
+    </div>
+
+    <!-- Estado de la ronda -->
+    <div id="round-status-bar" style="display:none"></div>
+
+    <!-- PDF -->
+    <div class="pdf-wrap" id="pdf-wrap">
+      <div class="pdf-msg">Generando documento...</div>
+    </div>
+
+    <!-- Acciones de firma -->
+    <div id="sign-actions-panel" style="display:none"></div>
+
+    <!-- Mis comentarios -->
+    <div class="panel">
+      <div class="panel-hdr">💬 Mis observaciones</div>
+      <div class="panel-body">
+        <div id="comments-list"><div style="color:#4a6a86;font-size:13px;">Cargando...</div></div>
+        <div class="comment-form">
+          <label class="form-label">Sección referenciada (opcional)</label>
+          <select id="comment-section" class="form-select"></select>
+          <label class="form-label">Observación</label>
+          <textarea id="comment-input" class="form-textarea" placeholder="Escribí tu observación o sugerencia sobre este documento..." maxlength="2000"></textarea>
+          <button class="btn btn-primary btn-sm" onclick="submitComment()" id="btn-comment">Agregar observación</button>
+          <div id="comment-error" class="alert alert-error" style="display:none;margin-top:8px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal: Firmar -->
+<div id="modal-sign" class="modal-overlay" onclick="if(event.target===this)closeModal('sign')">
+  <div class="modal-box">
+    <div class="modal-title">✍ Confirmar firma</div>
+    <div class="modal-desc" id="sign-modal-desc">Ingresá tu PIN para firmar este documento como <strong id="sign-role-label"></strong>.</div>
+    <div id="sign-error" class="alert alert-error" style="display:none;margin-bottom:12px;"></div>
+    <label class="form-label">PIN</label>
+    <input id="sign-pin" type="password" inputmode="numeric" maxlength="8" class="form-input form-pin" placeholder="••••••" oninput="this.value=this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter')submitSign()">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('sign')" style="flex:1">Cancelar</button>
+      <button class="btn btn-primary" onclick="submitSign()" id="btn-sign-submit" style="flex:2">Firmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Solicitar revisión -->
+<div id="modal-revision" class="modal-overlay" onclick="if(event.target===this)closeModal('revision')">
+  <div class="modal-box">
+    <div class="modal-title">🔄 Solicitar revisión</div>
+    <div class="modal-desc">Indicá qué debe corregirse. Esto cancela la ronda actual y notifica al administrador.</div>
+    <div id="revision-error" class="alert alert-error" style="display:none;margin-bottom:12px;"></div>
+    <label class="form-label">Motivo de la revisión</label>
+    <textarea id="revision-reason" class="form-textarea" placeholder="Describí qué debe cambiarse en el documento..." maxlength="1000" style="min-height:90px;"></textarea>
+    <label class="form-label">PIN de confirmación</label>
+    <input id="revision-pin" type="password" inputmode="numeric" maxlength="8" class="form-input form-pin" placeholder="••••••" oninput="this.value=this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter')submitRevision()">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('revision')" style="flex:1">Cancelar</button>
+      <button class="btn btn-warn" onclick="submitRevision()" id="btn-revision-submit" style="flex:2">Solicitar revisión</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const S = {
+  user: null,
+  projId: null, projName: null,
+  docType: null, pdfBlobUrl: null,
+  activeRound: null,  // ronda abierta del doc actual
+};
+
+const DOC_NAMES = {
+  HLRA:'HLRA — Análisis de Riesgo de Alto Nivel', VP:'VP — Plan de Validación',
+  URS:'URS — Requisitos de Usuario', FRS:'FRS — Requisitos Funcionales',
+  DS:'DS — Especificación de Diseño', RA:'RA — Análisis de Riesgos',
+  IRA:'IRA — Análisis de Impacto y Riesgo', RRM:'RRM — Medidas de Reducción',
+  MTR:'MTR — Reporte Maestro de Tests', PIQ:'PIQ — Protocolo IQ', POQ:'POQ — Protocolo OQ',
+  PPQ:'PPQ — Protocolo PQ', IIQ:'IIQ — Informe IQ', IOQ:'IOQ — Informe OQ', IPQ:'IPQ — Informe PQ',
+  RIQ:'RIQ — Decisión IQ', ROQ:'ROQ — Decisión OQ', RPQ:'RPQ — Decisión PQ',
+  NCR:'NCR — No Conformidad', VSR:'VSR — Reporte de Validación',
+};
+
+function badge(status) {
+  const map = {
+    draft:'Borrador', for_review:'En revisión', reviewed:'Revisado',
+    approved:'Aprobado', needs_revision:'Necesita revisión',
+    open:'Abierta', sealed:'Sellada', cancelled:'Cancelada',
+    pending:'Pendiente', signed:'Firmado',
+  };
+  return `<span class="badge badge-${status}">${map[status] || status}</span>`;
+}
+
+function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function fmtDate(ts) { return ts ? new Date(ts*1000).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'}) : '—'; }
+function fmtDT(ts)   { return ts ? new Date(ts*1000).toLocaleString('es-AR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'; }
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(`screen-${id}`).classList.add('active');
+}
+
+function openModal(id) { document.getElementById(`modal-${id}`).classList.add('open'); }
+function closeModal(id) { document.getElementById(`modal-${id}`).classList.remove('open'); }
+
+async function api(method, path, body) {
+  try {
+    const opts = { method, credentials:'include', headers:{} };
+    if (body !== undefined) { opts.body = JSON.stringify(body); opts.headers['Content-Type']='application/json'; }
+    const resp = await fetch(path, opts);
+    if (resp.status === 401) { location.href = '/login.html'; return null; }
+    return resp.json();
+  } catch { return null; }
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+async function init() {
+  const r = await api('GET', '/auth/session');
+  if (!r || !r.ok) { location.href = '/login.html'; return; }
+  if (r.role !== 'client') { location.href = '/'; return; }
+  S.user = r;
+  document.querySelectorAll('[id^="hdr-user"]').forEach(el => el.textContent = r.displayName || r.username);
+  if (!r.pin_set) { show('pin'); return; }
+  goDashboard();
+}
+
+// ── PIN setup ──────────────────────────────────────────────────────────────
+async function submitPin() {
+  const pin = document.getElementById('pin-new').value.trim();
+  const conf = document.getElementById('pin-confirm').value.trim();
+  const err  = document.getElementById('pin-error');
+  err.style.display = 'none';
+  if (pin.length < 6 || !/^\d+$/.test(pin)) { err.textContent='PIN de 6 a 8 dígitos numéricos.'; err.style.display='block'; return; }
+  if (pin !== conf) { err.textContent='Los PINs no coinciden.'; err.style.display='block'; return; }
+  const r = await api('POST', '/api/me/pin', { pin });
+  if (!r?.ok) { err.textContent = r?.error || 'Error.'; err.style.display='block'; return; }
+  S.user.pin_set = true;
+  goDashboard();
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────────────
+async function goDashboard() {
+  show('dashboard');
+  const body = document.getElementById('dashboard-body');
+  body.innerHTML = '<div class="placeholder">Cargando...</div>';
+
+  const [pendingR, projR] = await Promise.all([
+    api('GET', '/api/me/pending-signatures'),
+    api('GET', '/api/projects'),
+  ]);
+
+  const html = [];
+
+  // Pendientes de firma
+  const pending = pendingR?.pending || [];
+  const unactioned = pending.filter(p => !p.signed_at && !p.my_revision_at);
+
+  if (unactioned.length) {
+    html.push(`<div class="pending-group"><div class="pending-group-title">⏳ Pendiente de tu firma (${unactioned.length})</div>`);
+    unactioned.forEach(p => {
+      const name = DOC_NAMES[p.doc_type] || p.doc_type;
+      html.push(`
+        <div class="card" onclick="goDoc('${esc(p.project_id)}','${esc(p.project_name)}','${esc(p.doc_type)}','${esc(p.round_id)}')">
+          <div class="card-row">
+            <div style="min-width:0;">
+              <div class="card-title">${esc(name)}</div>
+              <div class="card-sub">${esc(p.project_name)}</div>
+              <div class="card-meta">Tu rol: <strong style="color:#dde6f0;">${esc(p.role_label)}</strong> · Iniciada ${fmtDT(p.created_at)}</div>
+            </div>
+            ${badge('pending')}
+          </div>
+        </div>`);
+    });
+    html.push('</div>');
+  } else {
+    html.push(`<div class="pending-group"><div class="pending-group-title">✅ Sin pendientes de firma</div><div style="color:#4a6a86;font-size:13px;padding:8px 0;">No tenés documentos esperando tu firma en este momento.</div></div>`);
+  }
+
+  // Proyectos
+  const projects = projR?.projects || [];
+  if (projects.length) {
+    html.push(`<div class="pending-group"><div class="pending-group-title">📁 Mis proyectos</div>`);
+    projects.forEach(p => {
+      html.push(`
+        <div class="card" onclick="goDocs('${esc(p.id)}','${esc(p.name)}')">
+          <div class="card-row">
+            <div style="min-width:0;">
+              <div class="card-title">${esc(p.name)}</div>
+              ${p.system_name ? `<div class="card-sub">${esc(p.system_name)}</div>` : ''}
+              ${p.cliente ? `<div class="card-meta">${esc(p.cliente)}</div>` : ''}
+            </div>
+            <div class="card-meta" style="text-align:right;flex-shrink:0;">Act. ${fmtDate(p.updated_at)}</div>
+          </div>
+        </div>`);
+    });
+    html.push('</div>');
+  }
+
+  body.innerHTML = html.join('') || '<div class="placeholder">Sin actividad.</div>';
+}
+
+// ── Docs ───────────────────────────────────────────────────────────────────
+async function goDocs(projId, projName) {
+  if (projId) { S.projId = projId; S.projName = projName; }
+  show('docs');
+  document.getElementById('docs-title').textContent = S.projName;
+  document.getElementById('docs-sub').textContent = 'Documentos del proyecto';
+  document.getElementById('hdr-user-docs').textContent = S.user?.displayName || S.user?.username || '';
+
+  const el = document.getElementById('doc-list');
+  el.innerHTML = '<div class="placeholder">Cargando...</div>';
+
+  const [docsR, roundsR] = await Promise.all([
+    api('GET', `/api/projects/${S.projId}/documents`),
+    api('GET', `/api/projects/${S.projId}/signing-rounds`),
+  ]);
+
+  if (!docsR?.ok) { el.innerHTML = '<div class="placeholder">Error al cargar documentos.</div>'; return; }
+  if (!docsR.documents?.length) { el.innerHTML = '<div class="placeholder">Sin documentos disponibles.</div>'; return; }
+
+  // Indexar rondas abiertas por doc_type
+  const openRounds = {};
+  (roundsR?.rounds || []).forEach(r => { if (r.status === 'open') openRounds[r.doc_type] = r; });
+
+  el.innerHTML = '';
+  docsR.documents.forEach(doc => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    const name = DOC_NAMES[doc.doc_type] || doc.doc_type;
+    const rnd = openRounds[doc.doc_type];
+    const roundTag = rnd
+      ? `<span class="badge badge-for_review" style="cursor:pointer;" title="Ronda abierta">Firma ${rnd.my_signed_at ? '✓' : 'pendiente'}</span>`
+      : '';
+    div.innerHTML = `
+      <div class="card-row">
+        <div style="min-width:0;">
+          <div class="card-title">${esc(name)}</div>
+          <div class="card-meta">v${doc.version||1} · ${fmtDate(doc.updated_at)}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">${roundTag}${badge(doc.status)}</div>
+      </div>`;
+    div.onclick = () => goDoc(S.projId, S.projName, doc.doc_type, rnd?.id || null);
+    el.appendChild(div);
+  });
+}
+
+// ── Doc viewer ─────────────────────────────────────────────────────────────
+async function goDoc(projId, projName, docType, roundId) {
+  if (projId) { S.projId = projId; S.projName = projName; }
+  if (docType) S.docType = docType;
+  S.activeRound = null;
+  show('doc');
+  document.getElementById('hdr-user-doc').textContent = S.user?.displayName || S.user?.username || '';
+  document.getElementById('doc-title-bar').textContent = DOC_NAMES[S.docType] || S.docType;
+  document.getElementById('doc-meta-bar').innerHTML = '';
+  document.getElementById('btn-download').style.display = 'none';
+  document.getElementById('round-status-bar').style.display = 'none';
+  document.getElementById('sign-actions-panel').style.display = 'none';
+
+  if (S.pdfBlobUrl) { URL.revokeObjectURL(S.pdfBlobUrl); S.pdfBlobUrl = null; }
+  const pdfWrap = document.getElementById('pdf-wrap');
+  pdfWrap.innerHTML = '<div class="pdf-msg">Generando documento...</div>';
+
+  // Cargar doc + ronda en paralelo
+  const [docR, roundsR] = await Promise.all([
+    api('GET', `/api/projects/${S.projId}/documents/${S.docType}`),
+    api('GET', `/api/projects/${S.projId}/signing-rounds`),
+  ]);
+
+  if (!docR?.ok) { pdfWrap.innerHTML = '<div class="pdf-err">Error al cargar el documento.</div>'; return; }
+
+  const doc = docR.document;
+  document.getElementById('doc-meta-bar').innerHTML =
+    badge(doc.status) +
+    `<span style="font-size:12px;color:#4a6a86;">v${doc.version||1}</span>` +
+    `<span style="font-size:12px;color:#4a6a86;">${fmtDate(doc.updated_at)}</span>`;
+
+  // Resolver ronda activa
+  const rounds = roundsR?.rounds || [];
+  let activeRound = roundId
+    ? rounds.find(r => r.id === roundId)
+    : rounds.find(r => r.doc_type === S.docType && r.status === 'open');
+
+  if (activeRound) {
+    const roundDetail = await api('GET', `/api/projects/${S.projId}/signing-rounds/${activeRound.id}`);
+    if (roundDetail?.ok) {
+      S.activeRound = roundDetail;
+      renderRoundStatus(roundDetail);
+    }
+  }
+
+  // Render PDF
+  let rawJson = doc.content || doc.json_data;
+  if (typeof rawJson === 'string') { try { rawJson = JSON.parse(rawJson); } catch(_) { rawJson = null; } }
+  const renderData = (rawJson?.data?.type) ? rawJson.data : rawJson;
+
+  // Secciones para comentarios
+  populateSections((renderData?.secciones || renderData?.sections) || []);
+
+  if (renderData && window.ValidationSuite?.renderDocument && renderData.type) {
+    try {
+      const blob = await ValidationSuite.renderDocument(renderData, { download: false });
+      S.pdfBlobUrl = URL.createObjectURL(blob);
+      pdfWrap.innerHTML = `<iframe src="${S.pdfBlobUrl}" title="${esc(DOC_NAMES[S.docType]||S.docType)}"></iframe>`;
+      document.getElementById('btn-download').style.display = '';
+    } catch(e) {
+      pdfWrap.innerHTML = `<div class="pdf-err">No se pudo generar el PDF.<br><small style="color:#4a6a86;">${esc(String(e.message||e))}</small></div>`;
+    }
+  } else {
+    pdfWrap.innerHTML = '<div class="pdf-err">Renderer no disponible para este tipo de documento.</div>';
+  }
+
+  loadComments();
+}
+
+function renderRoundStatus(detail) {
+  const rnd = detail.round;
+  const signers = detail.signers || [];
+  const bar = document.getElementById('round-status-bar');
+  const actPanel = document.getElementById('sign-actions-panel');
+
+  // Mi entrada en la ronda
+  const me = signers[0]; // El revisor solo ve su propia fila
+
+  let statusHtml = '';
+  if (me) {
+    if (me.signed_at) {
+      statusHtml = `<div class="alert alert-success" style="margin-bottom:12px;">✅ Firmaste este documento como <strong>${esc(me.role_label)}</strong> el ${fmtDT(me.signed_at)}.</div>`;
+    } else if (me.revision_requested_at) {
+      statusHtml = `<div class="alert alert-warn" style="margin-bottom:12px;">🔄 Solicitaste revisión el ${fmtDT(me.revision_requested_at)}.<br><small>${esc(me.revision_reason||'')}</small></div>`;
+    } else {
+      statusHtml = `<div class="alert" style="background:#0d1e32;border:1px solid #1e4070;color:#5aaade;margin-bottom:12px;">⏳ Pendiente de tu firma como <strong>${esc(me.role_label)}</strong>.</div>`;
+    }
+  }
+  bar.innerHTML = statusHtml;
+  bar.style.display = '';
+
+  // Acciones
+  if (me && !me.signed_at && !me.revision_requested_at) {
+    actPanel.innerHTML = `
+      <div style="display:flex;gap:10px;margin-bottom:16px;">
+        <button class="btn btn-blue" style="flex:1;" onclick="openSignModal('${esc(me.role_label)}')">✍ Firmar como ${esc(me.role_label)}</button>
+        <button class="btn btn-warn" style="flex:1;" onclick="openRevisionModal()">🔄 Solicitar revisión</button>
+      </div>`;
+    actPanel.style.display = '';
+  }
+}
+
+// ── PDF download ───────────────────────────────────────────────────────────
+function downloadPdf() {
+  if (!S.pdfBlobUrl) return;
+  const a = document.createElement('a');
+  a.href = S.pdfBlobUrl;
+  a.download = `${S.docType}-${S.projId}.pdf`;
+  a.click();
+}
+
+// ── Comments ───────────────────────────────────────────────────────────────
+function populateSections(secciones) {
+  const sel = document.getElementById('comment-section');
+  while (sel.options.length > 1) sel.remove(1);
+  secciones.forEach((s, i) => {
+    const lbl = s.titulo || s.title || s.nombre || `Sección ${i+1}`;
+    const opt = document.createElement('option');
+    opt.value = lbl; opt.textContent = lbl;
+    sel.appendChild(opt);
+  });
+}
+
+async function loadComments() {
+  const el = document.getElementById('comments-list');
+  const r = await api('GET', `/api/projects/${S.projId}/documents/${S.docType}/comments`);
+  if (!r?.ok) { el.innerHTML = '<div style="color:#4a6a86;font-size:13px;">No se pudieron cargar.</div>'; return; }
+  if (!r.comments?.length) {
+    el.innerHTML = '<div style="color:#4a6a86;font-size:13px;">Sin observaciones registradas todavía.</div>';
+    return;
+  }
+  el.innerHTML = r.comments.map(c => {
+    const secTag = c.section_ref
+      ? `<span style="background:#0d2040;border:1px solid #1a4070;color:#5aaade;font-size:10px;font-weight:600;padding:1px 7px;border-radius:4px;margin-left:6px;">§ ${esc(c.section_ref)}</span>`
+      : '';
+    return `<div class="comment-item">
+      <div class="comment-meta">${fmtDT(c.created_at)}${secTag}</div>
+      <div class="comment-body">${esc(c.body)}</div>
+    </div>`;
+  }).join('');
+}
+
+async function submitComment() {
+  const input = document.getElementById('comment-input');
+  const secEl = document.getElementById('comment-section');
+  const errEl = document.getElementById('comment-error');
+  const btn   = document.getElementById('btn-comment');
+  const body  = input.value.trim();
+  errEl.style.display = 'none';
+  if (!body) return;
+  btn.disabled = true;
+  const r = await api('POST', `/api/projects/${S.projId}/documents/${S.docType}/comments`, {
+    body, section_ref: secEl?.value || null,
+  });
+  btn.disabled = false;
+  if (!r?.ok) { errEl.textContent = r?.error || 'Error.'; errEl.style.display='block'; return; }
+  input.value = '';
+  if (secEl) secEl.value = '';
+  loadComments();
+}
+
+// ── Sign ───────────────────────────────────────────────────────────────────
+function openSignModal(roleLabel) {
+  document.getElementById('sign-role-label').textContent = roleLabel;
+  document.getElementById('sign-pin').value = '';
+  document.getElementById('sign-error').style.display = 'none';
+  document.getElementById('btn-sign-submit').disabled = false;
+  document.getElementById('btn-sign-submit').textContent = 'Firmar';
+  openModal('sign');
+  setTimeout(() => document.getElementById('sign-pin').focus(), 100);
+}
+
+async function submitSign() {
+  const pin   = document.getElementById('sign-pin').value.trim();
+  const errEl = document.getElementById('sign-error');
+  const btn   = document.getElementById('btn-sign-submit');
+  errEl.style.display = 'none';
+  if (!pin || pin.length < 4) { errEl.textContent='Ingresá tu PIN (mínimo 4 dígitos).'; errEl.style.display='block'; return; }
+  btn.disabled = true; btn.textContent = 'Verificando...';
+  const r = await api('POST', `/api/projects/${S.projId}/signing-rounds/${S.activeRound.round.id}/sign`, { pin });
+  btn.disabled = false; btn.textContent = 'Firmar';
+  if (!r?.ok) { errEl.textContent = r?.error || 'Error al firmar.'; errEl.style.display='block'; return; }
+  closeModal('sign');
+  // Refrescar vista del doc para mostrar estado actualizado
+  await goDoc(null, null, null, S.activeRound.round.id);
+  // Éxito
+  const bar = document.getElementById('round-status-bar');
+  const msg = document.createElement('div');
+  msg.className = 'alert alert-success';
+  msg.style.marginBottom = '12px';
+  msg.textContent = 'Documento firmado correctamente.';
+  bar.prepend(msg);
+  setTimeout(() => msg.remove(), 5000);
+}
+
+// ── Revision request ───────────────────────────────────────────────────────
+function openRevisionModal() {
+  document.getElementById('revision-reason').value = '';
+  document.getElementById('revision-pin').value = '';
+  document.getElementById('revision-error').style.display = 'none';
+  document.getElementById('btn-revision-submit').disabled = false;
+  openModal('revision');
+  setTimeout(() => document.getElementById('revision-reason').focus(), 100);
+}
+
+async function submitRevision() {
+  const reason = document.getElementById('revision-reason').value.trim();
+  const pin    = document.getElementById('revision-pin').value.trim();
+  const errEl  = document.getElementById('revision-error');
+  const btn    = document.getElementById('btn-revision-submit');
+  errEl.style.display = 'none';
+  if (!reason) { errEl.textContent='Indicá el motivo de la revisión.'; errEl.style.display='block'; return; }
+  if (!pin || pin.length < 4) { errEl.textContent='Ingresá tu PIN.'; errEl.style.display='block'; return; }
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  const r = await api('POST', `/api/projects/${S.projId}/signing-rounds/${S.activeRound.round.id}/request-revision`, { reason, pin });
+  btn.disabled = false; btn.textContent = 'Solicitar revisión';
+  if (!r?.ok) { errEl.textContent = r?.error || 'Error.'; errEl.style.display='block'; return; }
+  closeModal('revision');
+  await goDoc(null, null, null, null);
+}
+
+// ── Logout ─────────────────────────────────────────────────────────────────
+async function logout() {
+  await api('POST', '/auth/logout');
+  location.href = '/login.html';
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,3500 @@
+{
+  "schemaVersion": "1.0",
+  "type": "POQ",
+  "package": {
+    "code": "DRP-SIS-001",
+    "systemName": "DRP-GAMP Categorizador™",
+    "systemVersion": "1.1",
+    "systemSubtitle": "Sistema de Categorización GAMP 5",
+    "client": "Emara SRL",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": 2026
+  },
+  "document": {
+    "code": "POQ-DRP-SIS-001",
+    "titleEs": "PROTOCOLO DE CALIFICACIÓN OPERACIONAL",
+    "titleEn": "OPERATIONAL QUALIFICATION PROTOCOL (POQ)",
+    "headerTitle": "Protocolo de Calificación Operacional (POQ)",
+    "version": "1.0",
+    "issueDate": "Marzo 2026",
+    "status": "Aprobado",
+    "processOwner": "Ana Pérez",
+    "gampCategory": "GAMP 3 — Software Estándar Configurable",
+    "normativeFramework": "ANMAT 4159/2023 | 21 CFR Part 11 | EU Annex 11 | GAMP 5 §8.3 | FDA CSA 2022",
+    "extras": {
+      "URL Sistema": "https://categorizador.example.com/",
+      "Documento base (RA)": "RA-DRP-SIS-001 v1.0 — 24 riesgos funcionales",
+      "Total TCs OQ": "47 TCs (24 CRÍTICO / 13 ALTO / 5 MEDIO / 5 NF)",
+      "TCs negativos": "2 (TC-OQ-020, TC-OQ-023)",
+      "Pre-requisito": "PIQ-DRP-SIS-001 v1.0 aprobado (15/15 TCs PASS)"
+    }
+  },
+  "controlCambios": [
+    {
+      "version": "1.0",
+      "fecha": "Mar 2026",
+      "autor": "Ana Pérez — Process Owner / Validador",
+      "descripcion": "Emisión inicial. 47 TCs OQ generados con enfoque CSA aplicado a comportamiento operacional. Basado en URS-DRP-SIS-001 v1.0 + RA-DRP-SIS-001 v1.0."
+    }
+  ],
+  "matrizAprobaciones": [
+    {
+      "rol": "Redactor (Validador)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "15/03/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-03-15T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "15/03/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-03-15T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    },
+    {
+      "rol": "Aprobador (Jefe de Validaciones)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "15/03/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-03-15T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "15/03/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-03-15T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    }
+  ],
+  "trazabilidad": {
+    "schemaVersion": "2.0",
+    "recibeDe": [
+      {
+        "tipo": "URS",
+        "code": "URS-DRP-SIS-001",
+        "version": "v1.0",
+        "fechaCongelado": "01/03/2026",
+        "items": [
+          "URS-001",
+          "URS-002",
+          "URS-003",
+          "URS-004",
+          "URS-005",
+          "URS-006",
+          "URS-007",
+          "URS-008",
+          "URS-009",
+          "URS-010",
+          "URS-011",
+          "URS-012",
+          "URS-013",
+          "URS-015",
+          "URS-016",
+          "URS-017",
+          "URS-018",
+          "URS-019",
+          "URS-020",
+          "URS-021",
+          "URS-022",
+          "URS-023",
+          "URS-024",
+          "URS-025",
+          "URS-026",
+          "URS-027",
+          "URS-028",
+          "URS-029",
+          "URS-030",
+          "URS-031",
+          "URS-032",
+          "URS-033",
+          "URS-034",
+          "URS-035",
+          "URS-036",
+          "URS-037",
+          "URS-038",
+          "URS-039",
+          "URS-040",
+          "URS-041",
+          "URS-042",
+          "URS-043",
+          "URS-044",
+          "URS-045",
+          "URS-046",
+          "URS-047",
+          "URS-048",
+          "URS-049",
+          "URS-050",
+          "URS-NF-001",
+          "URS-NF-002",
+          "URS-NF-003",
+          "URS-NF-004",
+          "URS-NF-005"
+        ],
+        "itemsCount": 54,
+        "estado": "aprobado",
+        "_auto": true
+      },
+      {
+        "tipo": "RA",
+        "code": "RA-DRP-SIS-001",
+        "version": "v1.0",
+        "fechaCongelado": "01/03/2026",
+        "items": [
+          "RA-001",
+          "RA-002",
+          "RA-003",
+          "RA-004",
+          "RA-005",
+          "RA-006",
+          "RA-007",
+          "RA-008",
+          "RA-009",
+          "RA-010",
+          "RA-011",
+          "RA-012",
+          "RA-013",
+          "RA-014",
+          "RA-015",
+          "RA-016",
+          "RA-017",
+          "RA-018",
+          "RA-019",
+          "RA-020",
+          "RA-021",
+          "RA-022",
+          "RA-023",
+          "RA-024"
+        ],
+        "itemsCount": 24,
+        "estado": "aprobado",
+        "_auto": true
+      }
+    ],
+    "alimentaA": [
+      "IOQ",
+      "ROQ",
+      "PPQ"
+    ]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO Y OBJETIVO",
+      "bloques": [
+        {
+          "texto": "El presente Protocolo de Calificación Operacional (POQ) tiene por objeto verificar y documentar que el sistema DRP-GAMP Categorizador™ v1.1 (DRP-SIS-001) opera correctamente de acuerdo con los requerimientos funcionales y no funcionales documentados en el URS-DRP-SIS-001 v1.0 y los riesgos operativos identificados en el RA-DRP-SIS-001 v1.0."
+        },
+        {
+          "texto": "La Calificación Operacional (OQ) demuestra que todas las funcionalidades del sistema (autenticación, roles, cuestionario adaptativo GAMP, generación de reportes PDF, trazabilidad SHA-256 y portal de verificación) cumplen con los criterios de aceptación previamente definidos y que el sistema es apto para uso productivo según el alcance del paquete de validación."
+        },
+        {
+          "texto": "Enfoque metodológico: este protocolo aplica los principios de Computer Software Assurance (CSA, FDA 2022) adaptados a verificación de comportamiento operacional. Los Test Cases se estructuran con procedimiento numerado (3-8 pasos típicos por TC) acompañado de un criterio de aceptación consolidado al pie. Se incluyen 2 TCs negativos (TC-OQ-020, TC-OQ-023) que verifican que el sistema rechaza correctamente las acciones inválidas — cobertura mínima de seguridad y validación de inputs."
+        },
+        {
+          "texto": "Pre-requisito obligatorio: PIQ-DRP-SIS-001 v1.0 aprobado con 15/15 TCs PASS antes de iniciar la ejecución del POQ. Sin la aprobación formal del PIQ, los hallazgos del OQ no se pueden trazar a infraestructura calificada."
+        }
+      ]
+    },
+    {
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido",
+      "incluido": [
+        "55 requerimientos de usuario (URS-001 al URS-050 + URS-NF-001 al URS-NF-005) del URS-DRP-SIS-001 v1.0.",
+        "47 Test Cases organizados en 8 grupos funcionales: Autenticación y Seguridad de Acceso, Roles y Permisos, Registro, Cuestionario Adaptativo GAMP, Asistente GAMPI y Analytics, Reporte PDF, SHA-256 y Portal QR, Infraestructura y No Funcionales.",
+        "2 TCs negativos (TC-OQ-020, TC-OQ-023) — cobertura de seguridad/validación de inputs.",
+        "Distribución por nivel: 24 CRÍTICO + 13 ALTO + 5 MEDIO + 5 NF (No Funcionales)."
+      ],
+      "subExcluido": "2.2 Excluido",
+      "excluido": [
+        "Verificaciones de instalación física (cubiertas en PIQ).",
+        "Pruebas de carga/stress (no aplica para GAMP 3 según política de DRP Assurance).",
+        "Integración con sistemas externos (no existe en v1.0).",
+        "Performance Qualification (PQ) — fuera del alcance del paquete inicial."
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DOCUMENTOS DE REFERENCIA",
+      "columnas": [
+        "Documento",
+        "Título y Versión"
+      ],
+      "widths": [
+        180,
+        275
+      ],
+      "filas": [
+        [
+          "HLRA-DRP-SIS-001 v1.0",
+          "High Level Risk Assessment — DRP-GAMP Categorizador™"
+        ],
+        [
+          "URS-DRP-SIS-001 v1.0",
+          "Especificación de Requerimientos de Usuario (50 URS + 5 NF)"
+        ],
+        [
+          "RA-DRP-SIS-001 v1.0",
+          "Análisis de Riesgo Funcional (24 riesgos operativos)"
+        ],
+        [
+          "IRA-DRP-SIS-001 v1.0",
+          "Análisis de Riesgo de Infraestructura (16 componentes)"
+        ],
+        [
+          "MCN-DRP-SIS-001 v1.0",
+          "Matriz de Cumplimiento Normativo (4 GAPs documentados)"
+        ],
+        [
+          "PIQ-DRP-SIS-001 v1.0",
+          "Protocolo de Calificación de Instalación (15 TCs — APROBADO)"
+        ],
+        [
+          "PV-DRP-SIS-001 v1.0",
+          "Plan de Validación"
+        ],
+        [
+          "MAN-GAMP-CAT-001 v1.0",
+          "Manual de Usuario del Sistema"
+        ],
+        [
+          "SOP-ADM-GAMP-001 v1.0",
+          "SOP de Administración del Sistema"
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla-info",
+      "titulo": "CONDICIONES DE EJECUCIÓN",
+      "labelWidth": 165,
+      "filas": [
+        {
+          "campo": "Ambiente",
+          "valor": "Productivo (https://categorizador.example.com/). Sistema en estado operacional completo. PIQ aprobado."
+        },
+        {
+          "campo": "Pre-requisitos",
+          "valor": "PIQ-DRP-SIS-001 aprobado (15/15 TCs PASS). Cuentas de prueba creadas para cada rol. Acceso al panel admin activo. Navegadores Chrome, Brave y Edge disponibles. Gestor de Evidencias 3.0 configurado."
+        },
+        {
+          "campo": "Herramientas",
+          "valor": "Navegador web (Chrome/Brave/Edge). Visor PDF. Herramienta de cálculo SHA-256. Lector QR. Editor PDF para pruebas de integridad. Gestor de Evidencias 3.0."
+        },
+        {
+          "campo": "Cuentas de prueba",
+          "valor": "contacto@example.com (Usuario Final) · bloqueo_test@example.com (prueba bloqueo) · primer_acceso@example.com (primer login) · admin (Administrador con credencial independiente) · deact_test@example.com (desactivación)."
+        },
+        {
+          "campo": "Criterio global",
+          "valor": "100% de TCs con resultado PASS. TCs negativos: PASS si el sistema rechaza correctamente la acción inválida. Cualquier FAIL requiere NC documentada y CAPA antes de aprobar el OQ.",
+          "boldValor": true,
+          "colorValor": "primary"
+        }
+      ]
+    },
+    {
+      "tipo": "matriz-tc",
+      "titulo": "RESUMEN DE TEST CASES OQ",
+      "intro": "Listado consolidado de los 47 Test Cases organizados por grupo funcional. Los TCs negativos (TC-OQ-020 y TC-OQ-023) se identifican explícitamente y verifican rechazo correcto del sistema. El detalle de cada TC con su procedimiento numerado y criterio de aceptación se desarrolla en la sección siguiente.",
+      "columnasVisibles": [
+        "tcId",
+        "titulo",
+        "grupo",
+        "tipoTC",
+        "raScore",
+        "nivel",
+        "ursVinculados"
+      ],
+      "tcs": [
+        {
+          "tcId": "TC-OQ-001",
+          "titulo": "Login con credenciales válidas e inválidas",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-001"
+          ],
+          "raVinculado": "RA-001"
+        },
+        {
+          "tcId": "TC-OQ-002",
+          "titulo": "Expiración de sesión — timeout 24 horas (versión demo)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-002",
+            "URS-003"
+          ],
+          "raVinculado": "RA-002"
+        },
+        {
+          "tcId": "TC-OQ-003",
+          "titulo": "Bloqueo de cuenta al 5to intento fallido",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-003"
+          ],
+          "raVinculado": "RA-003"
+        },
+        {
+          "tcId": "TC-OQ-004",
+          "titulo": "Cambio de contraseña obligatorio en primer acceso",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-004"
+          ],
+          "raVinculado": "RA-004"
+        },
+        {
+          "tcId": "TC-OQ-005",
+          "titulo": "Recuperación de contraseña por email",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-005"
+          ],
+          "raVinculado": "RA-005"
+        },
+        {
+          "tcId": "TC-OQ-006",
+          "titulo": "Audit trail de intentos de acceso",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-006"
+          ],
+          "raVinculado": "RA-006"
+        },
+        {
+          "tcId": "TC-OQ-007",
+          "titulo": "Re-autenticación al ingresar al panel admin",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-007"
+          ],
+          "raVinculado": "RA-007"
+        },
+        {
+          "tcId": "TC-OQ-008",
+          "titulo": "Acceso panel admin con credencial independiente",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-008"
+          ],
+          "raVinculado": "RA-008"
+        },
+        {
+          "tcId": "TC-OQ-009",
+          "titulo": "Creación y gestión de cuentas de usuario",
+          "tipoTC": "POSITIVO",
+          "grupo": "Roles y Permisos",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-009"
+          ],
+          "raVinculado": "RA-009"
+        },
+        {
+          "tcId": "TC-OQ-010",
+          "titulo": "Permisos del rol Usuario Final",
+          "tipoTC": "POSITIVO",
+          "grupo": "Roles y Permisos",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-010"
+          ],
+          "raVinculado": "RA-010"
+        },
+        {
+          "tcId": "TC-OQ-011",
+          "titulo": "Desactivación de cuenta preserva historial",
+          "tipoTC": "POSITIVO",
+          "grupo": "Roles y Permisos",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-011"
+          ],
+          "raVinculado": "RA-011"
+        },
+        {
+          "tcId": "TC-OQ-012",
+          "titulo": "Permisos del rol Administrador",
+          "tipoTC": "POSITIVO",
+          "grupo": "Roles y Permisos",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-012"
+          ],
+          "raVinculado": "RA-012"
+        },
+        {
+          "tcId": "TC-OQ-013",
+          "titulo": "Desactivación de cuenta — verificación de bloqueo de acceso",
+          "tipoTC": "POSITIVO",
+          "grupo": "Roles y Permisos",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-013"
+          ],
+          "raVinculado": "RA-013"
+        },
+        {
+          "tcId": "TC-OQ-014",
+          "titulo": "Políticas de contraseña por rol",
+          "tipoTC": "POSITIVO",
+          "grupo": "Roles y Permisos",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-015",
+            "URS-016"
+          ],
+          "raVinculado": "RA-014"
+        },
+        {
+          "tcId": "TC-OQ-015",
+          "titulo": "Formulario de registro del sistema",
+          "tipoTC": "POSITIVO",
+          "grupo": "Registro",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-017",
+            "URS-018",
+            "URS-019",
+            "URS-020"
+          ],
+          "raVinculado": "RA-015"
+        },
+        {
+          "tcId": "TC-OQ-016",
+          "titulo": "Validación de campos obligatorios",
+          "tipoTC": "POSITIVO",
+          "grupo": "Registro",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-020"
+          ],
+          "raVinculado": "RA-016"
+        },
+        {
+          "tcId": "TC-OQ-017",
+          "titulo": "Cuestionario adaptativo 3-5 preguntas",
+          "tipoTC": "POSITIVO",
+          "grupo": "Cuestionario GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-021",
+            "URS-022"
+          ],
+          "raVinculado": "RA-017"
+        },
+        {
+          "tcId": "TC-OQ-018",
+          "titulo": "Lógica condicional en pregunta Q2",
+          "tipoTC": "POSITIVO",
+          "grupo": "Cuestionario GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-023"
+          ],
+          "raVinculado": "RA-018"
+        },
+        {
+          "tcId": "TC-OQ-019",
+          "titulo": "Presentación de pregunta Q3 — GxP",
+          "tipoTC": "POSITIVO",
+          "grupo": "Cuestionario GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-024"
+          ],
+          "raVinculado": "RA-019"
+        },
+        {
+          "tcId": "TC-OQ-020",
+          "titulo": "NO se genera resultado si confianza < 90%",
+          "tipoTC": "NEGATIVO",
+          "grupo": "Cuestionario GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-025"
+          ],
+          "raVinculado": "RA-020"
+        },
+        {
+          "tcId": "TC-OQ-021",
+          "titulo": "Colores del índice de confianza",
+          "tipoTC": "POSITIVO",
+          "grupo": "Cuestionario GAMP",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-026"
+          ],
+          "raVinculado": "RA-021"
+        },
+        {
+          "tcId": "TC-OQ-022",
+          "titulo": "Contenido de la pantalla de resultado",
+          "tipoTC": "POSITIVO",
+          "grupo": "Cuestionario GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-027"
+          ],
+          "raVinculado": "RA-022"
+        },
+        {
+          "tcId": "TC-OQ-023",
+          "titulo": "Categoría GAMP 2 NUNCA asignada",
+          "tipoTC": "NEGATIVO",
+          "grupo": "Cuestionario GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-028"
+          ],
+          "raVinculado": "RA-023"
+        },
+        {
+          "tcId": "TC-OQ-024",
+          "titulo": "Asistente GAMPI — columna izquierda",
+          "tipoTC": "POSITIVO",
+          "grupo": "GAMPI y Analytics",
+          "raScore": 12,
+          "nivel": "MEDIO",
+          "ursVinculados": [
+            "URS-029",
+            "URS-030"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-025",
+          "titulo": "Casos similares en GAMPI",
+          "tipoTC": "POSITIVO",
+          "grupo": "GAMPI y Analytics",
+          "raScore": 12,
+          "nivel": "MEDIO",
+          "ursVinculados": [
+            "URS-031"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-026",
+          "titulo": "Monitor de Analytics — columna derecha",
+          "tipoTC": "POSITIVO",
+          "grupo": "GAMPI y Analytics",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-032",
+            "URS-033"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-027",
+          "titulo": "Manejo de error en consulta fallida del asistente",
+          "tipoTC": "POSITIVO",
+          "grupo": "GAMPI y Analytics",
+          "raScore": 12,
+          "nivel": "MEDIO",
+          "ursVinculados": [
+            "URS-034"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-028",
+          "titulo": "Reporte PDF — 4 páginas exactas",
+          "tipoTC": "POSITIVO",
+          "grupo": "Reporte PDF",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-035"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-029",
+          "titulo": "Nombre del archivo PDF — formato estandarizado",
+          "tipoTC": "POSITIVO",
+          "grupo": "Reporte PDF",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-036"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-030",
+          "titulo": "Contenido de la Página 1 del PDF",
+          "tipoTC": "POSITIVO",
+          "grupo": "Reporte PDF",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-037"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-031",
+          "titulo": "Página 4 del PDF — firmas y almacenamiento",
+          "tipoTC": "POSITIVO",
+          "grupo": "Reporte PDF",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-038",
+            "URS-039"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-032",
+          "titulo": "Hash SHA-256 único e invariable",
+          "tipoTC": "POSITIVO",
+          "grupo": "SHA-256 y Portal QR",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-040"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-033",
+          "titulo": "Portal QR — acceso y funcionalidad",
+          "tipoTC": "POSITIVO",
+          "grupo": "SHA-256 y Portal QR",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-041"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-034",
+          "titulo": "Portal QR — resultado VÁLIDO con SHA correcto",
+          "tipoTC": "POSITIVO",
+          "grupo": "SHA-256 y Portal QR",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-042"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-035",
+          "titulo": "Portal QR — metadatos del reporte",
+          "tipoTC": "POSITIVO",
+          "grupo": "SHA-256 y Portal QR",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-043"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-036",
+          "titulo": "Disponibilidad — uptime 99.5%",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-044"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-037",
+          "titulo": "Cifrado TLS — HTTPS obligatorio",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-045"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-038",
+          "titulo": "Cifrado de base de datos AES-256",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-046"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-039",
+          "titulo": "Compatibilidad de navegadores",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 12,
+          "nivel": "MEDIO",
+          "ursVinculados": [
+            "URS-047"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-040",
+          "titulo": "Backup automático diario",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-048"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-041",
+          "titulo": "Audit trail 21 CFR Part 11",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-049"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-042",
+          "titulo": "Mensajes de error estandarizados",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 12,
+          "nivel": "MEDIO",
+          "ursVinculados": [
+            "URS-050"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-043",
+          "titulo": "Política de seguridad (NF-001)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-NF-001"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-044",
+          "titulo": "Tiempo de respuesta del PDF < 10s (NF-002)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 12,
+          "nivel": "MEDIO",
+          "ursVinculados": [
+            "URS-NF-002"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-045",
+          "titulo": "Audit trail 21 CFR Part 11 (NF-003)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-NF-003"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-046",
+          "titulo": "Integridad de PDF post-generación (NF-004)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-NF-004"
+          ],
+          "raVinculado": "RA-024"
+        },
+        {
+          "tcId": "TC-OQ-047",
+          "titulo": "Backup completo diario (NF-005)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-NF-005"
+          ],
+          "raVinculado": "RA-024"
+        }
+      ]
+    },
+    {
+      "tipo": "tabla-test-case",
+      "titulo": "TEST CASES — OPERATIONAL QUALIFICATION",
+      "intro": "Cada Test Case define un procedimiento operacional con pasos numerados y resultado esperado por paso. Durante la ejecución (IOQ), cada paso se completa con su resultado real, screenshots, ejecutor, fecha y firma. El criterio de aceptación consolidado al pie de cada TC determina el PASS/FAIL global. Los TCs negativos (TC-OQ-020, TC-OQ-023) verifican que el sistema rechaza correctamente acciones inválidas — son PASS si el rechazo se observa.",
+      "agruparPorGrupo": true,
+      "schemaModo": "procedimiento",
+      "tcs": [
+        {
+          "tcId": "TC-OQ-001",
+          "titulo": "Login con credenciales válidas e inválidas",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "grupoFuncional": "Autenticación y Seguridad de Acceso",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-001"
+          ],
+          "raVinculado": "RA-001",
+          "objetivo": "Verificar que el sistema autentica correctamente con credenciales válidas y rechaza credenciales inválidas con mensaje genérico sin revelar datos sensibles.",
+          "precondiciones": [
+            "Sesión cerrada en navegador (modo incógnito o logout previo).",
+            "Usuario de prueba activo: contacto@example.com con contraseña válida configurada.",
+            "Credenciales inválidas (usuario inexistente o contraseña incorrecta) preparadas."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Abrir navegador y navegar a https://categorizador.example.com/",
+              "resultadoEsperado": "Pantalla de login visible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Ingresar usuario: contacto@example.com y contraseña válida. Hacer clic en 'Iniciar sesión'.",
+              "resultadoEsperado": "Login exitoso. Sistema redirige al dashboard."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Capturar screenshot del dashboard post-login con usuario autenticado visible.",
+              "resultadoEsperado": "Screenshot con sesión activa documentado."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Cerrar sesión. Navegar nuevamente a la pantalla de login.",
+              "resultadoEsperado": "Pantalla de login visible."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Ingresar credenciales inválidas (usuario inexistente o contraseña incorrecta). Hacer clic en 'Iniciar sesión'.",
+              "resultadoEsperado": "Sistema rechaza el acceso y muestra mensaje de error genérico."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Verificar que el mensaje de error NO revela si el usuario existe o cuál dato es incorrecto.",
+              "resultadoEsperado": "Mensaje genérico sin datos sensibles."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Capturar screenshot del mensaje de error con credenciales inválidas.",
+              "resultadoEsperado": "Screenshot del error documentado."
+            }
+          ],
+          "criterioAceptacion": "Login exitoso con credenciales válidas redirige al dashboard. Credenciales inválidas muestran mensaje de error genérico sin revelar si el usuario existe o cuál dato es incorrecto."
+        },
+        {
+          "tcId": "TC-OQ-002",
+          "titulo": "Expiración de sesión — timeout 24 horas (versión demo)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "grupoFuncional": "Autenticación y Seguridad de Acceso",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-002",
+            "URS-003"
+          ],
+          "raVinculado": "RA-002",
+          "objetivo": "Verificar que la sesión expira automáticamente a las 24 horas conforme a SESSION_COOKIE_AGE en la versión demo, y que dicha configuración está correctamente establecida.",
+          "precondiciones": [
+            "Acceso al panel de administración Django (/admin/) con credenciales de administrador.",
+            "Usuario de prueba activo: contacto@example.com."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Ingresar al panel admin Django (/admin/). Navegar a la sección de configuración de sesiones o verificar el valor SESSION_COOKIE_AGE configurado.",
+              "resultadoEsperado": "Parámetro SESSION_COOKIE_AGE visible o documentado en la configuración del sistema."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Registrar el valor de SESSION_COOKIE_AGE (valor esperado en versión demo: 86400 seg = 24 horas).",
+              "resultadoEsperado": "Valor de timeout de sesión registrado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Iniciar sesión en la aplicación con contacto@example.com. Registrar hora exacta de inicio.",
+              "resultadoEsperado": "Login exitoso. Hora de inicio registrada."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Verificar que la sesión permanece activa durante el período de trabajo del OQ sin expiración prematura.",
+              "resultadoEsperado": "Sesión activa durante uso normal. Sin redirección inesperada a login."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Capturar screenshot de la sesión activa junto con el valor de configuración de timeout documentado.",
+              "resultadoEsperado": "Screenshot de sesión activa + configuración de timeout documentados."
+            }
+          ],
+          "criterioAceptacion": "Parámetro SESSION_COOKIE_AGE = 86400 segundos (24 horas) documentado en la configuración del sistema. Sesión no expira prematuramente durante el período de ejecución del OQ.",
+          "notas": "VERSIÓN DEMO — el timeout de 24 horas es la configuración actual del sistema demo. En versión productiva GxP deberá reducirse a ≤30 minutos según política de seguridad organizacional. Ref. URS-002, RA-002."
+        },
+        {
+          "tcId": "TC-OQ-003",
+          "titulo": "Bloqueo de cuenta al 5to intento fallido",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "grupoFuncional": "Autenticación y Seguridad de Acceso",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-003"
+          ],
+          "raVinculado": "RA-003",
+          "objetivo": "Verificar que el sistema bloquea la cuenta automáticamente tras 5 intentos de login fallidos consecutivos, y que la cuenta bloqueada no permite acceso aunque la contraseña sea correcta.",
+          "precondiciones": [
+            "Cuenta de prueba activa: bloqueo_test@example.com.",
+            "Contraseña incorrecta preparada para los intentos fallidos."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Navegar a pantalla de login del sistema.",
+              "resultadoEsperado": "Pantalla de login visible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Ingresar bloqueo_test@example.com con contraseña INCORRECTA (intento 1).",
+              "resultadoEsperado": "Sistema rechaza. Cuenta activa (sin bloqueo)."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Repetir intentos fallidos con contraseña INCORRECTA (intentos 2, 3 y 4).",
+              "resultadoEsperado": "Sistema rechaza cada intento. Cuenta activa aún."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Ingresar bloqueo_test@example.com con contraseña INCORRECTA (intento 5).",
+              "resultadoEsperado": "Sistema bloquea la cuenta. Mensaje de bloqueo visible. Capturar screenshot."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Intentar ingresar bloqueo_test@example.com con contraseña CORRECTA (intento 6 post-bloqueo).",
+              "resultadoEsperado": "Sistema rechaza el acceso aunque la contraseña sea correcta (cuenta bloqueada). Capturar screenshot."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Verificar en panel admin Django que la cuenta bloqueo_test@example.com figura como 'Bloqueada' o 'Inactiva'.",
+              "resultadoEsperado": "Estado de cuenta = Bloqueada en el sistema."
+            }
+          ],
+          "criterioAceptacion": "Al 5to intento fallido consecutivo, la cuenta queda bloqueada automáticamente. Sistema muestra mensaje de bloqueo. 6to intento rechazado aunque la contraseña sea correcta. Estado 'Bloqueada' o 'Inactiva' confirmado en panel admin Django.",
+          "notas": "Desbloquear la cuenta bloqueo_test@example.com desde panel admin al finalizar el TC para no afectar TC-OQ-011."
+        },
+        {
+          "tcId": "TC-OQ-004",
+          "titulo": "Cambio de contraseña obligatorio en primer acceso",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "grupoFuncional": "Autenticación y Seguridad de Acceso",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-004"
+          ],
+          "raVinculado": "RA-004",
+          "objetivo": "Verificar que el sistema solicita cambio de contraseña obligatorio en el primer acceso del usuario, sin permitir acceso al dashboard hasta completar el cambio.",
+          "precondiciones": [
+            "Cuenta de primer acceso creada: primer_acceso@example.com.",
+            "Contraseña temporal asignada por administrador."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Navegar a pantalla de login del sistema.",
+              "resultadoEsperado": "Pantalla de login visible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Ingresar primer_acceso@example.com con contraseña temporal asignada. Hacer clic en 'Iniciar sesión'.",
+              "resultadoEsperado": "Sistema reconoce credenciales válidas pero redirige a pantalla de cambio de contraseña obligatorio (NO al dashboard)."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Capturar screenshot de la pantalla de cambio de contraseña obligatorio.",
+              "resultadoEsperado": "Screenshot de pantalla de cambio obligatorio documentado."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Ingresar nueva contraseña que cumpla la política (mínimo 8 caracteres, mayúscula, número, símbolo). Confirmar nueva contraseña y enviar.",
+              "resultadoEsperado": "Sistema acepta el cambio y redirige al dashboard."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Capturar screenshot de confirmación de cambio exitoso y acceso al sistema.",
+              "resultadoEsperado": "Screenshot de dashboard post-cambio documentado."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Cerrar sesión y re-ingresar con la nueva contraseña para verificar que el cambio es permanente.",
+              "resultadoEsperado": "Login exitoso con nueva contraseña. Sin solicitud adicional de cambio."
+            }
+          ],
+          "criterioAceptacion": "Al primer login, sistema redirige obligatoriamente a pantalla de cambio de contraseña. No se permite acceso al dashboard hasta completar el cambio. Nueva contraseña queda persistente para logins futuros."
+        },
+        {
+          "tcId": "TC-OQ-005",
+          "titulo": "Recuperación de contraseña por email (reset)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "grupoFuncional": "Autenticación y Seguridad de Acceso",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-005"
+          ],
+          "raVinculado": "RA-005",
+          "objetivo": "Verificar el flujo completo de recuperación de contraseña por email, incluyendo envío, recepción, validez del enlace y aceptación de nueva contraseña.",
+          "precondiciones": [
+            "Cuenta con email válido: contacto@example.com.",
+            "Acceso al buzón de email del usuario de prueba."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Navegar a pantalla de login y hacer clic en '¿Olvidaste tu contraseña?' o enlace equivalente.",
+              "resultadoEsperado": "Formulario de recuperación de contraseña visible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Ingresar contacto@example.com en el formulario y enviar solicitud de recuperación.",
+              "resultadoEsperado": "Sistema confirma envío de email de recuperación a la dirección registrada."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Registrar hora de solicitud. Abrir el buzón de email de contacto@example.com.",
+              "resultadoEsperado": "Buzón accesible. Esperar llegada del email."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Verificar que el email de recuperación fue recibido en ≤5 minutos.",
+              "resultadoEsperado": "Email recibido. Registrar hora de recepción y tiempo transcurrido."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Abrir el email y hacer clic en el enlace de recuperación de contraseña.",
+              "resultadoEsperado": "Enlace funcional. Sistema abre página de nueva contraseña."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Ingresar nueva contraseña válida y confirmar. Enviar el formulario.",
+              "resultadoEsperado": "Sistema acepta la nueva contraseña y confirma el cambio."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Capturar screenshot de confirmación de cambio de contraseña exitoso vía enlace de reset.",
+              "resultadoEsperado": "Screenshot de confirmación documentado."
+            }
+          ],
+          "criterioAceptacion": "Email de recuperación enviado en ≤5 minutos. Enlace funcional y con expiración. Nueva contraseña aceptada correctamente y queda activa para futuros logins."
+        },
+        {
+          "tcId": "TC-OQ-006",
+          "titulo": "Audit trail de sesiones y acciones de categorización",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "grupoFuncional": "Autenticación y Seguridad de Acceso",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-006"
+          ],
+          "raVinculado": "RA-006",
+          "objetivo": "Verificar que el audit trail registra correctamente los eventos de sesión (accesos exitosos y fallidos) y las acciones de categorización, conforme al alcance funcional implementado.",
+          "precondiciones": [
+            "Acceso al panel de administración Django (/admin/) con credenciales de administrador.",
+            "Múltiples eventos de login y categorizaciones ya realizados en TCs anteriores (TC-OQ-001, TC-OQ-003)."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Ingresar al panel de administración Django (/admin/) con credenciales de administrador.",
+              "resultadoEsperado": "Panel admin Django accesible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Navegar al módulo de Audit Trail o Registros del sistema.",
+              "resultadoEsperado": "Sección de audit trail visible con entradas existentes."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Localizar el registro del login exitoso de contacto@example.com (realizado en TC-OQ-001). Verificar que el registro contiene usuario y timestamp.",
+              "resultadoEsperado": "Registro de login exitoso visible con usuario y timestamp."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Capturar screenshot del registro de login exitoso con usuario y timestamp visibles.",
+              "resultadoEsperado": "Screenshot del registro de login exitoso documentado."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Localizar los registros de los intentos fallidos de bloqueo_test@example.com (TC-OQ-003). Verificar que están registrados con usuario y timestamp.",
+              "resultadoEsperado": "Registros de intentos fallidos visibles con usuario y timestamp."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Capturar screenshot de los registros de intentos fallidos de login.",
+              "resultadoEsperado": "Screenshot de intentos fallidos documentado."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Navegar al historial de categorizaciones. Verificar que cada categorización del OQ tiene registro con usuario, sistema evaluado, categoría GAMP asignada y timestamp.",
+              "resultadoEsperado": "Registros de categorización completos: usuario, sistema evaluado, categoría y timestamp presentes."
+            }
+          ],
+          "criterioAceptacion": "Audit trail contiene entrada por cada evento de sesión (login exitoso y fallido) con usuario y timestamp. Registros de categorización incluyen usuario, sistema evaluado, categoría asignada y timestamp. Registros inmutables, sin opciones de edición ni eliminación.",
+          "notas": "El audit trail registra los campos funcionales del alcance implementado (usuario, sistema evaluado, categoría). No registra IP en versión demo (fuera del alcance). Coherente con la arquitectura del sistema. Ref. 21 CFR Part 11 §11.10(e), URS-006, URS-049, RA-006."
+        },
+        {
+          "tcId": "TC-OQ-007",
+          "titulo": "Panel admin Django — credencial independiente al acceso de usuario",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "grupoFuncional": "Autenticación y Seguridad de Acceso",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-007"
+          ],
+          "raVinculado": "RA-007",
+          "objetivo": "Verificar que el panel /admin/ requiere autenticación con credencial específica de administrador, completamente independiente de las credenciales de los usuarios de la aplicación principal. La sesión activa de un usuario no otorga acceso al panel admin.",
+          "precondiciones": [
+            "Sesión activa de usuario estándar en la aplicación principal: contacto@example.com.",
+            "Credenciales de cuenta de administrador Django disponibles (creada con manage.py createsuperuser)."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Con sesión activa de contacto@example.com en la aplicación, abrir nueva pestaña y navegar a https://categorizador.example.com/admin/",
+              "resultadoEsperado": "Sistema muestra pantalla de login del panel admin Django, independiente de la sesión activa del usuario."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Capturar screenshot mostrando: pantalla de login admin en una pestaña y la sesión activa del usuario en otra.",
+              "resultadoEsperado": "Screenshot que evidencia la independencia entre sesión de usuario y acceso al panel admin documentado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Intentar ingresar al panel admin con las credenciales de contacto@example.com (usuario de la aplicación).",
+              "resultadoEsperado": "Sistema rechaza el acceso. Las credenciales de usuario de la aplicación NO son aceptadas en el panel admin Django."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Capturar screenshot del rechazo de credenciales de usuario estándar en el panel admin.",
+              "resultadoEsperado": "Screenshot del rechazo documentado."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Ingresar las credenciales de la cuenta de administrador Django (creada con createsuperuser).",
+              "resultadoEsperado": "Login al panel admin Django exitoso. Panel accesible."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Capturar screenshot del panel admin Django accesible con la cuenta de administrador.",
+              "resultadoEsperado": "Screenshot del panel admin Django con credencial admin documentado."
+            }
+          ],
+          "criterioAceptacion": "El panel /admin/ requiere credencial específica de administrador Django (usuario creado desde consola, independiente de la aplicación). Las credenciales de usuarios de la aplicación son rechazadas. La sesión activa de usuario en la aplicación NO otorga acceso automático al panel admin."
+        },
+        {
+          "tcId": "TC-OQ-008",
+          "titulo": "Panel admin Django — acceso restringido a credencial admin",
+          "tipoTC": "POSITIVO",
+          "grupo": "Autenticación y Seguridad",
+          "grupoFuncional": "Autenticación y Seguridad de Acceso",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-008"
+          ],
+          "raVinculado": "RA-008",
+          "objetivo": "Verificar que el panel /admin/ no es accesible sin autenticación, y solo es accesible con las credenciales de la cuenta de administrador Django.",
+          "precondiciones": [
+            "Cuenta de administrador Django configurada (manage.py createsuperuser).",
+            "URL del panel admin disponible: https://categorizador.example.com/admin/."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Navegar a https://categorizador.example.com/admin/ sin sesión activa (modo incógnito o sesión cerrada).",
+              "resultadoEsperado": "Sistema muestra pantalla de login del panel admin. No otorga acceso directo sin autenticación."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Capturar screenshot de la pantalla de login del panel admin Django sin acceso directo.",
+              "resultadoEsperado": "Screenshot de pantalla de login admin documentado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Intentar acceder directamente a una URL interna del admin (ej: /admin/auth/user/) sin autenticación.",
+              "resultadoEsperado": "Sistema redirige a la pantalla de login del admin. Acceso denegado sin autenticación."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Ingresar las credenciales de la cuenta de administrador Django. Confirmar acceso completo al panel.",
+              "resultadoEsperado": "Login exitoso. Panel de administración Django completamente funcional."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Capturar screenshot del panel admin accesible con credencial de administrador Django.",
+              "resultadoEsperado": "Screenshot del panel admin funcionando con credencial admin documentado."
+            }
+          ],
+          "criterioAceptacion": "Sin credenciales: acceso al panel admin denegado (pantalla de login). Con credenciales de administrador Django: acceso completo al panel. Sin posibilidad de acceder al panel sin autenticación específica de administrador."
+        },
+        {
+          "tcId": "TC-OQ-009",
+          "titulo": "Administración Django — creación y gestión de cuentas de usuario",
+          "tipoTC": "POSITIVO",
+          "grupo": "Roles y Permisos",
+          "grupoFuncional": "Gestión de Usuarios y Contraseñas",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-009"
+          ],
+          "raVinculado": "RA-009",
+          "objetivo": "Verificar que el panel admin Django permite al administrador crear, modificar y desactivar cuentas de usuario de la aplicación. El sistema implementa un único tipo de usuario con acceso homogéneo a las funciones de categorización.",
+          "precondiciones": [
+            "Acceso al panel admin Django (/admin/) con credenciales de administrador."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Ingresar al panel admin Django. Navegar a la sección de gestión de usuarios de la aplicación.",
+              "resultadoEsperado": "Panel admin accesible. Lista de usuarios de la aplicación visible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Crear un nuevo usuario de prueba: prueba_oq09@example.com. Asignar contraseña temporal.",
+              "resultadoEsperado": "Usuario creado exitosamente. Visible en la lista de usuarios."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Capturar screenshot del nuevo usuario creado en la lista de usuarios del panel admin Django.",
+              "resultadoEsperado": "Screenshot del usuario creado documentado."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Verificar que el nuevo usuario puede iniciar sesión en la aplicación con sus credenciales. Capturar screenshot.",
+              "resultadoEsperado": "Login del nuevo usuario exitoso en la aplicación."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Desde el panel admin Django, modificar el email del usuario prueba_oq09@example.com. Guardar.",
+              "resultadoEsperado": "Modificación aplicada correctamente. Cambio visible en la lista de usuarios."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Desactivar la cuenta prueba_oq09@example.com (campo Active = False). Guardar cambios.",
+              "resultadoEsperado": "Cuenta marcada como inactiva en el panel admin."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Verificar que prueba_oq09@example.com aparece como inactivo. Capturar screenshot.",
+              "resultadoEsperado": "Screenshot del usuario con estado inactivo documentado."
+            },
+            {
+              "paso": 8,
+              "instruccion": "Intentar iniciar sesión en la aplicación con prueba_oq09@example.com. Verificar rechazo.",
+              "resultadoEsperado": "Sistema rechaza el login. Mensaje de cuenta inactiva visible."
+            }
+          ],
+          "criterioAceptacion": "El administrador puede crear, modificar y desactivar cuentas de usuario desde el panel admin Django. Cuentas desactivadas no permiten autenticación en la aplicación. La gestión de usuarios es exclusiva del panel de administración Django."
+        },
+        {
+          "tcId": "TC-OQ-010",
+          "titulo": "Acceso homogéneo de usuario — funciones de categorización disponibles",
+          "tipoTC": "POSITIVO",
+          "grupo": "Roles y Permisos",
+          "grupoFuncional": "Gestión de Usuarios y Contraseñas",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-010"
+          ],
+          "raVinculado": "RA-010",
+          "objetivo": "Verificar que cualquier usuario autenticado tiene acceso a las funciones core de categorización: registrar sistema, ejecutar cuestionario, ver resultados y descargar reporte PDF. No existen restricciones de rol entre usuarios de la aplicación.",
+          "precondiciones": [
+            "Usuario activo: contacto@example.com."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Iniciar sesión con contacto@example.com. Verificar que el dashboard está accesible.",
+              "resultadoEsperado": "Login exitoso. Dashboard con funciones de categorización visible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Verificar que el usuario puede acceder a la función 'Registrar Sistema' o equivalente.",
+              "resultadoEsperado": "Formulario de registro del sistema accesible."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Verificar que el usuario puede ejecutar el cuestionario de categorización GAMP.",
+              "resultadoEsperado": "Cuestionario adaptativo accesible y ejecutable."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Verificar que el usuario puede ver el resultado de categorización y el índice de confianza.",
+              "resultadoEsperado": "Pantalla de resultado de categorización visible."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Verificar que el usuario puede generar y descargar el reporte PDF.",
+              "resultadoEsperado": "Reporte PDF generado y descargado correctamente."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Verificar que el usuario puede acceder a su historial de categorizaciones previas.",
+              "resultadoEsperado": "Historial de categorizaciones del usuario visible."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Capturar screenshot del dashboard mostrando todas las funciones de categorización accesibles.",
+              "resultadoEsperado": "Screenshot del dashboard con funciones completas documentado."
+            }
+          ],
+          "criterioAceptacion": "Usuario autenticado tiene acceso completo a: registrar sistema, ejecutar cuestionario, ver resultado, descargar PDF, consultar historial propio. No existen restricciones de rol entre usuarios de la aplicación. El acceso al panel admin Django es exclusivo del administrador (credencial separada)."
+        },
+        {
+          "tcId": "TC-OQ-011",
+          "titulo": "Desactivación de cuenta preserva historial de categorización",
+          "tipoTC": "POSITIVO",
+          "grupo": "Roles y Permisos",
+          "grupoFuncional": "Gestión de Usuarios y Contraseñas",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-011"
+          ],
+          "raVinculado": "RA-011",
+          "objetivo": "Verificar que la desactivación de una cuenta desde el panel admin Django preserva íntegramente el historial de categorizaciones asociado a esa cuenta.",
+          "precondiciones": [
+            "Cuenta con al menos 1 categorización registrada: bloqueo_test@example.com (reactivada desde panel admin tras TC-OQ-003).",
+            "Acceso al panel admin Django con credenciales de administrador."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Desde el panel admin Django, verificar el historial de categorizaciones de bloqueo_test@example.com. Registrar cantidad N.",
+              "resultadoEsperado": "Historial visible. N registrado."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Desactivar la cuenta bloqueo_test@example.com (Active = False). Guardar.",
+              "resultadoEsperado": "Cuenta marcada como inactiva. Cambio confirmado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Capturar screenshot del usuario con estado inactivo en el panel admin.",
+              "resultadoEsperado": "Screenshot del usuario inactivo documentado."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Intentar iniciar sesión en la aplicación con bloqueo_test@example.com.",
+              "resultadoEsperado": "Sistema rechaza el login. Mensaje de cuenta inactiva visible. Capturar screenshot."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Desde el panel admin Django, verificar que el historial de categorizaciones de bloqueo_test@example.com permanece accesible (mismas N categorizaciones).",
+              "resultadoEsperado": "Historial preservado íntegramente: N registros confirmados post-desactivación."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Capturar screenshot del historial del usuario desactivado con sus categorizaciones preservadas.",
+              "resultadoEsperado": "Screenshot del historial preservado documentado."
+            }
+          ],
+          "criterioAceptacion": "Cuenta desactivada: usuario no puede iniciar sesión en la aplicación. Historial completo de categorizaciones del usuario desactivado permanece accesible para el administrador desde el panel admin Django. N registros antes = N registros después de la desactivación."
+        },
+        {
+          "tcId": "TC-OQ-012",
+          "titulo": "Permisos del rol Administrador — gestión completa del sistema",
+          "tipoTC": "POSITIVO",
+          "grupo": "Roles y Permisos",
+          "grupoFuncional": "Gestión de Usuarios y Contraseñas",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-012"
+          ],
+          "raVinculado": "RA-012",
+          "objetivo": "Verificar que la cuenta de administrador Django tiene acceso completo al panel de administración incluyendo: gestión de usuarios, visualización del audit trail y configuración del sistema.",
+          "precondiciones": [
+            "Cuenta de administrador Django activa (creada con manage.py createsuperuser)."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Ingresar al panel admin Django (/admin/) con credenciales de administrador.",
+              "resultadoEsperado": "Login exitoso. Panel de administración Django accesible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Verificar acceso a la sección de gestión de usuarios. Confirmar que puede ver la lista completa de usuarios de la aplicación.",
+              "resultadoEsperado": "Lista completa de usuarios visible en el panel admin."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Crear un usuario de prueba: admin_prueba12@example.com con contraseña temporal.",
+              "resultadoEsperado": "Usuario creado exitosamente."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Capturar screenshot del usuario creado en la lista de usuarios del panel admin.",
+              "resultadoEsperado": "Screenshot del usuario creado documentado."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Desactivar la cuenta admin_prueba12@example.com recién creada (Active = False).",
+              "resultadoEsperado": "Cuenta desactivada exitosamente."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Verificar acceso al historial de categorizaciones / audit trail del sistema desde el panel admin.",
+              "resultadoEsperado": "Historial y audit trail accesibles desde el panel admin."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Capturar screenshot del panel admin mostrando secciones: usuarios, audit trail y configuración accesibles.",
+              "resultadoEsperado": "Screenshot del panel admin con todas las secciones documentado."
+            }
+          ],
+          "criterioAceptacion": "Administrador Django puede: crear, modificar y desactivar usuarios; visualizar audit trail y historial completo de categorizaciones; acceder a todas las secciones de configuración del sistema. Acceso completo confirmado."
+        },
+        {
+          "tcId": "TC-OQ-013",
+          "titulo": "Cuenta desactivada no puede autenticarse",
+          "tipoTC": "POSITIVO",
+          "grupo": "Roles y Permisos",
+          "grupoFuncional": "Gestión de Usuarios y Contraseñas",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-013"
+          ],
+          "raVinculado": "RA-013",
+          "objetivo": "Verificar que una cuenta desactivada por el administrador desde el panel Django no puede autenticarse en la aplicación principal, y que el historial de categorizaciones asociado permanece accesible e íntegro.",
+          "precondiciones": [
+            "Cuenta activa con al menos 1 categorización registrada: deact_test@example.com.",
+            "Acceso al panel admin Django."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Verificar que deact_test@example.com puede iniciar sesión normalmente en la aplicación. Capturar screenshot del login exitoso.",
+              "resultadoEsperado": "Login exitoso. Dashboard accesible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Registrar cantidad de categorizaciones existentes para deact_test@example.com desde el panel admin: N = _____.",
+              "resultadoEsperado": "N registrado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Desactivar la cuenta deact_test@example.com desde el panel admin Django (Active = False). Guardar.",
+              "resultadoEsperado": "Cuenta marcada como inactiva. Cambio confirmado."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Capturar screenshot del usuario con estado inactivo en el panel admin.",
+              "resultadoEsperado": "Screenshot del estado inactivo documentado."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Intentar iniciar sesión en la aplicación con deact_test@example.com.",
+              "resultadoEsperado": "Sistema rechaza el login. Mensaje de cuenta inactiva o credenciales inválidas visible."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Capturar screenshot del error de login por cuenta inactiva.",
+              "resultadoEsperado": "Screenshot del error de login documentado."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Desde el panel admin Django, confirmar que el historial de N categorizaciones de deact_test@example.com permanece accesible e íntegro.",
+              "resultadoEsperado": "Historial preservado: N registros intactos. Sin pérdida de datos por desactivación."
+            }
+          ],
+          "criterioAceptacion": "Cuenta desactivada: usuario no puede iniciar sesión en la aplicación (acceso rechazado). El historial de categorizaciones asociado a la cuenta permanece accesible e íntegro desde el panel admin Django. La desactivación no implica pérdida de datos."
+        },
+        {
+          "tcId": "TC-OQ-014",
+          "titulo": "Política de contraseña — complejidad mínima requerida",
+          "tipoTC": "POSITIVO",
+          "grupo": "Roles y Permisos",
+          "grupoFuncional": "Gestión de Usuarios y Contraseñas",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-015",
+            "URS-016"
+          ],
+          "raVinculado": "RA-014",
+          "objetivo": "Verificar que el sistema aplica la política de contraseña de complejidad mínima de forma uniforme para todos los usuarios.",
+          "precondiciones": [
+            "Acceso a la función de cambio de contraseña del sistema.",
+            "Lista de contraseñas válidas e inválidas preparadas."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Ingresar al sistema con contacto@example.com. Navegar a la sección de cambio de contraseña (perfil o configuración).",
+              "resultadoEsperado": "Pantalla de cambio de contraseña visible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Ingresar contraseña débil: '12345678' (sin mayúscula ni símbolo). Enviar.",
+              "resultadoEsperado": "Sistema rechaza la contraseña. Mensaje de error con requisitos de política visible."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Capturar screenshot del rechazo de contraseña débil con los requisitos de política visibles.",
+              "resultadoEsperado": "Screenshot del rechazo documentado."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Ingresar contraseña: 'solominusculas1' (sin mayúscula ni símbolo). Enviar.",
+              "resultadoEsperado": "Sistema rechaza. Mensaje con requisitos de política visible."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Ingresar contraseña que cumpla la política completa (ej: 'ValidPass123!'). Confirmar y enviar.",
+              "resultadoEsperado": "Sistema acepta la contraseña. Cambio confirmado."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Capturar screenshot de confirmación del cambio de contraseña exitoso.",
+              "resultadoEsperado": "Screenshot de confirmación documentado."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Verificar que los requisitos mínimos publicados incluyen: ≥8 caracteres, al menos 1 mayúscula, al menos 1 número, al menos 1 símbolo.",
+              "resultadoEsperado": "Política completa aplicada uniformemente para todos los usuarios del sistema."
+            }
+          ],
+          "criterioAceptacion": "Sistema rechaza contraseñas que no cumplen la política mínima (≥8 caracteres, mayúscula, número, símbolo). Sistema acepta contraseñas que cumplen todos los requisitos. Política de contraseña uniforme para todos los usuarios del sistema (único tipo de usuario sin diferenciación por rol).",
+          "notas": "La política de contraseña es única para todos los usuarios del sistema. No existen políticas diferenciadas por rol dado que el sistema implementa un único tipo de usuario. Ref. URS-015, URS-016, RA-004, RA-009."
+        },
+        {
+          "tcId": "TC-OQ-015",
+          "titulo": "Formulario de registro del sistema — campos y tipos de sistema",
+          "tipoTC": "POSITIVO",
+          "grupo": "Registro",
+          "grupoFuncional": "Registro del Sistema",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-017",
+            "URS-018",
+            "URS-019",
+            "URS-020"
+          ],
+          "raVinculado": "RA-015",
+          "objetivo": "Verificar que el formulario de registro del sistema incluye todos los campos requeridos (nombre, tipo/categoría, departamento, ambiente, responsable) con tipos de entrada correctos.",
+          "precondiciones": [
+            "Sesión iniciada como Usuario Final o Administrador."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Ingresar al sistema con contacto@example.com y navegar a la sección de 'Registrar Sistema' o equivalente.",
+              "resultadoEsperado": "Formulario de registro del sistema visible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Verificar que el formulario incluye campo: Nombre del Sistema.",
+              "resultadoEsperado": "Campo 'Nombre del Sistema' presente."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Verificar que el formulario incluye campo: Tipo/Categoría del sistema (dropdown o selección).",
+              "resultadoEsperado": "Campo 'Tipo de Sistema' presente."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Verificar que el formulario incluye campo: Departamento o área responsable.",
+              "resultadoEsperado": "Campo 'Departamento' presente."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Verificar que el formulario incluye campo: Ambiente (Producción, Testing, etc.).",
+              "resultadoEsperado": "Campo 'Ambiente' presente."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Verificar que el formulario incluye campo: Responsable o Process Owner.",
+              "resultadoEsperado": "Campo 'Responsable' presente."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Capturar screenshot del formulario de registro completo con todos los campos visibles.",
+              "resultadoEsperado": "Screenshot con todos los campos documentado."
+            },
+            {
+              "paso": 8,
+              "instruccion": "Completar todos los campos y hacer clic en 'Siguiente'.",
+              "resultadoEsperado": "Sistema procesa el formulario y avanza al cuestionario."
+            }
+          ],
+          "criterioAceptacion": "Formulario muestra todos los campos: nombre sistema, categoría, departamento, ambiente, responsable. Campos obligatorios marcados. El formulario procesa correctamente y avanza al cuestionario cuando todos los campos están completos."
+        },
+        {
+          "tcId": "TC-OQ-016",
+          "titulo": "Validación de campos obligatorios del registro",
+          "tipoTC": "POSITIVO",
+          "grupo": "Registro",
+          "grupoFuncional": "Registro del Sistema",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-020"
+          ],
+          "raVinculado": "RA-016",
+          "objetivo": "Verificar que el sistema valida los campos obligatorios del formulario de registro antes de procesar y bloquea avanzar con datos incompletos.",
+          "precondiciones": [
+            "Formulario de registro accesible."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Navegar al formulario de registro del sistema. Dejar todos los campos vacíos.",
+              "resultadoEsperado": "Formulario con campos vacíos visible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Intentar hacer clic en 'Siguiente' o 'Procesar' sin completar ningún campo.",
+              "resultadoEsperado": "Sistema muestra mensajes de error de validación para cada campo obligatorio. No avanza."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Capturar screenshot con todos los errores de validación visibles al intentar avanzar con formulario vacío.",
+              "resultadoEsperado": "Screenshot de errores de validación documentado."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Completar únicamente el campo 'Nombre del Sistema' y volver a intentar avanzar.",
+              "resultadoEsperado": "Sistema identifica los campos restantes como obligatorios y muestra nuevos mensajes de error."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Completar todos los campos obligatorios con datos válidos y hacer clic en 'Siguiente'.",
+              "resultadoEsperado": "Sistema valida correctamente y avanza al cuestionario."
+            }
+          ],
+          "criterioAceptacion": "Intentar enviar formulario con campos vacíos: sistema muestra mensaje de error identificando campos faltantes. No procesa la solicitud incompleta. Solo avanza cuando todos los campos obligatorios están completos con datos válidos."
+        },
+        {
+          "tcId": "TC-OQ-017",
+          "titulo": "Cuestionario adaptativo — flujo de 3 a 5 preguntas",
+          "tipoTC": "POSITIVO",
+          "grupo": "Cuestionario GAMP",
+          "grupoFuncional": "Cuestionario Adaptativo GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-021",
+            "URS-022"
+          ],
+          "raVinculado": "RA-017",
+          "objetivo": "Verificar que el cuestionario adaptativo GAMP presenta entre 3 y 5 preguntas dinámicamente según las respuestas dadas.",
+          "precondiciones": [
+            "Usuario autenticado con acceso al cuestionario.",
+            "Sistema con preguntas de cuestionario configuradas."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Ingresar al sistema con contacto@example.com. Registrar un nuevo sistema de prueba en el formulario.",
+              "resultadoEsperado": "Formulario completado. Sistema inicia cuestionario."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Observar y registrar la primera pregunta (Q1) presentada por el cuestionario.",
+              "resultadoEsperado": "Q1 visible. Capturar screenshot de Q1 (primera pregunta sobre tipo de sistema)."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Responder Q1 y observar si el sistema presenta Q2 condicionalmente.",
+              "resultadoEsperado": "Q2 puede aparecer según respuesta de Q1."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Continuar respondiendo todas las preguntas hasta que el sistema muestre el resultado de categorización.",
+              "resultadoEsperado": "Cuestionario completo. Resultado visible."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Registrar la cantidad total de preguntas presentadas en el cuestionario: N = _____",
+              "resultadoEsperado": "N entre 3 y 5 preguntas."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Capturar screenshot de la última pregunta y el resultado de categorización.",
+              "resultadoEsperado": "Screenshot de última pregunta y resultado documentados."
+            }
+          ],
+          "criterioAceptacion": "Cuestionario inicia con Q1. Mínimo 3 preguntas, máximo 5 según ruta adaptativa. Preguntas relevantes al tipo de sistema indicado."
+        },
+        {
+          "tcId": "TC-OQ-018",
+          "titulo": "Lógica condicional — Q2 solo si Q1 = Software Comercial",
+          "tipoTC": "POSITIVO",
+          "grupo": "Cuestionario GAMP",
+          "grupoFuncional": "Cuestionario Adaptativo GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-023"
+          ],
+          "raVinculado": "RA-018",
+          "objetivo": "Verificar que la pregunta Q2 (nivel de configuración) se presenta únicamente cuando Q1 = 'Software Comercial' (COTS).",
+          "precondiciones": [
+            "Acceso al cuestionario adaptativo.",
+            "Pruebas con Q1='Software Comercial' y Q1=otro valor preparadas."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Iniciar un nuevo cuestionario. Cuando aparezca Q1, seleccionar 'Software Comercial' (COTS) y avanzar.",
+              "resultadoEsperado": "Sistema procesa Q1 = COTS."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Verificar que el sistema presenta Q2 (pregunta sobre nivel de configuración) después de seleccionar COTS.",
+              "resultadoEsperado": "Q2 visible después de Q1 = COTS."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Capturar screenshot mostrando Q2 (nivel configuración) después de seleccionar COTS en Q1.",
+              "resultadoEsperado": "Screenshot con Q2 después de COTS documentado."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Iniciar un nuevo cuestionario. Cuando aparezca Q1, seleccionar 'Software a Medida/Custom' (no COTS) y avanzar.",
+              "resultadoEsperado": "Sistema procesa Q1 ≠ COTS."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Verificar que el sistema NO presenta Q2 en este flujo alternativo.",
+              "resultadoEsperado": "Q2 NO aparece cuando Q1 ≠ COTS."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Capturar screenshot del flujo alternativo sin Q2 cuando Q1 = Software Custom.",
+              "resultadoEsperado": "Screenshot del flujo sin Q2 documentado."
+            }
+          ],
+          "criterioAceptacion": "Q1 = 'Software Comercial' → Q2 visible. Q1 = otro valor → Q2 no aparece en el flujo. Lógica condicional aplicada correctamente."
+        },
+        {
+          "tcId": "TC-OQ-019",
+          "titulo": "Presentación de Q3 — criticidad de datos GxP",
+          "tipoTC": "POSITIVO",
+          "grupo": "Cuestionario GAMP",
+          "grupoFuncional": "Cuestionario Adaptativo GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-024"
+          ],
+          "raVinculado": "RA-019",
+          "objetivo": "Verificar que Q3 (criticidad de datos GxP) se presenta en el flujo del cuestionario y la respuesta se registra correctamente.",
+          "precondiciones": [
+            "Flujo de cuestionario en curso con Q1 y Q2 respondidas (si aplica)."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Iniciar cuestionario y responder Q1 y Q2 según corresponda al flujo seleccionado.",
+              "resultadoEsperado": "Q1 y Q2 respondidas. Flujo avanzando."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Verificar que el sistema presenta Q3 sobre criticidad de datos GxP.",
+              "resultadoEsperado": "Q3 visible con opciones de criticidad."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Capturar screenshot de Q3 con sus opciones de criticidad GxP.",
+              "resultadoEsperado": "Screenshot de Q3 documentado."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Seleccionar opción 'Alta Criticidad GxP' en Q3 y completar el cuestionario hasta el resultado.",
+              "resultadoEsperado": "Resultado de categorización visible con Alta Criticidad."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Registrar: Q3 Alta Criticidad → Categoría = _____",
+              "resultadoEsperado": "Categoría con Alta Criticidad registrada."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Iniciar nuevo cuestionario. Seleccionar 'Baja Criticidad GxP' en Q3 y registrar resultado: Q3 Baja Criticidad → Categoría = _____",
+              "resultadoEsperado": "Categoría con Baja Criticidad registrada en historial."
+            }
+          ],
+          "criterioAceptacion": "Q3 aparece en el flujo de preguntas con opciones de criticidad GxP. Respuesta registrada correctamente en el historial y afecta la categoría resultante."
+        },
+        {
+          "tcId": "TC-OQ-020",
+          "titulo": "Sistema NO muestra resultado si confianza < 90%",
+          "tipoTC": "NEGATIVO",
+          "grupo": "Cuestionario GAMP",
+          "grupoFuncional": "Cuestionario Adaptativo GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-025"
+          ],
+          "raVinculado": "RA-020",
+          "objetivo": "Verificar que el sistema NO muestra resultado de categorización cuando el índice de confianza es inferior al 90%. Este TC verifica el rechazo correcto del sistema ante combinaciones ambiguas.",
+          "precondiciones": [
+            "Acceso al cuestionario.",
+            "Combinación de respuestas que resulten en confianza < 90% preparada."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Iniciar cuestionario. Ingresar respuestas ambiguas o contradictorias que resulten en confianza baja (<90%).",
+              "resultadoEsperado": "Sistema procesa respuestas ambiguas."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Verificar que el sistema NO muestra ninguna categoría GAMP como resultado.",
+              "resultadoEsperado": "Sistema no muestra categoría GAMP."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Capturar screenshot del resultado mostrando mensaje de confianza insuficiente (sin categoría GAMP).",
+              "resultadoEsperado": "Screenshot de mensaje de confianza insuficiente documentado."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Verificar que el sistema muestra un mensaje indicando insuficiencia de información o solicita más respuestas.",
+              "resultadoEsperado": "Mensaje de insuficiencia o solicitud de aclaraciones visible."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Verificar que NO se muestra ninguna categoría GAMP (1, 3, 4 o 5) cuando confianza < 90%.",
+              "resultadoEsperado": "Ninguna categoría GAMP visible en la pantalla de resultado."
+            }
+          ],
+          "criterioAceptacion": "Índice de confianza < 90%: sistema NO muestra categoría GAMP (rechazo correcto). Muestra mensaje indicando insuficiencia de información o solicita aclaraciones al usuario.",
+          "notas": "TC NEGATIVO: el sistema DEBE rechazar mostrar resultado cuando la confianza es insuficiente. PASS = sistema NO muestra categoría. FAIL sería el sistema mostrando una categoría con confianza <90%."
+        },
+        {
+          "tcId": "TC-OQ-021",
+          "titulo": "Colores del índice de confianza según rango",
+          "tipoTC": "POSITIVO",
+          "grupo": "Cuestionario GAMP",
+          "grupoFuncional": "Cuestionario Adaptativo GAMP",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-026"
+          ],
+          "raVinculado": "RA-021",
+          "objetivo": "Verificar que los colores del índice de confianza siguen la codificación definida según rango porcentual (verde ≥90%, amarillo 75-89%, rojo <75%).",
+          "precondiciones": [
+            "Combinaciones de respuestas preparadas para cada rango de confianza."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Iniciar cuestionario y responder de forma que el índice de confianza sea ≥90%.",
+              "resultadoEsperado": "Resultado con índice ≥90%."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Verificar que el índice de confianza se muestra en color VERDE en pantalla de resultado.",
+              "resultadoEsperado": "Color VERDE visible para índice ≥90%."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Capturar screenshot del resultado con índice de confianza en color VERDE (≥90%).",
+              "resultadoEsperado": "Screenshot con color verde documentado."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Iniciar nuevo cuestionario con respuestas que resulten en índice entre 75-89%.",
+              "resultadoEsperado": "Resultado con índice en rango amarillo."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Verificar que el índice se muestra en color AMARILLO.",
+              "resultadoEsperado": "Color AMARILLO visible para índice 75-89%."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Capturar screenshot del resultado con índice de confianza en color AMARILLO (75-89%).",
+              "resultadoEsperado": "Screenshot con color amarillo documentado."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Registrar valores exactos de confianza y colores observados: Valor = ___% Color = _____",
+              "resultadoEsperado": "Valores y colores registrados."
+            }
+          ],
+          "criterioAceptacion": "Codificación de colores aplicada correctamente: ≥90% verde, 75-89% amarillo, <75% rojo (o sin resultado según TC-OQ-020). Colores visibles y diferenciables en pantalla de resultado."
+        },
+        {
+          "tcId": "TC-OQ-022",
+          "titulo": "Contenido de la pantalla de resultado de categorización",
+          "tipoTC": "POSITIVO",
+          "grupo": "Cuestionario GAMP",
+          "grupoFuncional": "Cuestionario Adaptativo GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-027"
+          ],
+          "raVinculado": "RA-022",
+          "objetivo": "Verificar el contenido completo de la pantalla de resultado de categorización GAMP — todos los elementos requeridos visibles y correctos.",
+          "precondiciones": [
+            "Cuestionario completado con índice de confianza ≥90%."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Completar el cuestionario con respuestas que generen índice ≥90%.",
+              "resultadoEsperado": "Pantalla de resultado de categorización visible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Capturar screenshot completo de la pantalla de resultado con todos los elementos visibles.",
+              "resultadoEsperado": "Screenshot completo de pantalla de resultado documentado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Verificar presencia de: Categoría GAMP asignada (ej: 'GAMP 3' o 'GAMP 5').",
+              "resultadoEsperado": "Categoría GAMP visible en pantalla."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Verificar presencia de: Índice de confianza expresado en porcentaje.",
+              "resultadoEsperado": "Índice de confianza en % visible."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Verificar presencia de: Nombre del sistema categorizado.",
+              "resultadoEsperado": "Nombre del sistema visible."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Verificar presencia de: Botón o enlace para generar reporte PDF.",
+              "resultadoEsperado": "Botón 'Generar PDF' o equivalente visible."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Verificar presencia de: Justificación o descripción de la categoría asignada.",
+              "resultadoEsperado": "Justificación visible."
+            }
+          ],
+          "criterioAceptacion": "Pantalla de resultado muestra: categoría GAMP asignada, índice de confianza (%), nombre del sistema, justificación de la categoría, referencias normativas, opción de generar reporte PDF."
+        },
+        {
+          "tcId": "TC-OQ-023",
+          "titulo": "Categoría GAMP 2 NUNCA asignada — TC NEGATIVO EXHAUSTIVO",
+          "tipoTC": "NEGATIVO",
+          "grupo": "Cuestionario GAMP",
+          "grupoFuncional": "Cuestionario Adaptativo GAMP",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-028"
+          ],
+          "raVinculado": "RA-023",
+          "objetivo": "Verificar que la Categoría GAMP 2 NUNCA es asignada por el sistema (categoría eliminada en GAMP 5 Segunda Edición 2022). Cobertura exhaustiva: ningún escenario del cuestionario debe resultar en GAMP 2.",
+          "precondiciones": [
+            "Múltiples combinaciones de respuestas del cuestionario preparadas.",
+            "Conocimiento de que GAMP 2 fue eliminada en GAMP 5 2ª Ed. 2022."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Iniciar cuestionario. Responder con combinación Escenario 1 (ej: Software Custom, Baja Criticidad).",
+              "resultadoEsperado": "Resultado de categorización visible. Registrar categoría obtenida."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Registrar resultado escenario 1: Categoría = _____ (debe ser ≠ 2).",
+              "resultadoEsperado": "Categoría ≠ 2 registrada para Escenario 1."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Iniciar cuestionario. Responder con combinación Escenario 2 (ej: COTS, Alta Criticidad, Alta Configuración).",
+              "resultadoEsperado": "Resultado visible. Registrar categoría obtenida."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Registrar resultado escenario 2: Categoría = _____ (debe ser ≠ 2).",
+              "resultadoEsperado": "Categoría ≠ 2 registrada para Escenario 2."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Capturar screenshot de resultados mostrando que solo aparecen categorías 1, 3, 4 o 5.",
+              "resultadoEsperado": "Screenshots de múltiples resultados documentados."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Navegar por toda la interfaz del sistema y verificar que no existe ninguna referencia a 'Categoría 2' o 'GAMP 2'.",
+              "resultadoEsperado": "Sin referencias a Categoría 2 en ninguna sección de la interfaz."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Verificar que no existe ninguna referencia a 'Categoría 2' o 'GAMP 2' en la documentación generada (reportes PDF).",
+              "resultadoEsperado": "Sin referencias a GAMP 2 confirmado."
+            }
+          ],
+          "criterioAceptacion": "Ninguna combinación de respuestas resulta en asignación de Categoría 2. Las categorías posibles son: 1, 3, 4, 5. Sin referencias a GAMP 2 en la UI ni en reportes generados.",
+          "notas": "TC NEGATIVO EXHAUSTIVO: PASS = Categoría 2 NUNCA aparece en ningún escenario. Aplica directamente al estándar GAMP 5 2ª Ed. 2022 que eliminó esta categoría. Cobertura crítica para auditoría regulatoria."
+        },
+        {
+          "tcId": "TC-OQ-024",
+          "titulo": "Asistente GAMPI — columna izquierda y funciones disponibles",
+          "tipoTC": "POSITIVO",
+          "grupo": "GAMPI y Analytics",
+          "grupoFuncional": "Asistente GAMPI y Monitor Analytics",
+          "raScore": 12,
+          "nivel": "MEDIO",
+          "ursVinculados": [
+            "URS-029",
+            "URS-030"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el Asistente GAMPI está disponible en columna izquierda con sus funciones diferenciadas y permite consultas en lenguaje natural sobre GAMP.",
+          "precondiciones": [
+            "Sesión activa.",
+            "Resultado de categorización disponible en pantalla."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Ingresar al sistema y completar una categorización hasta el resultado.",
+              "resultadoEsperado": "Pantalla de resultado de categorización visible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Observar la disposición de la pantalla. Verificar que el Asistente GAMPI está ubicado en la columna izquierda.",
+              "resultadoEsperado": "Asistente GAMPI visible en columna izquierda."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Capturar screenshot de la interfaz completa mostrando Asistente GAMPI en columna izquierda.",
+              "resultadoEsperado": "Screenshot de interfaz completa documentado."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Ingresar una consulta en lenguaje natural al Asistente GAMPI: '¿Qué implica la categoría GAMP 3?'.",
+              "resultadoEsperado": "Asistente procesa la consulta y genera respuesta."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Capturar screenshot de la respuesta del asistente a una consulta de ejemplo sobre GAMP.",
+              "resultadoEsperado": "Screenshot con respuesta del asistente documentado."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Verificar que la respuesta es contextual y relevante a la categoría GAMP asignada.",
+              "resultadoEsperado": "Respuesta contextualizada y coherente."
+            }
+          ],
+          "criterioAceptacion": "Asistente GAMPI visible en columna izquierda. Permite consultas en lenguaje natural sobre GAMP. Respuestas contextualizadas y relevantes a la categoría asignada."
+        },
+        {
+          "tcId": "TC-OQ-025",
+          "titulo": "Casos de ejemplo similares en Asistente GAMPI",
+          "tipoTC": "POSITIVO",
+          "grupo": "GAMPI y Analytics",
+          "grupoFuncional": "Asistente GAMPI y Monitor Analytics",
+          "raScore": 12,
+          "nivel": "MEDIO",
+          "ursVinculados": [
+            "URS-031"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el Asistente GAMPI muestra casos de ejemplo similares al sistema categorizado, con información completa y contextualizada.",
+          "precondiciones": [
+            "Resultado de categorización generado.",
+            "Asistente GAMPI accesible."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Con pantalla de resultado de categorización visible, observar si el Asistente GAMPI muestra casos similares.",
+              "resultadoEsperado": "Sección de casos similares visible en asistente."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Verificar que se muestran al menos 1 caso de ejemplo similar en tipología y categoría GAMP.",
+              "resultadoEsperado": "Al menos 1 caso similar mostrado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Capturar screenshot de los casos similares mostrados por el asistente durante la categorización.",
+              "resultadoEsperado": "Screenshot de casos similares documentado."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Verificar que los casos mostrados son relevantes al tipo de sistema seleccionado en el cuestionario.",
+              "resultadoEsperado": "Casos relevantes al tipo de sistema confirmado."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Verificar que cada caso similar incluye: nombre o descripción, categoría GAMP asignada, y contexto del caso.",
+              "resultadoEsperado": "Casos con información completa y contextualizada."
+            }
+          ],
+          "criterioAceptacion": "Asistente GAMPI muestra al menos 1 caso de ejemplo similar en tipología y categoría GAMP. Casos son relevantes al sistema categorizado y contienen información completa (nombre, categoría, contexto)."
+        },
+        {
+          "tcId": "TC-OQ-026",
+          "titulo": "Monitor Analytics — columna derecha con actualización dinámica",
+          "tipoTC": "POSITIVO",
+          "grupo": "GAMPI y Analytics",
+          "grupoFuncional": "Asistente GAMPI y Monitor Analytics",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-032",
+            "URS-033"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el Monitor Analytics en columna derecha muestra estadísticas actualizadas en tiempo real con cada nueva respuesta del cuestionario.",
+          "precondiciones": [
+            "Sesión activa.",
+            "Múltiples categorizaciones previas en el sistema."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Ingresar al sistema y navegar a la pantalla donde se realiza el cuestionario.",
+              "resultadoEsperado": "Interfaz del cuestionario visible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Verificar que el Monitor Analytics está ubicado en la columna derecha de la interfaz.",
+              "resultadoEsperado": "Monitor Analytics visible en columna derecha."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Capturar screenshot del estado inicial del Monitor Analytics en columna derecha.",
+              "resultadoEsperado": "Screenshot del estado inicial del Monitor documentado."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Iniciar el cuestionario y responder Q1.",
+              "resultadoEsperado": "Q1 respondida."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Capturar screenshot del Monitor Analytics actualizado después de responder Q1.",
+              "resultadoEsperado": "Screenshot del monitor post-Q1 documentado."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Continuar respondiendo Q2 y Q3. Observar si el Monitor Analytics se actualiza dinámicamente con cada respuesta.",
+              "resultadoEsperado": "Monitor se actualiza con cada nueva respuesta."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Comparar los 3 estados del monitor para verificar actualización dinámica.",
+              "resultadoEsperado": "Diferencias entre estados demuestran actualización dinámica."
+            }
+          ],
+          "criterioAceptacion": "Monitor Analytics visible en columna derecha. Muestra estadísticas del sistema con actualización en tiempo real tras cada respuesta del cuestionario."
+        },
+        {
+          "tcId": "TC-OQ-027",
+          "titulo": "Mensaje de error en consulta fallida al Asistente IA",
+          "tipoTC": "POSITIVO",
+          "grupo": "GAMPI y Analytics",
+          "grupoFuncional": "Asistente GAMPI y Monitor Analytics",
+          "raScore": 12,
+          "nivel": "MEDIO",
+          "ursVinculados": [
+            "URS-034"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el sistema muestra mensaje de error apropiado y amigable cuando una consulta al Asistente GAMPI falla, sin exponer datos técnicos internos.",
+          "precondiciones": [
+            "Acceso al Asistente GAMPI.",
+            "Condición de falla simulable (consulta vacía o muy larga)."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Navegar al Asistente GAMPI con resultado de categorización visible.",
+              "resultadoEsperado": "Asistente GAMPI accesible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Intentar enviar una consulta vacía (campo en blanco) al asistente.",
+              "resultadoEsperado": "Sistema muestra mensaje de validación o error de consulta."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Alternativamente, ingresar texto excesivamente largo o caracteres especiales para provocar error.",
+              "resultadoEsperado": "Sistema responde con mensaje de error amigable."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Capturar screenshot del mensaje de error amigable del asistente (sin datos técnicos internos).",
+              "resultadoEsperado": "Screenshot del mensaje de error documentado."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Verificar que el mensaje NO contiene: stack traces, rutas del servidor, versiones de software.",
+              "resultadoEsperado": "Mensaje de error limpio, sin información técnica interna expuesta."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Verificar que el sistema ofrece opción de reintentar la consulta.",
+              "resultadoEsperado": "Opción de reintento disponible o campo de consulta accesible nuevamente."
+            }
+          ],
+          "criterioAceptacion": "Consulta fallida al asistente: mensaje de error visible y comprensible. Sin exposición de datos técnicos internos (stack traces, rutas, versiones). Opción de reintentar disponible."
+        },
+        {
+          "tcId": "TC-OQ-028",
+          "titulo": "Generación de reporte PDF — exactamente 4 páginas",
+          "tipoTC": "POSITIVO",
+          "grupo": "Reporte PDF",
+          "grupoFuncional": "Reporte PDF",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-035"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el reporte PDF generado tiene exactamente 4 páginas, todas con contenido válido.",
+          "precondiciones": [
+            "Categorización completada con índice ≥90%.",
+            "Visor PDF disponible (Adobe Reader, Foxit, u otro)."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Con resultado de categorización visible (índice ≥90%), hacer clic en 'Generar Reporte PDF' o equivalente.",
+              "resultadoEsperado": "Sistema inicia generación del PDF."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Esperar a que el sistema complete la generación y descargue o muestre el PDF.",
+              "resultadoEsperado": "PDF descargado o visualizado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Abrir el PDF en el visor y verificar el número total de páginas.",
+              "resultadoEsperado": "Número total de páginas = exactamente 4."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Capturar screenshot del PDF generado mostrando número total de páginas (debe ser exactamente 4).",
+              "resultadoEsperado": "Screenshot con contador de páginas = 4 documentado."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Registrar número de páginas del PDF: N = _____",
+              "resultadoEsperado": "N = 4 registrado."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Navegar por las 4 páginas del PDF para confirmar que todas tienen contenido (no hay páginas en blanco).",
+              "resultadoEsperado": "4 páginas con contenido válido."
+            }
+          ],
+          "criterioAceptacion": "Reporte PDF generado exitosamente. Archivo tiene exactamente 4 páginas. Todas las páginas con contenido válido (sin páginas en blanco)."
+        },
+        {
+          "tcId": "TC-OQ-029",
+          "titulo": "Nombre de archivo PDF — formato estandarizado",
+          "tipoTC": "POSITIVO",
+          "grupo": "Reporte PDF",
+          "grupoFuncional": "Reporte PDF",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-036"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el nombre de archivo del PDF generado sigue el formato estandarizado: identificador del sistema, fecha de generación e identificador único.",
+          "precondiciones": [
+            "Reporte PDF generado y descargado (TC-OQ-028 completado)."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Localizar el archivo PDF descargado en la carpeta de descargas del navegador o sistema.",
+              "resultadoEsperado": "Archivo PDF localizado."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Registrar el nombre exacto del archivo PDF descargado: FileName = _______",
+              "resultadoEsperado": "Nombre exacto registrado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Capturar screenshot del archivo en la carpeta de descargas con el nombre visible.",
+              "resultadoEsperado": "Screenshot del nombre de archivo documentado."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Verificar que el nombre de archivo contiene: identificador o nombre del sistema categorizado.",
+              "resultadoEsperado": "Nombre del sistema presente en el filename."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Verificar que el nombre de archivo contiene: fecha de generación en algún formato reconocible.",
+              "resultadoEsperado": "Fecha presente en el filename."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Verificar que el nombre de archivo contiene: algún identificador único (hash parcial o número de reporte).",
+              "resultadoEsperado": "Identificador único presente en el filename."
+            }
+          ],
+          "criterioAceptacion": "Nombre de archivo sigue formato 'Reporte_GAMP_[Sistema]_[Fecha]_[Hash].pdf' o equivalente documentado. Nombre único por reporte."
+        },
+        {
+          "tcId": "TC-OQ-030",
+          "titulo": "Contenido de la Página 1 del reporte PDF",
+          "tipoTC": "POSITIVO",
+          "grupo": "Reporte PDF",
+          "grupoFuncional": "Reporte PDF",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-037"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que la Página 1 del reporte PDF contiene todos los elementos requeridos: logo, nombre del sistema, categoría GAMP, índice de confianza, código QR y hash SHA-256.",
+          "precondiciones": [
+            "Reporte PDF generado.",
+            "Visor PDF para verificar contenido de Página 1."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Abrir el reporte PDF y navegar a la Página 1.",
+              "resultadoEsperado": "Página 1 del PDF visible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Capturar screenshot completo de la Página 1 del reporte PDF.",
+              "resultadoEsperado": "Screenshot completo de Página 1 documentado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Verificar presencia en Página 1 de: logo DRP Assurance.",
+              "resultadoEsperado": "Logo DRP visible en Página 1."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Verificar presencia en Página 1 de: nombre del sistema categorizado.",
+              "resultadoEsperado": "Nombre del sistema visible en Página 1."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Verificar presencia en Página 1 de: categoría GAMP asignada.",
+              "resultadoEsperado": "Categoría GAMP visible en Página 1."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Verificar presencia en Página 1 de: código QR de verificación.",
+              "resultadoEsperado": "Código QR visible en Página 1."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Verificar presencia en Página 1 de: hash SHA-256.",
+              "resultadoEsperado": "Hash SHA-256 visible en Página 1."
+            },
+            {
+              "paso": 8,
+              "instruccion": "Registrar hash SHA-256 visible en Página 1 del PDF: ___________ (para verificación posterior en TC-OQ-032).",
+              "resultadoEsperado": "Hash SHA-256 registrado para verificación posterior."
+            }
+          ],
+          "criterioAceptacion": "Página 1 contiene: logo DRP Assurance, nombre del sistema, categoría GAMP, índice de confianza, fecha de emisión, código QR y hash SHA-256. Todos los elementos visibles y legibles."
+        },
+        {
+          "tcId": "TC-OQ-031",
+          "titulo": "Página 4 del reporte — campos de firma y almacenamiento",
+          "tipoTC": "POSITIVO",
+          "grupo": "Reporte PDF",
+          "grupoFuncional": "Reporte PDF",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-038",
+            "URS-039"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que la Página 4 del reporte incluye los 3 campos de firma (Validador, QA, Process Owner), hash SHA-256 y código QR de verificación.",
+          "precondiciones": [
+            "Reporte PDF de 4 páginas generado (TC-OQ-028 completado)."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Abrir el reporte PDF y navegar a la Página 4 (última página).",
+              "resultadoEsperado": "Página 4 del PDF visible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Capturar screenshot completo de la Página 4 del PDF con campos de firma visibles.",
+              "resultadoEsperado": "Screenshot completo de Página 4 documentado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Verificar que hay exactamente 3 campos de firma con sub-campos: nombre, cargo, firma, fecha.",
+              "resultadoEsperado": "3 campos de firma con sub-campos presentes."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Verificar que los roles de firma incluyen: Validador, QA, Process Owner (o equivalentes documentados).",
+              "resultadoEsperado": "Roles de firma correctos presentes en Página 4."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Verificar presencia del hash SHA-256 en Página 4.",
+              "resultadoEsperado": "Hash SHA-256 visible en Página 4."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Verificar presencia del código QR de verificación en Página 4.",
+              "resultadoEsperado": "Código QR visible en Página 4."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Capturar screenshot de la sección de campos de firma completa con los 3 firmantes.",
+              "resultadoEsperado": "Screenshot de los 3 campos de firma documentado."
+            }
+          ],
+          "criterioAceptacion": "Página 4 contiene: 3 campos de firma (Validador, QA, Process Owner) con sub-campos completos, fecha de validación, hash SHA-256, código QR de verificación."
+        },
+        {
+          "tcId": "TC-OQ-032",
+          "titulo": "Hash SHA-256 — único por reporte e invariable",
+          "tipoTC": "POSITIVO",
+          "grupo": "SHA-256 y Portal QR",
+          "grupoFuncional": "SHA-256 y Portal de Verificación",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-040"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el hash SHA-256 es único por reporte e invariable post-generación. Cualquier modificación al PDF debe invalidar el hash.",
+          "precondiciones": [
+            "Mínimo 2 reportes PDF generados (reporte 1 y reporte 2).",
+            "Herramienta de cálculo SHA-256 (online o local) disponible.",
+            "Editor PDF para prueba de integridad."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Obtener el hash SHA-256 del reporte 1 (registrado en TC-OQ-030 o visible en el PDF).",
+              "resultadoEsperado": "Hash del reporte 1 disponible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Registrar hash SHA-256 del reporte 1: _____________________________",
+              "resultadoEsperado": "Hash reporte 1 registrado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Generar un segundo reporte PDF con otro sistema de prueba diferente.",
+              "resultadoEsperado": "Reporte 2 generado."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Obtener el hash SHA-256 del reporte 2.",
+              "resultadoEsperado": "Hash del reporte 2 disponible."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Registrar hash SHA-256 del reporte 2: _____________________________",
+              "resultadoEsperado": "Hash reporte 2 registrado."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Comparar Hash 1 vs Hash 2 — deben ser diferentes (unicidad por reporte).",
+              "resultadoEsperado": "Hash 1 ≠ Hash 2. Unicidad confirmada."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Hacer una pequeña modificación en el reporte 1 (ej: agregar un espacio con editor PDF). Recalcular hash.",
+              "resultadoEsperado": "Hash del PDF modificado cambia completamente."
+            },
+            {
+              "paso": 8,
+              "instruccion": "Capturar screenshot del hash original vs hash del PDF modificado (deben ser diferentes).",
+              "resultadoEsperado": "Screenshot comparación de hashes documentado."
+            }
+          ],
+          "criterioAceptacion": "Dos reportes distintos tienen hash SHA-256 diferente. El mismo reporte siempre genera el mismo hash. Cualquier modificación al PDF invalida el hash."
+        },
+        {
+          "tcId": "TC-OQ-033",
+          "titulo": "Portal de verificación QR — acceso y funcionalidad",
+          "tipoTC": "POSITIVO",
+          "grupo": "SHA-256 y Portal QR",
+          "grupoFuncional": "SHA-256 y Portal de Verificación",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-041"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el portal de verificación por QR es accesible y funcional, permitiendo ingresar código de verificación o hash del reporte.",
+          "precondiciones": [
+            "Reporte PDF con código QR generado.",
+            "Navegador con acceso a internet.",
+            "Lector QR disponible (app móvil o PC)."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Abrir el reporte PDF en Página 1 o Página 4. Localizar el código QR impreso.",
+              "resultadoEsperado": "Código QR visible en el PDF."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Escanear el código QR con un lector QR (app móvil o herramienta de escritorio).",
+              "resultadoEsperado": "QR decodificado. URL del portal de verificación obtenida."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Registrar URL del portal de verificación obtenida del QR: https://_____________________",
+              "resultadoEsperado": "URL registrada."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Navegar a la URL del portal de verificación en un navegador.",
+              "resultadoEsperado": "Portal de verificación visible y accesible."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Capturar screenshot del portal de verificación abierto y funcional.",
+              "resultadoEsperado": "Screenshot del portal documentado."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Verificar que el portal presenta una interfaz para ingresar código de verificación o hash del reporte.",
+              "resultadoEsperado": "Interfaz de verificación disponible."
+            }
+          ],
+          "criterioAceptacion": "URL del portal de verificación accesible vía escaneo de QR. Permite ingresar código de verificación del reporte. Responde con estado de validez del documento."
+        },
+        {
+          "tcId": "TC-OQ-034",
+          "titulo": "Portal de verificación — resultado VÁLIDO/INVÁLIDO según integridad",
+          "tipoTC": "POSITIVO",
+          "grupo": "SHA-256 y Portal QR",
+          "grupoFuncional": "SHA-256 y Portal de Verificación",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-042"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el portal de verificación muestra resultado VÁLIDO para un reporte auténtico no modificado, e INVÁLIDO para reportes con modificaciones.",
+          "precondiciones": [
+            "Reporte PDF auténtico generado por el sistema.",
+            "Acceso al portal de verificación (TC-OQ-033 completado).",
+            "Hash del PDF modificado disponible (TC-OQ-032)."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Acceder al portal de verificación (URL obtenida del QR en TC-OQ-033).",
+              "resultadoEsperado": "Portal accesible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Ingresar el código de verificación o hash SHA-256 del reporte 1 auténtico (obtenido en TC-OQ-030).",
+              "resultadoEsperado": "Código de verificación ingresado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Hacer clic en 'Verificar' o equivalente.",
+              "resultadoEsperado": "Sistema procesa la verificación."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Verificar que el resultado es 'VÁLIDO', 'VERIFICADO' o equivalente.",
+              "resultadoEsperado": "Resultado VÁLIDO mostrado en el portal."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Capturar screenshot del resultado 'VÁLIDO' en el portal para el PDF original.",
+              "resultadoEsperado": "Screenshot del resultado VÁLIDO documentado."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Ingresar el hash del PDF MODIFICADO (de TC-OQ-032) en el portal. Hacer clic en Verificar.",
+              "resultadoEsperado": "Sistema detecta modificación."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Capturar screenshot del resultado 'INVÁLIDO' en el portal para el PDF modificado.",
+              "resultadoEsperado": "Screenshot del resultado INVÁLIDO documentado."
+            }
+          ],
+          "criterioAceptacion": "Reporte auténtico: portal devuelve resultado 'VÁLIDO'. Reporte modificado: resultado 'INVÁLIDO'. Integridad correctamente detectada por el sistema de verificación."
+        },
+        {
+          "tcId": "TC-OQ-035",
+          "titulo": "Portal de verificación — metadatos del reporte",
+          "tipoTC": "POSITIVO",
+          "grupo": "SHA-256 y Portal QR",
+          "grupoFuncional": "SHA-256 y Portal de Verificación",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-043"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el portal de verificación muestra los metadatos completos del reporte verificado (nombre del sistema, categoría GAMP, fecha de emisión, emisor) y que coinciden con el contenido del PDF.",
+          "precondiciones": [
+            "Reporte PDF auténtico.",
+            "Acceso al portal de verificación."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Acceder al portal de verificación y verificar el reporte auténtico (TC-OQ-034).",
+              "resultadoEsperado": "Portal muestra resultado VÁLIDO con metadatos."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Capturar screenshot completo del portal con sección de metadatos visible.",
+              "resultadoEsperado": "Screenshot completo de metadatos documentado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Verificar presencia en los metadatos de: nombre del sistema categorizado.",
+              "resultadoEsperado": "Nombre del sistema presente en metadatos."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Verificar presencia en los metadatos de: categoría GAMP asignada.",
+              "resultadoEsperado": "Categoría GAMP presente en metadatos."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Verificar presencia en los metadatos de: fecha de emisión del reporte.",
+              "resultadoEsperado": "Fecha de emisión presente en metadatos."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Verificar presencia en los metadatos de: empresa o emisor del reporte.",
+              "resultadoEsperado": "Emisor/empresa presente en metadatos."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Comparar los metadatos del portal con el contenido del PDF. Verificar que los datos coinciden exactamente.",
+              "resultadoEsperado": "Datos del portal coinciden con el PDF. Consistencia confirmada."
+            }
+          ],
+          "criterioAceptacion": "Verificación exitosa muestra metadatos completos: nombre del sistema, categoría GAMP, fecha de emisión, emisor. Datos del portal coinciden exactamente con los del reporte PDF (consistencia entre fuentes)."
+        },
+        {
+          "tcId": "TC-OQ-036",
+          "titulo": "Disponibilidad del servicio — uptime verificación",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "grupoFuncional": "Infraestructura y Requerimientos No Funcionales",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-044"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el sistema cumple el SLA de disponibilidad del servicio (uptime ≥99.5%).",
+          "precondiciones": [
+            "Acceso a panel de administración.",
+            "Consola AWS o herramienta de monitoreo disponible."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Navegar a https://categorizador.example.com/ y verificar que el sistema está accesible.",
+              "resultadoEsperado": "Sistema accesible. HTTP 200 OK."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Registrar hora y resultado de acceso: HH:MM _____ / Accesible: Sí/No.",
+              "resultadoEsperado": "Accesibilidad registrada."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Ingresar al panel de administración o consola AWS para revisar logs/dashboard de disponibilidad.",
+              "resultadoEsperado": "Dashboard de disponibilidad accesible."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Capturar screenshot del dashboard del sistema funcional y accesible.",
+              "resultadoEsperado": "Screenshot del dashboard documentado."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Si existe dashboard de uptime: verificar que el valor de SLA es ≥99.5% en el período evaluado.",
+              "resultadoEsperado": "Uptime ≥99.5% confirmado en el período evaluado."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Registrar valor de SLA documentado por el proveedor: _____% (debe ser ≥99.5%).",
+              "resultadoEsperado": "SLA registrado."
+            }
+          ],
+          "criterioAceptacion": "Logs o dashboard de monitoreo muestran uptime ≥99.5% en el período evaluado. Sin incidentes críticos de indisponibilidad no planificada."
+        },
+        {
+          "tcId": "TC-OQ-037",
+          "titulo": "Cifrado TLS — HTTPS obligatorio, HTTP rechazado",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "grupoFuncional": "Infraestructura y Requerimientos No Funcionales",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-045"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el tráfico HTTP es rechazado o redirigido a HTTPS, y que el sistema opera únicamente con cifrado TLS 1.2 o superior.",
+          "precondiciones": [
+            "Navegador con herramientas de desarrollo (F12).",
+            "Acceso a URL HTTP y HTTPS del sistema."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Navegar a http://categorizador.example.com/ (sin HTTPS) en el navegador.",
+              "resultadoEsperado": "Navegador redirige a HTTPS o muestra error de conexión rechazada."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Capturar screenshot de la redirección a HTTPS o error al intentar acceder por HTTP.",
+              "resultadoEsperado": "Screenshot del comportamiento HTTP documentado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Navegar a https://categorizador.example.com/ y hacer clic en el candado de seguridad en la barra de direcciones.",
+              "resultadoEsperado": "Panel de seguridad del navegador visible."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Capturar screenshot del certificado TLS en el navegador (emisor, fechas de validez, protocolo TLS).",
+              "resultadoEsperado": "Screenshot del certificado TLS documentado."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Verificar que el certificado muestra TLS 1.2 o 1.3 (no SSL 2.0 ni SSL 3.0).",
+              "resultadoEsperado": "Versión de protocolo TLS 1.2 o superior confirmada."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Capturar screenshot adicional verificando protocolo TLS específico.",
+              "resultadoEsperado": "Screenshot del protocolo TLS documentado."
+            }
+          ],
+          "criterioAceptacion": "HTTP rechazado o redirigido automáticamente a HTTPS. Certificado TLS válido (mínimo TLS 1.2). Candado verde visible en navegador."
+        },
+        {
+          "tcId": "TC-OQ-038",
+          "titulo": "Cifrado en reposo de base de datos AES-256",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "grupoFuncional": "Infraestructura y Requerimientos No Funcionales",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-046"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que la base de datos está cifrada en reposo con AES-256.",
+          "precondiciones": [
+            "Acceso SSH al servidor o documentación técnica del proveedor.",
+            "Credenciales IAM de AWS Console disponibles."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Ingresar a la Consola AWS (https://console.aws.amazon.com/) con credenciales IAM.",
+              "resultadoEsperado": "Login exitoso."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Verificar configuración de BD SQLite en el servidor.",
+              "resultadoEsperado": "Lista de bases de datos visible."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Seleccionar la instancia de base de datos del DRP-GAMP Categorizador.",
+              "resultadoEsperado": "Propiedades de la instancia visibles."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Verificar en las propiedades que 'Storage Encrypted' = Yes y el algoritmo = AES-256.",
+              "resultadoEsperado": "Cifrado AES-256 activo (o documentar excepción si aplica para versión demo)."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Capturar screenshot de las propiedades de la instancia mostrando 'Encryption: Enabled'.",
+              "resultadoEsperado": "Screenshot del cifrado documentado."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Registrar: Storage Encrypted = _____ / Encryption Algorithm = _____",
+              "resultadoEsperado": "Datos de cifrado registrados."
+            }
+          ],
+          "criterioAceptacion": "Configuración de BD confirma cifrado AES-256 activo. Consola AWS RDS confirma cifrado en reposo. Si versión demo no tiene cifrado activo: documentar NC con plan de activación previo a productivo.",
+          "notas": "VERSIÓN DEMO: el cifrado AES-256 en reposo puede estar planificado pero no activo en demo. NC-001-IQ-2026 documenta esta situación. Debe verificarse activado antes de liberación productiva GxP."
+        },
+        {
+          "tcId": "TC-OQ-039",
+          "titulo": "Compatibilidad de navegadores web",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "grupoFuncional": "Infraestructura y Requerimientos No Funcionales",
+          "raScore": 12,
+          "nivel": "MEDIO",
+          "ursVinculados": [
+            "URS-047"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar compatibilidad del sistema con los navegadores web principales requeridos (Chrome, Brave, Edge) sin diferencias funcionales significativas.",
+          "precondiciones": [
+            "Chrome, Brave y Edge instalados en versiones actuales.",
+            "Acceso al sistema desde cada navegador."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Abrir Google Chrome (última versión). Navegar a https://categorizador.example.com/ e iniciar sesión.",
+              "resultadoEsperado": "Sistema funciona correctamente en Chrome. UI correcta."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Capturar screenshot del sistema funcional en Google Chrome.",
+              "resultadoEsperado": "Screenshot del sistema en Chrome documentado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Cerrar Chrome. Abrir Brave (última versión). Navegar al sistema e iniciar sesión.",
+              "resultadoEsperado": "Sistema funciona correctamente en Brave. UI correcta."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Capturar screenshot del sistema funcional en Brave.",
+              "resultadoEsperado": "Screenshot del sistema en Brave documentado."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Cerrar Brave. Abrir Microsoft Edge (última versión). Navegar al sistema e iniciar sesión.",
+              "resultadoEsperado": "Sistema funciona correctamente en Edge. UI correcta."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Capturar screenshot del sistema funcional en Microsoft Edge.",
+              "resultadoEsperado": "Screenshot del sistema en Edge documentado."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Verificar que la UI es consistente en los 3 navegadores (no hay diferencias funcionales significativas).",
+              "resultadoEsperado": "UI consistente en Chrome, Brave y Edge."
+            }
+          ],
+          "criterioAceptacion": "Sistema funciona correctamente en: Chrome (última versión), Brave (última versión), Edge (última versión). UI consistente y sin diferencias funcionales significativas entre navegadores."
+        },
+        {
+          "tcId": "TC-OQ-040",
+          "titulo": "Backup automático diario — N/A versión demo",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "grupoFuncional": "Infraestructura y Requerimientos No Funcionales",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-048"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el sistema tiene configurado backup automático diario (AWS RDS Automated Backups). En versión demo: documentar N/A y plan de activación.",
+          "precondiciones": [
+            "Conocimiento del alcance contratado para la versión demo del sistema."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Verificar el alcance contratado para la versión demo: confirmar si AWS RDS Automated Backups está incluido.",
+              "resultadoEsperado": "Alcance contratado documentado. En versión demo: backup automático NO contratado."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Si NO contratado: registrar como N/A y documentar referencia normativa (ANMAT 4159/2023 §9.2, EU GMP Annex 11 §7.2, RA-023).",
+              "resultadoEsperado": "Justificación N/A documentada con referencias normativas."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Documentar plan de activación previo a liberación productiva GxP.",
+              "resultadoEsperado": "Plan de activación registrado."
+            }
+          ],
+          "criterioAceptacion": "Versión demo: TC marcado como N/A — funcionalidad de backup automático diario no contratada. Documentación de plan de activación previo a liberación productiva GxP. Referencia normativa registrada (ANMAT, EU GMP Annex 11, RA-023).",
+          "notas": "N/A VERSIÓN DEMO. La funcionalidad de backup automático diario (AWS RDS Automated Backups) no ha sido contratada en la versión demo. Es funcionalidad de pago no incluida en el alcance de la presente validación. Deberá verificarse previo a liberación productiva GxP. Referencias: ANMAT 4159/2023 §9.2, EU GMP Annex 11 §7.2, RA-023."
+        },
+        {
+          "tcId": "TC-OQ-041",
+          "titulo": "Audit trail electrónico — inmutable e irrevocable (21 CFR Part 11)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "grupoFuncional": "Infraestructura y Requerimientos No Funcionales",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-049"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el audit trail electrónico es inmutable e irrevocable para todas las acciones del sistema, conforme 21 CFR Part 11 §11.10(e).",
+          "precondiciones": [
+            "Acceso con rol Administrador.",
+            "Registros de audit trail existentes (de TCs anteriores)."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Ingresar al panel de administración con credenciales de administrador.",
+              "resultadoEsperado": "Panel admin accesible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Navegar a la sección de Audit Trail.",
+              "resultadoEsperado": "Registros de audit trail visibles."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Intentar editar un registro de audit trail existente (si hay opción en la interfaz).",
+              "resultadoEsperado": "Sistema NO permite edición de registros."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Capturar screenshot del audit trail sin opciones de edición disponibles.",
+              "resultadoEsperado": "Screenshot sin opciones de edición documentado."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Intentar eliminar un registro de audit trail (si hay opción en la interfaz).",
+              "resultadoEsperado": "Sistema NO permite eliminación de registros."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Capturar screenshot confirmando la imposibilidad de modificar o eliminar registros del audit trail.",
+              "resultadoEsperado": "Screenshot de imposibilidad de modificación documentado."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Verificar que los registros incluyen los campos funcionales: usuario de sesión, acción (sistema evaluado / categoría asignada) y timestamp para cada evento.",
+              "resultadoEsperado": "Campos requeridos completos en todos los registros de audit trail."
+            }
+          ],
+          "criterioAceptacion": "Audit trail existente no puede ser modificado ni eliminado. Todos los eventos registrados con: usuario de sesión, acción (sistema evaluado / categoría asignada) y timestamp. Registros cronológicos e inmutables conforme 21 CFR Part 11 §11.10(e)."
+        },
+        {
+          "tcId": "TC-OQ-042",
+          "titulo": "Mensajes de error estándar — sin exposición de datos técnicos",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "grupoFuncional": "Infraestructura y Requerimientos No Funcionales",
+          "raScore": 12,
+          "nivel": "MEDIO",
+          "ursVinculados": [
+            "URS-050"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que los mensajes de error del sistema son estándar, comprensibles y no exponen datos sensibles internos (stack traces, rutas, versiones).",
+          "precondiciones": [
+            "Acceso al sistema.",
+            "Situaciones de error provocables (URL inexistente, login inválido)."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Navegar a una URL inexistente en el sistema: https://categorizador.example.com/pagina-no-existe",
+              "resultadoEsperado": "Página de error 404 visible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Capturar screenshot del error 404 amigable sin información técnica interna.",
+              "resultadoEsperado": "Screenshot del error 404 documentado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Verificar que la página de error 404 NO muestra: versión del servidor, stack trace, ruta de archivo.",
+              "resultadoEsperado": "Sin información técnica interna en error 404."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Intentar login con credenciales inválidas. Observar el mensaje de error.",
+              "resultadoEsperado": "Mensaje de error de login visible."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Capturar screenshot del mensaje de validación amigable sin stack trace ni rutas del servidor.",
+              "resultadoEsperado": "Screenshot del mensaje de login error documentado."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Verificar que ningún mensaje contiene: versión del servidor, stack trace, ruta de archivo o nombre de tabla.",
+              "resultadoEsperado": "Sin datos técnicos sensibles en ningún mensaje de error."
+            }
+          ],
+          "criterioAceptacion": "Mensajes de error son genéricos y comprensibles. No exponen: stack traces, nombres de BD, IPs internas, versiones de software o datos de otros usuarios."
+        },
+        {
+          "tcId": "TC-OQ-043",
+          "titulo": "Política de seguridad integrada — verificación NF-001",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "grupoFuncional": "Infraestructura y Requerimientos No Funcionales",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-NF-001"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que la política de seguridad integrada cumple con URS-NF-001 (seguridad integral del sistema), validando coherencia de controles a través de TCs previos aprobados.",
+          "precondiciones": [
+            "Acceso a documentación de política de seguridad.",
+            "Resultados de TCs anteriores de seguridad (TC-OQ-001, TC-OQ-003, TC-OQ-006, TC-OQ-037) disponibles."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Verificar que TC-OQ-001 (autenticación) fue aprobado — control de autenticación activo.",
+              "resultadoEsperado": "Control de autenticación verificado."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Verificar que TC-OQ-003 (bloqueo de cuenta tras 5 intentos fallidos) fue aprobado — control de acceso activo.",
+              "resultadoEsperado": "Control de bloqueo (5 intentos) verificado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Verificar que TC-OQ-006 (audit trail) fue aprobado — control de auditoría activo.",
+              "resultadoEsperado": "Control de audit trail verificado."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Verificar que TC-OQ-037 (TLS) fue aprobado — control de cifrado en tránsito activo.",
+              "resultadoEsperado": "Control de cifrado TLS verificado."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Navegar al audit trail y capturar screenshot del evento de bloqueo de cuenta (del TC-OQ-003).",
+              "resultadoEsperado": "Screenshot del evento de bloqueo en audit trail documentado."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Registrar confirmación de coherencia de la política de seguridad — todos los controles activos y coordinados: Sí/No",
+              "resultadoEsperado": "Coherencia de política de seguridad confirmada."
+            }
+          ],
+          "criterioAceptacion": "Política de seguridad documentada y aplicada: autenticación (TC-OQ-001), control de acceso/bloqueo 5 intentos (TC-OQ-003), audit trail (TC-OQ-006), cifrado TLS (TC-OQ-037). Todos los controles activos y coordinados.",
+          "notas": "Este TC requiere que TC-OQ-001, TC-OQ-003, TC-OQ-006 y TC-OQ-037 estén aprobados para completarse correctamente."
+        },
+        {
+          "tcId": "TC-OQ-044",
+          "titulo": "Tiempo de respuesta — generación de reporte PDF ≤30 segundos",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "grupoFuncional": "Infraestructura y Requerimientos No Funcionales",
+          "raScore": 12,
+          "nivel": "MEDIO",
+          "ursVinculados": [
+            "URS-NF-002"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el tiempo de respuesta para generación de reporte PDF cumple con el límite de performance establecido (criterio extendido ≤30s en condiciones de carga normal).",
+          "precondiciones": [
+            "Categorización completada lista para generar reporte.",
+            "Cronómetro o herramienta de medición de tiempo."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Con resultado de categorización visible, preparar cronómetro para medir tiempo de generación.",
+              "resultadoEsperado": "Cronómetro listo."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Hacer clic en 'Generar PDF' e iniciar el cronómetro simultáneamente.",
+              "resultadoEsperado": "Generación iniciada. Cronómetro corriendo."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Detener el cronómetro cuando el PDF esté completamente generado (descargado o mostrado). Registrar Medición 1.",
+              "resultadoEsperado": "Medición 1 registrada."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Repetir la generación de un segundo PDF. Registrar Medición 2.",
+              "resultadoEsperado": "Medición 2 registrada."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Repetir la generación de un tercer PDF. Registrar Medición 3.",
+              "resultadoEsperado": "Medición 3 registrada."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Registrar: Medición 1: _____s / Medición 2: _____s / Medición 3: _____s / Promedio: _____s",
+              "resultadoEsperado": "Promedio de tiempo de generación registrado."
+            }
+          ],
+          "criterioAceptacion": "Generación de reporte PDF completada en ≤30 segundos. Tiempo registrado en múltiples ejecuciones consistente. Promedio dentro del límite extendido.",
+          "notas": "Criterio primario per URS-NF-002: ≤10s. Se permite hasta 30s como criterio de aceptación extendido en condiciones de carga normal de la versión demo."
+        },
+        {
+          "tcId": "TC-OQ-045",
+          "titulo": "Audit trail electrónico conforme 21 CFR Part 11 — NF-003",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "grupoFuncional": "Infraestructura y Requerimientos No Funcionales",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-NF-003"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el audit trail electrónico cumple con los requisitos de 21 CFR Part 11 §11.10(e): qué, quién, cuándo, registros cronológicos e inmutables.",
+          "precondiciones": [
+            "Acceso a módulo de audit trail.",
+            "Panel de administración accesible."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Ingresar al panel de administración y navegar al módulo de Audit Trail.",
+              "resultadoEsperado": "Audit trail accesible."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Capturar screenshot del Audit Trail con timestamps en orden cronológico.",
+              "resultadoEsperado": "Screenshot del audit trail cronológico documentado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Seleccionar un registro individual del audit trail. Verificar que contiene los campos funcionales: fecha, hora (HH:MM:SS), usuario, acción (sistema evaluado / categoría asignada) y resultado.",
+              "resultadoEsperado": "Campos funcionales del sistema presentes conforme a 21 CFR Part 11 §11.10(e)."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Verificar que los registros son cronológicos y no modificables (sin opción de edición/eliminación).",
+              "resultadoEsperado": "Registros inmutables y ordenados cronológicamente."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Verificar que hay trazabilidad completa: cada acción del sistema está registrada con todos los atributos requeridos.",
+              "resultadoEsperado": "Trazabilidad completa del sistema confirmada."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Registrar confirmación de cumplimiento 21 CFR Part 11 §11.10(e): Sí/No.",
+              "resultadoEsperado": "Cumplimiento registrado."
+            }
+          ],
+          "criterioAceptacion": "Audit trail registra: quién (usuario de sesión), qué (acción: sistema evaluado / categoría GAMP asignada), cuándo (timestamp con fecha y hora). Registros cronológicos, inmutables y con trazabilidad completa. Cumplimiento 21 CFR Part 11 §11.10(e) confirmado."
+        },
+        {
+          "tcId": "TC-OQ-046",
+          "titulo": "Integridad de reportes PDF — inmutabilidad post-generación (NF-004)",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "grupoFuncional": "Infraestructura y Requerimientos No Funcionales",
+          "raScore": 27,
+          "nivel": "CRÍTICO",
+          "ursVinculados": [
+            "URS-NF-004"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que la integridad de reportes PDF es mantenida post-generación y cualquier modificación es detectada por el portal de verificación.",
+          "precondiciones": [
+            "Reporte PDF generado (puede usarse el de TC-OQ-030).",
+            "Editor PDF para modificar contenido.",
+            "Acceso al portal de verificación."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Calcular o copiar el hash SHA-256 del reporte PDF original.",
+              "resultadoEsperado": "Hash del reporte original registrado."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Registrar hash SHA-256 del reporte original antes de modificación: ________________",
+              "resultadoEsperado": "Hash original registrado."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Abrir el PDF con un editor (ej: Adobe Acrobat, LibreOffice) y realizar una pequeña modificación (agregar un espacio o punto).",
+              "resultadoEsperado": "Modificación realizada. PDF modificado guardado."
+            },
+            {
+              "paso": 4,
+              "instruccion": "Calcular el nuevo hash SHA-256 del PDF modificado.",
+              "resultadoEsperado": "Hash del PDF modificado obtenido."
+            },
+            {
+              "paso": 5,
+              "instruccion": "Comparar el hash original vs el hash del PDF modificado. Deben ser diferentes.",
+              "resultadoEsperado": "Hash original ≠ Hash modificado. Cambio detectado."
+            },
+            {
+              "paso": 6,
+              "instruccion": "Ingresar el PDF modificado al portal de verificación. Verificar que el resultado es 'INVÁLIDO'.",
+              "resultadoEsperado": "Portal muestra resultado INVÁLIDO para PDF modificado."
+            },
+            {
+              "paso": 7,
+              "instruccion": "Capturar screenshot del resultado 'INVÁLIDO' en portal de verificación para el PDF modificado.",
+              "resultadoEsperado": "Screenshot del resultado INVÁLIDO documentado."
+            }
+          ],
+          "criterioAceptacion": "Reporte PDF modificado externamente: hash SHA-256 cambia respecto al original. Portal de verificación detecta la modificación y muestra resultado 'INVÁLIDO'. Integridad correctamente protegida."
+        },
+        {
+          "tcId": "TC-OQ-047",
+          "titulo": "Backup automático completo diario NF-005 — N/A versión demo",
+          "tipoTC": "POSITIVO",
+          "grupo": "Infraestructura y No Funcionales",
+          "grupoFuncional": "Infraestructura y Requerimientos No Funcionales",
+          "raScore": 18,
+          "nivel": "ALTO",
+          "ursVinculados": [
+            "URS-NF-005"
+          ],
+          "raVinculado": "RA-024",
+          "objetivo": "Verificar que el sistema tiene Disaster Recovery con backup completo diario (RPO ≤24h vía AWS Backup). En versión demo: documentar N/A y plan de activación.",
+          "precondiciones": [
+            "Conocimiento del alcance contratado para la versión demo del sistema."
+          ],
+          "procedimiento": [
+            {
+              "paso": 1,
+              "instruccion": "Verificar el alcance contratado para la versión demo: confirmar si AWS Backup (DR completo) está incluido.",
+              "resultadoEsperado": "Alcance contratado documentado. En versión demo: backup completo NO contratado."
+            },
+            {
+              "paso": 2,
+              "instruccion": "Si NO contratado: registrar como N/A y documentar referencia normativa (ANMAT 4159/2023 §9.2, EU GMP Annex 11 §7.2, RA-023).",
+              "resultadoEsperado": "Justificación N/A documentada con referencias normativas."
+            },
+            {
+              "paso": 3,
+              "instruccion": "Documentar plan de activación previo a liberación productiva GxP, incluyendo RPO objetivo ≤24h.",
+              "resultadoEsperado": "Plan de activación registrado."
+            }
+          ],
+          "criterioAceptacion": "Versión demo: TC marcado como N/A — funcionalidad de backup automático completo diario (DR) no contratada. Documentación de plan de activación previo a liberación productiva GxP con RPO objetivo ≤24h. Referencia normativa registrada (ANMAT, EU GMP Annex 11, RA-023).",
+          "notas": "N/A VERSIÓN DEMO. La funcionalidad de backup automático completo diario (Disaster Recovery / RPO ≤24h vía AWS Backup) no ha sido contratada en la versión demo. Es funcionalidad de pago no incluida en el alcance de la presente validación. Deberá verificarse previo a liberación productiva GxP. Referencias: ANMAT 4159/2023 §9.2, EU GMP Annex 11 §7.2, RA-023."
+        }
+      ]
+    },
+    {
+      "tipo": "texto",
+      "titulo": "JUSTIFICACIÓN DE PROPORCIONALIDAD (CRITICAL THINKING)",
+      "bloques": [
+        {
+          "texto": "El alcance de 47 TCs propuesto para el OQ del sistema DRP-GAMP Categorizador™ v1.1 es proporcional a su categoría regulatoria (GAMP 3 — Software Estándar Configurable) y al perfil de riesgo declarado en el RA-DRP-SIS-001 v1.0 (24 riesgos funcionales con RPN entre 6 y 27)."
+        },
+        {
+          "texto": "Distribución por nivel de criticidad: 24 TCs CRÍTICO (RPN ≥ 27), 13 TCs ALTO (RPN 18), 5 TCs MEDIO (RPN 12) y 5 TCs cubren requerimientos No Funcionales. Cada riesgo de RPN ≥ 12 del RA tiene al menos 1 TC asociado — la cobertura es trazable vía la matriz URS↔TC documentada en el MTR-DRP-SIS-001."
+        },
+        {
+          "texto": "Inclusión de TCs negativos: TC-OQ-020 (NO resultado si confianza < 90%) y TC-OQ-023 (Categoría GAMP 2 nunca asignada) constituyen la cobertura mínima de seguridad/validación de inputs requerida por GAMP 5 §8.3. Sin TCs negativos, un auditor objetaría la cobertura por considerar que el sistema solo verifica casos positivos."
+        },
+        {
+          "texto": "Enfoque CSA aplicado: cada procedimiento se limita a 3-8 pasos operacionales significativos (acciones de usuario observables) en lugar de scripts micro-prescriptivos (clicks individuales). El criterio de aceptación consolidado al pie de cada TC es lo que determina el PASS/FAIL — los pasos son evidencia del recorrido, no un checklist atómico. Este enfoque cumple con FDA CSA 2022 y GAMP 5 §8.3."
+        }
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": [
+        "Documento",
+        "Título"
+      ],
+      "widths": [
+        180,
+        275
+      ],
+      "filas": [
+        [
+          "FDA CSA Draft Guidance 2022",
+          "Computer Software Assurance for Production and Quality System Software"
+        ],
+        [
+          "GAMP 5 (2nd Edition, 2022)",
+          "A Risk-Based Approach to Compliant GxP Computerized Systems — §8.3 OQ"
+        ],
+        [
+          "ICH Q9 (R1)",
+          "Quality Risk Management"
+        ],
+        [
+          "EU GMP Annex 11",
+          "Computerised Systems"
+        ],
+        [
+          "21 CFR Part 11",
+          "Electronic Records; Electronic Signatures"
+        ],
+        [
+          "ANMAT 4159/2023",
+          "Buenas Prácticas de Manufactura — Sistemas Computarizados"
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal del Protocolo de Calificación Operacional.",
+      "firmas": [
+        {
+          "rol": "Redactor (Validador)",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "15/03/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-03-15T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        },
+        {
+          "rol": "Revisor (Process Owner)",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "15/03/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-03-15T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        },
+        {
+          "rol": "Aprobador (Jefe de Validaciones)",
+          "nombre": "Carlos Rodríguez",
+          "iniciales": "CR",
+          "fecha": "15/03/2026",
+          "_signedBy": "person_CR_001",
+          "_signedAt": "2026-03-15T12:00:00.000Z",
+          "_signatureHashRef": "977817F7CC41"
+        },
+        {
+          "rol": "Aprobador (Gerente QA)",
+          "nombre": "Ana Pérez",
+          "iniciales": "AP",
+          "fecha": "15/03/2026",
+          "_signedBy": "person_AP_001",
+          "_signedAt": "2026-03-15T12:00:00.000Z",
+          "_signatureHashRef": "158A323A7BA4"
+        }
+      ],
+      "nota": "El detalle del procedimiento por cada uno de los 47 TCs se documenta en la sección \"TEST CASES — OPERATIONAL QUALIFICATION\". Esta firma valida tanto la matriz resumen como el conjunto completo de procedimientos detallados."
+    }
+  ],
+  "referenceConfig": {
+    "URS": {
+      "code": "URS-DRP-SIS-001",
+      "version": "v1.0",
+      "fechaCongelado": "01/03/2026"
+    },
+    "RA": {
+      "code": "RA-DRP-SIS-001",
+      "version": "v1.0",
+      "fechaCongelado": "01/03/2026"
+    },
+    "IRA": {
+      "code": "IRA-DRP-SIS-001",
+      "version": "v1.0",
+      "fechaCongelado": "01/03/2026"
+    }
+  }
+}

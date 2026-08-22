@@ -1,0 +1,41 @@
+# ── Secretos — NUNCA en la imagen Docker ────────────────────────
+.env
+
+# ── Datos persistentes (van en Railway Volume /data, no en imagen) ──
+data/
+
+# ── Node (la app es Python, node_modules no se necesita) ────────
+node_modules/
+package-lock.json
+package.json
+
+# ── Python cache ─────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.pytest_cache/
+
+# ── Git ──────────────────────────────────────────────────────────
+.git/
+.gitignore
+
+# ── Dev / local only ─────────────────────────────────────────────
+tests/
+tools/
+claude-desktop-skills/
+*.bat
+*.sh
+INICIAR.bat
+generate_keys.py
+pytest.ini
+requirements-dev.txt
+docker-compose.yml
+
+# ── Docs internas ────────────────────────────────────────────────
+memory/
+docs/
+CLAUDE.md
+CLAUDE-EVOLUCION.md
+fede.md
+*.md

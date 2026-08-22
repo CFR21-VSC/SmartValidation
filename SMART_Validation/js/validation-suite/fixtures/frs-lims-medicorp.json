@@ -1,0 +1,515 @@
+{
+  "schemaVersion": "1.0",
+  "type": "FRS",
+  "package": {
+    "code": "LIMS-MC-001",
+    "systemName": "LIMS-MediCorp",
+    "systemVersion": "2.0",
+    "systemSubtitle": "Laboratory Information Management System",
+    "client": "Laboratorios MediCorp",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": 2026
+  },
+  "document": {
+    "code": "FRS-LIMS-MC-001",
+    "titleEs": "ESPECIFICACIÓN DE REQUERIMIENTOS FUNCIONALES",
+    "titleEn": "FUNCTIONAL REQUIREMENTS SPECIFICATION (FRS)",
+    "headerTitle": "Especificación de Requerimientos Funcionales (FRS)",
+    "version": "1.0",
+    "issueDate": "Marzo 2026",
+    "status": "Aprobado",
+    "processOwner": "Dr. Martín Sánchez",
+    "gampCategory": "GAMP 4 — Software Configurado",
+    "normativeFramework": "ANMAT 4159/2023 Anexo VI | 21 CFR Part 11 | EU Annex 11 | GAMP 5",
+    "extras": {
+      "Documento base (URS)": "URS-LIMS-MC-001 v1.0",
+      "Total de FRS": "32 requerimientos funcionales (28 funcionales + 4 de interfaz)",
+      "Algoritmos documentados": "4 (ALG-001 a ALG-004) — modo extendido GAMP 4",
+      "Tipo de Validación": "Prospectiva — Sistema configurado por proveedor"
+    }
+  },
+  "controlCambios": [
+    { "version": "1.0", "fecha": "Mar 2026", "autor": "Equipo Validación MediCorp", "descripcion": "Versión inicial — derivada de URS-LIMS-MC-001 v1.0" }
+  ],
+  "matrizAprobaciones": [
+    { "rol": "Redactor (Validador)", "nombre": "Ing. Sofía Torres", "iniciales": "ST", "fecha": "12/03/2026" },
+    { "rol": "Revisor (Process Owner)", "nombre": "Dr. Martín Sánchez", "iniciales": "MS", "fecha": "13/03/2026" },
+    { "rol": "Revisor Técnico (IT)", "nombre": "Ing. Roberto Alvarez", "iniciales": "RA", "fecha": "13/03/2026" },
+    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "Lic. Carolina Ruiz", "iniciales": "CR", "fecha": "14/03/2026" },
+    { "rol": "Aprobador (Gerente QA)", "nombre": "Lic. Pablo Mendez", "iniciales": "PM", "fecha": "14/03/2026" }
+  ],
+  "trazabilidad": {
+    "recibeDe": ["URS"],
+    "alimentaA": ["DS", "POQ", "MTR"]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO",
+      "bloques": [
+        { "texto": "El presente documento especifica los Requerimientos Funcionales (FRS) del sistema LIMS-MediCorp v2.0. Su propósito es traducir cada requerimiento de usuario (URS) en uno o más requerimientos funcionales técnicos verificables que describen QUÉ funciones específicas el sistema debe ejecutar para cumplir con las expectativas del usuario." },
+        { "texto": "Este FRS se basa íntegramente en URS-LIMS-MC-001 v1.0 y sirve como input directo para la Design Specification (DS) y el Protocolo de Calificación Operacional (POQ). La trazabilidad URS → FRS → TC es bidireccional y garantiza cobertura 100%." }
+      ]
+    },
+    {
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido en este FRS",
+      "incluido": [
+        "Todas las funcionalidades del LIMS-MediCorp v2.0 contratadas por el cliente",
+        "Módulos: Recepción de muestras, Workflow analítico, Gestión de resultados, Reportes, Audit trail",
+        "Integraciones contratadas: SAP-MM (importación de órdenes), Equipos analíticos (HPLC, GC) vía interfaz LIMS-Bridge",
+        "Configuración GxP específica para Laboratorios MediCorp (parámetros, workflows, plantillas)",
+        "Roles del cliente: Analista, Supervisor, QA, Administrador"
+      ],
+      "subExcluido": "2.2 Excluido de este FRS",
+      "excluido": [
+        "Funcionalidades del módulo Stability Studies (no contratadas en v2.0 — fase 2)",
+        "Customización de código fuente del proveedor (no permitida en GAMP 4)",
+        "Infraestructura subyacente (servidores, BD Oracle) — calificada por proveedor de hosting",
+        "Integración con SAP-PP (planificada para v3.0)"
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESPONSABILIDADES",
+      "columnas": ["Rol", "Responsabilidad en este FRS"],
+      "widths": [160, 295],
+      "filas": [
+        ["Process Owner (Dr. Martín Sánchez)", "Validar que cada FRS refleja correctamente el comportamiento esperado del sistema según el URS. Aprobar el FRS antes de la generación de la DS."],
+        ["Validador (Ing. Sofía Torres)", "Descomponer cada URS en uno o más FRS verificables. Asignar criticidad y trazabilidad bidireccional."],
+        ["Revisor Técnico (Ing. R. Alvarez)", "Verificar viabilidad técnica de cada FRS. Identificar dependencias entre módulos. Coordinar con vendor."],
+        ["QA / Revisor Regulatorio", "Revisar que los FRS de compliance (audit trail, integridad, seguridad) cumplan ANMAT 4159/2023 y 21 CFR Part 11."],
+        ["Vendor (LIMS-Tech Solutions)", "Confirmar capacidad del producto para implementar cada FRS bajo la configuración contratada. Documentar limitaciones."]
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DEFINICIONES",
+      "columnas": ["Término", "Definición"],
+      "widths": [125, 330],
+      "filas": [
+        ["FRS (Functional Requirement Specification)", "Requerimiento técnico verificable que describe una función específica del sistema. Cada FRS es la traducción técnica de uno o más URS."],
+        ["URS-FRS Trazabilidad", "Vínculo bidireccional entre cada requerimiento de usuario (URS) y los requerimientos funcionales (FRS) que lo implementan. Cada URS debe tener al menos 1 FRS asociado."],
+        ["Configuración GxP", "Parámetros configurables por el cliente que afectan funciones GxP-relevantes del sistema (workflows, validaciones, reportes, control de acceso)."],
+        ["Vendor", "Proveedor del software comercial (LIMS-Tech Solutions). En GAMP 4, el vendor implementa las configuraciones; el cliente las valida."],
+        ["LIMS", "Laboratory Information Management System — sistema computarizado para gestión de muestras, ensayos, resultados y reportes en laboratorios analíticos."],
+        ["Workflow analítico", "Secuencia configurada de pasos para el procesamiento de una muestra desde recepción hasta liberación de resultado."],
+        ["Audit Trail", "Registro electrónico cronológico no modificable de todas las acciones realizadas en el sistema (quién, qué, cuándo, valor anterior, valor nuevo)."],
+        ["TC — Test Case", "Caso de prueba en el POQ que verifica el cumplimiento de uno o más FRS."]
+      ]
+    },
+    {
+      "tipo": "tabla-info",
+      "titulo": "REFERENCIA AL URS",
+      "intro": "Este FRS deriva del documento URS-LIMS-MC-001 v1.0. Los datos clave del URS que guían las decisiones técnicas de este documento son:",
+      "labelWidth": 170,
+      "filas": [
+        { "campo": "URS de referencia", "valor": "URS-LIMS-MC-001 v1.0", "boldValor": true, "colorValor": "primary" },
+        { "campo": "Total URS de origen", "valor": "27 URS funcionales + 5 URS no funcionales = 32 URS" },
+        { "campo": "FRS generados", "valor": "32 FRS (cobertura 100% de URS)", "boldValor": true, "colorValor": "accent" },
+        { "campo": "Ratio URS:FRS", "valor": "1:1 promedio (algunos URS complejos generan 2-3 FRS)" },
+        { "campo": "Categoría GAMP", "valor": "GAMP 4 — Software Configurado por Vendor" },
+        { "campo": "Configuración requerida", "valor": "Sí — parametrización de workflows, plantillas de reporte, roles, integraciones SAP/equipos" },
+        { "campo": "Trazabilidad bidireccional", "valor": "Cada FRS referencia su URS de origen. Cada URS lista sus FRS asociados (en MTR)." }
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REQUERIMIENTOS FUNCIONALES",
+      "intro": "Cada FRS describe una función técnica específica del sistema. Toda funcionalidad listada está soportada por la configuración contratada del LIMS y referenciada al URS de origen.",
+      "compact": true,
+      "columnas": ["FRS-ID", "URS Origen", "El sistema implementará...", "Tipo", "Criticidad"],
+      "widths": [50, 70, 230, 30, 75],
+      "filas": [
+        { "subheader": "6.1 Recepción y Registro de Muestras" },
+        [
+          { "text": "FRS-001", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-001, URS-002", "italics": true, "fontSize": 8 },
+          "registro de muestras con código único auto-generado en formato MC-YYYYMMDD-NNNN, incluyendo: código de lote, tipo de ensayo, fecha de recepción, analista responsable, prioridad (rutina/urgente), origen (interno/cliente externo).",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "CRÍTICO", "bold": true, "alignment": "center", "color": "#C0392B" }
+        ],
+        [
+          { "text": "FRS-002", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-003", "italics": true, "fontSize": 8 },
+          "validación obligatoria de campos críticos antes de aceptar la muestra: código de lote no vacío, tipo de ensayo válido (lista predefinida configurada por QA), analista activo en el sistema. Errores de validación bloquean el registro.",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "CRÍTICO", "bold": true, "alignment": "center", "color": "#C0392B" }
+        ],
+        [
+          { "text": "FRS-003", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-004", "italics": true, "fontSize": 8 },
+          "impresión de etiqueta con código de barras Code-128 para cada muestra registrada. La etiqueta incluye: código de muestra, fecha de recepción, tipo de ensayo, analista. Compatible con impresoras Zebra ZD420.",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "ALTO", "bold": true, "alignment": "center", "color": "#E67E22" }
+        ],
+        [
+          { "text": "FRS-004", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-005", "italics": true, "fontSize": 8 },
+          "importación masiva de órdenes de análisis desde SAP-MM mediante interfaz REST cada 30 minutos. Las órdenes nuevas generan registros pre-cargados en el LIMS con estado 'Pendiente recepción'.",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "ALTO", "bold": true, "alignment": "center", "color": "#E67E22" }
+        ],
+
+        { "subheader": "6.2 Workflow Analítico" },
+        [
+          { "text": "FRS-005", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-006, URS-007", "italics": true, "fontSize": 8 },
+          "asignación automática de la muestra al workflow correspondiente según el tipo de ensayo. Cada workflow define: secuencia de pasos, equipos necesarios, métodos analíticos asociados (referencia a SOPs), criterios de aceptación, tiempo estimado.",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "CRÍTICO", "bold": true, "alignment": "center", "color": "#C0392B" }
+        ],
+        [
+          { "text": "FRS-006", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-008", "italics": true, "fontSize": 8 },
+          "registro de avance de cada paso del workflow con: timestamp automático, analista ejecutor, valores medidos, observaciones opcionales. No se permite saltar pasos sin justificación documentada.",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "CRÍTICO", "bold": true, "alignment": "center", "color": "#C0392B" }
+        ],
+        [
+          { "text": "FRS-007", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-009", "italics": true, "fontSize": 8 },
+          "captura automática de datos desde equipos analíticos (HPLC, GC, espectrofotómetros) vía interfaz LIMS-Bridge. Los valores medidos quedan asociados al paso de workflow correspondiente con timestamp del equipo.",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "CRÍTICO", "bold": true, "alignment": "center", "color": "#C0392B" }
+        ],
+        [
+          { "text": "FRS-008", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-010", "italics": true, "fontSize": 8 },
+          "verificación automática de resultados contra criterios de aceptación del método. Resultados fuera de rango (OOS - Out Of Specification) generan alerta visual y bloquean liberación hasta investigación.",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "CRÍTICO", "bold": true, "alignment": "center", "color": "#C0392B" }
+        ],
+        [
+          { "text": "FRS-009", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-011", "italics": true, "fontSize": 8 },
+          "trazabilidad completa del ciclo de vida de la muestra: cada acción (recepción, asignación, ensayo, validación, liberación) queda registrada con usuario, timestamp y datos modificados.",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "CRÍTICO", "bold": true, "alignment": "center", "color": "#C0392B" }
+        ],
+
+        { "subheader": "6.3 Gestión de Resultados y Liberación" },
+        [
+          { "text": "FRS-010", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-012", "italics": true, "fontSize": 8 },
+          "revisión y validación de resultados por Supervisor antes de la liberación final. El estado del lote es 'En revisión' hasta aprobación. Doble verificación obligatoria para resultados OOS.",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "CRÍTICO", "bold": true, "alignment": "center", "color": "#C0392B" }
+        ],
+        [
+          { "text": "FRS-011", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-013", "italics": true, "fontSize": 8 },
+          "liberación electrónica de resultados con firma electrónica del Supervisor (compliance 21 CFR Part 11 Subpart C). Una vez liberado, el resultado queda inmutable.",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "CRÍTICO", "bold": true, "alignment": "center", "color": "#C0392B" }
+        ],
+        [
+          { "text": "FRS-012", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-014", "italics": true, "fontSize": 8 },
+          "gestión de desviaciones (NCs) integrada con el módulo de QA. Resultados OOS generan automáticamente un registro de NC con: muestra, paso del workflow, valor obtenido vs. esperado, analista.",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "ALTO", "bold": true, "alignment": "center", "color": "#E67E22" }
+        ],
+
+        { "subheader": "6.4 Reportes y Certificados" },
+        [
+          { "text": "FRS-013", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-015", "italics": true, "fontSize": 8 },
+          "generación de Certificado de Análisis (CoA) en PDF con plantilla configurada por MediCorp incluyendo: encabezado corporativo, datos del lote, resultados con tolerancias, firmas electrónicas, código QR de verificación.",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "CRÍTICO", "bold": true, "alignment": "center", "color": "#C0392B" }
+        ],
+        [
+          { "text": "FRS-014", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-016", "italics": true, "fontSize": 8 },
+          "exportación de reportes históricos en formato Excel y PDF, con filtros por: rango de fechas, tipo de ensayo, analista, estado, lote/muestra.",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "ALTO", "bold": true, "alignment": "center", "color": "#E67E22" }
+        ],
+        [
+          { "text": "FRS-015", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-017", "italics": true, "fontSize": 8 },
+          "dashboard de KPIs en tiempo real con: muestras pendientes, tiempo promedio de procesamiento por tipo de ensayo, tasa de OOS, % cumplimiento de TAT (Turnaround Time).",
+          { "text": "D", "bold": true, "alignment": "center", "color": "#717D8A" },
+          { "text": "MEDIO", "bold": true, "alignment": "center", "color": "#717D8A" }
+        ],
+
+        { "subheader": "6.5 Control de Acceso y Roles" },
+        [
+          { "text": "FRS-016", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-018, URS-019", "italics": true, "fontSize": 8 },
+          "autenticación con LDAP/Active Directory de MediCorp. Sincronización diaria de usuarios. Roles configurados: Analista, Supervisor, QA, Administrador, Auditor (read-only).",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "CRÍTICO", "bold": true, "alignment": "center", "color": "#C0392B" }
+        ],
+        [
+          { "text": "FRS-017", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-020", "italics": true, "fontSize": 8 },
+          "matriz de permisos por rol configurada según SOP-USO-LIMS-001 §6.2. Cada acción del sistema está mapeada a un permiso. Permisos no asignados producen error 403 con audit trail.",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "CRÍTICO", "bold": true, "alignment": "center", "color": "#C0392B" }
+        ],
+        [
+          { "text": "FRS-018", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-021", "italics": true, "fontSize": 8 },
+          "timeout de sesión a 30 minutos de inactividad. Bloqueo de cuenta tras 5 intentos fallidos consecutivos. Política de contraseñas: mín 10 caracteres, complejidad alta, rotación cada 90 días.",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "ALTO", "bold": true, "alignment": "center", "color": "#E67E22" }
+        ],
+
+        { "subheader": "6.6 Audit Trail e Integridad" },
+        [
+          { "text": "FRS-019", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-022, URS-023", "italics": true, "fontSize": 8 },
+          "audit trail electrónico no modificable que registra todas las operaciones GxP-relevantes con: usuario, timestamp UTC, acción, valor anterior, valor nuevo, IP de origen, motivo (cuando aplique).",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "CRÍTICO", "bold": true, "alignment": "center", "color": "#C0392B" }
+        ],
+        [
+          { "text": "FRS-020", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-024", "italics": true, "fontSize": 8 },
+          "consulta de audit trail por Auditor QA con filtros: fecha, usuario, muestra/lote, tipo de acción. Exportación auditable en PDF con firma electrónica del auditor.",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "ALTO", "bold": true, "alignment": "center", "color": "#E67E22" }
+        ],
+        [
+          { "text": "FRS-021", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-025", "italics": true, "fontSize": 8 },
+          "firma electrónica con doble factor (usuario + contraseña + motivo) según 21 CFR Part 11 Subpart C. Cada firma queda asociada al registro firmado con timestamp inmutable.",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "CRÍTICO", "bold": true, "alignment": "center", "color": "#C0392B" }
+        ],
+
+        { "subheader": "6.7 Backup, Continuidad y Disponibilidad" },
+        [
+          { "text": "FRS-022", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-026", "italics": true, "fontSize": 8 },
+          "backup automático incremental cada 4 horas + completo diario a las 02:00. Retención: incrementales 7 días, completos 90 días, snapshots mensuales 7 años (compliance ANMAT).",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "CRÍTICO", "bold": true, "alignment": "center", "color": "#C0392B" }
+        ],
+        [
+          { "text": "FRS-023", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-027", "italics": true, "fontSize": 8 },
+          "alta disponibilidad mediante cluster activo-pasivo con replicación síncrona de BD. RTO ≤ 4 horas, RPO ≤ 15 minutos.",
+          { "text": "M", "bold": true, "alignment": "center", "color": "#1F3C56" },
+          { "text": "ALTO", "bold": true, "alignment": "center", "color": "#E67E22" }
+        ]
+      ]
+    },
+    {
+      "tipo": "flujo-logico",
+      "titulo": "REGLAS DE NEGOCIO Y LÓGICA FUNCIONAL",
+      "intro": "Esta sección documenta los algoritmos críticos del sistema desde la perspectiva funcional (QUÉ decide el sistema y cómo encadena los pasos). En GAMP 4 con producto configurado, la algoritmia descripta aquí refleja el comportamiento del producto bajo la configuración GxP de MediCorp — no implica desarrollo de código fuente. Cada algoritmo es input directo de uno o más Test Cases en el POQ.",
+      "algoritmos": [
+        {
+          "id": "ALG-001",
+          "nombre": "Generación de código único de muestra",
+          "frsAsociados": "FRS-001",
+          "trigger": "El usuario completa el formulario de recepción de muestra y presiona 'Registrar'.",
+          "pasos": [
+            "Validar que todos los campos obligatorios estén completos (código de lote, tipo de ensayo, analista). Si alguno falta → bloquear con mensaje específico.",
+            "Validar que el analista figure como activo en USERS y que su rol tenga permiso 'sample.create' en ROLE_PERMISSIONS.",
+            "Obtener fecha actual desde reloj NTP del servidor (UTC). Convertir a timezone local (America/Argentina/Buenos_Aires) para componer la parte YYYYMMDD.",
+            "Consultar la secuencia Oracle SAMPLE_SEQ.NEXTVAL para obtener el siguiente número correlativo del día.",
+            "Componer el código en formato MC-YYYYMMDD-NNNN (con zero-padding a 4 dígitos).",
+            "Verificar unicidad del código en tabla SAMPLES. Si existe colisión (caso extremo): reintentar con NEXTVAL hasta 3 veces.",
+            "Insertar el registro en SAMPLES con código generado, datos del formulario, timestamp UTC, analista y estado inicial 'Recibida'.",
+            "Disparar el trigger de audit trail (TR_SAMPLES_AUDIT) que registra la inserción en AUDIT_LOG."
+          ],
+          "decisiones": [
+            { "condicion": "Si NTP no responde dentro de 2 segundos", "accion": "Bloquear el registro y generar alerta 'NTP unavailable' a IT" },
+            { "condicion": "Si la secuencia falla 3 veces consecutivas", "accion": "Rollback transaccional, mensaje al usuario y log en SYSTEM_ERRORS" },
+            { "condicion": "Si el analista no tiene permiso sample.create", "accion": "Error 403 + entrada en AUDIT_LOG con motivo 'permission denied'" }
+          ],
+          "ejemplo": "Muestra registrada el 15-Mar-2026 a las 14:23:07 UTC, secuencia diaria 0042 → MC-20260315-0042. Audit trail registra: usuario MS, acción INSERT, timestamp 2026-03-15T14:23:07Z, IP 10.20.30.41."
+        },
+        {
+          "id": "ALG-002",
+          "nombre": "Validación OOS (Out Of Specification) y disparo automático de NC",
+          "frsAsociados": "FRS-008, FRS-010, FRS-012",
+          "trigger": "Se carga un resultado analítico en RESULTS para una muestra (ya sea manualmente por el analista o automáticamente desde un equipo vía LIMS-Bridge).",
+          "pasos": [
+            "Recuperar el método analítico aplicado al paso del workflow desde WORKFLOW_STEPS.method_id.",
+            "Consultar los criterios de aceptación del método en METHOD_LIMITS (límite inferior, límite superior, unidad).",
+            "Comparar el valor del resultado contra los límites: si valor < min OR valor > max → marcar resultado como OOS.",
+            "Si OOS: cambiar el estado del paso del workflow a 'OOS - Pending Investigation' y bloquear avance al siguiente paso.",
+            "Generar automáticamente un registro en NC_REGISTRY con: código de muestra, método, valor obtenido, valor esperado (rango), analista, timestamp.",
+            "Notificar por email a Supervisor del workflow y a la casilla QA.",
+            "Si no es OOS: marcar el paso como 'Completado', registrar el resultado, y avanzar al siguiente paso del workflow.",
+            "En ambos casos: insertar fila en AUDIT_LOG con valor anterior (NULL para nuevos resultados) y valor nuevo."
+          ],
+          "decisiones": [
+            { "condicion": "Si el método no tiene criterios cargados en METHOD_LIMITS", "accion": "Bloquear ingreso del resultado + alerta a QA (configuración incompleta)" },
+            { "condicion": "Si el resultado es OOS y el analista intenta editar el valor", "accion": "Permitir edición solo dentro de los próximos 5 minutos (anti-error de tipeo). Pasados 5 min, requiere apertura formal de NC para corrección." },
+            { "condicion": "Si el valor está dentro del 5% del borde del rango", "accion": "Resultado válido pero generar advertencia visual 'Cercano al límite' (no NC)" }
+          ],
+          "ejemplo": "Resultado HPLC: 102.7% para un activo con criterio [98.0%, 102.0%]. Sistema detecta OOS, bloquea avance del workflow, genera NC-2026-0073, notifica a Supervisor. Audit trail captura: valor anterior = NULL, valor nuevo = 102.7, motivo OOS = 'fuera de límite superior'."
+        },
+        {
+          "id": "ALG-003",
+          "nombre": "Captura automática de datos desde equipo HPLC vía LIMS-Bridge",
+          "frsAsociados": "FRS-007, FRS-IF-002",
+          "trigger": "El equipo HPLC finaliza una corrida cromatográfica y emite un evento OPC UA al LIMS-Bridge.",
+          "pasos": [
+            "LIMS-Bridge recibe el evento con: ID del equipo, ID del método, ID de la muestra (vinculado al barcode escaneado en el equipo) y archivo de resultados.",
+            "Validar que la muestra existe en SAMPLES y está en un workflow activo asociado a HPLC.",
+            "Validar que el método configurado en el equipo coincide con el método del paso del workflow. Si no coincide → rechazar la captura.",
+            "Parsear el archivo de resultados: extraer áreas de pico, tiempos de retención y concentración calculada para cada analito.",
+            "Para cada analito: aplicar ALG-002 (validación OOS).",
+            "Insertar resultados en RESULTS con timestamp del equipo (no del LIMS, para preservar trazabilidad temporal real).",
+            "Actualizar el paso del workflow a 'Completado' (o 'OOS' según corresponda).",
+            "Adjuntar el archivo crudo del cromatograma en BLOB_STORAGE referenciado desde RESULTS para preservación de raw data (compliance ANMAT 4159/2023)."
+          ],
+          "decisiones": [
+            { "condicion": "Si la muestra no se encuentra (barcode invalido)", "accion": "Estado 'En espera de captura', email a Supervisor, NO descartar el archivo (queda en cola)" },
+            { "condicion": "Si el equipo está fuera de su período de calificación", "accion": "Bloquear captura y alertar a QA (no aceptar resultados de equipo no calificado)" },
+            { "condicion": "Si el archivo crudo está corrupto o incompleto", "accion": "Estado 'Captura fallida', notificación a IT, no insertar en RESULTS" }
+          ],
+          "ejemplo": "HPLC Agilent 1260 finaliza corrida de muestra MC-20260315-0042 a las 14:55:22. LIMS-Bridge captura el archivo .D, parsea 3 picos (impureza A, impureza B, principio activo), calcula concentración. Detecta OOS en impureza A → ALG-002 dispara NC. Cromatograma original queda en BLOB_STORAGE referenciado por RESULT_ID."
+        },
+        {
+          "id": "ALG-004",
+          "nombre": "Liberación de lote con doble verificación y firma electrónica",
+          "frsAsociados": "FRS-010, FRS-011, FRS-021",
+          "trigger": "Supervisor revisa los resultados de un lote completo y presiona 'Liberar' en la UI.",
+          "pasos": [
+            "Verificar que TODOS los pasos del workflow del lote estén en estado 'Completado' (no puede haber pasos OOS sin investigación cerrada).",
+            "Verificar que el rol del usuario sea 'Supervisor' o 'QA' con permiso 'batch.release'.",
+            "Mostrar diálogo de firma electrónica solicitando: usuario actual (precargado), contraseña, motivo de la liberación.",
+            "Validar la contraseña contra LDAP (no contra cache local — la liberación requiere autenticación fresca).",
+            "Si el lote tiene cualquier resultado marcado como OOS-Investigated-Released: requiere CO-firma de un segundo Supervisor distinto al primero (doble verificación).",
+            "Generar hash SHA-256 del payload completo (resultados + metadata + timestamp + usuario) y guardarlo en ELECTRONIC_SIGNATURES.",
+            "Cambiar el estado del lote a 'Liberado' en BATCHES y bloquear cualquier modificación posterior (read-only).",
+            "Generar el CoA en PDF (ALG-005, no documentado aquí) y publicarlo vía webhook a SAP-QM.",
+            "Insertar 3 entradas en AUDIT_LOG: cambio de estado del lote, generación de firma, publicación de CoA."
+          ],
+          "decisiones": [
+            { "condicion": "Si la contraseña falla 3 veces", "accion": "Cancelar la liberación, bloquear la cuenta del usuario y alertar a IT" },
+            { "condicion": "Si el lote tiene OOS sin investigación cerrada", "accion": "Bloquear liberación con mensaje específico al usuario y referencia al NC pendiente" },
+            { "condicion": "Si el segundo firmante (doble verif) es el mismo usuario", "accion": "Rechazar la co-firma. La doble verificación requiere dos usuarios distintos." }
+          ],
+          "ejemplo": "Lote MC-LOTE-2026-0156 con 24 muestras. Supervisor MS revisa, presiona Liberar a las 16:42. Sistema solicita firma → MS ingresa contraseña + motivo 'Resultados conformes'. Hash SHA-256 generado. Estado lote → 'Liberado'. CoA generado y publicado a SAP-QM. AUDIT_LOG registra timestamp UTC, IP, hash de la firma."
+        }
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REQUERIMIENTOS DE INTERFAZ",
+      "intro": "Interfaces externas del sistema. Cada interfaz tiene FRS técnicos asociados sobre protocolo, frecuencia, manejo de errores y trazabilidad.",
+      "compact": true,
+      "columnas": ["FRS-IF-ID", "URS Origen", "Interfaz", "Protocolo", "Criticidad"],
+      "widths": [60, 70, 175, 80, 70],
+      "filas": [
+        [
+          { "text": "FRS-IF-001", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-005", "italics": true, "fontSize": 8 },
+          "SAP-MM → LIMS: importación de órdenes de análisis cada 30 min con datos de lote, ensayo, prioridad",
+          { "text": "REST API + JWT", "fontSize": 9 },
+          { "text": "ALTO", "bold": true, "alignment": "center", "color": "#E67E22" }
+        ],
+        [
+          { "text": "FRS-IF-002", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-009", "italics": true, "fontSize": 8 },
+          "Equipos analíticos (HPLC/GC) → LIMS-Bridge → LIMS: captura automática de cromatogramas y datos cuantitativos",
+          { "text": "OPC UA + LIMS-Bridge", "fontSize": 9 },
+          { "text": "CRÍTICO", "bold": true, "alignment": "center", "color": "#C0392B" }
+        ],
+        [
+          { "text": "FRS-IF-003", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-018", "italics": true, "fontSize": 8 },
+          "AD MediCorp → LIMS: sincronización diaria de usuarios activos, roles y baja de cuentas",
+          { "text": "LDAP / LDAPS", "fontSize": 9 },
+          { "text": "CRÍTICO", "bold": true, "alignment": "center", "color": "#C0392B" }
+        ],
+        [
+          { "text": "FRS-IF-004", "bold": true, "color": "#1F3C56" },
+          { "text": "URS-015", "italics": true, "fontSize": 8 },
+          "LIMS → SAP-QM: notificación de liberación de lote y publicación de CoA",
+          { "text": "REST API + Webhook", "fontSize": 9 },
+          { "text": "ALTO", "bold": true, "alignment": "center", "color": "#E67E22" }
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REQUERIMIENTOS DE PERFORMANCE",
+      "intro": "Cuantificación de tiempos de respuesta y capacidad esperada del sistema en condiciones operativas normales.",
+      "columnas": ["Métrica", "Objetivo", "Justificación / Origen"],
+      "widths": [165, 120, 170],
+      "filas": [
+        ["Tiempo de respuesta consulta de muestra", "≤ 2 segundos", "URS-NF-002 — productividad analista"],
+        ["Tiempo de generación de CoA", "≤ 10 segundos", "URS-NF-002 — flujo liberación"],
+        ["Capacidad concurrente de usuarios", "≥ 100 usuarios simultáneos", "Personal MediCorp Lab Analítico"],
+        ["Volumen de muestras / día", "≥ 5,000 registros", "Histórico operativo cliente"],
+        ["Disponibilidad anual (SLA)", "99.5% (~44 hs downtime/año)", "URS-NF-005 — contrato vendor"],
+        ["Tiempo respuesta UI durante backup", "Sin degradación visible", "Backup en BD secundaria"]
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "MANEJO DE ERRORES Y EXCEPCIONES",
+      "intro": "Comportamiento esperado del sistema ante condiciones de error. Cada caso tiene FRS técnicos asociados.",
+      "columnas": ["Tipo de error", "Comportamiento esperado", "Notificación"],
+      "widths": [140, 200, 115],
+      "filas": [
+        ["Pérdida de conexión con equipo analítico", "Estado del paso queda en 'En espera de captura'. Reintentos automáticos cada 5 min.", "Alerta visual + email a IT"],
+        ["Fallo de validación de campos GxP", "Bloqueo del registro. Mensaje específico al usuario.", "Visible en pantalla"],
+        ["Resultado fuera de especificación (OOS)", "Bloqueo de liberación. Generación automática de NC.", "Email a Supervisor + QA"],
+        ["Caída de SAP-MM", "Cola de retries con persistencia local. Sincronización al restaurar.", "Email a IT (alta prioridad)"],
+        ["Falla de LDAP", "Permitir login con credenciales locales cacheadas (24h max).", "Alerta visual + log"],
+        ["BD primaria caída", "Failover automático a secundaria. RTO ≤ 4 hs.", "PagerDuty a IT 24/7"]
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "CRITERIOS DE ACEPTACIÓN DEL FRS",
+      "columnas": ["#", "Criterio", "Verificación"],
+      "widths": [25, 290, 140],
+      "filas": [
+        ["1", "El 100% de los URS Mandatory tienen al menos 1 FRS asociado", "Matriz de Trazabilidad URS↔FRS"],
+        ["2", "Cada FRS es verificable mediante un test case en el POQ", "Trazabilidad FRS↔TC en MTR"],
+        ["3", "Cada FRS describe QUÉ debe hacer el sistema (no CÓMO)", "Revisión de redacción"],
+        ["4", "Cada FRS de criticidad CRÍTICA tiene criterios de aceptación cuantitativos", "Revisión Process Owner + QA"],
+        ["5", "Las interfaces externas (FRS-IF-XXX) tienen protocolo y frecuencia definidos", "Sección 7"],
+        ["6", "Vendor confirma capacidad del producto para implementar todos los FRS", "Acta de revisión técnica con vendor"],
+        ["7", "FRS aprobado antes de inicio de generación de la Design Specification (DS)", "Firmas en sección 14"]
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": ["Código / Referencia", "Título"],
+      "widths": [180, 275],
+      "filas": [
+        ["URS-LIMS-MC-001 v1.0", "User Requirements Specification — LIMS-MediCorp"],
+        ["HLRA-LIMS-MC-001 v1.0", "High Level Risk Assessment — LIMS-MediCorp"],
+        ["VP-LIMS-MC-001 v1.0", "Plan de Validación — LIMS-MediCorp"],
+        ["MAN-LIMS-Tech v2.0", "Manual de Usuario — LIMS-Tech Solutions v2.0"],
+        ["VENDOR-CONF-LIMS v1.0", "Documento de Configuración del Vendor — LIMS-MediCorp"],
+        ["SOP-USO-LIMS-001 v1.0", "Procedimiento de Uso del LIMS-MediCorp"],
+        ["ANMAT 4159/2023 Anexo VI", "Guía de Buenas Prácticas de Sistemas Informatizados"],
+        ["GAMP 5 — 2da Ed. 2022", "Risk-Based Approach to Compliant GxP Computerized Systems (ISPE)"],
+        ["ICH Q9 R1 (2023)", "Quality Risk Management"],
+        ["21 CFR Part 11", "Electronic Records; Electronic Signatures (FDA)"],
+        ["EU Annex 11", "Computerised Systems (EMA)"]
+      ]
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de este FRS. La trazabilidad legal queda registrada en el log adjunto al paquete de validación.",
+      "firmas": [],
+      "rolesPlaceholder": [
+        "Ejecutor (Validador)",
+        "Revisor Técnico (IT)",
+        "Revisor (Process Owner)",
+        "Aprobador (Jefe de Validaciones)",
+        "Aprobador (Gerente QA)",
+        "Aprobador (Vendor — confirmación técnica)"
+      ],
+      "nota": "Documento sujeto a firma electrónica. La firma manuscrita en este recuadro solo aplica como respaldo físico cuando no es viable la firma digital."
+    }
+  ]
+}

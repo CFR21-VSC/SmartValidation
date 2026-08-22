@@ -1,0 +1,154 @@
+{
+  "schemaVersion": "1.0",
+  "type": "DS",
+  "package": {
+    "code": "",
+    "systemName": "",
+    "systemVersion": "",
+    "systemSubtitle": "",
+    "client": "",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": null
+  },
+  "document": {
+    "code": "",
+    "titleEs": "ESPECIFICACIÓN DE DISEÑO",
+    "titleEn": "DESIGN SPECIFICATION (DS)",
+    "headerTitle": "Especificación de Diseño (DS)",
+    "version": "1.0",
+    "issueDate": "",
+    "status": "Borrador",
+    "processOwner": "",
+    "gampCategory": "",
+    "normativeFramework": "",
+    "extras": {
+      "Documento base (FRS)": "",
+      "Tipo de Diseño": "",
+      "Vendor": ""
+    }
+  },
+  "controlCambios": [],
+  "matrizAprobaciones": [
+    { "rol": "Redactor (Validador)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Arquitecto Vendor", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Revisor Técnico (IT)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Revisor (Process Owner)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+  ],
+  "trazabilidad": {
+    "recibeDe": ["FRS", "URS"],
+    "alimentaA": ["IIQ", "POQ", "MTR"]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO",
+      "bloques": []
+    },
+    {
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido en este DS",
+      "incluido": [],
+      "subExcluido": "2.2 Excluido de este DS",
+      "excluido": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESPONSABILIDADES",
+      "columnas": ["Rol", "Responsabilidad en este DS"],
+      "widths": [160, 295],
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DEFINICIONES",
+      "columnas": ["Término", "Definición"],
+      "widths": [125, 330],
+      "filas": []
+    },
+    {
+      "tipo": "diagrama-arquitectura",
+      "titulo": "ARQUITECTURA DE ALTO NIVEL",
+      "intro": "",
+      "capas": [
+        { "nombre": "Capa de Presentación", "tecnologia": "", "color": "primary", "componentes": [] },
+        { "nombre": "Capa de Aplicación", "tecnologia": "", "color": "secondary", "componentes": [] },
+        { "nombre": "Capa de Datos", "tecnologia": "", "color": "accent", "componentes": [] },
+        { "nombre": "Capa de Infraestructura", "tecnologia": "", "color": "#5C7080", "componentes": [] }
+      ],
+      "nota": ""
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "COMPONENTES DEL SISTEMA",
+      "intro": "Detalle de cada componente principal del sistema, su propósito, FRS asociados y configuración aplicable.",
+      "compact": true,
+      "columnas": ["Componente", "Propósito", "FRS asociados", "Configuración"],
+      "widths": [115, 145, 90, 105],
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DISEÑO DE INTERFAZ TÉCNICA",
+      "intro": "Especificación técnica de cada interfaz externa: endpoint, frecuencia, autenticación, formato de payload y manejo de errores.",
+      "compact": true,
+      "columnas": ["FRS-IF", "Endpoint / Mecanismo", "Frecuencia", "Auth", "Manejo de fallos"],
+      "widths": [55, 165, 85, 60, 90],
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "MODELO DE DATOS — TABLAS GxP CRÍTICAS",
+      "intro": "Tablas con relevancia GxP donde se aplica audit trail automático, integridad referencial y replicación síncrona.",
+      "compact": true,
+      "columnas": ["Tabla", "Propósito", "Audit", "Replicación"],
+      "widths": [120, 195, 60, 80],
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DISEÑO DE SEGURIDAD TÉCNICA",
+      "intro": "Decisiones técnicas para implementación de los FRS de seguridad y compliance.",
+      "columnas": ["Requerimiento", "Implementación técnica", "FRS"],
+      "widths": [125, 235, 95],
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "CONFIGURACIÓN GxP DEL CLIENTE",
+      "intro": "Parámetros y recursos configurados específicamente para el cliente.",
+      "columnas": ["Categoría", "Configuración aplicable al cliente"],
+      "widths": [140, 315],
+      "filas": []
+    },
+    {
+      "tipo": "caja-criterio",
+      "titulo": "CRITERIOS DE CALIDAD DEL DISEÑO",
+      "items": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": ["Código / Referencia", "Título"],
+      "widths": [180, 275],
+      "filas": []
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de este DS.",
+      "firmas": [],
+      "rolesPlaceholder": [
+        "Ejecutor (Validador)",
+        "Arquitecto (Vendor)",
+        "Revisor Técnico (IT)",
+        "Revisor (Process Owner)",
+        "Aprobador (Jefe de Validaciones)",
+        "Aprobador (Gerente QA)"
+      ],
+      "nota": ""
+    }
+  ]
+}

@@ -1,0 +1,161 @@
+{
+  "schemaVersion": "1.0",
+  "type": "HLRA",
+  "package": {
+    "code": "",
+    "systemName": "",
+    "systemVersion": "",
+    "systemSubtitle": "",
+    "client": "",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": null
+  },
+  "document": {
+    "code": "",
+    "titleEs": "ANÁLISIS DE CALIFICACIÓN Y CRITICIDAD GxP",
+    "titleEn": "QUALIFICATION AND GxP CRITICALITY ASSESSMENT (HLRA)",
+    "headerTitle": "Análisis de Calificación y Criticidad GxP",
+    "version": "1.0",
+    "issueDate": "",
+    "status": "Borrador",
+    "processOwner": "",
+    "gampCategory": "",
+    "normativeFramework": ""
+  },
+  "controlCambios": [],
+  "matrizAprobaciones": [
+    { "rol": "Redactor (Validador)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Revisor (Process Owner)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "", "iniciales": "", "fecha": "" },
+    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+  ],
+  "trazabilidad": {
+    "recibeDe": [],
+    "alimentaA": []
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO",
+      "contenido": ""
+    },
+    {
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido en el análisis",
+      "incluido": [],
+      "subExcluido": "2.2 Excluido del análisis",
+      "excluido": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESPONSABILIDADES",
+      "columnas": ["Rol", "Responsabilidad"],
+      "widths": [200, 255],
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DEFINICIONES",
+      "columnas": ["Término", "Definición"],
+      "widths": [80, 375],
+      "filas": []
+    },
+    {
+      "tipo": "tabla-info",
+      "titulo": "DESCRIPCIÓN DEL SISTEMA",
+      "filas": []
+    },
+    {
+      "tipo": "arbol-decision-gamp",
+      "titulo": "CATEGORIZACIÓN GAMP",
+      "intro": "",
+      "preguntas": []
+    },
+    {
+      "tipo": "caja-resultado",
+      "titulo": "",
+      "subtitulo": "",
+      "icono": "OK",
+      "color": "primary"
+    },
+    {
+      "tipo": "tabla-docs-aplicables",
+      "titulo": "Implicaciones para la Validación",
+      "intro": "",
+      "filas": []
+    },
+    {
+      "tipo": "formula-rai",
+      "titulo": "ANÁLISIS DE CRITICIDAD OPERATIVA",
+      "intro": "",
+      "formula": "IRO = P × G × D × I × PR × S",
+      "factores": []
+    },
+    {
+      "tipo": "box-resultado-rai",
+      "titulo": "Resultado IRO",
+      "labelCalculo": "IRO CALCULADO",
+      "calculo": "",
+      "nivel": "",
+      "rangos": "Rango: 1-50 = Bajo | 51-200 = Medio | 201-486 = Alto"
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "PROCESOS GxP IMPACTADOS",
+      "columnas": ["Proceso GxP", "Función del sistema", "Criticidad"],
+      "widths": [150, 205, 100],
+      "filas": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "FUNCIONES CRÍTICAS GxP",
+      "columnas": ["Función", "Impacto GxP", "Criticidad", "Verif. OQ"],
+      "widths": [125, 195, 70, 65],
+      "filas": []
+    },
+    {
+      "tipo": "texto",
+      "titulo": "ESTRATEGIA DE VALIDACIÓN",
+      "bloques": [
+        {
+          "subtitulo": "Enfoque General",
+          "texto": "",
+          "bullets": []
+        }
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "Documentos de la Validación",
+      "columnas": ["#", "Código", "Documento", "Responsable"],
+      "widths": [25, 110, 200, 120],
+      "filas": []
+    },
+    {
+      "tipo": "caja-conclusion",
+      "titulo": "CONCLUSIÓN",
+      "parrafos": []
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": ["Código / Referencia", "Título"],
+      "widths": [180, 275],
+      "filas": []
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de este documento.",
+      "firmas": [],
+      "rolesPlaceholder": [
+        "Ejecutor (Validador)",
+        "Revisor (Process Owner)",
+        "Aprobador (Jefe de Validaciones)",
+        "Aprobador (Gerente QA)"
+      ],
+      "nota": ""
+    }
+  ]
+}

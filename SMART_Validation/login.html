@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMART Validation — Acceso</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: #0b1621;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #dde6f0;
+        }
+
+        .card {
+            background: #152030;
+            border: 1px solid #1e3550;
+            border-radius: 14px;
+            padding: 52px 44px 44px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 24px 64px rgba(0,0,0,.5);
+        }
+
+        /* Logo */
+        .logo { text-align: center; margin-bottom: 36px; }
+        .logo-icon {
+            width: 58px; height: 58px;
+            background: linear-gradient(135deg, #1a6e3e, #27a459);
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 14px;
+            box-shadow: 0 4px 20px rgba(39,164,89,.35);
+        }
+        .logo h1 {
+            font-size: 21px;
+            font-weight: 700;
+            color: #eef3f8;
+            letter-spacing: -.4px;
+        }
+        .logo p {
+            margin-top: 5px;
+            font-size: 11.5px;
+            color: #5a7a96;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+        }
+
+        /* Form */
+        .field { margin-bottom: 18px; }
+        label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            color: #5a7a96;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 7px;
+        }
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 10px 13px;
+            background: #0b1621;
+            border: 1.5px solid #1e3550;
+            border-radius: 7px;
+            color: #dde6f0;
+            font-size: 14px;
+            outline: none;
+            transition: border-color .15s;
+        }
+        input:focus { border-color: #27a459; }
+
+        .error {
+            display: none;
+            background: #2a0e0e;
+            border: 1px solid #6b2222;
+            border-radius: 7px;
+            padding: 10px 13px;
+            font-size: 13px;
+            color: #f09090;
+            margin-bottom: 18px;
+            line-height: 1.4;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 11px;
+            background: linear-gradient(135deg, #1a6e3e, #27a459);
+            border: none;
+            border-radius: 7px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity .15s, transform .1s;
+            margin-top: 6px;
+            letter-spacing: .3px;
+        }
+        .btn:hover:not(:disabled) { opacity: .92; }
+        .btn:active:not(:disabled) { transform: scale(.99); }
+        .btn:disabled { opacity: .45; cursor: default; }
+
+        .footer {
+            text-align: center;
+            margin-top: 28px;
+            font-size: 11px;
+            color: #2e4a62;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .footer svg { opacity: .6; flex-shrink: 0; }
+
+        /* Panel de cambio obligatorio de credenciales */
+        #changePanel { display: none; }
+        .change-banner {
+            background: #1a2e10;
+            border: 1px solid #3a6a20;
+            border-radius: 7px;
+            padding: 12px 14px;
+            font-size: 13px;
+            color: #90d070;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+        .pin-input {
+            letter-spacing: 6px;
+            font-size: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo">
+            <div class="logo-icon">⚗️</div>
+            <h1>SMART Validation</h1>
+            <p>DRP Assurance · Gestión de Evidencias GxP</p>
+        </div>
+
+        <div id="errorBox" class="error" role="alert"></div>
+
+        <div class="field">
+            <label for="username">Usuario</label>
+            <input type="text" id="username" placeholder="usuario"
+                   autocomplete="username" autofocus spellcheck="false" autocorrect="off">
+        </div>
+
+        <div class="field">
+            <label for="password">Contraseña / PIN</label>
+            <input type="password" id="password" placeholder="••••••••"
+                   autocomplete="current-password">
+        </div>
+
+        <button class="btn" id="loginBtn" onclick="doLogin()">Iniciar sesión</button>
+
+        <!-- ── Panel de cambio obligatorio (aparece tras primer login) ── -->
+        <div id="changePanel">
+            <div class="change-banner">
+                🔐 Por seguridad, debés establecer tus credenciales personales antes de continuar.
+            </div>
+            <div id="changePwdFields">
+                <div class="field">
+                    <label for="newPassword">Nueva contraseña</label>
+                    <input type="password" id="newPassword" placeholder="Mínimo 8 caracteres"
+                           autocomplete="new-password">
+                </div>
+                <div class="field">
+                    <label for="newPassword2">Confirmar contraseña</label>
+                    <input type="password" id="newPassword2" placeholder="Repetí la contraseña"
+                           autocomplete="new-password">
+                </div>
+            </div>
+            <div id="changePinFields" style="display:none">
+                <div class="field">
+                    <label for="newPin">Nuevo PIN</label>
+                    <input type="password" id="newPin" placeholder="••••••" maxlength="8"
+                           inputmode="numeric" pattern="[0-9]*" class="pin-input"
+                           autocomplete="new-password">
+                </div>
+                <div class="field">
+                    <label for="newPin2">Confirmar PIN</label>
+                    <input type="password" id="newPin2" placeholder="••••••" maxlength="8"
+                           inputmode="numeric" pattern="[0-9]*" class="pin-input"
+                           autocomplete="new-password">
+                </div>
+            </div>
+            <button class="btn" id="changeBtn" onclick="doChangeCredentials()">Guardar y continuar</button>
+        </div>
+
+        <div class="footer">
+            <svg width="12" height="14" viewBox="0 0 12 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="1" y="6" width="10" height="8" rx="1.5" fill="#5a7a96"/>
+                <path d="M3 6V4a3 3 0 016 0v2" stroke="#5a7a96" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            Administradores: contraseña · Clientes: PIN numérico
+        </div>
+    </div>
+
+    <script>
+        let _pendingRole = null;
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key !== 'Enter') return;
+            if (document.getElementById('changePanel').style.display !== 'none') {
+                doChangeCredentials();
+            } else {
+                doLogin();
+            }
+        });
+
+        async function doLogin() {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const errorBox = document.getElementById('errorBox');
+            const btn      = document.getElementById('loginBtn');
+
+            errorBox.style.display = 'none';
+
+            if (!username || !password) {
+                return showError('Completá usuario y contraseña.');
+            }
+
+            btn.disabled    = true;
+            btn.textContent = 'Verificando...';
+
+            try {
+                const res = await fetch('/auth/login', {
+                    method:      'POST',
+                    headers:     { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body:        JSON.stringify({ username, password }),
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    if (data.must_change) {
+                        // Primer acceso: ocultar campos de login y mostrar form de cambio
+                        _pendingRole = data.role;
+                        ['username','password'].forEach(id => {
+                            const el = document.getElementById(id);
+                            if (el) el.closest('.field').style.display = 'none';
+                        });
+                        document.getElementById('loginBtn').style.display = 'none';
+                        document.querySelector('.footer').style.display   = 'none';
+                        document.getElementById('changePanel').style.display = 'block';
+                        if (data.role === 'client') {
+                            document.getElementById('changePwdFields').style.display = 'none';
+                            document.getElementById('changePinFields').style.display = 'block';
+                        }
+                    } else {
+                        window.location.replace(data.role === 'client' ? '/client/' : '/');
+                    }
+                } else {
+                    showError(data.error || 'Credenciales incorrectas. Intentá de nuevo.');
+                    btn.disabled    = false;
+                    btn.textContent = 'Iniciar sesión';
+                }
+            } catch (e) {
+                showError('Error de conexión. Verificá tu acceso a internet.');
+                btn.disabled    = false;
+                btn.textContent = 'Iniciar sesión';
+            }
+        }
+
+        async function doChangeCredentials() {
+            const errorBox = document.getElementById('errorBox');
+            const btn      = document.getElementById('changeBtn');
+            errorBox.style.display = 'none';
+            btn.disabled    = true;
+            btn.textContent = 'Guardando...';
+
+            let body;
+            if (_pendingRole === 'client') {
+                const pin  = document.getElementById('newPin').value;
+                const pin2 = document.getElementById('newPin2').value;
+                if (!pin || !/^\d{6,8}$/.test(pin)) {
+                    showError('El PIN debe tener entre 6 y 8 dígitos numéricos.');
+                    btn.disabled = false; btn.textContent = 'Guardar y continuar'; return;
+                }
+                if (pin !== pin2) {
+                    showError('Los PINs no coinciden.');
+                    btn.disabled = false; btn.textContent = 'Guardar y continuar'; return;
+                }
+                body = { new_pin: pin };
+            } else {
+                const pw  = document.getElementById('newPassword').value;
+                const pw2 = document.getElementById('newPassword2').value;
+                if (!pw || pw.length < 8) {
+                    showError('La contraseña debe tener al menos 8 caracteres.');
+                    btn.disabled = false; btn.textContent = 'Guardar y continuar'; return;
+                }
+                if (pw !== pw2) {
+                    showError('Las contraseñas no coinciden.');
+                    btn.disabled = false; btn.textContent = 'Guardar y continuar'; return;
+                }
+                body = { new_password: pw };
+            }
+
+            try {
+                const res = await fetch('/auth/change-credentials', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify(body),
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    window.location.replace(_pendingRole === 'client' ? '/client/' : '/');
+                } else {
+                    showError(data.error || 'Error al guardar. Intentá de nuevo.');
+                    btn.disabled = false; btn.textContent = 'Guardar y continuar';
+                }
+            } catch (e) {
+                showError('Error de conexión.');
+                btn.disabled = false; btn.textContent = 'Guardar y continuar';
+            }
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorBox');
+            el.textContent    = msg;
+            el.style.display  = 'block';
+        }
+    </script>
+</body>
+</html>

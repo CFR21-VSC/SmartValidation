@@ -1,0 +1,322 @@
+{
+  "schemaVersion": "1.0",
+  "type": "DS",
+  "package": {
+    "code": "LIMS-MC-001",
+    "systemName": "LIMS-MediCorp",
+    "systemVersion": "2.0",
+    "systemSubtitle": "Laboratory Information Management System",
+    "client": "Laboratorios MediCorp",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": 2026
+  },
+  "document": {
+    "code": "DS-LIMS-MC-001",
+    "titleEs": "ESPECIFICACIÓN DE DISEÑO",
+    "titleEn": "DESIGN SPECIFICATION (DS)",
+    "headerTitle": "Especificación de Diseño (DS)",
+    "version": "1.0",
+    "issueDate": "Abril 2026",
+    "status": "Aprobado",
+    "processOwner": "Dr. Martín Sánchez",
+    "gampCategory": "GAMP 4 — Software Configurado",
+    "normativeFramework": "ANMAT 4159/2023 Anexo VI | 21 CFR Part 11 | EU Annex 11 | GAMP 5",
+    "extras": {
+      "Documento base (FRS)": "FRS-LIMS-MC-001 v1.0",
+      "Tipo de Diseño": "GAMP 4 — Configuración por Vendor (no customización)",
+      "Vendor": "LIMS-Tech Solutions"
+    }
+  },
+  "controlCambios": [
+    { "version": "1.0", "fecha": "Abr 2026", "autor": "Equipo Validación + LIMS-Tech", "descripcion": "Versión inicial — derivada de FRS-LIMS-MC-001 v1.0" }
+  ],
+  "matrizAprobaciones": [
+    { "rol": "Redactor (Validador)", "nombre": "Ing. Sofía Torres", "iniciales": "ST", "fecha": "08/04/2026" },
+    { "rol": "Arquitecto Vendor", "nombre": "Ing. Daniel Pérez", "iniciales": "DP", "fecha": "09/04/2026" },
+    { "rol": "Revisor Técnico (IT)", "nombre": "Ing. Roberto Alvarez", "iniciales": "RA", "fecha": "10/04/2026" },
+    { "rol": "Revisor (Process Owner)", "nombre": "Dr. Martín Sánchez", "iniciales": "MS", "fecha": "11/04/2026" },
+    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "Lic. Carolina Ruiz", "iniciales": "CR", "fecha": "12/04/2026" },
+    { "rol": "Aprobador (Gerente QA)", "nombre": "Lic. Pablo Mendez", "iniciales": "PM", "fecha": "12/04/2026" }
+  ],
+  "trazabilidad": {
+    "recibeDe": ["FRS", "URS"],
+    "alimentaA": ["IIQ", "POQ", "MTR"]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO",
+      "bloques": [
+        { "texto": "El presente documento especifica el Diseño Técnico (DS — Design Specification) del sistema LIMS-MediCorp v2.0. Su propósito es definir CÓMO se implementarán técnicamente los Requerimientos Funcionales (FRS) descritos en FRS-LIMS-MC-001 v1.0, traduciéndolos en arquitectura, componentes, modelo de datos, interfaces técnicas y configuración GxP." },
+        { "texto": "Por tratarse de un sistema GAMP 4 (Software Configurado por Vendor), las decisiones de diseño se limitan a la configuración disponible en el producto comercial — no se aplica desarrollo de código fuente. Este DS sirve como input directo para el Protocolo de Calificación de Instalación (IIQ) y el Protocolo de Calificación Operacional (POQ)." }
+      ]
+    },
+    {
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido en este DS",
+      "incluido": [
+        "Arquitectura de alto nivel del sistema desplegado en MediCorp",
+        "Componentes de software del LIMS-Tech v2.0 contratados",
+        "Configuración GxP del cliente (workflows, plantillas, parámetros, roles)",
+        "Diseño de interfaces técnicas con SAP-MM, SAP-QM, AD, equipos analíticos",
+        "Modelo de datos relevante para audit trail e integridad",
+        "Decisiones de seguridad técnica (autenticación, cifrado, backup)",
+        "Decisiones de infraestructura (servidores, red, alta disponibilidad)"
+      ],
+      "subExcluido": "2.2 Excluido de este DS",
+      "excluido": [
+        "Diseño interno del producto LIMS-Tech (responsabilidad del vendor)",
+        "Customización de código fuente (no permitida en GAMP 4)",
+        "Diseño de la infraestructura del proveedor cloud (servicios subyacentes calificados por el hosting)",
+        "Diseño de los sistemas integrados (SAP, AD) — solo el contrato de interfaz"
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESPONSABILIDADES",
+      "columnas": ["Rol", "Responsabilidad en este DS"],
+      "widths": [160, 295],
+      "filas": [
+        ["Validador (Ing. Sofía Torres)", "Coordinar con vendor para documentar las decisiones de diseño. Verificar que cada FRS tiene su solución técnica documentada."],
+        ["Arquitecto Vendor (Ing. D. Pérez)", "Definir el diseño técnico aplicable según el producto LIMS-Tech v2.0. Documentar configuración GxP de MediCorp."],
+        ["Revisor Técnico (Ing. R. Alvarez)", "Validar viabilidad técnica del diseño en la infraestructura de MediCorp. Aprobar configuración de red, firewall, backup."],
+        ["Process Owner (Dr. M. Sánchez)", "Validar que el diseño cumple los FRS desde la perspectiva del usuario. Aprobar configuración de workflows y reportes."],
+        ["QA / Revisor Regulatorio", "Verificar cumplimiento técnico de los requerimientos GxP (audit trail, firma electrónica, integridad)."]
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DEFINICIONES",
+      "columnas": ["Término", "Definición"],
+      "widths": [125, 330],
+      "filas": [
+        ["DS (Design Specification)", "Documento que describe CÓMO se implementarán técnicamente los FRS. Define arquitectura, componentes, interfaces, modelo de datos y configuración."],
+        ["Configuración GxP", "Conjunto de parámetros configurables del producto que afectan funciones GxP-relevantes (workflows, plantillas, validaciones, control de acceso, audit trail)."],
+        ["LIMS-Bridge", "Componente middleware del producto LIMS-Tech que abstrae la captura de datos desde equipos analíticos vía protocolos OPC UA y serial."],
+        ["Active-Pasivo (HA)", "Cluster de alta disponibilidad donde un nodo activo recibe el tráfico y un nodo pasivo en standby asume el control automáticamente ante falla."],
+        ["TLS 1.3", "Protocolo de cifrado en tránsito utilizado para todas las comunicaciones del sistema, incluido acceso web, APIs e integraciones."],
+        ["RTO / RPO", "Recovery Time Objective (tiempo máximo de recuperación tras falla) / Recovery Point Objective (cantidad máxima de datos perdidos)."],
+        ["Audit Trail", "Tabla AUDIT_LOG en BD secundaria con WORM (Write Once, Read Many) — registra usuario, timestamp UTC, acción, valor anterior, valor nuevo, IP."]
+      ]
+    },
+    {
+      "tipo": "diagrama-arquitectura",
+      "titulo": "ARQUITECTURA DE ALTO NIVEL",
+      "intro": "El sistema LIMS-MediCorp se implementa en una arquitectura por capas con separación estricta entre presentación, aplicación, datos e infraestructura. Cada capa contiene componentes específicos del producto LIMS-Tech v2.0 configurados según los requerimientos del cliente.",
+      "capas": [
+        {
+          "nombre": "Capa de Presentación",
+          "tecnologia": "Web App + Cliente Pesado",
+          "color": "primary",
+          "componentes": [
+            "Portal Web (HTML5 + Angular 16) — acceso responsive desktop/tablet",
+            "Cliente Pesado Windows (.NET WPF) — usado por analistas en bench de laboratorio",
+            "Mobile App (iOS/Android) — solo lectura para Supervisores y QA"
+          ]
+        },
+        {
+          "nombre": "Capa de Aplicación",
+          "tecnologia": "LIMS-Tech Server v2.0 sobre Java 17 / WildFly 30",
+          "color": "secondary",
+          "componentes": [
+            "Módulo Sample Manager — recepción y registro",
+            "Módulo Workflow Engine — ejecución de workflows analíticos",
+            "Módulo Result Manager — gestión y validación de resultados",
+            "Módulo Reporting — generación de CoA y reportes (Jasper Reports)",
+            "Módulo Security — autenticación, RBAC, audit trail",
+            "API Gateway REST — endpoints para integraciones externas",
+            "LIMS-Bridge Service — interfaz con equipos analíticos"
+          ]
+        },
+        {
+          "nombre": "Capa de Datos",
+          "tecnologia": "Oracle 19c Enterprise + Replicación Síncrona",
+          "color": "accent",
+          "componentes": [
+            "BD Primaria (PROD-DB-01): tablas operativas, índices, vistas",
+            "BD Secundaria (PROD-DB-02): replicación síncrona + audit trail WORM",
+            "Tabla AUDIT_LOG: trigger automático sobre todas las tablas GxP",
+            "Backup en NetApp SnapVault (incremental 4hs / completo 02:00 / snapshots 7 años)"
+          ]
+        },
+        {
+          "nombre": "Capa de Infraestructura",
+          "tecnologia": "Servidores físicos en DC MediCorp (Cluster HA)",
+          "color": "#5C7080",
+          "componentes": [
+            "App Server: 2x Dell PowerEdge R750 (active-passive), Windows Server 2022",
+            "DB Server: 2x Dell PowerEdge R760xa (active-passive con Oracle Data Guard)",
+            "Storage: NetApp AFF A400 (BD primaria + replicación + snapshots)",
+            "Red: VLAN dedicada GxP, firewall perimetral, segmentación con sistemas no-GxP",
+            "Backup: NetApp SnapVault + cinta LTO-9 mensual offsite"
+          ]
+        }
+      ],
+      "nota": "El cluster activo-pasivo provee RTO ≤ 4 horas y RPO ≤ 15 minutos según FRS-023. El failover es automático mediante Oracle Data Guard."
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "COMPONENTES DEL SISTEMA",
+      "intro": "Detalle de cada componente principal del sistema, su propósito, FRS asociados y configuración aplicable.",
+      "compact": true,
+      "columnas": ["Componente", "Propósito", "FRS asociados", "Configuración"],
+      "widths": [115, 145, 90, 105],
+      "filas": [
+        { "subheader": "6.1 Componentes Funcionales" },
+        ["Sample Manager", "Recepción, registro y trazabilidad de muestras desde origen", "FRS-001 a FRS-004", "Plantilla MC-YYYYMMDD-NNNN, listas de tipo de ensayo"],
+        ["Workflow Engine", "Ejecución de secuencias analíticas configurables por tipo de ensayo", "FRS-005 a FRS-009", "32 workflows configurados (HPLC, GC, microbiología, fisicoquímica)"],
+        ["Result Manager", "Gestión de resultados, validación OOS, doble verificación", "FRS-010 a FRS-012", "Criterios OOS por método, NCs auto-generadas"],
+        ["Reporting Engine", "Generación de CoA, reportes históricos y dashboards", "FRS-013 a FRS-015", "Plantillas Jasper, código QR, branding MediCorp"],
+        ["Security Module", "Autenticación, RBAC, audit trail, firma electrónica", "FRS-016 a FRS-021", "5 roles configurados, política de contraseñas, integración LDAP"],
+        ["Backup & HA", "Continuidad operativa, alta disponibilidad, recuperación", "FRS-022 a FRS-023", "Snapshots NetApp + Data Guard activo-pasivo"],
+        { "subheader": "6.2 Componentes de Integración" },
+        ["LIMS-Bridge", "Captura datos de equipos HPLC/GC vía OPC UA", "FRS-007, FRS-IF-002", "Drivers para Agilent, Waters, Shimadzu, Thermo"],
+        ["SAP Connector", "Importación órdenes (SAP-MM) y publicación CoA (SAP-QM)", "FRS-004, FRS-IF-001, FRS-IF-004", "REST + JWT, polling cada 30 min, retry queue"],
+        ["LDAP Connector", "Sincronización diaria de usuarios desde AD MediCorp", "FRS-016, FRS-IF-003", "Sincronización 06:00, cache 24h fallback"]
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DISEÑO DE INTERFAZ TÉCNICA",
+      "intro": "Especificación técnica de cada interfaz externa: endpoint, frecuencia, autenticación, formato de payload y manejo de errores.",
+      "compact": true,
+      "columnas": ["FRS-IF", "Endpoint / Mecanismo", "Frecuencia", "Auth", "Manejo de fallos"],
+      "widths": [55, 165, 85, 60, 90],
+      "filas": [
+        [
+          { "text": "FRS-IF-001", "bold": true, "color": "#1F3C56" },
+          "POST /api/v2/orders/sync (REST/JSON sobre TLS 1.3)",
+          "Cada 30 min (cron)",
+          "JWT 1h",
+          "Retry queue local 24h + alerta IT"
+        ],
+        [
+          { "text": "FRS-IF-002", "bold": true, "color": "#1F3C56" },
+          "OPC UA — instancia LIMS-Bridge:48010 — namespace lims-bridge.medicorp",
+          "Push event-driven",
+          "Cert X.509",
+          "Estado 'En espera' + reintentos 5min"
+        ],
+        [
+          { "text": "FRS-IF-003", "bold": true, "color": "#1F3C56" },
+          "ldaps://ad.medicorp.local:636 — base DN OU=Users,DC=medicorp,DC=local",
+          "Sync diaria 06:00 + on-demand login",
+          "Service account",
+          "Cache local 24h + login con credenciales cacheadas"
+        ],
+        [
+          { "text": "FRS-IF-004", "bold": true, "color": "#1F3C56" },
+          "POST /sap/qm/coa-published — webhook configurado en SAP-QM",
+          "Disparo en liberación de lote",
+          "JWT 1h",
+          "Retry queue + alerta IT (alta prioridad)"
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "MODELO DE DATOS — TABLAS GxP CRÍTICAS",
+      "intro": "Tablas con relevancia GxP donde se aplica audit trail automático, integridad referencial y replicación síncrona. El listado es no exhaustivo — se enfoca en las tablas que alimentan los FRS críticos.",
+      "compact": true,
+      "columnas": ["Tabla", "Propósito", "Audit", "Replicación"],
+      "widths": [120, 195, 60, 80],
+      "filas": [
+        ["SAMPLES", "Registro maestro de muestras", "Sí", "Síncrona"],
+        ["WORKFLOW_STEPS", "Pasos ejecutados de cada workflow analítico", "Sí", "Síncrona"],
+        ["RESULTS", "Resultados con timestamps y firmantes", "Sí (WORM)", "Síncrona"],
+        ["ELECTRONIC_SIGNATURES", "Firmas electrónicas con hash SHA-256", "Sí (WORM)", "Síncrona"],
+        ["AUDIT_LOG", "Log inmutable de todas las acciones GxP", "WORM (autoref)", "Síncrona"],
+        ["USERS", "Catálogo de usuarios sincronizado con AD", "Sí", "Síncrona"],
+        ["ROLE_PERMISSIONS", "Matriz de permisos por rol (config GxP)", "Sí", "Síncrona"],
+        ["CONFIG_PARAMS", "Parámetros del sistema con relevancia GxP", "Sí", "Síncrona"],
+        ["NC_REGISTRY", "Registro de no conformidades (OOS)", "Sí", "Síncrona"]
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DISEÑO DE SEGURIDAD TÉCNICA",
+      "intro": "Decisiones técnicas para implementación de los FRS de seguridad y compliance.",
+      "columnas": ["Requerimiento", "Implementación técnica", "FRS"],
+      "widths": [125, 235, 95],
+      "filas": [
+        ["Cifrado en tránsito", "TLS 1.3 con suite ECDHE-RSA-AES256-GCM-SHA384 en todas las comunicaciones (web, API, LDAP)", "FRS-018, FRS-IF-001 a 004"],
+        ["Cifrado en reposo", "Oracle TDE (Transparent Data Encryption) sobre tablespace USERS y AUDIT", "FRS-019"],
+        ["Autenticación", "LDAP/AD con caché 24h + cuentas locales solo para Service Accounts", "FRS-016"],
+        ["RBAC", "Matriz config en tabla ROLE_PERMISSIONS — 5 roles, 47 permisos atómicos", "FRS-017"],
+        ["Política de contraseñas", "Mín 10 chars, complejidad alta, rotación 90 días, histórico 12 últimas", "FRS-018"],
+        ["Timeout de sesión", "30 min idle (configurable por rol — Auditor 60 min)", "FRS-018"],
+        ["Bloqueo cuenta", "5 intentos fallidos consecutivos en 30 min → bloqueo 15 min", "FRS-018"],
+        ["Firma electrónica", "21 CFR Part 11 Subpart C: usuario+contraseña+motivo, hash SHA-256, timestamp NTP", "FRS-021"],
+        ["Audit Trail", "Trigger Oracle sobre 9 tablas GxP críticas → tabla AUDIT_LOG con WORM (Read-Only role + ALTER TABLE LOCK)", "FRS-019, FRS-020"]
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "CONFIGURACIÓN GxP DEL CLIENTE",
+      "intro": "Parámetros y recursos configurados específicamente para Laboratorios MediCorp. Esta configuración es responsabilidad de Process Owner y QA, y será verificada en POQ.",
+      "columnas": ["Categoría", "Configuración aplicable a MediCorp"],
+      "widths": [140, 315],
+      "filas": [
+        ["Workflows analíticos", "32 workflows: 12 HPLC + 8 GC + 6 microbiología + 6 fisicoquímica"],
+        ["Plantillas de reporte", "1 plantilla CoA (con branding MediCorp y QR), 5 plantillas de reporte gerencial"],
+        ["Roles", "5 roles: Analista, Supervisor, QA, Administrador, Auditor (read-only)"],
+        ["Política de contraseñas", "Mín 10 chars, complejidad alta, rotación 90 días, histórico 12"],
+        ["Métodos analíticos", "47 métodos pre-cargados con criterios OOS desde maestro de QA"],
+        ["Timezone", "America/Argentina/Buenos_Aires (UTC-03), audit trail siempre UTC"],
+        ["Idioma UI", "Español (es-AR) con fallback a inglés"],
+        ["Encabezado de CoA", "Logo MediCorp + datos legales + dirección DICA"],
+        ["Frecuencias de backup", "Incremental 4h / Completo 02:00 / Snapshots 7 años"],
+        ["Integraciones activas", "SAP-MM (in), SAP-QM (out), AD (auth), LIMS-Bridge (equipos)"]
+      ]
+    },
+    {
+      "tipo": "caja-criterio",
+      "titulo": "CRITERIOS DE CALIDAD DEL DISEÑO",
+      "items": [
+        "El 100% de los FRS tienen su solución técnica documentada en este DS.",
+        "Toda decisión de diseño respeta las restricciones de GAMP 4 — sin código fuente customizado.",
+        "Las interfaces técnicas tienen endpoint, frecuencia, autenticación y manejo de errores definidos.",
+        "Las tablas GxP críticas tienen audit trail automático y replicación síncrona.",
+        "El diseño cumple ANMAT 4159/2023 Anexo VI, 21 CFR Part 11 y EU Annex 11.",
+        "El vendor confirma viabilidad técnica de cada decisión documentada."
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": ["Código / Referencia", "Título"],
+      "widths": [180, 275],
+      "filas": [
+        ["URS-LIMS-MC-001 v1.0", "User Requirements Specification — LIMS-MediCorp"],
+        ["FRS-LIMS-MC-001 v1.0", "Especificación de Requerimientos Funcionales — LIMS-MediCorp"],
+        ["HLRA-LIMS-MC-001 v1.0", "High Level Risk Assessment — LIMS-MediCorp"],
+        ["VP-LIMS-MC-001 v1.0", "Plan de Validación — LIMS-MediCorp"],
+        ["MAN-LIMS-Tech v2.0", "Manual de Usuario — LIMS-Tech Solutions v2.0"],
+        ["VENDOR-CONF-LIMS v1.0", "Documento de Configuración del Vendor — LIMS-MediCorp"],
+        ["ARCH-LIMS-Tech v2.0", "Arquitectura de referencia LIMS-Tech v2.0 (vendor)"],
+        ["SOP-USO-LIMS-001 v1.0", "Procedimiento de Uso del LIMS-MediCorp"],
+        ["ANMAT 4159/2023 Anexo VI", "Guía de Buenas Prácticas de Sistemas Informatizados"],
+        ["GAMP 5 — 2da Ed. 2022", "Risk-Based Approach to Compliant GxP Computerized Systems (ISPE)"],
+        ["ICH Q9 R1 (2023)", "Quality Risk Management"],
+        ["21 CFR Part 11", "Electronic Records; Electronic Signatures (FDA)"],
+        ["EU Annex 11", "Computerised Systems (EMA)"]
+      ]
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de este DS. La trazabilidad legal queda registrada en el log adjunto al paquete de validación.",
+      "firmas": [],
+      "rolesPlaceholder": [
+        "Ejecutor (Validador)",
+        "Arquitecto (Vendor)",
+        "Revisor Técnico (IT)",
+        "Revisor (Process Owner)",
+        "Aprobador (Jefe de Validaciones)",
+        "Aprobador (Gerente QA)"
+      ],
+      "nota": "Documento sujeto a firma electrónica. La firma manuscrita en este recuadro solo aplica como respaldo físico cuando no es viable la firma digital."
+    }
+  ]
+}

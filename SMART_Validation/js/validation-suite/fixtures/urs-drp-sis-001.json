@@ -1,0 +1,2167 @@
+{
+  "schemaVersion": "1.0",
+  "type": "URS",
+  "package": {
+    "code": "DRP-SIS-001",
+    "systemName": "DRP-GAMP Categorizador™",
+    "systemVersion": "1.0",
+    "systemSubtitle": "Sistema de Categorización GAMP 5",
+    "client": "Emara SRL",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "year": 2026
+  },
+  "document": {
+    "code": "URS-DRP-SIS-001",
+    "titleEs": "ESPECIFICACIÓN DE REQUERIMIENTOS DE USUARIO",
+    "titleEn": "USER REQUIREMENTS SPECIFICATION (URS)",
+    "headerTitle": "Especificación de Requerimientos de Usuario (URS)",
+    "version": "1.0",
+    "issueDate": "Febrero 2026",
+    "status": "Aprobado",
+    "processOwner": "Ana Pérez",
+    "gampCategory": "GAMP 3 — Software Estándar Comercial",
+    "normativeFramework": "ANMAT 4159/2023 Anexo VI | 21 CFR Part 11 | EU Annex 11 | GAMP 5",
+    "extras": {
+      "Total de requerimientos": "55 requerimientos (50 Funcionales + 5 No Funcionales)",
+      "Documentos fuente": "MAN-GAMP-CAT-001 v1.0 | SOP-USO-GAMP-001 v1.0 | SOP-ADM-GAMP-001 v1.0"
+    }
+  },
+  "controlCambios": [
+    {
+      "version": ".1",
+      "fecha": "Feb 2026",
+      "autor": "Ana Pérez",
+      "descripcion": "Versión inicial — Extraído de MAN v1.0, SOP-USO v1.0 y SOP-ADM v1.0"
+    }
+  ],
+  "matrizAprobaciones": [
+    {
+      "rol": "Redactor (Validador)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "08/02/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-02-08T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "Carlos Rodríguez",
+      "iniciales": "CR",
+      "fecha": "08/02/2026",
+      "_signedBy": "person_CR_001",
+      "_signedAt": "2026-02-08T12:00:00.000Z",
+      "_signatureHashRef": "977817F7CC41"
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "Ana Pérez",
+      "iniciales": "AP",
+      "fecha": "08/02/2026",
+      "_signedBy": "person_AP_001",
+      "_signedAt": "2026-02-08T12:00:00.000Z",
+      "_signatureHashRef": "158A323A7BA4"
+    }
+  ],
+  "trazabilidad": {
+    "recibeDe": [
+      "HLRA",
+      "VP"
+    ],
+    "alimentaA": [
+      "MCN",
+      "MTR",
+      "POQ"
+    ]
+  },
+  "secciones": [
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO",
+      "bloques": [
+        {
+          "texto": "El presente documento especifica los Requerimientos de Usuario (URS) del sistema DRP-GAMP Categorizador™ (DRP-SIS-001). Su propósito es definir de forma verificable, cuantitativa y trazable QUÉ debe hacer el sistema desde la perspectiva del usuario, sirviendo como base para la generación del Protocolo de Calificación Operacional (POQ) y la demostración de cumplimiento regulatorio en la Matriz de Cumplimiento Normativo (MCN)."
+        },
+        {
+          "texto": "Todos los requerimientos han sido extraídos exclusivamente de la documentación técnica aprobada del sistema: MAN-GAMP-CAT-001 v1.0, SOP-USO-GAMP-001 v1.0 y SOP-ADM-GAMP-001 v1.0. Ningún requerimiento fue inferido o inventado."
+        }
+      ],
+      "numero": 1
+    },
+    {
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido",
+      "incluido": [
+        "Todas las funcionalidades del DRP-GAMP Categorizador™ v1.0 accesibles desde la URL https://categorizador.example.com/",
+        "Módulos: Autenticación y control de acceso, Registro de sistema, Cuestionario adaptativo, Asistente GAMPI, Monitor Analytics, Generación de reportes PDF, Verificación QR/SHA-256",
+        "Requerimientos no funcionales: seguridad, disponibilidad, infraestructura, backup, audit trail",
+        "Todos los roles documentados: Usuario Final, Auditor QA, Administrador, Gerente"
+      ],
+      "subExcluido": "2.2 Excluido",
+      "excluido": [
+        "Funcionalidades de versión Pro no disponibles en v1.0 (Excel Detallado, JSON Técnico, Blockchain, 2FA)",
+        "Infraestructura cloud subyacente (AWS, PostgreSQL) — calificada por el proveedor",
+        "Administración interna de base de datos a nivel SQL"
+      ],
+      "numero": 2
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESPONSABILIDADES",
+      "columnas": [
+        "Rol",
+        "Responsabilidad en este URS"
+      ],
+      "widths": [
+        160,
+        295
+      ],
+      "filas": [
+        [
+          "Process Owner (Ana Pérez)",
+          "Validar que los requerimientos documentados reflejan fielmente el uso real y esperado del sistema. Aprobar el URS antes de la generación del POQ."
+        ],
+        [
+          "Validador",
+          "Extraer requerimientos de la documentación fuente. Asignar criticidad GxP y tipo. Asegurar verificabilidad de cada requerimiento."
+        ],
+        [
+          "QA / Revisor Regulatorio",
+          "Revisar que los requerimientos de compliance (audit trail, seguridad, integridad) sean completos y alineados con ANMAT 4159/2023 y 21 CFR Part 11."
+        ],
+        [
+          "Ejecutor de OQ",
+          "Usar cada URS como base para diseñar al menos un test case en el POQ. Garantizar trazabilidad 1:1."
+        ]
+      ],
+      "numero": 3
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "DEFINICIONES",
+      "columnas": [
+        "Término",
+        "Definición"
+      ],
+      "widths": [
+        125,
+        330
+      ],
+      "filas": [
+        [
+          "Requerimiento (M)",
+          "Mandatory — Obligatorio. El sistema DEBE cumplirlo sin excepción. Fallo = NC crítica o mayor."
+        ],
+        [
+          "Requerimiento (D)",
+          "Desirable — Deseable. El sistema debería cumplirlo. Fallo = NC menor o desviación aceptable."
+        ],
+        [
+          "Criticidad CRÍTICA",
+          "Función cuyo fallo impacta directamente la integridad de datos GxP, seguridad del sistema o la validez regulatoria del reporte generado."
+        ],
+        [
+          "Criticidad ALTA",
+          "Función cuyo fallo afecta significativamente el uso correcto del sistema o el cumplimiento de controles GxP secundarios."
+        ],
+        [
+          "Criticidad MEDIA",
+          "Función de soporte cuyo fallo genera inconvenientes pero no compromete la integridad GxP ni la validez del reporte."
+        ],
+        [
+          "SHA-256",
+          "Algoritmo criptográfico de hash que genera una huella digital de 64 caracteres. Un cambio mínimo en el documento produce un hash completamente diferente."
+        ],
+        [
+          "Audit Trail",
+          "Registro electrónico cronológico y no modificable de todas las acciones realizadas en el sistema (quién, qué, cuándo, desde dónde)."
+        ],
+        [
+          "GAMPI",
+          "Asistente inteligente del categorizador que proporciona ayuda contextual dinámica durante el proceso de categorización."
+        ],
+        [
+          "Monitor Analytics",
+          "Panel en tiempo real (columna 3 de la interfaz) que muestra índice de confianza, predicción de categorías y ruta de decisión."
+        ],
+        [
+          "Trazabilidad",
+          "Capacidad de vincular bidireccionalmente cada URS con su fuente documental, su test case en el POQ y su resultado en el ROQ."
+        ]
+      ],
+      "numero": 4
+    },
+    {
+      "tipo": "texto",
+      "titulo": "CONTEXTO DEL SISTEMA",
+      "contenido": "",
+      "numero": 5
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "5.1 DESCRIPCIÓN GENERAL",
+      "intro": "El DRP-GAMP Categorizador™ es una aplicación web SaaS que automatiza la categorización de sistemas computarizados según la metodología GAMP 5. El usuario ingresa información del sistema a categorizar, responde un cuestionario adaptativo de 3-5 preguntas, y el sistema genera un reporte PDF auditable de 4 páginas con integridad garantizada por SHA-256 y código QR de verificación."
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "5.2 USUARIOS DEL SISTEMA"
+    },
+    {
+      "tipo": "tabla",
+      "columnas": [
+        "Rol",
+        "Perfil",
+        "Acciones principales"
+      ],
+      "widths": [
+        110,
+        165,
+        180
+      ],
+      "filas": [
+        [
+          "Usuario Final",
+          "Personal de Calidad, IT o Validación",
+          "Categorizar sistemas, descargar reportes, verificar QR"
+        ],
+        [
+          "Auditor QA",
+          "Gerente o revisor de calidad",
+          "Ver historial de categorizaciones, verificar reportes, auditar"
+        ],
+        [
+          "Administrador",
+          "IT / Responsable del sistema",
+          "Gestión de usuarios, configuración, monitoreo, backup"
+        ],
+        [
+          "Gerente",
+          "Gerencia de Calidad",
+          "Aprobar categorizaciones, autorizar excepciones"
+        ]
+      ]
+    },
+    {
+      "tipo": "subseccion",
+      "titulo": "5.3 INTEGRACIONES CON OTROS SISTEMAS",
+      "intro": "El sistema es standalone. No tiene integraciones automáticas con sistemas externos en la versión 1.0. La única interfaz externa es el portal de verificación pública: https://verify.example.com/"
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "LEYENDA DE LA TABLA DE REQUERIMIENTOS",
+      "columnas": [
+        "Campo",
+        "Valores posibles",
+        "Significado"
+      ],
+      "widths": [
+        85,
+        175,
+        195
+      ],
+      "filas": [
+        [
+          "Tipo",
+          "M = Mandatorio | D = Deseable",
+          "Obligatoriedad del requerimiento"
+        ],
+        [
+          "Criticidad",
+          "CRÍTICO | ALTO | MEDIO",
+          "Impacto en seguridad/integridad GxP si el requerimiento falla"
+        ],
+        [
+          "Fuente",
+          "MAN §X.X | SOP-USO §X.X | SOP-ADM §X.X | Reg.",
+          "Sección exacta del documento fuente que respalda el requerimiento"
+        ]
+      ],
+      "numero": 6
+    },
+    {
+      "tipo": "tabla",
+      "noHeader": true,
+      "compact": true,
+      "widths": [
+        120,
+        335
+      ],
+      "filas": [
+        [
+          {
+            "text": "Criticidad CRÍTICA",
+            "color": "#C0392B",
+            "bold": true,
+            "fillColor": "#FFF8DC"
+          },
+          {
+            "text": "Integridad SHA-256, autenticación, bloqueo de cuenta, generación reporte, audit trail",
+            "fillColor": "#FFF8DC"
+          }
+        ],
+        [
+          {
+            "text": "Criticidad ALTA",
+            "color": "#E67E22",
+            "bold": true,
+            "fillColor": "#FFF8DC"
+          },
+          {
+            "text": "Cuestionario, índice de confianza, gestión de roles, recuperación de contraseña, verificación QR",
+            "fillColor": "#FFF8DC"
+          }
+        ],
+        [
+          {
+            "text": "Criticidad MEDIA",
+            "color": "#717D8A",
+            "bold": true,
+            "fillColor": "#FFF8DC"
+          },
+          {
+            "text": "Interfaz de usuario, mensajes de error, asistente GAMPI, monitor analytics, resolución mínima",
+            "fillColor": "#FFF8DC"
+          }
+        ]
+      ]
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REQUERIMIENTOS FUNCIONALES",
+      "intro": "Todos los requerimientos listados a continuación fueron extraídos exclusivamente de la documentación técnica aprobada del sistema (MAN-GAMP-CAT-001 v1.0, SOP-USO-GAMP-001 v1.0, SOP-ADM-GAMP-001 v1.0). La fuente exacta se indica en la columna 'Fuente' de cada requerimiento.",
+      "compact": true,
+      "columnas": [
+        "URS-ID",
+        "Fuente",
+        "El sistema DEBERÁ...",
+        "Tipo",
+        "Criticidad"
+      ],
+      "widths": [
+        50,
+        80,
+        220,
+        30,
+        75
+      ],
+      "filas": [
+        {
+          "subheader": "7.1 Autenticación y Control de Acceso"
+        },
+        [
+          {
+            "text": "URS-001",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §5.2 | SOP-USO §7.1",
+            "italics": true,
+            "fontSize": 8
+          },
+          "permitir el acceso mediante credenciales únicas compuestas por email corporativo registrado y contraseña. Las credenciales son personales e intransferibles.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-002",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §5.2 | SOP-USO §7.1",
+            "italics": true,
+            "fontSize": 8
+          },
+          "expirar la sesión del usuario automáticamente tras 30 minutos de inactividad, sin excepción, requiriendo re-autenticación para continuar. Nota: en versión demo y al ser ZeroKnowledge el timeout se fija en 24 horas.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-003",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "SOP-ADM §6.1",
+            "italics": true,
+            "fontSize": 8
+          },
+          "bloquear automáticamente la cuenta de usuario tras exactamente 5 intentos fallidos consecutivos de autenticación. (Nota: MAN-GAMP-CAT-001 §6.3 indica 3 intentos — el sistema real implementa 5. GAP-001 documentado en HLRA.)",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-004",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "SOP-ADM §6.3",
+            "italics": true,
+            "fontSize": 8
+          },
+          "requerir al usuario cambiar la contraseña temporal asignada por el administrador en el primer acceso al sistema.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "ALTO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#E67E22"
+          }
+        ],
+        [
+          {
+            "text": "URS-005",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §5.3 | SOP-USO §7.1",
+            "italics": true,
+            "fontSize": 8
+          },
+          "proveer un mecanismo de recuperación de contraseña autónomo: el usuario ingresa su email registrado, recibe un enlace de reset en aproximadamente 5 minutos, y dicho enlace tiene validez de exactamente 24 horas.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "ALTO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#E67E22"
+          }
+        ],
+        [
+          {
+            "text": "URS-006",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "SOP-ADM §6.3",
+            "italics": true,
+            "fontSize": 8
+          },
+          "registrar todos los intentos de acceso (exitosos y fallidos) con: usuario, fecha, hora con precisión de segundos, y dirección IP de origen. El registro debe ser no modificable por usuarios finales ni administradores de aplicación.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-007",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "SOP-ADM §6.1 | §7.3",
+            "italics": true,
+            "fontSize": 8
+          },
+          "requerir re-autenticación al panel de administración cada 4 horas, independientemente de la actividad del usuario.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "ALTO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#E67E22"
+          }
+        ],
+        [
+          {
+            "text": "URS-008",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "SOP-ADM §6.1",
+            "italics": true,
+            "fontSize": 8
+          },
+          "restringir el acceso al panel de administración. Accesos desde IPs no reconocidas deben generar alerta automática.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "ALTO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#E67E22"
+          }
+        ],
+        {
+          "subheader": "7.2 Gestión de Usuarios y Roles"
+        },
+        [
+          {
+            "text": "URS-009",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "SOP-ADM §6.2 | MAN §3.3",
+            "italics": true,
+            "fontSize": 8
+          },
+          "El sistema debe contar con diferentes roles: uno para el usuario general, y otro para el administrador, y no ser accesibles desde la misma sesión.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-010",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "SOP-ADM §6.2",
+            "italics": true,
+            "fontSize": 8
+          },
+          "otorgar al rol Usuario Final los permisos de: categorizar sistemas y ver su propio historial de categorizaciones. No tendrá acceso a funciones de administración.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-011",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "SOP-ADM §6.2",
+            "italics": true,
+            "fontSize": 8
+          },
+          "rol como usuario en la plataforma desde el navegador debe permitir generar categorizaciones libremente mientras dure el periodo de prueba.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "ALTO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#E67E22"
+          }
+        ],
+        [
+          {
+            "text": "URS-012",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "SOP-ADM §6.2",
+            "italics": true,
+            "fontSize": 8
+          },
+          "otorgar al rol Administrador permisos completos de: gestión de usuarios, configuración del sistema y acceso SSH. Solo 1 administrador habilitado en la versión 1.0.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-013",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "SOP-ADM §7.1.3",
+            "italics": true,
+            "fontSize": 8
+          },
+          "impedir la eliminación de cuentas de usuario. Las cuentas deberán desactivarse (no eliminarse) para preservar el audit trail asociado a cada usuario.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-014",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "SOP-ADM §7.1.3",
+            "italics": true,
+            "fontSize": 8
+          },
+          "desactivar automáticamente (o alertar al administrador) cuentas con más de 180 días de inactividad.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "ALTO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#E67E22"
+          }
+        ],
+        [
+          {
+            "text": "URS-015",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "SOP-ADM §6.3",
+            "italics": true,
+            "fontSize": 8
+          },
+          "exigir contraseñas de usuario final con mínimo 8 caracteres y complejidad (mayúsculas, minúsculas, números y caracteres especiales). El historial deberá impedir reutilizar las últimas 5 contraseñas.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "ALTO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#E67E22"
+          }
+        ],
+        [
+          {
+            "text": "URS-016",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "SOP-ADM §6.3",
+            "italics": true,
+            "fontSize": 8
+          },
+          "exigir contraseñas de administrador 8 caracteres y complejidad (mayúsculas, minúsculas, números y caracteres especiales). El historial deberá impedir reutilizar las últimas 5 contraseñas.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "ALTO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#E67E22"
+          }
+        ],
+        {
+          "subheader": "7.3 Registro del Sistema a Categorizar"
+        },
+        [
+          {
+            "text": "URS-017",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §7.2 | SOP-USO §7.2",
+            "italics": true,
+            "fontSize": 8
+          },
+          "proveer un formulario de registro con campos obligatorios: (1) Nombre de la empresa, (2) Segmento de industria, (3) Tamaño de empresa, (4) Mercados regulatorios aplicables, (5) Nombre del sistema a categorizar, (6) Proveedor, (7) Versión, (8) Función principal.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-018",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §7.2A | SOP-USO §7.2",
+            "italics": true,
+            "fontSize": 8
+          },
+          "ofrecer al menos los siguientes segmentos de industria como opciones seleccionables: Farmacéutica, Biotecnología, Dispositivos Médicos, Cosméticos y Cuidado Personal.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "ALTO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#E67E22"
+          }
+        ],
+        [
+          {
+            "text": "URS-019",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §7.2A | SOP-USO §7.2",
+            "italics": true,
+            "fontSize": 8
+          },
+          "ofrecer los siguientes mercados regulatorios seleccionables (con posibilidad de marcar múltiples): FDA, EMA, ANMAT, ANVISA, Otros.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "ALTO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#E67E22"
+          }
+        ],
+        [
+          {
+            "text": "URS-020",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §7.2B | SOP-USO §7.2",
+            "italics": true,
+            "fontSize": 8
+          },
+          "validar que los campos obligatorios del formulario de registro estén completos antes de permitir el avance al cuestionario. El sistema deberá indicar visualmente los campos faltantes.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "ALTO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#E67E22"
+          }
+        ],
+        {
+          "subheader": "7.4 Cuestionario Adaptativo de Categorización"
+        },
+        [
+          {
+            "text": "URS-021",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §7.3 | SOP-USO §7.3",
+            "italics": true,
+            "fontSize": 8
+          },
+          "presentar un cuestionario adaptativo de entre 3 y 5 preguntas (Q1 a Q5), donde las preguntas mostradas dependen de las respuestas anteriores del usuario.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-022",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §7.3 Q1",
+            "italics": true,
+            "fontSize": 8
+          },
+          "presentar como primera pregunta (Q1) la clasificación del tipo de sistema con al menos 4 opciones mutuamente excluyentes: Plataforma Base, Software Comercial, Sistema a Medida, Herramienta Estándar, con descripción detallada y ejemplos para cada opción.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-023",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §7.3 Q2",
+            "italics": true,
+            "fontSize": 8
+          },
+          "mostrar la pregunta Q2 (nivel de personalización) únicamente si el usuario seleccionó 'Software Comercial' en Q1, con opciones: Sin modificaciones, Configuración básica, Configuración avanzada, Desarrollo de código.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-024",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §7.3 Q3",
+            "italics": true,
+            "fontSize": 8
+          },
+          "presentar la pregunta Q3 (criticidad de datos) con opciones: Datos no regulados, Datos de soporte, Datos GxP críticos, Datos regulatorios.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-025",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §7.4 | SOP-USO §7.3",
+            "italics": true,
+            "fontSize": 8
+          },
+          "mostrar el resultado de categorización únicamente cuando el índice de confianza sea igual o superior al 90%. Si la confianza es menor al 90%, el sistema DEBERÁ solicitar respuestas adicionales al usuario, sin forzar un resultado de baja confianza.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-026",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN Anexo B | SOP-USO §5",
+            "italics": true,
+            "fontSize": 8
+          },
+          "mostrar el índice de confianza con los siguientes rangos y codificación visual de color: <75% = Rojo (Insuficiente), 75-89% = Amarillo (Media), 90-95% = Verde (Alta), >95% = Verde+ (Máxima).",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "ALTO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#E67E22"
+          }
+        ],
+        [
+          {
+            "text": "URS-027",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §7.4 | SOP-USO §7.4",
+            "italics": true,
+            "fontSize": 8
+          },
+          "mostrar al finalizar el cuestionario: (1) Categoría GAMP asignada (1, 3, 4 o 5), (2) Justificación técnica de la categorización, (3) Análisis de riesgos (Probabilidad vs Impacto), (4) Actividades de validación recomendadas.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-028",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN Anexo A",
+            "italics": true,
+            "fontSize": 8
+          },
+          "categorizar exclusivamente en las categorías GAMP vigentes: 1, 3, 4 y 5. La categoría 2 fue eliminada en GAMP 5 Segunda Edición (2022) y NO deberá ser asignada.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        {
+          "subheader": "7.5 Asistente GAMPI (Columna Central)"
+        },
+        [
+          {
+            "text": "URS-029",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §6.2",
+            "italics": true,
+            "fontSize": 8
+          },
+          "mostrar el Asistente GAMPI en la columna central (35% del ancho de la interfaz) durante todo el proceso de cuestionario, con ayuda contextual dinámica adaptada a la pregunta actual.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MEDIO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#717D8A"
+          }
+        ],
+        [
+          {
+            "text": "URS-030",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §6.2 | §7.3 Q1",
+            "italics": true,
+            "fontSize": 8
+          },
+          "ofrecer dentro del Asistente GAMPI al menos 3 niveles de ayuda (1, 2, 3) por pregunta, y un test rápido de 30 segundos con 3 preguntas eliminatorias para ayudar al usuario a identificar el tipo correcto de sistema.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MEDIO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#717D8A"
+          }
+        ],
+        [
+          {
+            "text": "URS-031",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §6.2",
+            "italics": true,
+            "fontSize": 8
+          },
+          "mostrar casos de ejemplo similares al sistema que el usuario está categorizando, como apoyo al proceso de decisión.",
+          {
+            "text": "D",
+            "bold": true,
+            "alignment": "center",
+            "color": "#717D8A"
+          },
+          {
+            "text": "MEDIO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#717D8A"
+          }
+        ],
+        {
+          "subheader": "7.6 Monitor Analytics (Columna Derecha)"
+        },
+        [
+          {
+            "text": "URS-032",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §6.2",
+            "italics": true,
+            "fontSize": 8
+          },
+          "mostrar en la columna derecha (Monitor Analytics, 30% del ancho) la siguiente información en tiempo real durante el cuestionario: (1) Índice de confianza actualizado tras cada respuesta, (2) Predicción de categorías con porcentaje de probabilidad, (3) Ruta de decisión visual del algoritmo, (4) Tiempo transcurrido desde inicio, (5) Progreso porcentual del cuestionario.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "ALTO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#E67E22"
+          }
+        ],
+        [
+          {
+            "text": "URS-033",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §6.2 | SOP-USO §7.3",
+            "italics": true,
+            "fontSize": 8
+          },
+          "actualizar el Monitor Analytics de forma dinámica (en tiempo real) ante cada respuesta del usuario, sin requerir recarga de página.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MEDIO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#717D8A"
+          }
+        ],
+        [
+          {
+            "text": "URS-034",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §10.1",
+            "italics": true,
+            "fontSize": 8
+          },
+          "mostrar un mensaje de error claro y accionable cuando el Monitor Analytics no pueda actualizarse (ej: JavaScript deshabilitado), indicando al usuario cómo resolver el problema.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MEDIO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#717D8A"
+          }
+        ],
+        {
+          "subheader": "7.7 Generación de Reportes PDF"
+        },
+        [
+          {
+            "text": "URS-035",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §8.1 | SOP-USO §8.3",
+            "italics": true,
+            "fontSize": 8
+          },
+          "generar un reporte PDF de exactamente 4 páginas con la siguiente estructura obligatoria: Página 1 = Portada con QR y SHA-256; Página 2 = Resumen Ejecutivo con análisis multidimensional; Página 3 = Matriz de Riesgos (Probabilidad vs Impacto); Página 4 = Marco Regulatorio con campos de firma.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-036",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §8.2 | SOP-USO §8.3",
+            "italics": true,
+            "fontSize": 8
+          },
+          "nombrar el archivo PDF descargado con el formato estándar: GAMP_Report_Cat[X]_[Sistema]_[Fecha].pdf (ej: GAMP_Report_Cat3_SAP_20260213.pdf).",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "ALTO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#E67E22"
+          }
+        ],
+        [
+          {
+            "text": "URS-037",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §8.3",
+            "italics": true,
+            "fontSize": 8
+          },
+          "incluir en la Página 1 del reporte: logo DRP Assurance, datos del sistema evaluado, categoría GAMP asignada, nivel de confianza, código QR de verificación, ID único del documento, fecha/hora de generación, y hash SHA-256 completo de 64 caracteres.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-038",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §8.3 | §8.4",
+            "italics": true,
+            "fontSize": 8
+          },
+          "incluir en la Página 4 del reporte campos de firma para Ejecutor y Revisor (en la versión 1.0, con firma manuscrita). El hash SHA-256 deberá calcularse y registrarse antes de la firma, sobre el contenido completo del reporte.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-039",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §8.4 | SOP-USO §8.3",
+            "italics": true,
+            "fontSize": 8
+          },
+          "indicar en la documentación del sistema la nomenclatura de archivo recomendada para almacenamiento controlado: [Sistema]_GAMP_Cat[X]_[YYYYMMDD].pdf, y la política de retención: ciclo de vida del sistema + mínimo 1 año.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "ALTO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#E67E22"
+          }
+        ],
+        {
+          "subheader": "7.8 Verificación de Integridad: QR y SHA-256"
+        },
+        [
+          {
+            "text": "URS-040",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §9.1 | §9.4",
+            "italics": true,
+            "fontSize": 8
+          },
+          "generar para cada reporte un hash SHA-256 único de 64 caracteres que represente la huella digital del documento completo. Un cambio mínimo en cualquier dato del reporte DEBERÁ producir un hash completamente diferente.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-041",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §9.2 | §9.3",
+            "italics": true,
+            "fontSize": 8
+          },
+          "proveer un portal de verificación pública en https://verify.example.com/ que permita: (Método 1) Escaneo del código QR del reporte; (Método 2) Ingreso manual del código de verificación en formato DRP-[Cat]-[Hash12] (ej: DRP-3-C428117ACBDA).",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-042",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §9.3",
+            "italics": true,
+            "fontSize": 8
+          },
+          "mostrar en el portal de verificación, para documentos VÁLIDOS: ID del documento, fecha/hora de generación, sistema evaluado, categoría GAMP, empresa, SHA-256 completo, y estado 'VÁLIDO — Sin modificaciones'.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-043",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §9.3",
+            "italics": true,
+            "fontSize": 8
+          },
+          "mostrar en el portal de verificación, para documentos ALTERADOS o no reconocidos: alerta visible con texto 'ADVERTENCIA: HASH NO COINCIDE', descripción de posibles causas (edición manual, corrupción, falsificación), y dirección de contacto de soporte.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        {
+          "subheader": "7.9 Infraestructura, Disponibilidad y Seguridad Técnica"
+        },
+        [
+          {
+            "text": "URS-044",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §4.2 | SOP-ADM §6.1",
+            "italics": true,
+            "fontSize": 8
+          },
+          "garantizar disponibilidad del servicio de al menos 99.9% (SLA). Las interrupciones planificadas de mantenimiento deberán comunicarse con anticipación.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "ALTO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#E67E22"
+          }
+        ],
+        [
+          {
+            "text": "URS-045",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §4.2 | SOP-ADM §6.1",
+            "italics": true,
+            "fontSize": 8
+          },
+          "implementar cifrado en tránsito mediante TLS 1.3 (HTTPS) para toda comunicación entre cliente y servidor. Conexiones HTTP no cifradas no deberán ser aceptadas.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-046",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "SOP-ADM §6.1",
+            "italics": true,
+            "fontSize": 8
+          },
+          "implementar cifrado en reposo de la base de datos mediante AES-256. Datos de usuario, categorizaciones y reportes almacenados deberán estar cifrados. (NO aplica en versión demo, aplica políticas Zero Knowledge)",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-047",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §4.1 | SOP-USO §4.1",
+            "italics": true,
+            "fontSize": 8
+          },
+          "ser accesible desde navegadores web estándar actualizados (Chrome 90+, Brave 88+, Edge 90+) con una resolución mínima de pantalla de 1366x768 píxeles, sin requerir instalación local de software.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MEDIO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#717D8A"
+          }
+        ],
+        [
+          {
+            "text": "URS-048",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "SOP-ADM §9 | MAN §4.2",
+            "italics": true,
+            "fontSize": 8
+          },
+          "ejecutar backup automático completo de la base de datos diariamente a las 02:00 AM. El administrador deberá poder verificar el estado del último backup desde el panel de administración.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "ALTO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#E67E22"
+          }
+        ],
+        [
+          {
+            "text": "URS-049",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "SOP-ADM §10",
+            "italics": true,
+            "fontSize": 8
+          },
+          "registrar en audit trail todas las acciones administrativas: creación/modificación/desactivación de usuarios, cambios de configuración, accesos SSH, con usuario, fecha, hora e IP. El audit trail no deberá ser modificable ni eliminable por ningún rol, incluyendo el administrador.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        [
+          {
+            "text": "URS-050",
+            "bold": true,
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MAN §10.2",
+            "italics": true,
+            "fontSize": 8
+          },
+          "retornar mensajes de error estándar comprensibles para el usuario: Error 403 (acceso denegado), Error 500 (error de servidor con instrucción de esperar 5 minutos y reintentar), y Sesión Expirada (con instrucción de re-autenticación).",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "MEDIO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#717D8A"
+          }
+        ]
+      ],
+      "numero": 7
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REQUERIMIENTOS NO FUNCIONALES",
+      "compact": true,
+      "columnas": [
+        "URS-ID",
+        "Fuente",
+        "El sistema DEBERÁ...",
+        "Tipo",
+        "Criticidad"
+      ],
+      "widths": [
+        55,
+        80,
+        215,
+        30,
+        75
+      ],
+      "filas": [
+        {
+          "subheader": "8.1 Seguridad y Control de Acceso"
+        },
+        [
+          {
+            "text": "URS-NF-001",
+            "bold": true,
+            "color": "#1F3C56",
+            "fontSize": 8
+          },
+          {
+            "text": "SOP-ADM §6.1 | ANMAT Pto.9",
+            "italics": true,
+            "fontSize": 8
+          },
+          "implementar política de seguridad que combine: contraseñas complejas (URS-015/016), timeout de sesión (URS-002), bloqueo de cuenta (URS-003), y registro de accesos (URS-006). Estos controles son compensatorios ante la ausencia de firma electrónica nativa (GAP-002, HLRA §10).",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        {
+          "subheader": "8.2 Performance"
+        },
+        [
+          {
+            "text": "URS-NF-002",
+            "bold": true,
+            "color": "#1F3C56",
+            "fontSize": 8
+          },
+          {
+            "text": "MAN §4.1",
+            "italics": true,
+            "fontSize": 8
+          },
+          "responder a la generación del reporte PDF en un tiempo razonable desde el punto de vista del usuario (no definido cuantitativamente en la documentación fuente — a determinar durante OQ).",
+          {
+            "text": "D",
+            "bold": true,
+            "alignment": "center",
+            "color": "#717D8A"
+          },
+          {
+            "text": "MEDIO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#717D8A"
+          }
+        ],
+        {
+          "subheader": "8.3 Compliance Regulatorio — Audit Trail"
+        },
+        [
+          {
+            "text": "URS-NF-003",
+            "bold": true,
+            "color": "#1F3C56",
+            "fontSize": 8
+          },
+          {
+            "text": "ANMAT 4159/2023 Pto.9 | 21 CFR §11.10(e)",
+            "italics": true,
+            "fontSize": 8
+          },
+          "mantener un audit trail electrónico completo y no modificable de: todos los accesos al sistema, todas las categorizaciones realizadas (inicio, respuestas, resultado), todas las descargas de reportes, y todas las acciones administrativas. El audit trail deberá ser accesible para el administrador y auditores QA.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        {
+          "subheader": "8.4 Integridad de Datos"
+        },
+        [
+          {
+            "text": "URS-NF-004",
+            "bold": true,
+            "color": "#1F3C56",
+            "fontSize": 8
+          },
+          {
+            "text": "ANMAT 4159/2023 Pto.7.1 | MAN §9.4",
+            "italics": true,
+            "fontSize": 8
+          },
+          "garantizar que los reportes PDF generados son inalterables post-generación mediante el mecanismo SHA-256 implementado. La responsabilidad del almacenamiento controlado recae en el cliente/usuario según SOP-USO §8.3 (GAP-003, HLRA §10).",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "CRÍTICO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#C0392B"
+          }
+        ],
+        {
+          "subheader": "8.5 Backup y Recuperación"
+        },
+        [
+          {
+            "text": "URS-NF-005",
+            "bold": true,
+            "color": "#1F3C56",
+            "fontSize": 8
+          },
+          {
+            "text": "SOP-ADM §9 | MAN §4.2",
+            "italics": true,
+            "fontSize": 8
+          },
+          "implementar backup automático diario (URS-048) como control de continuidad operacional. La documentación del sistema deberá especificar el procedimiento de recuperación ante fallo (RTO/RPO), aunque los objetivos exactos no están definidos cuantitativamente en la documentación fuente v1.0.",
+          {
+            "text": "M",
+            "bold": true,
+            "alignment": "center",
+            "color": "#1F3C56"
+          },
+          {
+            "text": "ALTO",
+            "bold": true,
+            "alignment": "center",
+            "color": "#E67E22"
+          }
+        ]
+      ],
+      "numero": 8
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "EXCLUSIONES EXPLÍCITAS",
+      "intro": "Los siguientes elementos NO son requerimientos del sistema en la versión 1.0 bajo validación:",
+      "columnas": [
+        "Funcionalidad excluida",
+        "Justificación",
+        "Referencia"
+      ],
+      "widths": [
+        165,
+        200,
+        90
+      ],
+      "filas": [
+        [
+          "Firma electrónica nativa (21 CFR Part 11 Subpart C)",
+          "No implementada en v1.0. Control compensatorio: firma manuscrita + SHA-256. GAP-002 aceptado.",
+          "HLRA §10 GAP-002"
+        ],
+        [
+          "Autenticación de dos factores (2FA)",
+          "Disponible solo en versión Pro (roadmap). Control compensatorio: contraseña + bloqueo + timeout + audit trail.",
+          "HLRA §10 GAP-004"
+        ],
+        [
+          "Almacenamiento de reportes en el sistema",
+          "Reportes no almacenados por el sistema. Responsabilidad del cliente según SOP-USO §8.3. GAP-003 aceptado.",
+          "HLRA §10 GAP-003"
+        ],
+        [
+          "Reporte Excel y JSON Técnico",
+          "Solo disponibles en versión Pro. No cubiertas en esta validación.",
+          "MAN §8.1"
+        ],
+        [
+          "Integración blockchain",
+          "Solo versión Pro. No implementada en v1.0.",
+          "MAN §9.4"
+        ],
+        [
+          "Categoría GAMP 2",
+          "Eliminada en GAMP 5 Segunda Edición (2022). URS-028 prohíbe explícitamente su asignación.",
+          "MAN Anexo A"
+        ]
+      ],
+      "numero": 9
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "CRITERIOS DE ACEPTACIÓN DEL URS",
+      "columnas": [
+        "#",
+        "Criterio",
+        "Verificación"
+      ],
+      "widths": [
+        25,
+        290,
+        140
+      ],
+      "filas": [
+        [
+          "1",
+          "El 100% de los URS tipo Mandatory (M) con criticidad CRÍTICA tienen al menos 1 test case asociado en el POQ",
+          "Matriz de trazabilidad URS"
+        ],
+        [
+          "2",
+          "El 100% de los URS tipo Mandatory (M) con criticidad ALTA tienen al menos 1 test case asociado en el POQ",
+          "Matriz de trazabilidad URS"
+        ],
+        [
+          "3",
+          "Los URS tipo Desirable (D) tienen al menos 1 TC o una justificación documentada de por qué no se testea",
+          "POQ / Sección de exclusiones"
+        ],
+        [
+          "4",
+          "Cada URS tiene fuente documental citada verificable (sección exacta del documento fuente)",
+          "Columna 'Fuente' de este URS"
+        ],
+        [
+          "5",
+          "100% de los URS con resultado PASA al finalizar la OQ → Sistema APROBADO para producción",
+          "ROQ — Informe Final"
+        ]
+      ],
+      "numero": 10
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "RESUMEN ESTADÍSTICO DE REQUERIMIENTOS",
+      "columnas": [
+        "Por tipo",
+        "Por criticidad",
+        "Por módulo"
+      ],
+      "widths": [
+        140,
+        120,
+        195
+      ],
+      "filas": [
+        [
+          {
+            "stack": [
+              {
+                "text": "Mandatory (M): 54",
+                "bold": true,
+                "fontSize": 9,
+                "margin": [
+                  0,
+                  0,
+                  0,
+                  4
+                ]
+              },
+              {
+                "text": "Desirable (D): 1",
+                "fontSize": 9,
+                "margin": [
+                  0,
+                  0,
+                  0,
+                  4
+                ]
+              },
+              {
+                "text": "Total funcionales: 50",
+                "bold": true,
+                "fontSize": 9,
+                "margin": [
+                  0,
+                  0,
+                  0,
+                  4
+                ]
+              },
+              {
+                "text": "No funcionales: 5 (NF)",
+                "fontSize": 9,
+                "margin": [
+                  0,
+                  0,
+                  0,
+                  8
+                ]
+              },
+              {
+                "canvas": [
+                  {
+                    "type": "line",
+                    "x1": 0,
+                    "y1": 0,
+                    "x2": 130,
+                    "y2": 0,
+                    "lineWidth": 0.5,
+                    "lineColor": "#D0D5DB"
+                  }
+                ]
+              },
+              {
+                "text": "TOTAL: 55 URS",
+                "bold": true,
+                "fontSize": 10,
+                "color": "#1F3C56",
+                "margin": [
+                  0,
+                  6,
+                  0,
+                  0
+                ]
+              }
+            ]
+          },
+          {
+            "stack": [
+              {
+                "text": "CRÍTICO: 30",
+                "color": "#C0392B",
+                "bold": true,
+                "fontSize": 9,
+                "margin": [
+                  0,
+                  0,
+                  0,
+                  4
+                ]
+              },
+              {
+                "text": "ALTO: 19",
+                "color": "#E67E22",
+                "bold": true,
+                "fontSize": 9,
+                "margin": [
+                  0,
+                  0,
+                  0,
+                  4
+                ]
+              },
+              {
+                "text": "MEDIO: 6",
+                "color": "#717D8A",
+                "bold": true,
+                "fontSize": 9
+              }
+            ]
+          },
+          {
+            "stack": [
+              {
+                "text": "Autenticación / Acceso: 8",
+                "fontSize": 9,
+                "margin": [
+                  0,
+                  0,
+                  0,
+                  3
+                ]
+              },
+              {
+                "text": "Usuarios / Roles: 8",
+                "fontSize": 9,
+                "margin": [
+                  0,
+                  0,
+                  0,
+                  3
+                ]
+              },
+              {
+                "text": "Registro sistema: 4",
+                "fontSize": 9,
+                "margin": [
+                  0,
+                  0,
+                  0,
+                  3
+                ]
+              },
+              {
+                "text": "Cuestionario: 8",
+                "fontSize": 9,
+                "margin": [
+                  0,
+                  0,
+                  0,
+                  3
+                ]
+              },
+              {
+                "text": "GAMPI / Analytics: 6",
+                "fontSize": 9,
+                "margin": [
+                  0,
+                  0,
+                  0,
+                  3
+                ]
+              },
+              {
+                "text": "Reportes PDF: 5",
+                "fontSize": 9,
+                "margin": [
+                  0,
+                  0,
+                  0,
+                  3
+                ]
+              },
+              {
+                "text": "QR / SHA-256: 4",
+                "fontSize": 9,
+                "margin": [
+                  0,
+                  0,
+                  0,
+                  3
+                ]
+              },
+              {
+                "text": "Infraestructura: 7",
+                "fontSize": 9,
+                "margin": [
+                  0,
+                  0,
+                  0,
+                  3
+                ]
+              },
+              {
+                "text": "No Funcionales: 5",
+                "fontSize": 9
+              }
+            ]
+          }
+        ]
+      ],
+      "numero": 11
+    },
+    {
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": [
+        "Código / Referencia",
+        "Título"
+      ],
+      "widths": [
+        180,
+        275
+      ],
+      "filas": [
+        [
+          "MAN-GAMP-CAT-001 v1.0",
+          "Manual de Usuario — DRP-GAMP Categorizador™"
+        ],
+        [
+          "SOP-USO-GAMP-001 v1.0",
+          "Procedimiento de Uso del Sistema DRP-GAMP Categorizador™"
+        ],
+        [
+          "SOP-ADM-GAMP-001 v1.0",
+          "Procedimiento de Administración del Sistema DRP-GAMP Categorizador™"
+        ],
+        [
+          "HLRA-DRP-SIS-001 v1.0",
+          "Análisis de Calificación y Criticidad GxP — DRP-GAMP Categorizador™"
+        ],
+        [
+          "VP-DRP-SIS-001 v1.0",
+          "Plan de Validación — DRP-GAMP Categorizador™"
+        ],
+        [
+          "ANMAT 4159/2023 Anexo VI",
+          "Guía de Buenas Prácticas de Sistemas Informatizados"
+        ],
+        [
+          "GAMP 5 — 2da Ed. 2022",
+          "Risk-Based Approach to Compliant GxP Computerized Systems (ISPE)"
+        ],
+        [
+          "ICH Q9 R1 (2023)",
+          "Quality Risk Management"
+        ],
+        [
+          "21 CFR Part 11",
+          "Electronic Records; Electronic Signatures (FDA)"
+        ],
+        [
+          "EU Annex 11",
+          "Computerised Systems (EMA)"
+        ]
+      ],
+      "numero": 12
+    },
+    {
+      "tipo": "tabla-firmas-final",
+      "titulo": "FIRMAS DE EJECUCIÓN",
+      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de este URS. La trazabilidad legal queda registrada en el log adjunto al paquete de validación.",
+      "firmas": [],
+      "rolesPlaceholder": [
+        "Ejecutor (Validador)",
+        "Revisor (Process Owner)",
+        "Aprobador (Gerente QA)"
+      ],
+      "nota": "Documento sujeto a firma electrónica. La firma manuscrita en este recuadro solo aplica como respaldo físico cuando no es viable la firma digital.",
+      "numero": 13
+    }
+  ]
+}
