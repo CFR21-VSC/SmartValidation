@@ -7,3 +7,15 @@ healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "on-failure"
 restartPolicyMaxRetries = 3
+
+# ── Variables de entorno requeridas en Railway Dashboard ──────────────────────
+# ENV=production
+# DATA_DIR=/data              ← montar volumen Railway en /data
+# AUTH_SECRET_KEY=<generate_keys.py --secret>
+# USER1_NAME=<usuario_admin>
+# USER1_HASH=<generate_keys.py --hash>
+# USER1_DISPLAY=<Nombre Completo>
+# USER1_ROLE=admin
+# USER1_EMAIL=<email>
+# SUPERADMIN_USERNAME=<mismo valor que USER1_NAME>
+# ANTHROPIC_API_KEY=<clave>   ← para generación IA de documentos
