@@ -18,4 +18,5 @@ restartPolicyMaxRetries = 3
 # USER1_ROLE=admin
 # USER1_EMAIL=<email>
 # SUPERADMIN_USERNAME=<mismo valor que USER1_NAME>
-# ANTHROPIC_API_KEY=<clave>   ← para generación IA de documentos
+# ANTHROPIC_API_KEY no se configura en Railway — la generacion de documentos
+# GxP se hace exclusivamente desde Claude Code local.
