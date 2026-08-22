@@ -205,6 +205,87 @@ async function getDBStats() {
     });
 }
 
+/**
+ * Lee TODAS las imágenes de IndexedDB y las devuelve como {id: base64data}.
+ * Usado para el bulk-sync inicial hacia el servidor.
+ */
+function getAllImagesFromDB() {
+    return new Promise((resolve) => {
+        if (!db) { resolve({}); return; }
+        const result = {};
+        const req = db.transaction([IMAGES_STORE], 'readonly')
+                      .objectStore(IMAGES_STORE)
+                      .openCursor();
+        req.onsuccess = (e) => {
+            const cursor = e.target.result;
+            if (cursor) {
+                result[cursor.key] = cursor.value.data;
+                cursor.continue();
+            } else {
+                resolve(result);
+            }
+        };
+        req.onerror = () => resolve({});
+    });
+}
+
+/**
+ * Sube todas las imágenes de IndexedDB al servidor (one-time migration sync).
+ * Se llama una sola vez cuando el servidor está disponible.
+ * Usa un flag en localStorage para no repetirlo en cada sesión.
+ */
+async function _bulkSyncImagesToServer(projectId) {
+    if (!window.VS || !window.VS.Storage || !window.VS.Storage.isAvailable()) return;
+    if (!projectId) return;
+    const flagKey = `_imgSynced_${projectId}`;
+    if (localStorage.getItem(flagKey)) return;   // ya se sincronizó
+    const allImages = await getAllImagesFromDB();
+    const keys = Object.keys(allImages);
+    if (!keys.length) {
+        localStorage.setItem(flagKey, '1');
+        return;
+    }
+    // Convertir IDs locales a compound IDs
+    const toUpload = {};
+    for (const localId of keys) {
+        const compoundId = _evidenceCompoundId(localId);
+        toUpload[compoundId] = allImages[localId];
+    }
+    await window.VS.Storage.bulkUploadEvidence(toUpload).catch(() => {});
+    localStorage.setItem(flagKey, '1');
+    console.log(`[BulkSync] ${keys.length} imágenes sincronizadas al servidor`);
+}
+
+/**
+ * Pre-carga en IndexedDB las imágenes del servidor que faltan localmente.
+ * Llamar ANTES de generar PDF cuando el proyecto viene de otro dispositivo.
+ * imageIds: array de IDs locales (sin compound prefix).
+ */
+async function prefetchImagesFromServer(imageIds) {
+    if (!window.VS || !window.VS.Storage || !window.VS.Storage.isAvailable()) return;
+    if (!imageIds || !imageIds.length) return;
+    const missing = [];
+    for (const id of imageIds) {
+        const local = await new Promise(res => {
+            if (!db) { res(null); return; }
+            const r = db.transaction([IMAGES_STORE], 'readonly').objectStore(IMAGES_STORE).get(id);
+            r.onsuccess = () => res(r.result ? r.result.data : null);
+            r.onerror = () => res(null);
+        });
+        if (!local) missing.push(_evidenceCompoundId(id));
+    }
+    if (!missing.length) return;
+    const results = await window.VS.Storage.fetchEvidenceBatch(missing).catch(() => ({}));
+    for (const [compoundId, data] of Object.entries(results)) {
+        if (!data) continue;
+        // Recuperar ID local desde compound ID
+        const localId = imageIds.find(id => _evidenceCompoundId(id) === compoundId);
+        if (localId) {
+            await saveImageToDB(localId, data).catch(() => {});
+        }
+    }
+}
+
 /* ====================================================================
    VARIABLES GLOBALES
    ==================================================================== */
@@ -309,6 +390,16 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // Cargar datos guardados
     await loadFromStorage();
+
+    // Bulk sync: subir imágenes locales al servidor (primera vez por proyecto)
+    // Se ejecuta en background para no bloquear la UI
+    setTimeout(async () => {
+        try {
+            const projId = window.VS && window.VS.projects && window.VS.projects.getActiveId
+                ? window.VS.projects.getActiveId() : null;
+            if (projId) await _bulkSyncImagesToServer(projId);
+        } catch (_) {}
+    }, 3000);
 
     // Inicializar UI
     initUI();

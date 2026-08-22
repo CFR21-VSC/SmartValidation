@@ -68,6 +68,21 @@ async function loadSessionForPDF() {
 
     const parsed = JSON.parse(jsonData);
 
+    // Recopilar todos los IDs de imagen que se van a necesitar
+    const neededImageIds = [];
+    for (const test of parsed.tests) {
+        for (const evidence of test.evidences) {
+            if (evidence.hasImage) {
+                neededImageIds.push(`${test.id}_evidence_${evidence.step}`);
+            }
+        }
+    }
+
+    // Pre-fetch batch: descarga del servidor las que faltan en IndexedDB (una sola request)
+    if (neededImageIds.length) {
+        await _prefetchPDFImages(neededImageIds).catch(() => {});
+    }
+
     for (const test of parsed.tests) {
         for (const evidence of test.evidences) {
             if (evidence.hasImage) {
@@ -91,24 +106,85 @@ async function loadSessionForPDF() {
 }
 
 async function getImageFromDB(imageId) {
-    return new Promise((resolve, reject) => {
+    // 1. Intentar IndexedDB local
+    const localData = await new Promise((resolve) => {
         const request = indexedDB.open('GestorEvidenciasDB', 2);
-
         request.onsuccess = (event) => {
             const db = event.target.result;
-            const transaction = db.transaction(['images'], 'readonly');
-            const store = transaction.objectStore('images');
-            const getRequest = store.get(imageId);
-
-            getRequest.onsuccess = () => {
-                const result = getRequest.result;
-                resolve(result ? result.data : null);
-            };
-            getRequest.onerror = () => reject(getRequest.error);
+            const tx = db.transaction(['images'], 'readonly');
+            const req = tx.objectStore('images').get(imageId);
+            req.onsuccess = () => resolve(req.result ? req.result.data : null);
+            req.onerror = () => resolve(null);
         };
-
-        request.onerror = () => reject(request.error);
+        request.onerror = () => resolve(null);
     });
+    if (localData) return localData;
+
+    // 2. Fallback: buscar en el servidor (compound ID = projId + '_' + imageId)
+    try {
+        if (window.VS && window.VS.Storage && window.VS.Storage.isAvailable()) {
+            const projId = (window.VS.projects && window.VS.projects.getActiveId()) || 'noproj';
+            const compoundId = (projId + '_' + imageId).replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 300);
+            const serverData = await window.VS.Storage.fetchEvidence(compoundId);
+            if (serverData) {
+                // Cachear en IndexedDB
+                const request = indexedDB.open('GestorEvidenciasDB', 2);
+                request.onsuccess = (event) => {
+                    const db = event.target.result;
+                    db.transaction(['images'], 'readwrite').objectStore('images').put({ id: imageId, data: serverData });
+                };
+                return serverData;
+            }
+        }
+    } catch (_) {}
+    return null;
+}
+
+/**
+ * Pre-carga en batch todas las imágenes necesarias para el PDF desde el servidor.
+ * Evita 1000 round-trips secuenciales → una sola llamada antes de generar el PDF.
+ */
+async function _prefetchPDFImages(imageIds) {
+    if (!window.VS || !window.VS.Storage || !window.VS.Storage.isAvailable()) return;
+    if (!imageIds || !imageIds.length) return;
+    const projId = (window.VS.projects && window.VS.projects.getActiveId()) || 'noproj';
+    const missing = [];
+    // Detectar cuáles faltan en IndexedDB
+    for (const imageId of imageIds) {
+        const has = await new Promise(res => {
+            const req = indexedDB.open('GestorEvidenciasDB', 2);
+            req.onsuccess = (e) => {
+                const r = e.target.result.transaction(['images'], 'readonly').objectStore('images').get(imageId);
+                r.onsuccess = () => res(!!r.result);
+                r.onerror = () => res(false);
+            };
+            req.onerror = () => res(false);
+        });
+        if (!has) {
+            const compoundId = (projId + '_' + imageId).replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 300);
+            missing.push(compoundId);
+        }
+    }
+    if (!missing.length) return;
+    // Batch fetch
+    const CHUNK = 100;
+    for (let i = 0; i < missing.length; i += CHUNK) {
+        const chunk = missing.slice(i, i + CHUNK);
+        const results = await window.VS.Storage.fetchEvidenceBatch(chunk).catch(() => ({}));
+        for (const [compoundId, data] of Object.entries(results)) {
+            if (!data) continue;
+            // Reconstruir imageId desde compoundId
+            const localId = imageIds.find(id => {
+                const c = (projId + '_' + id).replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 300);
+                return c === compoundId;
+            });
+            if (!localId) continue;
+            const dbReq = indexedDB.open('GestorEvidenciasDB', 2);
+            dbReq.onsuccess = (e) => {
+                e.target.result.transaction(['images'], 'readwrite').objectStore('images').put({ id: localId, data });
+            };
+        }
+    }
 }
 
 function buildEvidencePage_Image(evidence, contextInfo, pageNumber, totalPages, customStepId = null) {

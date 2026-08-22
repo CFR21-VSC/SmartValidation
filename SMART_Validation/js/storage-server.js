@@ -150,6 +150,34 @@
       if (!r || r.status !== 200 || !r.data.ok) return null;
       return r.data.data || null;
     },
+
+    /**
+     * Descarga múltiples imágenes del servidor en una sola request.
+     * ids: array de compound IDs (máx 500).
+     * Retorna {compoundId: "data:..." | null}.
+     */
+    async fetchEvidenceBatch(ids) {
+      if (!ids || !ids.length) return {};
+      const r = await _apiFetch("POST", "/api/evidence-batch", { ids });
+      if (!r || r.status !== 200 || !r.data.ok) return {};
+      return r.data.results || {};
+    },
+
+    /**
+     * Sube un lote de imágenes al servidor.
+     * images: {compoundId: "data:image/...", ...}
+     * Envía en chunks de 50 para no saturar la red.
+     */
+    async bulkUploadEvidence(images) {
+      if (!images || !Object.keys(images).length) return;
+      const entries = Object.entries(images);
+      const CHUNK = 50;
+      for (let i = 0; i < entries.length; i += CHUNK) {
+        const chunk = Object.fromEntries(entries.slice(i, i + CHUNK));
+        await _apiFetch("POST", "/api/evidence-batch-upload", { images: chunk })
+          .catch(() => {});
+      }
+    },
   };
 
   // Expose under VS namespace (matches existing pattern)

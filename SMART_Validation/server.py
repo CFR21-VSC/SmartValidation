@@ -301,6 +301,7 @@ _RE_PROJ_ID          = re.compile(r'^/api/projects/([^/]+)$')
 _RE_PROJ_EXPORT      = re.compile(r'^/api/projects/([^/]+)/export$')
 _RE_PROJ_SNAPSHOT    = re.compile(r'^/api/projects/([^/]+)/snapshot$')
 _RE_EVIDENCE         = re.compile(r'^/api/evidence/([a-zA-Z0-9_-]{1,300})$')
+_RE_EVIDENCE_BATCH   = re.compile(r'^/api/evidence-batch$')
 _RE_PROJ_FOLDER      = re.compile(r'^/api/projects/([^/]+)/folder$')
 _RE_PROJ_FOLDER_SCAN = re.compile(r'^/api/projects/([^/]+)/folder-scan$')
 _RE_PROJ_FOLDER_IMPORT = re.compile(r'^/api/projects/([^/]+)/folder-import$')
@@ -2051,6 +2052,77 @@ class SyncHandler(BaseHTTPRequestHandler):
             return self._send_json(500, {"ok": False, "error": "Error leyendo imagen"})
         data_url = f"data:{mime};base64,{base64.b64encode(image_bytes).decode('ascii')}"
         return self._send_json(200, {"ok": True, "data": data_url})
+
+    def _api_evidence_batch_get(self, user):
+        """POST /api/evidence-batch — devuelve múltiples imágenes en una sola request.
+        Body: {ids: ["compound_id_1", ...]}  (máx 500)
+        Response: {ok:true, results: {"id": "data:...", ...}}  (null si no existe)
+        """
+        data = self._read_json_body()
+        ids = data.get("ids", []) if isinstance(data, dict) else []
+        if not isinstance(ids, list) or len(ids) > 500:
+            return self._send_json(400, {"ok": False, "error": "ids debe ser array ≤500"})
+        results = {}
+        for raw_id in ids:
+            if not isinstance(raw_id, str) or not re.match(r'^[a-zA-Z0-9_-]{1,300}$', raw_id):
+                results[raw_id] = None
+                continue
+            img_path = None
+            mime = "image/jpeg"
+            for ext in (".jpg", ".png", ".webp", ".gif"):
+                candidate = os.path.join(EVIDENCE_DIR, raw_id + ext)
+                if os.path.isfile(candidate):
+                    img_path = candidate
+                    meta = os.path.join(EVIDENCE_DIR, raw_id + ".meta")
+                    if os.path.isfile(meta):
+                        with open(meta, "r", encoding="utf-8") as f:
+                            mime = f.read().strip()
+                    break
+            if not img_path:
+                results[raw_id] = None
+                continue
+            try:
+                with open(img_path, "rb") as f:
+                    image_bytes = f.read()
+                results[raw_id] = f"data:{mime};base64,{base64.b64encode(image_bytes).decode('ascii')}"
+            except OSError:
+                results[raw_id] = None
+        return self._send_json(200, {"ok": True, "results": results})
+
+    def _api_evidence_batch_upload(self, user):
+        """POST /api/evidence-batch-upload — sube múltiples imágenes en una sola request.
+        Body: {images: {"compound_id": "data:...", ...}}  (máx 100)
+        Útil para el bulk-sync inicial desde IndexedDB.
+        """
+        data = self._read_json_body()
+        images = data.get("images", {}) if isinstance(data, dict) else {}
+        if not isinstance(images, dict) or len(images) > 100:
+            return self._send_json(400, {"ok": False, "error": "images debe ser objeto ≤100 entradas"})
+        saved = 0
+        for compound_id, data_url in images.items():
+            if not isinstance(compound_id, str) or not re.match(r'^[a-zA-Z0-9_-]{1,300}$', compound_id):
+                continue
+            if not isinstance(data_url, str) or not data_url.startswith("data:"):
+                continue
+            try:
+                header, b64 = data_url.split(",", 1)
+                mime = header.split(";")[0].replace("data:", "") or "image/jpeg"
+                image_bytes = base64.b64decode(b64)
+            except Exception:
+                continue
+            if len(image_bytes) > 20 * 1024 * 1024:
+                continue
+            ext = {"image/jpeg": ".jpg", "image/png": ".png",
+                   "image/webp": ".webp", "image/gif": ".gif"}.get(mime, ".jpg")
+            try:
+                with open(os.path.join(EVIDENCE_DIR, compound_id + ext), "wb") as f:
+                    f.write(image_bytes)
+                with open(os.path.join(EVIDENCE_DIR, compound_id + ".meta"), "w", encoding="utf-8") as f:
+                    f.write(mime)
+                saved += 1
+            except OSError:
+                continue
+        return self._send_json(200, {"ok": True, "saved": saved})
 
     def _assert_project_access(self, db, user, proj_id) -> bool:
         """Retorna True si admin/auditor o si el cliente tiene acceso. Envía 403 si no.
@@ -3868,6 +3940,8 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_EVIDENCE.match(path)
         if m:
             return self._api_evidence_get(m.group(1), user)
+        if path == "/api/evidence-batch":
+            return self._send_json(405, {"ok": False, "error": "Usar POST"})
         m = _RE_PROJ_DOC.match(path)
         if m:
             return self._api_doc_get(m.group(1), m.group(2), user)
@@ -3990,6 +4064,10 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_EVIDENCE.match(path)
         if m:
             return self._api_evidence_save(m.group(1), user)
+        if path == "/api/evidence-batch":
+            return self._api_evidence_batch_get(user)
+        if path == "/api/evidence-batch-upload":
+            return self._api_evidence_batch_upload(user)
         m = _RE_PROJ_DOC_SIGN.match(path)
         if m:
             return self._api_doc_sign(m.group(1), m.group(2), user)
