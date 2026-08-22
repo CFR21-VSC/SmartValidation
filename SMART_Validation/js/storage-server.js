@@ -118,6 +118,38 @@
       );
       return !!(r && r.data && r.data.ok);
     },
+
+    /** Recupera el snapshot guardado en el servidor para restaurar IndexedDB. */
+    async getSnapshot(projectId) {
+      const r = await _apiFetch(
+        "GET",
+        `/api/projects/${encodeURIComponent(projectId)}/snapshot`
+      );
+      if (!r || r.status !== 200 || !r.data.ok) return null;
+      _available = true;
+      return r.data.snapshot || null;
+    },
+
+    /**
+     * Fire-and-forget: sube una imagen de evidencia al servidor para persistencia
+     * entre sesiones y máquinas. compoundId = "{projId}_{imageId}" sanitizado.
+     */
+    uploadEvidence(compoundId, base64data) {
+      if (!compoundId || !base64data) return;
+      _apiFetch("POST", `/api/evidence/${encodeURIComponent(compoundId)}`, {
+        data: base64data,
+      }).catch(() => {});
+    },
+
+    /** Descarga una imagen de evidencia del servidor como data URL. */
+    async fetchEvidence(compoundId) {
+      const r = await _apiFetch(
+        "GET",
+        `/api/evidence/${encodeURIComponent(compoundId)}`
+      );
+      if (!r || r.status !== 200 || !r.data.ok) return null;
+      return r.data.data || null;
+    },
   };
 
   // Expose under VS namespace (matches existing pattern)

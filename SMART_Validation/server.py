@@ -62,8 +62,9 @@ if os.path.isfile(_dotenv_path):
 
 # ── Persistent storage (SQLite + filesystem) ──────────────────────────────────
 # Local: <repo>/data/   Docker/Railway: /data  (DATA_DIR env var overrides)
-DATA_DIR = os.environ.get("DATA_DIR", os.path.join(os.path.dirname(ROOT_DIR), "data"))
-DB_PATH = os.path.join(DATA_DIR, "smart_validation.db")
+DATA_DIR     = os.environ.get("DATA_DIR", os.path.join(os.path.dirname(ROOT_DIR), "data"))
+DB_PATH      = os.path.join(DATA_DIR, "smart_validation.db")
+EVIDENCE_DIR = os.path.join(DATA_DIR, "evidence")   # server-side image storage
 
 def _get_db():
     """Return a thread-local database connection.
@@ -299,6 +300,7 @@ def _is_valid_doc_type(v: str) -> bool:
 _RE_PROJ_ID          = re.compile(r'^/api/projects/([^/]+)$')
 _RE_PROJ_EXPORT      = re.compile(r'^/api/projects/([^/]+)/export$')
 _RE_PROJ_SNAPSHOT    = re.compile(r'^/api/projects/([^/]+)/snapshot$')
+_RE_EVIDENCE         = re.compile(r'^/api/evidence/([a-zA-Z0-9_-]{1,300})$')
 _RE_PROJ_FOLDER      = re.compile(r'^/api/projects/([^/]+)/folder$')
 _RE_PROJ_FOLDER_SCAN = re.compile(r'^/api/projects/([^/]+)/folder-scan$')
 _RE_PROJ_FOLDER_IMPORT = re.compile(r'^/api/projects/([^/]+)/folder-import$')
@@ -1974,6 +1976,81 @@ class SyncHandler(BaseHTTPRequestHandler):
             print(f"[DB] Error al sincronizar documentos: {e}")
             return self._send_json(500, {"ok": False, "error": "Error interno al sincronizar documentos."})
         return self._send_json(200, {"ok": True, "docs_synced": len(package_docs)})
+
+    def _api_snapshot_get(self, proj_id, user):
+        """Devuelve el snapshot almacenado para restaurar IndexedDB en un navegador nuevo."""
+        db = _get_db()
+        if not self._assert_project_access(db, user, proj_id):
+            return
+        row = db.execute(
+            "SELECT snapshot_json FROM projects WHERE id=?", (proj_id,)
+        ).fetchone()
+        if not row or not row["snapshot_json"]:
+            return self._send_json(404, {"ok": False, "error": "Snapshot no disponible"})
+        try:
+            snapshot = json.loads(row["snapshot_json"])
+        except Exception:
+            return self._send_json(500, {"ok": False, "error": "Snapshot corrupto"})
+        return self._send_json(200, {"ok": True, "snapshot": snapshot})
+
+    def _api_evidence_save(self, compound_id, user):
+        """Guarda una imagen de evidencia en el filesystem del servidor."""
+        data = self._read_json_body()
+        if data is None:
+            return
+        raw = data.get("data", "")
+        if not raw:
+            return self._send_json(400, {"ok": False, "error": "Campo 'data' requerido"})
+        # Parse data URL: data:image/jpeg;base64,...
+        mime = "image/jpeg"
+        b64 = raw
+        if raw.startswith("data:") and "," in raw:
+            header = raw[:raw.index(",")]
+            b64 = raw[raw.index(",") + 1:]
+            if ":" in header and ";" in header:
+                mime = header.split(":")[1].split(";")[0].strip()
+        if mime not in ("image/jpeg", "image/png", "image/webp", "image/gif"):
+            mime = "image/jpeg"
+        try:
+            image_bytes = base64.b64decode(b64 + "==")
+        except Exception:
+            return self._send_json(400, {"ok": False, "error": "Datos de imagen inválidos"})
+        if len(image_bytes) > MAX_PHOTO_BYTES:
+            return self._send_json(413, {"ok": False, "error": "Imagen demasiado grande (máx 15 MB)"})
+        ext = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}.get(mime, ".jpg")
+        try:
+            os.makedirs(EVIDENCE_DIR, exist_ok=True)
+            with open(os.path.join(EVIDENCE_DIR, compound_id + ext), "wb") as f:
+                f.write(image_bytes)
+            with open(os.path.join(EVIDENCE_DIR, compound_id + ".meta"), "w", encoding="utf-8") as f:
+                f.write(mime)
+        except OSError as e:
+            print(f"[EVIDENCE] Error guardando {compound_id}: {e}")
+            return self._send_json(500, {"ok": False, "error": "Error guardando imagen"})
+        return self._send_json(200, {"ok": True})
+
+    def _api_evidence_get(self, compound_id, user):
+        """Recupera una imagen de evidencia del filesystem y la devuelve como data URL."""
+        img_path = None
+        mime = "image/jpeg"
+        for ext in (".jpg", ".png", ".webp", ".gif"):
+            candidate = os.path.join(EVIDENCE_DIR, compound_id + ext)
+            if os.path.isfile(candidate):
+                img_path = candidate
+                meta = os.path.join(EVIDENCE_DIR, compound_id + ".meta")
+                if os.path.isfile(meta):
+                    with open(meta, "r", encoding="utf-8") as f:
+                        mime = f.read().strip()
+                break
+        if not img_path:
+            return self._send_json(404, {"ok": False, "error": "Imagen no encontrada"})
+        try:
+            with open(img_path, "rb") as f:
+                image_bytes = f.read()
+        except OSError:
+            return self._send_json(500, {"ok": False, "error": "Error leyendo imagen"})
+        data_url = f"data:{mime};base64,{base64.b64encode(image_bytes).decode('ascii')}"
+        return self._send_json(200, {"ok": True, "data": data_url})
 
     def _assert_project_access(self, db, user, proj_id) -> bool:
         """Retorna True si admin/auditor o si el cliente tiene acceso. Envía 403 si no.
@@ -3785,6 +3862,12 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_PROJ_PHOTO_ID.match(path)
         if m:
             return self._api_photo_get(m.group(1), m.group(2), user)
+        m = _RE_PROJ_SNAPSHOT.match(path)
+        if m:
+            return self._api_snapshot_get(m.group(1), user)
+        m = _RE_EVIDENCE.match(path)
+        if m:
+            return self._api_evidence_get(m.group(1), user)
         m = _RE_PROJ_DOC.match(path)
         if m:
             return self._api_doc_get(m.group(1), m.group(2), user)
@@ -3904,6 +3987,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_PROJ_SNAPSHOT.match(path)
         if m:
             return self._api_snapshot_save(m.group(1), user)
+        m = _RE_EVIDENCE.match(path)
+        if m:
+            return self._api_evidence_save(m.group(1), user)
         m = _RE_PROJ_DOC_SIGN.match(path)
         if m:
             return self._api_doc_sign(m.group(1), m.group(2), user)
@@ -4291,6 +4377,10 @@ def main():
             print("[FATAL] AUDIT_HMAC_KEY y AUTH_SECRET_KEY no pueden ser iguales en producción.")
             print("[FATAL] Usá claves independientes para auth tokens y audit trail HMAC.")
             sys.exit(1)
+
+    # Crear directorios de datos necesarios
+    os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(EVIDENCE_DIR, exist_ok=True)
 
     # Puerto: CLI arg > env var PORT > default 11294
     port_arg = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("PORT", "11294")

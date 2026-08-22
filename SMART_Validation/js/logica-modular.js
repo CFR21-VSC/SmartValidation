@@ -66,6 +66,11 @@ function initIndexedDB() {
  * @param {string} imageData - Base64 de la imagen
  * @returns {Promise}
  */
+function _evidenceCompoundId(imageId) {
+    const projId = (window.VS && window.VS.projects && window.VS.projects.getActiveId()) || 'noproj';
+    return (projId + '_' + imageId).replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 300);
+}
+
 function saveImageToDB(id, imageData) {
     return new Promise((resolve, reject) => {
         if (!db) {
@@ -78,7 +83,13 @@ function saveImageToDB(id, imageData) {
 
         const request = store.put({ id, data: imageData });
 
-        request.onsuccess = () => resolve();
+        request.onsuccess = () => {
+            resolve();
+            // Fire-and-forget: backup al servidor para persistencia multi-sesión
+            if (window.VS && window.VS.Storage && window.VS.Storage.isAvailable()) {
+                window.VS.Storage.uploadEvidence(_evidenceCompoundId(id), imageData);
+            }
+        };
         request.onerror = () => reject(request.error);
     });
 }
@@ -88,27 +99,28 @@ function saveImageToDB(id, imageData) {
  * @param {string} id - ID de la evidencia
  * @returns {Promise<string>} - Base64 de la imagen
  */
-function getImageFromDB(id) {
-    return new Promise((resolve, reject) => {
-        if (!db) {
-            reject(new Error('IndexedDB no inicializado'));
-            return;
-        }
-
-        const transaction = db.transaction([IMAGES_STORE], 'readonly');
-        const store = transaction.objectStore(IMAGES_STORE);
-
-        const request = store.get(id);
-
-        request.onsuccess = () => {
-            if (request.result) {
-                resolve(request.result.data);
-            } else {
-                resolve(null);
-            }
-        };
-        request.onerror = () => reject(request.error);
+async function getImageFromDB(id) {
+    // 1. Intentar IndexedDB local (rápido, sin red)
+    const localData = await new Promise((resolve, reject) => {
+        if (!db) { resolve(null); return; }
+        const req = db.transaction([IMAGES_STORE], 'readonly').objectStore(IMAGES_STORE).get(id);
+        req.onsuccess = () => resolve(req.result ? req.result.data : null);
+        req.onerror  = () => resolve(null);
     });
+    if (localData) return localData;
+
+    // 2. Fallback: intentar recuperar del servidor (otro navegador/máquina guardó esta imagen)
+    try {
+        if (window.VS && window.VS.Storage && window.VS.Storage.isAvailable()) {
+            const serverData = await window.VS.Storage.fetchEvidence(_evidenceCompoundId(id));
+            if (serverData) {
+                // Cachear en IndexedDB para no volver a pedir al servidor
+                saveImageToDB(id, serverData).catch(() => {});
+                return serverData;
+            }
+        }
+    } catch (_) {}
+    return null;
 }
 
 /**

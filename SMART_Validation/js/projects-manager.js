@@ -486,6 +486,36 @@
                     }
                     return proj;
                 }
+                // IndexedDB vacía para este activeId — intentar recuperar snapshot del servidor
+                if (global.VS && global.VS.Storage) {
+                    try {
+                        const snapshot = await global.VS.Storage.getSnapshot(activeId);
+                        if (snapshot) {
+                            const sysInfo = snapshot.systemInfo || {};
+                            let entry = {
+                                id: activeId,
+                                name: sysInfo.projectName || sysInfo.nombre || sysInfo.nombreSistema || 'Proyecto restaurado',
+                                cliente: sysInfo.client || sysInfo.cliente || '',
+                                sistemaCode: sysInfo.systemCode || sysInfo.codigoSistema || '',
+                                sistemaName: sysInfo.systemName || sysInfo.nombreSistema || '',
+                                gampCat: sysInfo.gampCategory || sysInfo.categoriaGamp || '',
+                                createdAt: new Date().toISOString(),
+                                lastOpenedAt: new Date().toISOString(),
+                                archived: false,
+                                snapshot,
+                                stats: computeStats(snapshot),
+                            };
+                            entry = refreshFromSnapshot(entry, snapshot);
+                            await dbPut(entry);
+                            writeSnapshot(snapshot);
+                            console.info('[projects] Proyecto restaurado desde servidor:', activeId);
+                            ensureDemoProject().catch(() => {});
+                            return entry;
+                        }
+                    } catch (e) {
+                        console.warn('[projects] No se pudo recuperar snapshot del servidor:', e);
+                    }
+                }
                 setActiveId(null); // stale
             }
             // Sin proyecto activo — garantizar demo en background
