@@ -355,6 +355,10 @@
         if (global.AuditTrail && typeof global.AuditTrail.logAction === 'function') {
             global.AuditTrail.logAction('SUITE_PROJECT_CREATE', 'project', id, { name }, 'Nuevo proyecto: ' + name);
         }
+        // Sincronizar al servidor antes del reload para que aparezca en todos los navegadores
+        if (global.VS && global.VS.Storage) {
+            try { await global.VS.Storage.syncSnapshot(id, blankSnapshot); } catch (_) {}
+        }
         // Switch al nuevo proyecto
         writeSnapshot(blankSnapshot);
         setActiveId(id);
@@ -382,6 +386,9 @@
             snapshot: regenerateTestIds(src.snapshot)
         });
         await dbPut(copy);
+        if (global.VS && global.VS.Storage && copy.snapshot) {
+            try { await global.VS.Storage.syncSnapshot(newId, copy.snapshot); } catch (_) {}
+        }
         if (global.AuditTrail && typeof global.AuditTrail.logAction === 'function') {
             global.AuditTrail.logAction('SUITE_PROJECT_DUPLICATE', 'project', newId, {
                 sourceId: id, sourceName: src.name, newName

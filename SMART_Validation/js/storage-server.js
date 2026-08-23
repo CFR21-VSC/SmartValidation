@@ -74,18 +74,17 @@
     isAvailable() { return _available; },
 
     /**
-     * Fire-and-forget: push the full active snapshot to the server.
-     * Called from saveCurrentToActive() — must never block the UI.
+     * Push snapshot to server. Returns a Promise — awaitable when called from createNew()
+     * so the project appears on the server before reload. Also safe as fire-and-forget.
      */
     syncSnapshot(projectId, snapshot) {
-      if (!projectId || !snapshot) return;
-      _apiFetch("POST", `/api/projects/${encodeURIComponent(projectId)}/snapshot`, {
+      if (!projectId || !snapshot) return Promise.resolve(null);
+      return _apiFetch("POST", `/api/projects/${encodeURIComponent(projectId)}/snapshot`, {
         snapshot,
       }).then((r) => {
-        if (r && r.data && r.data.ok) {
-          _available = true;
-        }
-      }).catch(() => {});
+        if (r && r.data && r.data.ok) _available = true;
+        return r;
+      }).catch(() => null);
     },
 
     async listProjects() {

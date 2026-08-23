@@ -42,70 +42,67 @@
         const activeId = VS.projects.getActiveId();
 
         try {
-            const all = await VS.projects.listAll();
+            // Paso 1: lista local (IndexedDB) — tiene stats y snapshot frescos
+            const localList = await VS.projects.listAll();
+            const localMap = new Map(localList.map(p => [p.id, p]));
 
-            // Complementar con proyectos que solo existen en el servidor (otro navegador los guardó)
-            let serverOnly = [];
+            // Paso 2: lista del servidor (fuente de verdad) — muestra proyectos de todos los navegadores
+            let serverList = [];
             if (VS.Storage && VS.Storage.isAvailable()) {
-                try {
-                    const serverList = await VS.Storage.listProjects();
-                    const localIds = new Set(all.map(p => p.id));
-                    serverOnly = serverList.filter(sp => !localIds.has(sp.id));
-                } catch (_) {}
+                try { serverList = await VS.Storage.listProjects(); } catch (_) {}
             }
+            const serverIds = new Set(serverList.map(sp => sp.id));
+
+            // Paso 3: unificar — servidor como base, IndexedDB enriquece con stats
+            const merged = serverList.map(sp => {
+                const local = localMap.get(sp.id);
+                if (local) return local; // IndexedDB tiene snapshot completo + stats
+                // Solo en servidor: construir entry mínimo para mostrar la card
+                return {
+                    id: sp.id,
+                    name: sp.name || sp.system_name || sp.id,
+                    cliente: sp.cliente || '',
+                    sistemaCode: '',
+                    sistemaName: sp.system_name || '',
+                    gampCat: sp.gamp_category || '',
+                    stats: { tests: 0, evidences: 0, protocols: 0, packageDocs: 0, sizeKB: 0 },
+                    archived: false,
+                    lastOpenedAt: sp.updated_at ? new Date(sp.updated_at * 1000).toISOString() : null,
+                };
+            });
+
+            // Proyectos creados offline que aún no se sincronizaron al servidor
+            const localOnly = localList.filter(p => !serverIds.has(p.id));
+            const all = [...merged, ...localOnly];
 
             const activos = all.filter(p => !p.archived);
             const archivados = all.filter(p => p.archived);
-            const totalVisible = all.length + serverOnly.length;
 
             if (headerStats) {
                 headerStats.innerHTML =
-                    '<span><strong>' + totalVisible + '</strong> proyecto' + (totalVisible !== 1 ? 's' : '') + '</span>' +
+                    '<span><strong>' + all.length + '</strong> proyecto' + (all.length !== 1 ? 's' : '') + '</span>' +
                     '<span>&middot;</span>' +
                     '<span>' + activos.length + ' activo' + (activos.length !== 1 ? 's' : '') + '</span>' +
-                    (archivados.length ? '<span>&middot;</span><span>' + archivados.length + ' archivado' + (archivados.length !== 1 ? 's' : '') + '</span>' : '') +
-                    (serverOnly.length ? '<span>&middot;</span><span style="color:#22d3ee">&#9729; ' + serverOnly.length + ' en servidor</span>' : '');
+                    (archivados.length ? '<span>&middot;</span><span>' + archivados.length + ' archivado' + (archivados.length !== 1 ? 's' : '') + '</span>' : '');
             }
 
-            const localCards = all
+            const cards = all
                 .sort((a, b) => new Date(b.lastOpenedAt || 0) - new Date(a.lastOpenedAt || 0))
                 .map(p => renderCard(p, activeId))
                 .join('');
 
-            const serverCards = serverOnly
-                .map(p => renderServerCard(p))
-                .join('');
-
-            if (totalVisible === 0) {
+            if (all.length === 0) {
                 container.innerHTML =
                     '<div class="proj-empty">' +
                     '<div class="proj-empty-title">No hay proyectos todavia</div>' +
                     '<div class="proj-empty-text">Crea tu primer proyecto desde el boton <strong>+ Nuevo proyecto</strong> de arriba a la derecha.</div>' +
                     '</div>';
             } else {
-                container.innerHTML = localCards + serverCards;
+                container.innerHTML = cards;
             }
         } catch (e) {
             container.innerHTML = '<div class="proj-empty"><div class="proj-empty-title">Error</div><div class="proj-empty-text">' + escapeHtml(e.message) + '</div></div>';
         }
-    }
-
-    function renderServerCard(p) {
-        const name = escapeHtml(p.name || p.id);
-        const sistema = escapeHtml(p.system_name || '');
-        const cliente = escapeHtml(p.cliente || '');
-        return '<div class="proj-card" style="border-color:#0e7490;opacity:.9;" data-id="' + escapeHtml(p.id) + '">' +
-            '<div class="proj-card-header">' +
-            '<div class="proj-card-name-row">' +
-            '<div class="proj-card-name" title="' + name + '">' + name + '</div>' +
-            '<span class="proj-card-badge" style="background:#164e63;color:#22d3ee;border:1px solid #0e7490">&#9729; Solo en servidor</span>' +
-            '</div></div>' +
-            (cliente ? '<div class="proj-card-cliente">Cliente: <strong>' + cliente + '</strong></div>' : '') +
-            (sistema ? '<div class="proj-card-system">' + sistema + '</div>' : '<div class="proj-card-system proj-card-empty-line">Sin sistema asignado</div>') +
-            '<div class="proj-card-footer"><span class="proj-card-time">Disponible para restaurar</span></div>' +
-            '<div class="proj-card-actions">' +
-            '<button class="proj-btn proj-btn-primary" onclick="handleProjectDownload(\'' + escapeHtml(p.id) + '\')">&#9729; Restaurar</button>' +
-            '</div></div>';
     }
 
     function renderCycleProgress(projectId, totalDocs) {
