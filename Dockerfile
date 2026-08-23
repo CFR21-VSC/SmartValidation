@@ -6,7 +6,10 @@ WORKDIR /app
 COPY analytics-service/requirements.txt /tmp/analytics-req.txt
 RUN pip install --no-cache-dir -r /tmp/analytics-req.txt
 
-# Main server (stdlib only — no pip needed for server.py)
+# Main server dependencies (psycopg2 for PostgreSQL when DATABASE_URL is set)
+COPY requirements.txt /tmp/main-req.txt
+RUN pip install --no-cache-dir -r /tmp/main-req.txt
+
 COPY SMART_Validation/ ./
 COPY analytics-service/ ./analytics-service/
 
