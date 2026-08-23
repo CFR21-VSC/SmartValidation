@@ -3963,11 +3963,14 @@ class SyncHandler(BaseHTTPRequestHandler):
             return self._send_json(code, {"status": status, "service": "smart-validation"})
 
         if path in ("/login", "/login.html"):
-            if _is_auth_required() and _check_auth(self):
-                self.send_response(302)
-                self.send_header("Location", "/")
-                self.end_headers()
-                return
+            if _is_auth_required():
+                _u = _check_auth(self)
+                # Sesión superseded → NO redirigir a /, mostrar login igual
+                if _u and not _u.get("__superseded"):
+                    self.send_response(302)
+                    self.send_header("Location", "/")
+                    self.end_headers()
+                    return
             return self._serve_login_page()
 
         # Página pública — accesible sin auth (sesión expirada o superseded)
