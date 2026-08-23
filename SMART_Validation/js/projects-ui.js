@@ -73,8 +73,17 @@
                 };
             });
 
-            // Proyectos creados offline que aún no se sincronizaron al servidor
+            // Proyectos solo locales (no están en el servidor aún).
+            // Si el servidor está disponible y el proyecto no es demo, empujarlo ahora
+            // en background para que otros navegadores puedan verlo.
             const localOnly = localList.filter(p => !serverIds.has(p.id));
+            if (VS.Storage && localOnly.length > 0) {
+                localOnly.forEach(p => {
+                    if (p.id && p.snapshot && !p.id.startsWith('__demo')) {
+                        VS.Storage.syncSnapshot(p.id, p.snapshot, p.name).catch(() => {});
+                    }
+                });
+            }
             const all = [...merged, ...localOnly];
 
             const activos = all.filter(p => !p.archived);
