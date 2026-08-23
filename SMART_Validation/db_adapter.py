@@ -52,8 +52,21 @@ if USE_PG:
         if _pg_pool is None:
             _pg_pool = psycopg2.pool.ThreadedConnectionPool(2, 20, DATABASE_URL)
 
+    # ── DML pattern translations (SQLite-only syntax → PostgreSQL) ───────────────
+    _OR_IGNORE_RE   = re.compile(r'\bINSERT\s+OR\s+IGNORE\b',   re.IGNORECASE)
+    _BEGIN_IMMED_RE = re.compile(r'\bBEGIN\s+IMMEDIATE\b',       re.IGNORECASE)
+
+    def _adapt_dml(sql: str) -> tuple[str, bool]:
+        """Return (adapted_sql, had_or_ignore)."""
+        had = bool(_OR_IGNORE_RE.search(sql))
+        if had:
+            sql = _OR_IGNORE_RE.sub("INSERT", sql)
+            sql = sql.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
+        sql = _BEGIN_IMMED_RE.sub("BEGIN", sql)
+        return sql, had
+
     class _PGCursor:
-        """psycopg2 cursor wrapper: ? → %s, exposes lastrowid."""
+        """psycopg2 cursor wrapper: ? → %s, SQLite DML → PostgreSQL, lastrowid."""
 
         def __init__(self, raw: "psycopg2.extensions.cursor") -> None:
             self._cur = raw
@@ -61,10 +74,11 @@ if USE_PG:
 
         # ----- execute -------------------------------------------------------
         def execute(self, sql: str, params: tuple = ()) -> "_PGCursor":
+            sql, _had_ignore = _adapt_dml(sql)
             sql = sql.replace("?", "%s")
             self._cur.execute(sql, params or ())
             # Capture last inserted serial id for callers that use cur.lastrowid
-            if sql.lstrip().upper().startswith("INSERT"):
+            if sql.lstrip().upper().startswith("INSERT") and not _had_ignore:
                 try:
                     probe = self._cur.connection.cursor()
                     probe.execute("SELECT lastval()")
@@ -76,6 +90,7 @@ if USE_PG:
             return self
 
         def executemany(self, sql: str, seq) -> "_PGCursor":
+            sql, _ = _adapt_dml(sql)
             sql = sql.replace("?", "%s")
             self._cur.executemany(sql, list(seq))
             return self
@@ -98,6 +113,7 @@ if USE_PG:
 
         autocommit=True matches SQLite's isolation_level=None.
         Explicit transactions still work via db.execute('BEGIN') / COMMIT / ROLLBACK.
+        db.commit() / db.rollback() are also forwarded for code that calls them directly.
         """
 
         def __init__(self, raw: "psycopg2.extensions.connection") -> None:
@@ -128,11 +144,30 @@ if USE_PG:
                 try:
                     raw_cur.execute(stmt)
                 except psycopg2.errors.DuplicateTable:
-                    # IF NOT EXISTS handles this but be defensive
                     self._raw.rollback()
                 except psycopg2.errors.DuplicateObject:
                     self._raw.rollback()
+                except Exception:
+                    # Catch any other DDL error (e.g. column already exists) and keep going
+                    try:
+                        self._raw.rollback()
+                    except Exception:
+                        pass
             raw_cur.close()
+
+        def commit(self) -> None:
+            """Forward Python-level commit (no-op when autocommit=True and no open txn)."""
+            try:
+                self._raw.commit()
+            except Exception:
+                pass
+
+        def rollback(self) -> None:
+            """Forward Python-level rollback (safe to call outside explicit transactions)."""
+            try:
+                self._raw.rollback()
+            except Exception:
+                pass
 
         def close(self) -> None:
             assert _pg_pool is not None
