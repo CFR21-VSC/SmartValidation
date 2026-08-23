@@ -233,7 +233,9 @@
     function vsPopulateProjectDocs() {
         const sel = document.getElementById('vsProjectDocSelector');
         if (!sel) return;
-        const pkg = (global.packageDocs || []).filter(d => d && d.type && d.type !== 'PEOPLE');
+        // PIQ/POQ/PPQ son protocolos de ejecución → viven en Suite Evidencias, no aquí
+        const PROTOCOL_EXEC = ['PIQ', 'POQ', 'PPQ'];
+        const pkg = (global.packageDocs || []).filter(d => d && d.type && d.type !== 'PEOPLE' && !PROTOCOL_EXEC.includes(d.type));
         // Conservar el valor seleccionado si todavía existe
         const prev = sel.value;
         if (pkg.length === 0) {
@@ -979,6 +981,23 @@
         reader.onload = function (ev) {
             try {
                 const parsed = JSON.parse(ev.target.result);
+
+                // PIQ/POQ/PPQ → redirigir a Suite Evidencias (son protocolos de ejecución)
+                const _EXEC_PROTOCOLS = ['PIQ', 'POQ', 'PPQ'];
+                if (parsed && parsed.type && _EXEC_PROTOCOLS.includes(parsed.type)) {
+                    if (typeof global.loadPackageFiles === 'function') {
+                        // Crear un File-like object para reusar el pipeline de evidencias
+                        const blob = new Blob([JSON.stringify(parsed)], { type: 'application/json' });
+                        const fakeFile = new File([blob], file.name, { type: 'application/json' });
+                        global.loadPackageFiles([fakeFile]);
+                    } else if (typeof global.addPackageDoc === 'function') {
+                        global.addPackageDoc(parsed, { fileName: file.name });
+                    }
+                    if (typeof global.showNotification === 'function') {
+                        global.showNotification(parsed.type + ' es un protocolo de ejecución → agregado a Suite Evidencias', 'info');
+                    }
+                    return;
+                }
 
                 // Agregar al paquete documental global (upsert por code)
                 _vsEditorContext = { kind: null };
