@@ -24,15 +24,19 @@
             || global.SMART_ANALYTICS_URL;
         if (configured) return configured;
 
-        // En producción (HTTPS o dominio externo) no hay servicio local
         const { hostname, protocol } = window.location;
-        if (protocol === 'https:') return null;
+
+        // En HTTPS (Railway/producción): usar el proxy del servidor principal (mismo origen, sin CORS)
+        if (protocol === 'https:') return '/api/analytics';
+
         const isLocal = hostname === 'localhost' || hostname === '127.0.0.1'
             || /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(hostname);
-        if (!isLocal) return null;
 
-        // En local (localhost, 127.0.0.1 o LAN): apuntar al servicio analytics en el mismo host
-        return `http://${hostname}:${ANALYTICS_PORT}`;
+        // En local (localhost, 127.0.0.1 o LAN): directo al puerto 8765
+        if (isLocal) return `http://${hostname}:${ANALYTICS_PORT}`;
+
+        // HTTP pero dominio externo: usar proxy igual
+        return '/api/analytics';
     }
 
     VS.Analytics = {

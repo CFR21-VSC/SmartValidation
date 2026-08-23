@@ -302,6 +302,7 @@ _RE_PROJ_EXPORT      = re.compile(r'^/api/projects/([^/]+)/export$')
 _RE_PROJ_SNAPSHOT    = re.compile(r'^/api/projects/([^/]+)/snapshot$')
 _RE_EVIDENCE         = re.compile(r'^/api/evidence/([a-zA-Z0-9_-]{1,300})$')
 _RE_EVIDENCE_BATCH   = re.compile(r'^/api/evidence-batch$')
+_RE_ANALYTICS        = re.compile(r'^/api/analytics(/.+)?$')
 _RE_PROJ_FOLDER      = re.compile(r'^/api/projects/([^/]+)/folder$')
 _RE_PROJ_FOLDER_SCAN = re.compile(r'^/api/projects/([^/]+)/folder-scan$')
 _RE_PROJ_FOLDER_IMPORT = re.compile(r'^/api/projects/([^/]+)/folder-import$')
@@ -2124,6 +2125,47 @@ class SyncHandler(BaseHTTPRequestHandler):
                 continue
         return self._send_json(200, {"ok": True, "saved": saved})
 
+    def _proxy_analytics(self, subpath, user):
+        """Proxy /api/analytics/* → analytics FastAPI service en 127.0.0.1:8765.
+        Permite usar el motor de analytics desde Railway (HTTPS) sin exponer el puerto 8765."""
+        import http.client as _http_client
+        # Leer body raw (no parsear JSON — lo forwarda intacto)
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+        except (ValueError, TypeError):
+            length = 0
+        raw_body = None
+        if length > 0:
+            try:
+                self.connection.settimeout(30)
+                raw_body = self.rfile.read(min(length, MAX_SESSION_BYTES))
+            except Exception:
+                return self._send_json(408, {"ok": False, "error": "Timeout leyendo request"})
+            finally:
+                try:
+                    self.connection.settimeout(None)
+                except Exception:
+                    pass
+        target = subpath or "/"
+        qs = urlparse(self.path).query
+        if qs:
+            target += "?" + qs
+        try:
+            conn = _http_client.HTTPConnection("127.0.0.1", 8765, timeout=120)
+            fwd_headers = {"Content-Type": self.headers.get("Content-Type", "application/json")}
+            conn.request(self.command, target, body=raw_body, headers=fwd_headers)
+            resp = conn.getresponse()
+            data = resp.read()
+            self.send_response(resp.status)
+            self.send_header("Content-Type", resp.getheader("Content-Type", "application/json"))
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Access-Control-Allow-Origin", _ALLOWED_ORIGIN)
+            self.send_header("Access-Control-Allow-Credentials", "true")
+            self.end_headers()
+            self.wfile.write(data)
+        except Exception:
+            self._send_json(503, {"ok": False, "error": "Motor de analytics no disponible. Intentá en unos segundos."})
+
     def _assert_project_access(self, db, user, proj_id) -> bool:
         """Retorna True si admin/auditor o si el cliente tiene acceso. Envía 403 si no.
         VULN-12: valida formato de ID antes de consultar la DB (previene timing oracle)."""
@@ -3937,6 +3979,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_PROJ_SNAPSHOT.match(path)
         if m:
             return self._api_snapshot_get(m.group(1), user)
+        m = _RE_ANALYTICS.match(path)
+        if m:
+            return self._proxy_analytics(m.group(1) or "/", user)
         m = _RE_EVIDENCE.match(path)
         if m:
             return self._api_evidence_get(m.group(1), user)
@@ -4061,6 +4106,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_PROJ_SNAPSHOT.match(path)
         if m:
             return self._api_snapshot_save(m.group(1), user)
+        m = _RE_ANALYTICS.match(path)
+        if m:
+            return self._proxy_analytics(m.group(1) or "/", user)
         m = _RE_EVIDENCE.match(path)
         if m:
             return self._api_evidence_save(m.group(1), user)
@@ -4459,6 +4507,26 @@ def main():
     # Crear directorios de datos necesarios
     os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(EVIDENCE_DIR, exist_ok=True)
+
+    # Arrancar analytics service como subproceso interno (puerto 8765, solo localhost)
+    _analytics_proc = None
+    _analytics_dir = os.path.join(ROOT_DIR, "analytics-service")
+    if os.path.isdir(_analytics_dir):
+        try:
+            import subprocess as _subprocess
+            _analytics_proc = _subprocess.Popen(
+                [sys.executable, "-m", "uvicorn", "app.main:app",
+                 "--host", "127.0.0.1", "--port", "8765",
+                 "--log-level", "warning", "--no-access-log"],
+                cwd=_analytics_dir,
+                stdout=_subprocess.DEVNULL,
+                stderr=_subprocess.DEVNULL,
+            )
+            print(f"  Analytics service: arrancando en 127.0.0.1:8765 (PID {_analytics_proc.pid})")
+        except Exception as _e:
+            print(f"  [WARN] Analytics service no pudo arrancar: {_e}")
+    else:
+        print(f"  [INFO] analytics-service/ no encontrado — motor de analytics deshabilitado")
 
     # Puerto: CLI arg > env var PORT > default 11294
     port_arg = sys.argv[1] if len(sys.argv) > 1 else os.environ.get("PORT", "11294")
