@@ -470,11 +470,11 @@ def _load_server_users() -> dict:
 
 
 def _ensure_env_users():
-    """Sincroniza usuarios de env vars en cada startup (idempotente via INSERT OR IGNORE).
+    """Sincroniza usuarios de env vars en cada startup.
 
-    A diferencia de _migrate_to_unified_users(), no tiene early-return cuando ya
-    existen usuarios — esto garantiza que USER2/USER3 se insertan aunque USER1
-    ya estuviera en la DB de un deploy anterior.
+    INSERT para usuarios nuevos + UPDATE de password_hash/lockout para existentes.
+    Las env vars son siempre fuente de verdad para usuarios del sistema — esto
+    permite recuperar acceso cambiando USER{n}_HASH en Railway y redeployando.
     """
     db = _get_db()
     now = time.time()
@@ -486,6 +486,16 @@ def _ensure_env_users():
                 "VALUES (?, ?, ?, ?, ?, ?, 1, 'system', ?, ?)",
                 (str(uuid.uuid4()), uname, u["display"], u.get("email"),
                  u["hash"], u.get("role", "admin"), now, now)
+            )
+        except Exception:
+            pass
+        # Siempre actualizar hash + desbloquear — la env var gana sobre lo que hay en DB.
+        # Permite recuperar acceso sin consola solo cambiando USER{n}_HASH en Railway.
+        try:
+            db.execute(
+                "UPDATE users SET password_hash=?, failed_attempts=0, locked_until=NULL, "
+                "updated_at=? WHERE username=?",
+                (u["hash"], now, uname)
             )
         except Exception:
             pass
