@@ -4742,18 +4742,24 @@ def main():
     print("  - NO cierres esta ventana mientras uses la app")
     print("=" * 60)
 
-    _db_init()
-    _ensure_env_users()
-    _migrate_to_unified_users()
-    _bootstrap_superadmin()
-    db = _get_db()
-    n_users = db.execute("SELECT COUNT(*) AS n FROM users").fetchone()["n"]
     import db_adapter as _dba
-    if _dba.USE_PG:
-        print(f"  PostgreSQL: {_dba.DATABASE_URL.split('@')[-1]}")
-    else:
-        print(f"  SQLite: {_dba.SQLITE_PATH}")
-    print(f"  Usuarios registrados: {n_users}")
+    try:
+        _db_init()
+        _ensure_env_users()
+        _migrate_to_unified_users()
+        _bootstrap_superadmin()
+        db = _get_db()
+        n_users = db.execute("SELECT COUNT(*) AS n FROM users").fetchone()["n"]
+        if _dba.USE_PG:
+            print(f"  PostgreSQL: {_dba.DATABASE_URL.split('@')[-1]}")
+        else:
+            print(f"  SQLite: {_dba.SQLITE_PATH}")
+        print(f"  Usuarios registrados: {n_users}")
+    except Exception as _startup_err:
+        sys.stderr.write(f"[startup] ERROR en inicialización de DB: {_startup_err}\n")
+        import traceback; traceback.print_exc()
+        if _dba.USE_PG:
+            sys.stderr.write(f"[startup] DATABASE_URL = {_dba.DATABASE_URL[:40]}...\n")
     print("=" * 60)
     print()
 
