@@ -491,6 +491,10 @@
             stats: computeStats(src.snapshot)
         };
         await dbPut(entry);
+        // Sincronizar al servidor para que sea visible desde todos los navegadores
+        if (global.VS && global.VS.Storage && entry.snapshot) {
+            try { await global.VS.Storage.syncSnapshot(newId, entry.snapshot); } catch (_) {}
+        }
         if (global.AuditTrail && typeof global.AuditTrail.logAction === 'function') {
             global.AuditTrail.logAction('SUITE_PROJECT_IMPORT', 'project', newId, {
                 name: entry.name, sourceName: src.name
@@ -520,6 +524,12 @@
                         // Proyecto normal — reescribir snapshot en localStorage para que
                         // loadFromStorage() lea datos frescos desde IndexedDB (no localStorage stale)
                         if (proj.snapshot) writeSnapshot(proj.snapshot);
+                        // Write-through al servidor: garantiza que proyectos importados o creados
+                        // antes de la sincronización sean visibles desde otros navegadores.
+                        if (proj.snapshot && global.VS && global.VS.Storage) {
+                            const _id = activeId, _snap = proj.snapshot;
+                            setTimeout(() => global.VS.Storage.syncSnapshot(_id, _snap), 500);
+                        }
                         ensureDemoProject().catch(e => console.warn('[projects-demo] ensure falló:', e));
                     }
                     return proj;

@@ -47,9 +47,11 @@
             const localMap = new Map(localList.map(p => [p.id, p]));
 
             // Paso 2: lista del servidor (fuente de verdad) — muestra proyectos de todos los navegadores
+            // Se intenta siempre (no gateado por isAvailable), ya que la probe puede no haber
+            // completado aún cuando el modal se abre por primera vez.
             let serverList = [];
-            if (VS.Storage && VS.Storage.isAvailable()) {
-                try { serverList = await VS.Storage.listProjects(); } catch (_) {}
+            if (VS.Storage) {
+                try { serverList = (await VS.Storage.listProjects()) || []; } catch (_) {}
             }
             const serverIds = new Set(serverList.map(sp => sp.id));
 
