@@ -11515,6 +11515,7 @@ function showDesviosPanel() {
                 <input type="checkbox" class="desvio-chk" data-id="${escapeHtml(d.id)}" checked style="margin-top:3px;flex-shrink:0;">
                 <div style="flex:1;min-width:0;">
                     <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap;">
+                        ${d.protocolCode ? `<span style="background:#334155;color:#e2e8f0;font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;letter-spacing:.04em;">${escapeHtml(d.protocolCode)}</span>` : ''}
                         <span style="font-weight:700;font-size:13px;">${escapeHtml(d.tcId)}</span>
                         <span style="font-size:11px;color:#64748b;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(d.tcName)}</span>
                         <span style="margin-left:auto;background:${color};color:#fff;font-size:10px;
