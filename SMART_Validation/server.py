@@ -303,6 +303,7 @@ _RE_PROJ_SNAPSHOT    = re.compile(r'^/api/projects/([^/]+)/snapshot$')
 _RE_EVIDENCE         = re.compile(r'^/api/evidence/([a-zA-Z0-9_-]{1,300})$')
 _RE_EVIDENCE_BATCH   = re.compile(r'^/api/evidence-batch$')
 _RE_ANALYTICS        = re.compile(r'^/api/analytics(/.+)?$')
+_RE_NOTIFY_DESVIOS   = re.compile(r'^/api/notify-desvios$')
 _RE_PROJ_FOLDER      = re.compile(r'^/api/projects/([^/]+)/folder$')
 _RE_PROJ_FOLDER_SCAN = re.compile(r'^/api/projects/([^/]+)/folder-scan$')
 _RE_PROJ_FOLDER_IMPORT = re.compile(r'^/api/projects/([^/]+)/folder-import$')
@@ -2089,6 +2090,69 @@ class SyncHandler(BaseHTTPRequestHandler):
             except OSError:
                 results[raw_id] = None
         return self._send_json(200, {"ok": True, "results": results})
+
+    def _api_notify_desvios(self, user):
+        """POST /api/notify-desvios — envía email con desvíos seleccionados.
+        Body: {desvios:[{tcId,tcName,step,description,dictamen,observacion}],
+               recipients:["email"],projectName:"...",executor:"..."}
+        No-op silencioso si RESEND_API_KEY no está configurada.
+        """
+        import datetime as _dt
+        data = self._read_json_body()
+        if not isinstance(data, dict):
+            return self._send_json(400, {"ok": False, "error": "Body inválido"})
+
+        desvios      = data.get("desvios", [])[:50]
+        recipients   = [r for r in data.get("recipients", [])[:10] if r and "@" in r]
+        project_name = str(data.get("projectName", ""))[:200]
+        executor     = str(data.get("executor", ""))[:100]
+
+        if not desvios:
+            return self._send_json(400, {"ok": False, "error": "Sin desvíos seleccionados"})
+
+        now_str = _dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+
+        rows_html = ""
+        for d in desvios:
+            dictamen = str(d.get("dictamen", "")).upper()
+            color    = "#dc2626" if "NO PASA" in dictamen or "FAIL" in dictamen else "#d97706"
+            rows_html += (
+                f"<tr>"
+                f"<td style='padding:8px 12px;border-bottom:1px solid #eee;font-weight:700;'>{_html_mod.escape(str(d.get('tcId',''))[:60])}</td>"
+                f"<td style='padding:8px 12px;border-bottom:1px solid #eee;'>{_html_mod.escape(str(d.get('tcName',''))[:120])}</td>"
+                f"<td style='padding:8px 12px;border-bottom:1px solid #eee;text-align:center;'>Paso {_html_mod.escape(str(d.get('step',''))[:10])}</td>"
+                f"<td style='padding:8px 12px;border-bottom:1px solid #eee;'>"
+                f"<span style='background:{color};color:#fff;padding:2px 8px;border-radius:3px;font-size:12px;font-weight:700;'>{_html_mod.escape(dictamen[:30])}</span></td>"
+                f"<td style='padding:8px 12px;border-bottom:1px solid #eee;'>{_html_mod.escape(str(d.get('description',''))[:200])}</td>"
+                f"<td style='padding:8px 12px;border-bottom:1px solid #eee;color:#666;'>{_html_mod.escape(str(d.get('observacion',''))[:300])}</td>"
+                f"</tr>"
+            )
+
+        body = (
+            f"<p>Proyecto: <strong>{_html_mod.escape(project_name)}</strong><br>"
+            f"Ejecutor: {_html_mod.escape(executor)}<br>"
+            f"Fecha: {now_str}</p>"
+            f"<table style='width:100%;border-collapse:collapse;font-size:13px;'>"
+            f"<thead><tr style='background:#f0f4f9;'>"
+            f"<th style='padding:8px 12px;text-align:left;'>TC ID</th>"
+            f"<th style='padding:8px 12px;text-align:left;'>Nombre</th>"
+            f"<th style='padding:8px 12px;text-align:left;'>Paso</th>"
+            f"<th style='padding:8px 12px;text-align:center;'>Resultado</th>"
+            f"<th style='padding:8px 12px;text-align:left;'>Descripción</th>"
+            f"<th style='padding:8px 12px;text-align:left;'>Observación</th>"
+            f"</tr></thead>"
+            f"<tbody>{rows_html}</tbody></table>"
+        )
+
+        sent = 0
+        if _RESEND_API_KEY and recipients:
+            subject = f"[SMART Validation] Desvíos detectados — {project_name}"
+            for email in recipients:
+                _send_email(email, subject, _email_html(f"Desvíos de ejecución — {project_name}", body))
+                sent += 1
+
+        warn = "" if sent else ("RESEND_API_KEY no configurada — reporte no enviado por email" if not _RESEND_API_KEY else "Sin destinatarios válidos")
+        return self._send_json(200, {"ok": True, "sent": sent, "warn": warn})
 
     def _api_evidence_batch_upload(self, user):
         """POST /api/evidence-batch-upload — sube múltiples imágenes en una sola request.
@@ -4116,6 +4180,8 @@ class SyncHandler(BaseHTTPRequestHandler):
             return self._api_evidence_batch_get(user)
         if path == "/api/evidence-batch-upload":
             return self._api_evidence_batch_upload(user)
+        if _RE_NOTIFY_DESVIOS.match(path):
+            return self._api_notify_desvios(user)
         m = _RE_PROJ_DOC_SIGN.match(path)
         if m:
             return self._api_doc_sign(m.group(1), m.group(2), user)

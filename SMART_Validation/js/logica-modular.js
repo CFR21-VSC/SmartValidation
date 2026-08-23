@@ -626,6 +626,7 @@ async function saveToStorage() {
             }, 800);
         }
 
+        updateDesviosBadge();
         return true;
     } catch (error) {
     // //         console.error('❌ Error guardando datos:', error);
@@ -11440,4 +11441,157 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', checkMobileMode);
 } else {
     checkMobileMode();
+}
+
+// ====================================================================
+// DESVÍOS — Panel de escalación de hallazgos FAIL / PASA CON OBS
+// ====================================================================
+
+function collectDesvios() {
+    const result = [];
+    for (const test of (tests || [])) {
+        if (!test.evidences) continue;
+        const group    = (groups    || []).find(g => g.id === test.groupId);
+        const protocol = group ? (protocols || []).find(p => p.id === group.protocolId) : null;
+        for (const ev of test.evidences) {
+            if (ev.isEmpty) continue;
+            const norm = normalizeDictamen(ev.resultado);
+            if (norm !== 'FAIL' && norm !== 'OBS') continue;
+            result.push({
+                id:          `${test.id}_ev${ev.step}`,
+                tcId:        (test.name || test.id).match(/TC-[A-Z]+-\d+/)?.[0] || test.id,
+                tcName:      test.name || test.id,
+                groupName:   group?.name || '',
+                protocolCode:protocol?.code || protocol?.name || '',
+                step:        ev.step,
+                description: ev.description || '',
+                dictamen:    norm === 'FAIL' ? 'NO PASA' : 'PASA CON OBS',
+                observacion: ev.observacion || ev.observaciones || '',
+            });
+        }
+    }
+    return result;
+}
+
+function updateDesviosBadge() {
+    const btn   = document.getElementById('btnDesvios');
+    const badge = document.getElementById('desviosBadge');
+    if (!btn) return;
+    const count = collectDesvios().length;
+    btn.style.display = count > 0 ? 'inline-flex' : 'none';
+    if (badge) badge.textContent = count;
+}
+
+function showDesviosPanel() {
+    const desvios = collectDesvios();
+    const modal   = document.getElementById('modalDesvios');
+    if (!modal) return;
+
+    const empresa  = document.getElementById('empresa')?.value  || '';
+    const sistema  = document.getElementById('nombreSistema')?.value || '';
+    const label    = [empresa, sistema].filter(Boolean).join(' — ') || 'Proyecto activo';
+
+    const labelEl = document.getElementById('desviosProjectLabel');
+    if (labelEl) labelEl.textContent = label;
+    const countEl = document.getElementById('desviosCount');
+    if (countEl) countEl.textContent = desvios.length;
+
+    const list   = document.getElementById('desviosList');
+    const footer = document.getElementById('desviosFooter');
+
+    if (desvios.length === 0) {
+        list.innerHTML = '<p style="color:#059669;text-align:center;padding:28px;font-size:14px;">Sin desvíos — todos los pasos registran PASA o N/A.</p>';
+        if (footer) footer.style.display = 'none';
+    } else {
+        if (footer) footer.style.display = 'block';
+        list.innerHTML = desvios.map(d => {
+            const isNoPasa = d.dictamen === 'NO PASA';
+            const color    = isNoPasa ? '#dc2626' : '#d97706';
+            const bg       = isNoPasa ? '#fff5f5' : '#fffbeb';
+            const border   = isNoPasa ? '#fca5a5' : '#fcd34d';
+            return `<label class="desvio-row" style="background:${bg};border:1px solid ${border};
+                    border-left:3px solid ${color};border-radius:6px;padding:10px 12px;
+                    margin-bottom:6px;display:flex;gap:10px;align-items:flex-start;cursor:pointer;">
+                <input type="checkbox" class="desvio-chk" data-id="${escapeHtml(d.id)}" checked style="margin-top:3px;flex-shrink:0;">
+                <div style="flex:1;min-width:0;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap;">
+                        <span style="font-weight:700;font-size:13px;">${escapeHtml(d.tcId)}</span>
+                        <span style="font-size:11px;color:#64748b;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(d.tcName)}</span>
+                        <span style="margin-left:auto;background:${color};color:#fff;font-size:10px;
+                              font-weight:700;padding:1px 7px;border-radius:3px;">${d.dictamen}</span>
+                    </div>
+                    <div style="font-size:12px;color:#374151;">Paso ${d.step}: ${escapeHtml(d.description)}</div>
+                    ${d.observacion ? `<div style="font-size:11px;color:#6b7280;margin-top:3px;">Obs: ${escapeHtml(d.observacion)}</div>` : ''}
+                </div>
+            </label>`;
+        }).join('');
+    }
+
+    modal.style.display = 'flex';
+}
+
+function _getSelectedDesvios() {
+    return collectDesvios().filter(d => {
+        const chk = document.querySelector(`.desvio-chk[data-id="${CSS.escape(d.id)}"]`);
+        return chk && chk.checked;
+    });
+}
+
+function copyDesviosToClipboard() {
+    const selected = _getSelectedDesvios();
+    if (!selected.length) { showNotification('Seleccioná al menos un desvío', 'warning'); return; }
+    const executor = document.getElementById('ejecutor')?.value || '';
+    const empresa  = document.getElementById('empresa')?.value  || '';
+    const sistema  = document.getElementById('nombreSistema')?.value || '';
+    const now = new Date().toLocaleString('es-AR');
+
+    let text = `REPORTE DE DESVÍOS — ${[empresa, sistema].filter(Boolean).join(' / ')}\n`;
+    text += `Ejecutor: ${executor} | Fecha: ${now}\n`;
+    text += '─'.repeat(60) + '\n\n';
+    for (const d of selected) {
+        text += `[${d.dictamen}]  ${d.tcId} — ${d.tcName}\n`;
+        text += `  Paso ${d.step}: ${d.description}\n`;
+        if (d.observacion) text += `  Obs: ${d.observacion}\n`;
+        text += '\n';
+    }
+    navigator.clipboard.writeText(text)
+        .then(() => showNotification(`${selected.length} desvío(s) copiado(s)`, 'success'))
+        .catch(() => showNotification('No se pudo acceder al portapapeles', 'error'));
+}
+
+async function sendDesviosReport() {
+    const selected = _getSelectedDesvios();
+    if (!selected.length) { showNotification('Seleccioná al menos un desvío', 'warning'); return; }
+
+    const recipientInput = document.getElementById('desviosRecipient');
+    const recipients = (recipientInput?.value || '')
+        .split(/[,;\s]+/).map(s => s.trim()).filter(s => s.includes('@'));
+    if (!recipients.length) { showNotification('Ingresá al menos un email destinatario', 'warning'); return; }
+
+    const btn = document.getElementById('btnEnviarDesvios');
+    if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+
+    try {
+        const resp = await fetch('/api/notify-desvios', {
+            method: 'POST', credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                desvios:     selected,
+                recipients,
+                projectName: [document.getElementById('empresa')?.value, document.getElementById('nombreSistema')?.value].filter(Boolean).join(' — '),
+                executor:    document.getElementById('ejecutor')?.value || '',
+            })
+        });
+        const data = await resp.json();
+        if (data.warn) {
+            showNotification(data.warn, 'warning');
+        } else {
+            showNotification(`Reporte enviado a ${data.sent} destinatario(s)`, 'success');
+            document.getElementById('modalDesvios').style.display = 'none';
+        }
+    } catch (e) {
+        showNotification('Error al enviar: ' + e.message, 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Enviar por email'; }
+    }
 }

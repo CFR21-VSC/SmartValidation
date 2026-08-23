@@ -1087,6 +1087,17 @@
             </div>
         </div>
 
+        <!-- Botón Desvíos: visible solo cuando hay pasos FAIL u OBS en la sesión activa -->
+        <button id="btnDesvios" onclick="showDesviosPanel()"
+                title="Ver desvíos detectados (NO PASA / PASA CON OBS)"
+                style="display:none; background:#dc2626; color:#fff; border:none; border-radius:5px;
+                       padding:5px 11px; font-size:12px; font-weight:700; cursor:pointer;
+                       display:none; align-items:center; gap:6px; white-space:nowrap;">
+            ⚠ Desvíos
+            <span id="desviosBadge" style="background:rgba(255,255,255,0.25); border-radius:3px;
+                  padding:0 5px; font-size:11px;">0</span>
+        </button>
+
         <!-- Botones "Limpiar cache" y "Reporte →" removidos del toolbar global.
              - "Limpiar" se movió al dropdown Suite Evidencias > Sesión (junto a Cargar/Guardar).
              - "Reporte →" se removió porque actualmente no apunta a una vista existente. -->
@@ -2794,6 +2805,48 @@
         <div class="drop-message">
             <p class="drop-title">Arrastra imágenes aquí</p>
             <p class="drop-subtitle">Se insertarán secuencialmente</p>
+        </div>
+    </div>
+
+    <!-- Modal: Desvíos detectados -->
+    <div id="modalDesvios" class="modal" style="display:none;">
+        <div class="modal-content" style="max-width:680px; max-height:90vh; display:flex; flex-direction:column;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-shrink:0;">
+                <span style="font-size:18px;">⚠</span>
+                <h3 style="margin:0; font-size:16px;">Desvíos detectados</h3>
+                <span id="desviosCount" style="background:#dc2626; color:#fff; border-radius:4px;
+                      padding:1px 9px; font-size:12px; font-weight:700; margin-left:4px;">0</span>
+                <span id="desviosProjectLabel" style="color:#64748b; font-size:12px; margin-left:auto;"></span>
+                <button onclick="document.getElementById('modalDesvios').style.display='none'"
+                        style="background:none; border:none; font-size:20px; cursor:pointer; color:#94a3b8; margin-left:8px;">✕</button>
+            </div>
+
+            <div id="desviosList" style="overflow-y:auto; flex:1; padding-right:4px;"></div>
+
+            <div id="desviosFooter" style="flex-shrink:0; margin-top:14px; padding-top:12px;
+                 border-top:1px solid var(--vsc-borde,#dde3ed); display:none;">
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                    <input id="desviosRecipient" type="email" multiple
+                           placeholder="destinatario@email.com  (separar con coma para múltiples)"
+                           style="flex:1; min-width:220px; padding:6px 10px; border:1px solid #dde3ed;
+                                  border-radius:5px; font-size:12px; background:var(--vsc-fondo,#fff);">
+                    <button onclick="copyDesviosToClipboard()"
+                            style="padding:6px 14px; border:1px solid #64748b; border-radius:5px;
+                                   background:none; cursor:pointer; font-size:12px; color:#374151; white-space:nowrap;">
+                        📋 Copiar
+                    </button>
+                    <button id="btnEnviarDesvios" onclick="sendDesviosReport()"
+                            style="padding:6px 16px; border:none; border-radius:5px;
+                                   background:#dc2626; color:#fff; cursor:pointer; font-size:12px;
+                                   font-weight:600; white-space:nowrap;">
+                        Enviar por email
+                    </button>
+                </div>
+                <p style="font-size:11px; color:#94a3b8; margin:8px 0 0;">
+                    El envío por email requiere <code>RESEND_API_KEY</code> configurada en Railway.
+                    Copiar al portapapeles siempre funciona.
+                </p>
+            </div>
         </div>
     </div>
 
