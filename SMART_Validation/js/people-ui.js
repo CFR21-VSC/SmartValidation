@@ -285,6 +285,23 @@
     }
 
     async function startMobileSignatureCapture() {
+        // En producción (HTTPS / Railway): el firmante abre la app directo en su celular.
+        // El sync LAN no está disponible. Mostrar QR con la URL del servidor.
+        if (window.location.protocol === 'https:') {
+            const prodUrl = window.location.origin;
+            const qrPanel = $('rfMobileQrPanel');
+            const qrUrl = $('rfMobileQrUrl');
+            const qrImg = $('rfMobileQrImg');
+            if (qrUrl) qrUrl.textContent = prodUrl;
+            if (qrImg) _renderQrToImg(qrImg, prodUrl, 200);
+            if (qrPanel) {
+                const hint = qrPanel.querySelector('small, .qr-hint');
+                if (hint) hint.textContent = 'Escaneá con el celular, iniciá sesión y firmá con el dedo en la app directamente.';
+                qrPanel.style.display = 'block';
+            }
+            return; // sin polling — firma registrada directo desde el celular
+        }
+
         try {
             // Obtener IP del server
             let serverIp = 'localhost';
