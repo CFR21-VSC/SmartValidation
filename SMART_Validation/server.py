@@ -469,16 +469,37 @@ def _load_server_users() -> dict:
     return users
 
 
+def _ensure_env_users():
+    """Sincroniza usuarios de env vars en cada startup (idempotente via INSERT OR IGNORE).
+
+    A diferencia de _migrate_to_unified_users(), no tiene early-return cuando ya
+    existen usuarios — esto garantiza que USER2/USER3 se insertan aunque USER1
+    ya estuviera en la DB de un deploy anterior.
+    """
+    db = _get_db()
+    now = time.time()
+    for uname, u in _load_server_users().items():
+        try:
+            db.execute(
+                "INSERT OR IGNORE INTO users "
+                "(id, username, display_name, email, password_hash, role, is_active, created_by, created_at, updated_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, 1, 'system', ?, ?)",
+                (str(uuid.uuid4()), uname, u["display"], u.get("email"),
+                 u["hash"], u.get("role", "admin"), now, now)
+            )
+        except Exception:
+            pass
+
+
 def _migrate_to_unified_users():
-    """Bootstrap tabla users desde .env + client_users legacy. Corre una sola vez."""
+    """Migra client_users y user_project_access legados → tablas unificadas. Corre una sola vez."""
     db = _get_db()
     if db.execute("SELECT COUNT(*) AS n FROM users").fetchone()["n"] > 0:
-        return  # ya migrado
+        return  # ya migrado (env users se sincronizan en _ensure_env_users)
 
     now = time.time()
-    # 1. Seed admins desde variables de entorno
-    env_users = _load_server_users()
-    for uname, u in env_users.items():
+    # Seed inicial desde env vars (en caso de DB completamente vacía)
+    for uname, u in _load_server_users().items():
         uid = str(uuid.uuid4())
         try:
             db.execute(
@@ -4712,6 +4733,7 @@ def main():
     print("=" * 60)
 
     _db_init()
+    _ensure_env_users()
     _migrate_to_unified_users()
     _bootstrap_superadmin()
     db = _get_db()
