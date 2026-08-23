@@ -240,7 +240,7 @@
         entry = refreshFromSnapshot(entry, snapshot);
         await dbPut(entry);
         // Write-through: non-blocking backup to server SQLite
-        if (global.VS && global.VS.Storage) global.VS.Storage.syncSnapshot(id, snapshot);
+        if (global.VS && global.VS.Storage) global.VS.Storage.syncSnapshot(id, snapshot, entry.name);
         return entry;
     }
 
@@ -357,7 +357,7 @@
         }
         // Sincronizar al servidor antes del reload para que aparezca en todos los navegadores
         if (global.VS && global.VS.Storage) {
-            try { await global.VS.Storage.syncSnapshot(id, blankSnapshot); } catch (_) {}
+            try { await global.VS.Storage.syncSnapshot(id, blankSnapshot, name); } catch (_) {}
         }
         // Switch al nuevo proyecto
         writeSnapshot(blankSnapshot);
@@ -387,7 +387,7 @@
         });
         await dbPut(copy);
         if (global.VS && global.VS.Storage && copy.snapshot) {
-            try { await global.VS.Storage.syncSnapshot(newId, copy.snapshot); } catch (_) {}
+            try { await global.VS.Storage.syncSnapshot(newId, copy.snapshot, copy.name); } catch (_) {}
         }
         if (global.AuditTrail && typeof global.AuditTrail.logAction === 'function') {
             global.AuditTrail.logAction('SUITE_PROJECT_DUPLICATE', 'project', newId, {
@@ -493,7 +493,7 @@
         await dbPut(entry);
         // Sincronizar al servidor para que sea visible desde todos los navegadores
         if (global.VS && global.VS.Storage && entry.snapshot) {
-            try { await global.VS.Storage.syncSnapshot(newId, entry.snapshot); } catch (_) {}
+            try { await global.VS.Storage.syncSnapshot(newId, entry.snapshot, entry.name); } catch (_) {}
         }
         if (global.AuditTrail && typeof global.AuditTrail.logAction === 'function') {
             global.AuditTrail.logAction('SUITE_PROJECT_IMPORT', 'project', newId, {
@@ -527,8 +527,8 @@
                         // Write-through al servidor: garantiza que proyectos importados o creados
                         // antes de la sincronización sean visibles desde otros navegadores.
                         if (proj.snapshot && global.VS && global.VS.Storage) {
-                            const _id = activeId, _snap = proj.snapshot;
-                            setTimeout(() => global.VS.Storage.syncSnapshot(_id, _snap), 500);
+                            const _id = activeId, _snap = proj.snapshot, _nm = proj.name;
+                            setTimeout(() => global.VS.Storage.syncSnapshot(_id, _snap, _nm), 500);
                         }
                         ensureDemoProject().catch(e => console.warn('[projects-demo] ensure falló:', e));
                     }

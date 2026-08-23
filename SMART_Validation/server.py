@@ -1951,7 +1951,10 @@ class SyncHandler(BaseHTTPRequestHandler):
         if len(snapshot_str) > 5 * 1024 * 1024:  # 5 MB max por snapshot
             return self._send_json(413, {"ok": False, "error": "Snapshot demasiado grande (máx 5 MB)"})
         sys_info = snapshot.get("systemInfo") or {}
-        name = (sys_info.get("projectName") or sys_info.get("name")
+        # projectName del body tiene prioridad (nombre que el usuario escribió en el wizard)
+        _body_name = str(data.get("projectName") or "").strip()
+        name = (_body_name
+                or sys_info.get("projectName") or sys_info.get("name")
                 or sys_info.get("nombreSistema") or sys_info.get("systemName") or proj_id)
         package_docs = (snapshot.get("packageDocs") or [])[:50]  # cap: un paquete GxP tiene ≤ 20 tipos
         db = _get_db()

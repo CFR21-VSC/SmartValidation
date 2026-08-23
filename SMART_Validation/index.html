@@ -4193,13 +4193,22 @@
     async function rdLoadProjects() {
       const sel = document.getElementById('cr-proj');
       const r = await fetch('/api/projects', { credentials:'include' }).then(r=>r.json()).catch(()=>null);
-      _rdProjects = r?.projects || [];
+      _rdProjects = (r?.projects || []).filter(p => !p.id.startsWith('__demo'));
       sel.innerHTML = '<option value="">— Seleccioná un proyecto —</option>';
       _rdProjects.forEach(p => {
         const opt = document.createElement('option');
-        opt.value = p.id; opt.textContent = p.name;
+        opt.value = p.id;
+        // Mostrar nombre humano; si la columna name es el ID crudo, usar system_name como fallback
+        const label = (p.name && p.name !== p.id) ? p.name : (p.system_name || p.id);
+        opt.textContent = label;
         sel.appendChild(opt);
       });
+      // Auto-seleccionar el proyecto activo en este navegador
+      const activeId = localStorage.getItem('vscActiveProjectId');
+      if (activeId && _rdProjects.some(p => p.id === activeId)) {
+        sel.value = activeId;
+        await rdLoadDocs();
+      }
     }
 
     async function rdLoadDocs() {
@@ -4209,14 +4218,21 @@
       if (!projId) return;
       const r = await fetch(`/api/projects/${projId}/documents`, { credentials:'include' }).then(r=>r.json()).catch(()=>null);
       const DOC_NAMES_ADMIN = {
-        HLRA:'HLRA',VP:'VP',URS:'URS',FRS:'FRS',DS:'DS',RA:'RA',IRA:'IRA',RRM:'RRM',
-        MTR:'MTR',PIQ:'PIQ',POQ:'POQ',PPQ:'PPQ',IIQ:'IIQ',IOQ:'IOQ',IPQ:'IPQ',
-        RIQ:'RIQ',ROQ:'ROQ',RPQ:'RPQ',NCR:'NCR',VSR:'VSR',
+        HLRA:'High Level Risk Assessment', VP:'Validation Plan', URS:'User Requirements Spec.',
+        FRS:'Functional Requirements Spec.', DS:'Design Specification', RA:'Risk Assessment',
+        IRA:'Impact Risk Analysis', RRM:'Risk Register Matrix', MTR:'Master Test Report',
+        PIQ:'Protocol IQ', POQ:'Protocol OQ', PPQ:'Protocol PQ',
+        IIQ:'Informe IQ', IOQ:'Informe OQ', IPQ:'Informe PQ',
+        RIQ:'Reporte IQ', ROQ:'Reporte OQ', RPQ:'Reporte PQ',
+        NCR:'Non-Conformance Report', VSR:'Validation Summary Report',
       };
+      const STATUS_LABEL = { draft:'borrador', for_review:'en revisión', approved:'aprobado' };
       (r?.documents||[]).forEach(d => {
         const opt = document.createElement('option');
         opt.value = d.doc_type;
-        opt.textContent = `${d.doc_type} — ${DOC_NAMES_ADMIN[d.doc_type]||d.doc_type} (v${d.version||1}) [${d.status}]`;
+        const fullName = DOC_NAMES_ADMIN[d.doc_type] || d.doc_type;
+        const st = STATUS_LABEL[d.status] || d.status;
+        opt.textContent = `${d.doc_type} — ${fullName} (v${d.version||1}) [${st}]`;
         sel.appendChild(opt);
       });
     }

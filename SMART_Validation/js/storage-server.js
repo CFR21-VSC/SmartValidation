@@ -77,14 +77,15 @@
      * Push snapshot to server. Returns a Promise — awaitable when called from createNew()
      * so the project appears on the server before reload. Also safe as fire-and-forget.
      */
-    syncSnapshot(projectId, snapshot) {
+    syncSnapshot(projectId, snapshot, projectName) {
       if (!projectId || !snapshot) return Promise.resolve(null);
-      return _apiFetch("POST", `/api/projects/${encodeURIComponent(projectId)}/snapshot`, {
-        snapshot,
-      }).then((r) => {
-        if (r && r.data && r.data.ok) _available = true;
-        return r;
-      }).catch(() => null);
+      const body = { snapshot };
+      if (projectName) body.projectName = String(projectName);
+      return _apiFetch("POST", `/api/projects/${encodeURIComponent(projectId)}/snapshot`, body)
+        .then((r) => {
+          if (r && r.data && r.data.ok) _available = true;
+          return r;
+        }).catch(() => null);
     },
 
     async listProjects() {
