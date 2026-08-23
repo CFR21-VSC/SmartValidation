@@ -168,8 +168,9 @@
         }
 
         // ===== Empresa =====
+        // pkg.consultant = firma consultora (DRP Assurance); pkg.client = organización cliente (va en tablas)
         content.push({
-            text: (pkg.client || 'EMPRESA').toUpperCase(),
+            text: (pkg.consultant || 'DRP Assurance').toUpperCase(),
             fontSize: 20,
             bold: true,
             color: VS_COLORS.primary,

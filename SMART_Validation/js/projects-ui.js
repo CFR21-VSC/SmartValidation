@@ -280,6 +280,13 @@
             folderName: null,      // nombre de la carpeta física (para display y storagePath)
             _projectsModalWasOpen: wasProjectsOpen
         };
+        // Mostrar panel de almacenamiento según modo (online vs offline)
+        const onlineInfo  = document.getElementById('wizOnlineStorageInfo');
+        const offlineInfo = document.getElementById('wizOfflineStorageInfo');
+        const isOnline = VS.Storage && VS.Storage.isAvailable();
+        if (onlineInfo)  onlineInfo.style.display  = isOnline ? 'block' : 'none';
+        if (offlineInfo) offlineInfo.style.display = isOnline ? 'none'  : 'block';
+
         renderWizardStep();
         modal.style.display = 'flex';
         // Focus al primer campo

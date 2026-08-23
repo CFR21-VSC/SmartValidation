@@ -3970,6 +3970,10 @@ class SyncHandler(BaseHTTPRequestHandler):
                 return
             return self._serve_login_page()
 
+        # Página pública — accesible sin auth (sesión expirada o superseded)
+        if path == "/session-ended.html":
+            return self._serve_static()
+
         if path == "/auth/session":
             user = _check_auth(self)
             if not user:

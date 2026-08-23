@@ -1755,17 +1755,24 @@
                             </select>
                         </div>
                     </div>
-                    <!-- Carpeta de almacenamiento -->
+                    <!-- Almacenamiento: modo servidor (online) vs local (offline) -->
                     <div style="grid-column:1/-1;margin-top:6px;" id="wizFolderSection">
-                        <label class="wiz-label">Carpeta del proyecto <span style="color:#7A8EA0;font-weight:400;">(recomendado)</span></label>
-                        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                            <button type="button" onclick="wizardPickFolder()" id="wizFolderBtn" class="modal-themed-btn-secondary" style="flex-shrink:0;display:flex;align-items:center;gap:5px;">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-                                Elegir carpeta
-                            </button>
-                            <span id="wizFolderName" style="font-size:12px;color:#7A8EA0;font-style:italic;">Sin carpeta — los archivos quedan solo en IndexedDB</span>
+                        <!-- Modo ONLINE: servidor disponible → mostrar confirmación, ocultar carpeta local -->
+                        <div id="wizOnlineStorageInfo" style="display:none; background:#E8F5E9; border:1px solid #A5D6A7; border-radius:6px; padding:10px 14px; font-size:12px; color:#2E7D32;">
+                            <strong>✓ Almacenamiento en servidor</strong> — El proyecto quedará guardado en la base de datos del sistema y será accesible desde cualquier navegador o dispositivo con tu cuenta.
                         </div>
-                        <div style="font-size:11px;color:#7A8EA0;margin-top:5px;">Se creará <code id="wizFolderPreview" style="font-size:10px;background:#F0F4F8;padding:1px 5px;border-radius:3px;">{carpeta}/{nombre-proyecto}/ai-docs · fuente · fotos · exports</code></div>
+                        <!-- Modo OFFLINE: sin servidor → mostrar selector de carpeta local -->
+                        <div id="wizOfflineStorageInfo" style="display:none;">
+                            <label class="wiz-label">Carpeta del proyecto <span style="color:#7A8EA0;font-weight:400;">(recomendado)</span></label>
+                            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                                <button type="button" onclick="wizardPickFolder()" id="wizFolderBtn" class="modal-themed-btn-secondary" style="flex-shrink:0;display:flex;align-items:center;gap:5px;">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                                    Elegir carpeta
+                                </button>
+                                <span id="wizFolderName" style="font-size:12px;color:#7A8EA0;font-style:italic;">Sin carpeta — los archivos quedan solo en IndexedDB</span>
+                            </div>
+                            <div style="font-size:11px;color:#7A8EA0;margin-top:5px;">Se creará <code id="wizFolderPreview" style="font-size:10px;background:#F0F4F8;padding:1px 5px;border-radius:3px;">{carpeta}/{nombre-proyecto}/ai-docs · fuente · fotos · exports</code></div>
+                        </div>
                     </div>
 
                     <div class="modal-themed-info" style="margin-top:18px;">

@@ -517,7 +517,9 @@
                         proj = await ensureDemoProject();
                         writeSnapshot(proj.snapshot);
                     } else {
-                        // Demo ok o proyecto normal — garantizar demo en background
+                        // Proyecto normal — reescribir snapshot en localStorage para que
+                        // loadFromStorage() lea datos frescos desde IndexedDB (no localStorage stale)
+                        if (proj.snapshot) writeSnapshot(proj.snapshot);
                         ensureDemoProject().catch(e => console.warn('[projects-demo] ensure falló:', e));
                     }
                     return proj;
