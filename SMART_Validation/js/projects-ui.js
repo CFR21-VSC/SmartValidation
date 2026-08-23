@@ -280,12 +280,22 @@
             folderName: null,      // nombre de la carpeta física (para display y storagePath)
             _projectsModalWasOpen: wasProjectsOpen
         };
-        // Mostrar panel de almacenamiento según modo (online vs offline)
+        // Detectar modo online/offline y mostrar panel correcto.
+        // Si la probe aún no completó, re-probar y actualizar el panel cuando responda.
         const onlineInfo  = document.getElementById('wizOnlineStorageInfo');
         const offlineInfo = document.getElementById('wizOfflineStorageInfo');
+        function _applyStorageMode(online) {
+            if (onlineInfo)  onlineInfo.style.display  = online ? 'block' : 'none';
+            if (offlineInfo) offlineInfo.style.display = online ? 'none'  : 'block';
+        }
         const isOnline = VS.Storage && VS.Storage.isAvailable();
-        if (onlineInfo)  onlineInfo.style.display  = isOnline ? 'block' : 'none';
-        if (offlineInfo) offlineInfo.style.display = isOnline ? 'none'  : 'block';
+        _applyStorageMode(isOnline);
+        // Si aparentemente offline, re-probar una vez para no quedar colgado en el estado inicial
+        if (!isOnline && VS.Storage && typeof VS.Storage.listProjects === 'function') {
+            VS.Storage.listProjects().then(list => {
+                if (list && list.length >= 0) _applyStorageMode(true);
+            }).catch(() => {});
+        }
 
         renderWizardStep();
         modal.style.display = 'flex';
