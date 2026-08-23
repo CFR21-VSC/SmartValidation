@@ -28,7 +28,7 @@
       '<div style="font-size:36px;margin-bottom:14px;">⚡</div>' +
       '<div style="font-size:17px;font-weight:700;margin-bottom:8px;">Sesión reemplazada</div>' +
       '<div style="font-size:13px;color:#94a3b8;line-height:1.6;margin-bottom:22px;">Iniciaste sesión desde otro navegador o dispositivo.<br>Tu sesión aquí fue cerrada automáticamente.</div>' +
-      '<button onclick="window.location.replace(\'/login.html\')" style="background:#0891b2;color:#fff;border:none;padding:11px 28px;border-radius:7px;font-size:14px;font-weight:700;cursor:pointer;width:100%;">Iniciar sesión nuevamente</button>' +
+      '<button onclick="window.location.replace(\'/session-ended.html\')" style="background:#0891b2;color:#fff;border:none;padding:11px 28px;border-radius:7px;font-size:14px;font-weight:700;cursor:pointer;width:100%;">Ver detalles de la desconexión</button>' +
       "</div>";
     document.body.appendChild(el);
   }

@@ -761,7 +761,8 @@ def _send_email(to: str, subject: str, html: str) -> None:
             "https://api.resend.com/emails",
             data=payload,
             headers={"Authorization": f"Bearer {_RESEND_API_KEY}",
-                     "Content-Type": "application/json"},
+                     "Content-Type": "application/json",
+                     "User-Agent": "SmartValidation/1.0"},
             method="POST",
         )
         try:
@@ -1499,6 +1500,11 @@ class SyncHandler(BaseHTTPRequestHandler):
     def _redirect_to_login(self):
         self.send_response(302)
         self.send_header("Location", "/login.html")
+        self.end_headers()
+
+    def _redirect_to_session_ended(self):
+        self.send_response(302)
+        self.send_header("Location", "/session-ended.html")
         self.end_headers()
 
     # ── Storage API handlers ──────────────────────────────────────────────────
@@ -4038,7 +4044,7 @@ class SyncHandler(BaseHTTPRequestHandler):
                 return self._send_json(401, {"ok": False, "error": "No autenticado"})
             if user.get("__superseded"):
                 if path in ("/", "", "/client", "/client/") or path.endswith(".html"):
-                    return self._redirect_to_login()
+                    return self._redirect_to_session_ended()
                 return self._send_json(401, {"ok": False, "error": "Sesión reemplazada. Iniciá sesión nuevamente.", "code": "SUPERSEDED"})
 
         # ── Route guard por rol ───────────────────────────────────────────────
