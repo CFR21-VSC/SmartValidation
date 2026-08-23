@@ -524,12 +524,6 @@
                         // Proyecto normal — reescribir snapshot en localStorage para que
                         // loadFromStorage() lea datos frescos desde IndexedDB (no localStorage stale)
                         if (proj.snapshot) writeSnapshot(proj.snapshot);
-                        // Write-through al servidor: garantiza que proyectos importados o creados
-                        // antes de la sincronización sean visibles desde otros navegadores.
-                        if (proj.snapshot && global.VS && global.VS.Storage) {
-                            const _id = activeId, _snap = proj.snapshot, _nm = proj.name;
-                            setTimeout(() => global.VS.Storage.syncSnapshot(_id, _snap, _nm), 500);
-                        }
                         ensureDemoProject().catch(e => console.warn('[projects-demo] ensure falló:', e));
                     }
                     return proj;

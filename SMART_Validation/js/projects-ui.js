@@ -12,6 +12,10 @@
         return;
     }
 
+    // IDs ya sincronizados al servidor en esta sesión — evita re-pushear en cada
+    // apertura del modal y previene ráfagas de POSTs grandes (HTTP 429 en Railway).
+    const _syncedThisSession = new Set();
+
     function escapeHtml(s) {
         return String(s == null ? '' : s)
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -74,15 +78,15 @@
             });
 
             // Proyectos solo locales (no están en el servidor aún).
-            // Si el servidor está disponible y el proyecto no es demo, empujarlo ahora
-            // en background para que otros navegadores puedan verlo.
+            // Se pushean una sola vez por sesión para no saturar Railway (429).
             const localOnly = localList.filter(p => !serverIds.has(p.id));
             if (VS.Storage && localOnly.length > 0) {
-                localOnly.forEach(p => {
-                    if (p.id && p.snapshot && !p.id.startsWith('__demo')) {
+                localOnly
+                    .filter(p => p.id && p.snapshot && !p.id.startsWith('__demo') && !_syncedThisSession.has(p.id))
+                    .forEach(p => {
+                        _syncedThisSession.add(p.id);
                         VS.Storage.syncSnapshot(p.id, p.snapshot, p.name).catch(() => {});
-                    }
-                });
+                    });
             }
             const all = [...merged, ...localOnly];
 
