@@ -18,6 +18,21 @@
   const BASE = "";               // same origin — server.py serves the API
   let _available = false;        // set to true once a successful /api/projects response arrives
 
+  function _showSupersededModal() {
+    if (document.getElementById("_smartSessionSuperseded")) return;
+    const el = document.createElement("div");
+    el.id = "_smartSessionSuperseded";
+    el.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:system-ui,sans-serif;";
+    el.innerHTML =
+      '<div style="background:#1e293b;color:#f1f5f9;padding:36px 32px;border-radius:12px;max-width:380px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);">' +
+      '<div style="font-size:36px;margin-bottom:14px;">⚡</div>' +
+      '<div style="font-size:17px;font-weight:700;margin-bottom:8px;">Sesión reemplazada</div>' +
+      '<div style="font-size:13px;color:#94a3b8;line-height:1.6;margin-bottom:22px;">Iniciaste sesión desde otro navegador o dispositivo.<br>Tu sesión aquí fue cerrada automáticamente.</div>' +
+      '<button onclick="window.location.replace(\'/login.html\')" style="background:#0891b2;color:#fff;border:none;padding:11px 28px;border-radius:7px;font-size:14px;font-weight:700;cursor:pointer;width:100%;">Iniciar sesión nuevamente</button>' +
+      "</div>";
+    document.body.appendChild(el);
+  }
+
   // ── Internal fetch wrapper ──────────────────────────────────────────────────
 
   async function _apiFetch(method, path, body) {
@@ -30,7 +45,11 @@
       if (body !== undefined) opts.body = JSON.stringify(body);
       const res = await fetch(BASE + path, opts);
       if (res.status === 401) {
-        // Session expired while page is open — redirect
+        const errData = await res.json().catch(() => ({}));
+        if (errData && errData.code === "SUPERSEDED") {
+          _showSupersededModal();
+          return null;
+        }
         window.location.replace("/login.html");
         return null;
       }

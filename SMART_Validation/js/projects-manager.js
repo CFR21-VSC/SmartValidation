@@ -244,6 +244,30 @@
         return entry;
     }
 
+    /** Descarga el snapshot de un proyecto desde el servidor y lo hidrata en IndexedDB. */
+    async function downloadFromServer(id) {
+        if (!global.VS || !global.VS.Storage) throw new Error('Storage no disponible');
+        const snapshot = await global.VS.Storage.getSnapshot(id);
+        if (!snapshot) throw new Error('Proyecto no disponible en el servidor');
+        const si = (snapshot.systemInfo) || {};
+        const existing = await dbGet(id);
+        const entry = existing || {
+            id,
+            name: si.nombreSistema || si.projectName || 'Proyecto restaurado',
+            cliente: si.cliente || '',
+            sistemaCode: si.codigoSistema || '',
+            sistemaName: si.nombreSistema || '',
+            gampCat: si.categoriaGamp || '',
+            createdAt: new Date().toISOString(),
+            archived: false,
+        };
+        entry.snapshot = snapshot;
+        entry.lastOpenedAt = new Date().toISOString();
+        const updated = refreshFromSnapshot(entry, snapshot);
+        await dbPut(updated);
+        return updated;
+    }
+
     /** Carga el snapshot del proyecto target en localStorage y recarga la página. */
     async function switchTo(id) {
         const currentId = getActiveId();
@@ -251,7 +275,12 @@
             try { await saveCurrentToActive(); }
             catch (e) { console.warn('[projects] save current falló:', e); }
         }
-        const target = await dbGet(id);
+        let target = await dbGet(id);
+        // Si no está en IndexedDB local, intentar recuperarlo del servidor
+        if (!target && global.VS && global.VS.Storage && global.VS.Storage.isAvailable()) {
+            try { target = await downloadFromServer(id); }
+            catch (e) { console.warn('[projects] downloadFromServer falló:', e); }
+        }
         if (!target) throw new Error('Proyecto no encontrado: ' + id);
         writeSnapshot(target.snapshot || null);
         setActiveId(id);
@@ -712,6 +741,7 @@
     VS.projects.rename = rename;
     VS.projects.archive = archive;
     VS.projects.deleteProject = deleteProject;
+    VS.projects.downloadFromServer = downloadFromServer;
     VS.projects.exportProject = exportProject;
     VS.projects.importProject = importProject;
     VS.projects.computeStats = computeStats;

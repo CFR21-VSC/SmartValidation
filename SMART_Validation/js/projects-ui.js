@@ -43,34 +43,69 @@
 
         try {
             const all = await VS.projects.listAll();
+
+            // Complementar con proyectos que solo existen en el servidor (otro navegador los guardó)
+            let serverOnly = [];
+            if (VS.Storage && VS.Storage.isAvailable()) {
+                try {
+                    const serverList = await VS.Storage.listProjects();
+                    const localIds = new Set(all.map(p => p.id));
+                    serverOnly = serverList.filter(sp => !localIds.has(sp.id));
+                } catch (_) {}
+            }
+
             const activos = all.filter(p => !p.archived);
             const archivados = all.filter(p => p.archived);
+            const totalVisible = all.length + serverOnly.length;
 
             if (headerStats) {
                 headerStats.innerHTML =
-                    '<span><strong>' + all.length + '</strong> proyecto' + (all.length !== 1 ? 's' : '') + '</span>' +
+                    '<span><strong>' + totalVisible + '</strong> proyecto' + (totalVisible !== 1 ? 's' : '') + '</span>' +
                     '<span>&middot;</span>' +
                     '<span>' + activos.length + ' activo' + (activos.length !== 1 ? 's' : '') + '</span>' +
-                    (archivados.length ? '<span>&middot;</span><span>' + archivados.length + ' archivado' + (archivados.length !== 1 ? 's' : '') + '</span>' : '');
+                    (archivados.length ? '<span>&middot;</span><span>' + archivados.length + ' archivado' + (archivados.length !== 1 ? 's' : '') + '</span>' : '') +
+                    (serverOnly.length ? '<span>&middot;</span><span style="color:#22d3ee">&#9729; ' + serverOnly.length + ' en servidor</span>' : '');
             }
 
-            const cards = all
+            const localCards = all
                 .sort((a, b) => new Date(b.lastOpenedAt || 0) - new Date(a.lastOpenedAt || 0))
                 .map(p => renderCard(p, activeId))
                 .join('');
 
-            if (all.length === 0) {
+            const serverCards = serverOnly
+                .map(p => renderServerCard(p))
+                .join('');
+
+            if (totalVisible === 0) {
                 container.innerHTML =
                     '<div class="proj-empty">' +
                     '<div class="proj-empty-title">No hay proyectos todavia</div>' +
                     '<div class="proj-empty-text">Crea tu primer proyecto desde el boton <strong>+ Nuevo proyecto</strong> de arriba a la derecha.</div>' +
                     '</div>';
             } else {
-                container.innerHTML = cards;
+                container.innerHTML = localCards + serverCards;
             }
         } catch (e) {
             container.innerHTML = '<div class="proj-empty"><div class="proj-empty-title">Error</div><div class="proj-empty-text">' + escapeHtml(e.message) + '</div></div>';
         }
+    }
+
+    function renderServerCard(p) {
+        const name = escapeHtml(p.name || p.id);
+        const sistema = escapeHtml(p.system_name || '');
+        const cliente = escapeHtml(p.cliente || '');
+        return '<div class="proj-card" style="border-color:#0e7490;opacity:.9;" data-id="' + escapeHtml(p.id) + '">' +
+            '<div class="proj-card-header">' +
+            '<div class="proj-card-name-row">' +
+            '<div class="proj-card-name" title="' + name + '">' + name + '</div>' +
+            '<span class="proj-card-badge" style="background:#164e63;color:#22d3ee;border:1px solid #0e7490">&#9729; Solo en servidor</span>' +
+            '</div></div>' +
+            (cliente ? '<div class="proj-card-cliente">Cliente: <strong>' + cliente + '</strong></div>' : '') +
+            (sistema ? '<div class="proj-card-system">' + sistema + '</div>' : '<div class="proj-card-system proj-card-empty-line">Sin sistema asignado</div>') +
+            '<div class="proj-card-footer"><span class="proj-card-time">Disponible para restaurar</span></div>' +
+            '<div class="proj-card-actions">' +
+            '<button class="proj-btn proj-btn-primary" onclick="handleProjectDownload(\'' + escapeHtml(p.id) + '\')">&#9729; Restaurar</button>' +
+            '</div></div>';
     }
 
     function renderCycleProgress(projectId, totalDocs) {
@@ -207,6 +242,15 @@
     async function handleProjectSwitch(id) {
         try { await VS.projects.switchTo(id); }
         catch (e) { alert('Error abriendo proyecto: ' + e.message); }
+    }
+
+    async function handleProjectDownload(id) {
+        try {
+            await VS.projects.downloadFromServer(id);
+            await VS.projects.switchTo(id);
+        } catch (e) {
+            alert('Error restaurando proyecto desde el servidor: ' + e.message);
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════
@@ -825,6 +869,7 @@
     global.handleProjectDelete = handleProjectDelete;
     global.handleDemoOpen  = handleDemoOpen;
     global.handleDemoReset = handleDemoReset;
+    global.handleProjectDownload = handleProjectDownload;
     global.handleProjectExport = handleProjectExport;
     global.handleProjectImport = handleProjectImport;
     global.handleProjectImportFile = handleProjectImportFile;

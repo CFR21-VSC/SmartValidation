@@ -237,6 +237,14 @@ def _db_init():
             expires_at  REAL NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_revoked_exp ON revoked_tokens(expires_at);
+
+        CREATE TABLE IF NOT EXISTS auth_sessions (
+            nonce       TEXT NOT NULL PRIMARY KEY,
+            username    TEXT NOT NULL,
+            created_at  REAL NOT NULL,
+            ip          TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_auth_sess_user ON auth_sessions(username);
     """)
     db.commit()
     # Migraciones en caliente (idempotentes — ignorar si la columna ya existe)
@@ -599,7 +607,8 @@ def _decode_token(token: str) -> dict:
 
 def _validate_token_against_db(payload: dict) -> dict:
     """C-2: verifica que el usuario del payload exista en DB, esté activo y rol coincida.
-    Devuelve el payload enriquecido con 'sa' (is_superadmin) si válido, {} si no."""
+    También verifica el nonce en auth_sessions para sesión única por usuario.
+    Devuelve el payload enriquecido con 'sa', _AUTH_SUPERSEDED si la sesión fue reemplazada, o {} si inválido."""
     if not payload:
         return {}
     db = _get_db()
@@ -608,6 +617,11 @@ def _validate_token_against_db(payload: dict) -> dict:
     ).fetchone()
     if not row or not row["is_active"] or row["role"] != payload["r"]:
         return {}
+    nonce = payload.get("n")
+    if nonce:
+        sess = db.execute("SELECT nonce FROM auth_sessions WHERE nonce=?", (nonce,)).fetchone()
+        if not sess:
+            return _AUTH_SUPERSEDED
     return {**payload, "sa": bool(row["is_superadmin"])}
 
 
@@ -792,6 +806,9 @@ def _bootstrap_superadmin() -> None:
     except Exception as e:
         sys.stderr.write(f"[superadmin] No se pudo marcar superadmin: {e}\n")
 
+
+_PROTECTED_USERNAME = "federicosucho"  # superusuario del sistema — indestructible
+_AUTH_SUPERSEDED = {"__superseded": True}  # sentinel: sesión válida pero reemplazada por nuevo login
 
 def _is_superadmin(user: dict) -> bool:
     return bool(user.get("sa"))
@@ -1185,6 +1202,18 @@ class SyncHandler(BaseHTTPRequestHandler):
 
         return False
 
+    def _require_auth(self, user: dict) -> bool:
+        """Verifica auth y envía la respuesta de error apropiada. Retorna True si debe abortar."""
+        if not _is_auth_required():
+            return False
+        if not user:
+            self._send_json(401, {"ok": False, "error": "No autenticado"})
+            return True
+        if user.get("__superseded"):
+            self._send_json(401, {"ok": False, "error": "Sesión reemplazada. Iniciá sesión nuevamente.", "code": "SUPERSEDED"})
+            return True
+        return False
+
     def _send_json(self, status, payload):
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
@@ -1335,6 +1364,20 @@ class SyncHandler(BaseHTTPRequestHandler):
             )
 
         token = _create_token(username, display, role)
+        # Sesión única por usuario: invalidar sesión previa, registrar la nueva
+        try:
+            _tok_data = json.loads(base64.urlsafe_b64decode(token.encode()).decode())
+            _nonce = _tok_data.get("n", "")
+            if _nonce:
+                _sdb = _get_db()
+                _sdb.execute("DELETE FROM auth_sessions WHERE username=?", (username,))
+                _sdb.execute(
+                    "INSERT INTO auth_sessions (nonce, username, created_at, ip) VALUES (?,?,?,?)",
+                    (_nonce, username, now_login, ip)
+                )
+                _sdb.commit()
+        except Exception:
+            pass
         max_age = _TOKEN_EXPIRE_H * 3600
         secure = "; Secure" if _IS_PROD else ""
         same_site = "Strict" if _IS_PROD else "Lax"
@@ -1384,6 +1427,14 @@ class SyncHandler(BaseHTTPRequestHandler):
                         (token_hash, exp)
                     )
                     _db.execute("DELETE FROM revoked_tokens WHERE expires_at < ?", (now,))
+                    # También limpiar auth_sessions para este nonce
+                    try:
+                        _nonce_logout = json.loads(base64.urlsafe_b64decode(token.encode()).decode()).get("n")
+                    except Exception:
+                        _nonce_logout = None
+                    if _nonce_logout:
+                        _db.execute("DELETE FROM auth_sessions WHERE nonce=?", (_nonce_logout,))
+                    _db.commit()
                 except Exception:
                     pass
         secure = "; Secure" if _IS_PROD else ""
@@ -2642,6 +2693,14 @@ class SyncHandler(BaseHTTPRequestHandler):
             if not row:
                 db.execute("ROLLBACK")
                 return self._send_json(404, {"ok": False, "error": "Usuario no encontrado"})
+            if row["username"] == _PROTECTED_USERNAME and (
+                "role" in data or "is_active" in data
+            ):
+                db.execute("ROLLBACK")
+                return self._send_json(403, {
+                    "ok": False,
+                    "error": "El rol y el estado del superusuario del sistema no pueden modificarse."
+                })
             fields, vals = [], []
             audit_details = []
             if "display_name" in data:
@@ -2731,6 +2790,9 @@ class SyncHandler(BaseHTTPRequestHandler):
             if not target:
                 db.execute("ROLLBACK")
                 return self._send_json(404, {"ok": False, "error": "Usuario no encontrado"})
+            if target["username"] == _PROTECTED_USERNAME:
+                db.execute("ROLLBACK")
+                return self._send_json(403, {"ok": False, "error": "El superusuario del sistema no puede eliminarse."})
             # NEW-07: comparar correctamente por username (admin_user["u"] es username, no UUID)
             if target["username"] == admin_user.get("u"):
                 db.execute("ROLLBACK")
@@ -3969,10 +4031,15 @@ class SyncHandler(BaseHTTPRequestHandler):
 
         # ── Verificar autenticación para el resto ────────────────────────────
         user = _check_auth(self)
-        if _is_auth_required() and not user:
-            if path in ("/", "", "/client", "/client/") or path.endswith(".html"):
-                return self._redirect_to_login()
-            return self._send_json(401, {"ok": False, "error": "No autenticado"})
+        if _is_auth_required():
+            if not user:
+                if path in ("/", "", "/client", "/client/") or path.endswith(".html"):
+                    return self._redirect_to_login()
+                return self._send_json(401, {"ok": False, "error": "No autenticado"})
+            if user.get("__superseded"):
+                if path in ("/", "", "/client", "/client/") or path.endswith(".html"):
+                    return self._redirect_to_login()
+                return self._send_json(401, {"ok": False, "error": "Sesión reemplazada. Iniciá sesión nuevamente.", "code": "SUPERSEDED"})
 
         # ── Route guard por rol ───────────────────────────────────────────────
         # Clientes: solo pueden acceder a /client/* (no a la app principal)
@@ -4149,8 +4216,7 @@ class SyncHandler(BaseHTTPRequestHandler):
 
         # ── Verificar autenticación para el resto ────────────────────────────
         user = _check_auth(self)
-        if _is_auth_required() and not user:
-            return self._send_json(401, {"ok": False, "error": "No autenticado"})
+        if self._require_auth(user): return
 
         # ── /api/me/pin ───────────────────────────────────────────────────────
         if path == "/api/me/pin":
@@ -4459,8 +4525,7 @@ class SyncHandler(BaseHTTPRequestHandler):
 
         # ── Verificar autenticación ───────────────────────────────────────────
         user = _check_auth(self)
-        if _is_auth_required() and not user:
-            return self._send_json(401, {"ok": False, "error": "No autenticado"})
+        if self._require_auth(user): return
 
         # ── API de almacenamiento (DELETE) ────────────────────────────────────
         m = _RE_PROJ_DOC.match(path)
@@ -4500,8 +4565,7 @@ class SyncHandler(BaseHTTPRequestHandler):
             return
         path = urlparse(self.path).path
         user = _check_auth(self)
-        if _is_auth_required() and not user:
-            return self._send_json(401, {"ok": False, "error": "No autenticado"})
+        if self._require_auth(user): return
         if path.startswith("/admin/"):
             if user.get("r") != "admin":
                 return self._send_json(403, {"ok": False, "error": "Requiere rol admin"})
