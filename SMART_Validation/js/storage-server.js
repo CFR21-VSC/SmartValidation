@@ -204,4 +204,29 @@
 
   // Probe on load — non-blocking
   _probe();
+
+  // ── Session heartbeat ────────────────────────────────────────────────────────
+  // Verifica cada 30 s que la sesión siga activa. Si fue reemplazada (SUPERSEDED)
+  // redirige de inmediato a session-ended.html sin esperar una acción del usuario.
+  (function _startHeartbeat() {
+    const INTERVAL_MS = 30000;
+    async function _beat() {
+      try {
+        const res = await fetch("/auth/session", {
+          method: "GET",
+          credentials: "include",
+        });
+        if (res.status === 401) {
+          const body = await res.json().catch(() => ({}));
+          if (body && body.code === "SUPERSEDED") {
+            window.location.replace("/session-ended.html");
+          }
+          // 401 sin SUPERSEDED = no autenticado normalmente, dejar al handler existente
+        }
+      } catch (_) {
+        // Sin conexión — ignorar, el usuario verá el error cuando haga algo
+      }
+    }
+    setInterval(_beat, INTERVAL_MS);
+  })();
 })(window);

@@ -3978,6 +3978,8 @@ class SyncHandler(BaseHTTPRequestHandler):
             user = _check_auth(self)
             if not user:
                 return self._send_json(401, {"ok": False, "error": "No autenticado"})
+            if user.get("__superseded"):
+                return self._send_json(401, {"ok": False, "error": "Sesión reemplazada", "code": "SUPERSEDED"})
             resp = {
                 "ok": True,
                 "username": user["u"],
