@@ -136,23 +136,19 @@ if USE_PG:
             return c
 
         def executescript(self, script: str) -> None:
-            """Execute multi-statement DDL (CREATE TABLE / INDEX …)."""
+            """Execute multi-statement DDL (CREATE TABLE / INDEX …).
+
+            autocommit=True means each statement is already its own transaction,
+            so no rollback is needed on failure — just skip and continue.
+            """
             adapted = _adapt_ddl(script)
             statements = [s.strip() for s in adapted.split(";") if s.strip()]
             raw_cur = self._raw.cursor()
             for stmt in statements:
                 try:
                     raw_cur.execute(stmt)
-                except psycopg2.errors.DuplicateTable:
-                    self._raw.rollback()
-                except psycopg2.errors.DuplicateObject:
-                    self._raw.rollback()
                 except Exception:
-                    # Catch any other DDL error (e.g. column already exists) and keep going
-                    try:
-                        self._raw.rollback()
-                    except Exception:
-                        pass
+                    pass
             raw_cur.close()
 
         def commit(self) -> None:

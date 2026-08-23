@@ -472,7 +472,7 @@ def _load_server_users() -> dict:
 def _migrate_to_unified_users():
     """Bootstrap tabla users desde .env + client_users legacy. Corre una sola vez."""
     db = _get_db()
-    if db.execute("SELECT COUNT(*) FROM users").fetchone()[0] > 0:
+    if db.execute("SELECT COUNT(*) AS n FROM users").fetchone()["n"] > 0:
         return  # ya migrado
 
     now = time.time()
@@ -491,10 +491,13 @@ def _migrate_to_unified_users():
             pass
 
     # 2. Migrar client_users legado → users con role='client'
-    legacy = db.execute(
-        "SELECT id, username, display_name, pin_hash, pin_set, created_by, created_at "
-        "FROM client_users"
-    ).fetchall()
+    try:
+        legacy = db.execute(
+            "SELECT id, username, display_name, pin_hash, pin_set, created_by, created_at "
+            "FROM client_users"
+        ).fetchall()
+    except Exception:
+        legacy = []
     for row in legacy:
         try:
             db.execute(
@@ -509,10 +512,13 @@ def _migrate_to_unified_users():
             pass
 
     # 3. Migrar user_project_access → project_access
-    accesses = db.execute(
-        "SELECT user_id, project_id, access_level, granted_by, granted_at "
-        "FROM user_project_access"
-    ).fetchall()
+    try:
+        accesses = db.execute(
+            "SELECT user_id, project_id, access_level, granted_by, granted_at "
+            "FROM user_project_access"
+        ).fetchall()
+    except Exception:
+        accesses = []
     for a in accesses:
         try:
             db.execute(
@@ -4709,7 +4715,7 @@ def main():
     _migrate_to_unified_users()
     _bootstrap_superadmin()
     db = _get_db()
-    n_users = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    n_users = db.execute("SELECT COUNT(*) AS n FROM users").fetchone()["n"]
     import db_adapter as _dba
     if _dba.USE_PG:
         print(f"  PostgreSQL: {_dba.DATABASE_URL.split('@')[-1]}")
