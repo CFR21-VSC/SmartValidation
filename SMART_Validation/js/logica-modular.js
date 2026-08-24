@@ -418,6 +418,44 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Auto-save cada 30 segundos
     setInterval(saveToStorage, 30000);
 
+    // Cross-browser sync: detectar proyectos en el servidor que este browser no tiene activos
+    setTimeout(async () => {
+        try {
+            if (!window.ValidationSuite || !window.ValidationSuite.projects || !window.VS || !window.VS.Storage) return;
+            const localId = window.ValidationSuite.projects.getActiveId();
+            const DEMO_ID = window.ValidationSuite.projects.DEMO_PROJECT_ID;
+            const serverList = await window.VS.Storage.listProjects();
+            if (!serverList || !serverList.length) return;
+            const real = serverList.filter(p => p.id !== DEMO_ID);
+            if (!real.length) return;
+            // Si el browser está en el demo o sin proyecto, o tiene un proyecto distinto al más reciente del servidor
+            real.sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0));
+            const newest = real[0];
+            if (localId && localId !== DEMO_ID && localId === newest.id) return; // ya lo tiene
+            // Mostrar banner persistente
+            const banner = document.createElement('div');
+            banner.id = '_serverSyncBanner';
+            banner.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1A3550;color:#fff;padding:12px 20px;border-radius:8px;display:flex;align-items:center;gap:14px;z-index:99990;box-shadow:0 4px 16px rgba(0,0,0,.35);font-size:13px;max-width:92vw;';
+            banner.innerHTML = `<span>El servidor tiene el proyecto <strong>${newest.name}</strong> disponible.</span>
+                <button id="_btnLoadServer" style="background:#3D8FD1;color:#fff;border:none;border-radius:5px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">Cargar proyecto</button>
+                <button id="_btnDismissServer" style="background:none;border:none;color:#9CB8CC;font-size:16px;cursor:pointer;line-height:1;padding:0 4px;">✕</button>`;
+            document.body.appendChild(banner);
+            document.getElementById('_btnDismissServer').onclick = () => banner.remove();
+            document.getElementById('_btnLoadServer').onclick = async () => {
+                banner.querySelector('#_btnLoadServer').textContent = 'Cargando…';
+                banner.querySelector('#_btnLoadServer').disabled = true;
+                try {
+                    await window.ValidationSuite.projects.switchTo(newest.id);
+                } catch (e) {
+                    alert('Error al cargar el proyecto: ' + e.message);
+                    banner.remove();
+                }
+            };
+        } catch (e) {
+            console.warn('[cross-browser sync]', e);
+        }
+    }, 2000);
+
     // Forzar sync al servidor cuando el usuario oculta la tab (cambia de navegador/pestaña)
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden' &&
