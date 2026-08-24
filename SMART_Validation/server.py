@@ -4000,6 +4000,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
 
         # ── Rutas públicas (sin autenticación) ───────────────────────────────
+        if path == "/favicon.ico":
+            return self._serve_static()
+
         if path == "/health":
             try:
                 _get_db().execute("SELECT 1").fetchone()
