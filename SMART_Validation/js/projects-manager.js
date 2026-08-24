@@ -303,7 +303,7 @@
         }
         let target = await dbGet(id);
         // Si no está en IndexedDB local, intentar recuperarlo del servidor
-        if (!target && global.VS && global.VS.Storage && global.VS.Storage.isAvailable()) {
+        if (!target && global.VS && global.VS.Storage) {
             try { target = await downloadFromServer(id); }
             catch (e) { console.warn('[projects] downloadFromServer falló:', e); }
         }
@@ -615,6 +615,30 @@
                 setActiveId(id);
                 console.info('[projects] Proyecto inicial creado por migración:', baseName);
                 return entry;
+            }
+            // Sin datos locales — consultar el servidor por proyectos existentes (cross-browser sync)
+            if (global.VS && global.VS.Storage) {
+                try {
+                    const serverProjects = await global.VS.Storage.listProjects();
+                    if (serverProjects && serverProjects.length > 0) {
+                        const real = serverProjects
+                            .filter(p => p.id !== DEMO_PROJECT_ID)
+                            .sort((a, b) => (b.updated_at || b.last_opened_at || 0) - (a.updated_at || a.last_opened_at || 0));
+                        if (real.length > 0) {
+                            try {
+                                const entry = await downloadFromServer(real[0].id);
+                                setActiveId(entry.id);
+                                writeSnapshot(entry.snapshot);
+                                console.info('[projects] Auto-sync: proyecto descargado del servidor:', entry.name);
+                                return entry;
+                            } catch (e) {
+                                console.warn('[projects] Auto-sync downloadFromServer falló:', e);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[projects] Auto-sync listProjects falló:', e);
+                }
             }
             return null;
         } catch (e) {
