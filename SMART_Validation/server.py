@@ -2695,7 +2695,7 @@ class SyncHandler(BaseHTTPRequestHandler):
                 VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                   json_data=excluded.json_data,
-                  status=COALESCE(excluded.status, status),
+                  status=COALESCE(excluded.status, documents.status),
                   updated_at=excluded.updated_at
             """, (
                 f"{proj_id}_{doc_type}", proj_id, doc_type,
