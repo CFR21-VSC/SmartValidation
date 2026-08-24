@@ -326,12 +326,21 @@ async function _pollTestExecutions() {
                     if (obs && Array.isArray(obs.evidences)) remoteEvidenceMeta = obs.evidences;
                 } catch (_) {}
             }
-            // Merge evidence_ids: marcar slots de evidencia como hasImage para que se carguen las fotos
-            if (exec.evidence_ids && Array.isArray(exec.evidence_ids) && exec.evidence_ids.length) {
+            // Merge evidence_ids: sincronizar slots (agrega nuevos, elimina los borrados)
+            if (Array.isArray(exec.evidence_ids)) {
                 if (!test.evidences) test.evidences = [];
                 const projPrefix = projId2 + '_';
+
+                // Construir set de pasos que existen en el servidor
+                const remoteSteps = new Set();
                 for (const cid of exec.evidence_ids) {
-                    // compound ID → local ID (quitar prefijo de proyecto)
+                    const localId = cid.startsWith(projPrefix) ? cid.slice(projPrefix.length) : cid;
+                    const stepMatch = localId.match(/_evidence_(\d+)$/);
+                    if (stepMatch) remoteSteps.add(parseInt(stepMatch[1], 10));
+                }
+
+                // Agregar/actualizar slots nuevos
+                for (const cid of exec.evidence_ids) {
                     const localId = cid.startsWith(projPrefix) ? cid.slice(projPrefix.length) : cid;
                     const stepMatch = localId.match(/_evidence_(\d+)$/);
                     if (!stepMatch) continue;
@@ -351,7 +360,6 @@ async function _pollTestExecutions() {
                         changed = true;
                     } else {
                         if (!ev.hasImage) { ev.isEmpty = false; ev.hasImage = true; changed = true; }
-                        // Rellenar metadata si aún falta (imagen no descargada localmente)
                         if (meta && !ev.image) {
                             if (!ev.description && meta.description) { ev.description = meta.description; changed = true; }
                             if (!ev.resultado && meta.resultado) { ev.resultado = meta.resultado; changed = true; }
@@ -363,6 +371,17 @@ async function _pollTestExecutions() {
                         }
                     }
                 }
+
+                // Eliminar slots que ya no existen en el servidor (el otro usuario los borró)
+                // Solo si el slot no tiene imagen descargada localmente
+                const before = test.evidences.length;
+                test.evidences = test.evidences.filter(ev => {
+                    if (ev.isEmpty) return true;          // placeholder local — no tocar
+                    if (ev.image) return true;            // imagen ya descargada localmente — conservar
+                    if (remoteSteps.has(ev.step)) return true; // sigue existiendo en servidor
+                    return false;                         // borrado en servidor y sin imagen local
+                });
+                if (test.evidences.length !== before) changed = true;
             }
         }
         _execPollLastTs = data.server_ts || _execPollLastTs;
