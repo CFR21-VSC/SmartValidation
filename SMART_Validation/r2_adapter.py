@@ -97,3 +97,26 @@ def list_project_keys(proj_id: str) -> "list[str]":
     except Exception as exc:
         print(f"[R2] Error al listar {proj_id}: {exc}")
         return []
+
+
+def delete_image(key: str) -> bool:
+    """Delete one image from R2 by key. Returns True on success."""
+    c = _get_client()
+    if not c:
+        return False
+    try:
+        c.delete_object(Bucket=_R2_BUCKET, Key=key)
+        return True
+    except Exception as exc:
+        print(f"[R2] Error al borrar {key}: {exc}")
+        return False
+
+
+def delete_project_images(proj_id: str) -> int:
+    """Delete ALL R2 images for a project. Returns number of keys deleted."""
+    keys = list_project_keys(proj_id)
+    count = 0
+    for key in keys:
+        if delete_image(key):
+            count += 1
+    return count

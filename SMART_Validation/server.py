@@ -2241,6 +2241,44 @@ class SyncHandler(BaseHTTPRequestHandler):
             return self._send_json(500, {"ok": False, "error": "Error al guardar ejecución."})
         return self._send_json(200, {"ok": True, "updated_at": now})
 
+    def _api_evidence_delete_one(self, proj_id: str, compound_id: str, user):
+        """DELETE /api/projects/{id}/evidence/{compound_id} — borra una imagen de R2 y DB."""
+        db = _get_db()
+        if not self._assert_project_access(db, user, proj_id):
+            return
+        # Borrar de R2
+        if _r2 and _r2.is_configured():
+            _r2.delete_image(compound_id)
+        # Borrar del registro en DB
+        try:
+            db.execute("DELETE FROM evidence_images WHERE compound_id=? AND project_id=?",
+                       (compound_id, proj_id))
+        except Exception as e:
+            print(f"[DB] Error borrando evidencia {compound_id}: {e}")
+        return self._send_json(200, {"ok": True})
+
+    def _api_evidence_delete_all(self, proj_id: str, user):
+        """DELETE /api/projects/{id}/evidence — borra TODAS las imágenes del proyecto."""
+        db = _get_db()
+        if not self._assert_project_access(db, user, proj_id):
+            return
+        # Borrar de R2
+        r2_count = 0
+        if _r2 and _r2.is_configured():
+            r2_count = _r2.delete_project_images(proj_id)
+        # Borrar de DB
+        try:
+            db.execute("DELETE FROM evidence_images WHERE project_id=?", (proj_id,))
+        except Exception as e:
+            print(f"[DB] Error borrando evidencias del proyecto {proj_id}: {e}")
+        # Borrar también las ejecuciones (se perderían referencias a imágenes inexistentes)
+        try:
+            db.execute("DELETE FROM test_executions WHERE project_id=?", (proj_id,))
+        except Exception as e:
+            print(f"[DB] Error borrando ejecuciones del proyecto {proj_id}: {e}")
+        print(f"[Evidence] Borradas {r2_count} imágenes R2 + registros DB para proyecto {proj_id}")
+        return self._send_json(200, {"ok": True, "r2_deleted": r2_count})
+
     def _resolve_evidence_data(self, raw_data: str) -> "str | None":
         """Return the data-URI for a stored evidence row.
 
@@ -4963,6 +5001,12 @@ class SyncHandler(BaseHTTPRequestHandler):
         if self._require_auth(user): return
 
         # ── API de almacenamiento (DELETE) ────────────────────────────────────
+        m = _RE_EVIDENCE_ONE.match(path)
+        if m:
+            return self._api_evidence_delete_one(m.group(1), m.group(2), user)
+        m = _RE_EVIDENCE_BULK.match(path)
+        if m:
+            return self._api_evidence_delete_all(m.group(1), user)
         m = _RE_PROJ_DOC.match(path)
         if m:
             return self._api_doc_delete(m.group(1), m.group(2), user)

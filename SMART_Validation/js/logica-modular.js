@@ -9023,11 +9023,25 @@ async function deleteEvidence(index) {
         return;
     }
 
-    // Eliminar
+    // Borrar imagen de IndexedDB y del servidor (R2 + DB) antes de quitar del array
+    if (!evidence.isEmpty && (evidence.image || evidence.hasImage)) {
+        const imageId = `${test.id}_evidence_${evidence.step}`;
+        deleteImageFromDB(imageId).catch(() => {});
+        if (window.VS && window.VS.Storage) {
+            window.VS.Storage.deleteEvidence(imageId).catch(() => {});
+        }
+    }
+
+    // Eliminar del array en memoria
     test.evidences.splice(index, 1);
 
     // Renumerar pasos
     renumberSteps(test);
+
+    // Sync: otros browsers ven el slot eliminado
+    const _delProjId = window.ValidationSuite && window.ValidationSuite.projects &&
+                       window.ValidationSuite.projects.getActiveId();
+    if (_delProjId) _syncTestExecution(_delProjId, test).catch(() => {});
 
     // Actualizar
     renderWorkArea();
@@ -10125,8 +10139,16 @@ async function confirmClearCache(downloadBackup) {
         // 2. Limpiar IndexedDB (imágenes)
         if (db) {
             await clearAllImagesFromDB();
-    // //             console.log('✅ IndexedDB de imágenes limpiado');
         }
+
+        // 2b. Borrar imágenes del servidor (R2 + DB) para el proyecto activo
+        try {
+            const _ccProjId = window.ValidationSuite && window.ValidationSuite.projects &&
+                               window.ValidationSuite.projects.getActiveId();
+            if (_ccProjId && window.VS && window.VS.Storage) {
+                await window.VS.Storage.deleteAllEvidence(_ccProjId);
+            }
+        } catch (_) {}
 
         // 3. Resetear variables globales del sistema
         protocols = [];

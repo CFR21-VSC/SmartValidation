@@ -210,6 +210,26 @@
       return result;
     },
 
+    /** Borra una imagen del servidor (R2 + DB). rawImageId es el ID local (sin prefijo). */
+    async deleteEvidence(rawImageId) {
+      if (!rawImageId) return;
+      const projId = (global.ValidationSuite && global.ValidationSuite.projects &&
+                      global.ValidationSuite.projects.getActiveId()) || null;
+      if (!projId) return;
+      const compoundId = (projId + "_" + rawImageId).replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 300);
+      await _apiFetch("DELETE",
+        `/api/projects/${encodeURIComponent(projId)}/evidence/${encodeURIComponent(compoundId)}`
+      ).catch(() => {});
+    },
+
+    /** Borra TODAS las imágenes y ejecuciones del proyecto del servidor (R2 + DB). */
+    async deleteAllEvidence(projectId) {
+      if (!projectId) return;
+      return _apiFetch("DELETE",
+        `/api/projects/${encodeURIComponent(projectId)}/evidence`
+      ).catch(() => null);
+    },
+
     /** Sube un lote de imágenes al servidor en chunks de 50. rawImages: {rawId: dataUri}. */
     async bulkUploadEvidence(rawImages) {
       if (!rawImages || !Object.keys(rawImages).length) return;
