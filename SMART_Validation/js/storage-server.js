@@ -159,26 +159,32 @@
 
     /** Sube una imagen al servidor. Retorna Promise (awaitable). rawImageId es el ID local (sin prefijo). */
     uploadEvidence(rawImageId, base64data) {
-      if (!rawImageId || !base64data) return Promise.resolve(null);
+      if (!rawImageId || !base64data) { console.warn('[SMART] uploadEvidence: rawImageId o data vacíos'); return Promise.resolve(null); }
       const projId = (global.ValidationSuite && global.ValidationSuite.projects &&
                       global.ValidationSuite.projects.getActiveId()) || null;
-      if (!projId) return Promise.resolve(null);
+      if (!projId) { console.warn('[SMART] uploadEvidence: projId null'); return Promise.resolve(null); }
       const compoundId = (projId + "_" + rawImageId).replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 300);
+      console.log('[SMART] UPLOAD imagen →', compoundId.substring(0, 80), '| data len:', base64data.length);
       return _apiFetch("POST",
         `/api/projects/${encodeURIComponent(projId)}/evidence/${encodeURIComponent(compoundId)}`,
         { data: base64data }
-      ).catch(() => null);
+      ).then(r => {
+        console.log('[SMART] UPLOAD respuesta:', r ? r.status : 'null', r && r.data);
+        return r;
+      }).catch(e => { console.error('[SMART] UPLOAD error:', e); return null; });
     },
 
     /** Descarga una imagen de evidencia del servidor como data URL. rawImageId es el ID local. */
     async fetchEvidence(rawImageId) {
       const projId = (global.ValidationSuite && global.ValidationSuite.projects &&
                       global.ValidationSuite.projects.getActiveId()) || null;
-      if (!projId) return null;
+      if (!projId) { console.warn('[SMART] fetchEvidence: projId null'); return null; }
       const compoundId = (projId + "_" + rawImageId).replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 300);
+      console.log('[SMART] FETCH imagen ←', compoundId.substring(0, 80));
       const r = await _apiFetch("GET",
         `/api/projects/${encodeURIComponent(projId)}/evidence/${encodeURIComponent(compoundId)}`
       );
+      console.log('[SMART] FETCH respuesta:', r ? r.status : 'null', r && r.data && { ok: r.data.ok, tieneData: !!(r.data.data) });
       if (!r || r.status !== 200 || !r.data.ok) return null;
       return r.data.data || null;
     },
