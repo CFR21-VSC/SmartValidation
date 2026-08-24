@@ -179,6 +179,16 @@ if USE_PG:
             _pg_local.conn = _PGConn(_pg_pool.getconn())
         return _pg_local.conn  # type: ignore[return-value]
 
+    def release_db() -> None:
+        """Return the current thread's connection to the pool."""
+        conn: "_PGConn | None" = getattr(_pg_local, "conn", None)
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+            _pg_local.conn = None
+
 
 # ─── SQLite adapter (dev / local) ────────────────────────────────────────────
 
@@ -198,3 +208,7 @@ else:
             conn.execute("PRAGMA foreign_keys=ON")
             _sqlite_local.conn = conn
         return _sqlite_local.conn
+
+    def release_db() -> None:  # type: ignore[misc]
+        """No-op for SQLite — connections are reused across requests on the same thread."""
+        pass

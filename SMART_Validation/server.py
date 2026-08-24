@@ -74,6 +74,13 @@ def _get_db():
     return db_adapter.get_db()
 
 
+def _release_db():
+    """Return this thread's DB connection to the pool (PostgreSQL) or no-op (SQLite).
+    Must be called at the end of every request thread to prevent pool exhaustion."""
+    import db_adapter  # noqa: PLC0415
+    db_adapter.release_db()
+
+
 def _db_init():
     """Create tables if they don't exist. Called once at startup."""
     db = _get_db()
@@ -4658,6 +4665,7 @@ class _BoundedServer(ThreadingHTTPServer):
         except Exception:
             self.handle_error(request, client_address)
         finally:
+            _release_db()
             self._semaphore.release()
             self.shutdown_request(request)
 
