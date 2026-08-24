@@ -2138,8 +2138,9 @@ class SyncHandler(BaseHTTPRequestHandler):
                 db.execute("ROLLBACK")
             except Exception:
                 pass
-            print(f"[DB] Error al sincronizar documentos: {e}")
-            return self._send_json(500, {"ok": False, "error": "Error interno al sincronizar documentos."})
+            _err_str = str(e)
+            print(f"[DB] Error al sincronizar documentos: {_err_str}")
+            return self._send_json(500, {"ok": False, "error": "Error interno al sincronizar documentos.", "_debug": _err_str})
         return self._send_json(200, {"ok": True, "docs_synced": len(package_docs), "updated_at": now})
 
     def _api_snapshot_get(self, proj_id, user):
