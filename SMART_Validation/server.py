@@ -402,7 +402,11 @@ _SUPERADMIN_USERNAME = os.environ.get("SUPERADMIN_USERNAME", "").strip().lower()
 _ALERT_EMAIL         = os.environ.get("ALERT_EMAIL", "").strip().lower()
 # URL pública del servidor (Railway/Render/etc). Si se define, el QR del móvil la usa.
 # Ejemplo: PUBLIC_URL=https://smart-validation.up.railway.app
-_PUBLIC_URL = os.environ.get("PUBLIC_URL", "").rstrip("/")
+# Railway inyecta RAILWAY_PUBLIC_DOMAIN automáticamente (ej: smartvalidation-production.up.railway.app)
+_railway_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip()
+_PUBLIC_URL = os.environ.get("PUBLIC_URL", "").rstrip("/") or (
+    f"https://{_railway_domain}" if _railway_domain else ""
+)
 # Sync habilitado siempre — usado tanto en LAN (HTTP) como en cloud (HTTPS con token)
 _SYNC_ENABLED = True
 

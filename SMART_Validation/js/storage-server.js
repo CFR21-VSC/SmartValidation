@@ -88,11 +88,8 @@
             try {
               const ts = (r.data.updated_at || (Date.now() / 1000));
               localStorage.setItem(`_myLastUpload_${projectId}`, String(ts));
-              // En el primer upload (proyecto creado localmente), marcamos _serverSyncFrom_
-              // para que el banner no muestre "hay cambios" con la propia data.
-              if (!localStorage.getItem(`_serverSyncFrom_${projectId}`)) {
-                localStorage.setItem(`_serverSyncFrom_${projectId}`, String(ts));
-              }
+              // Actualizar siempre: el banner "Actualizar" solo aparece cuando OTRO usuario sube cambios.
+              localStorage.setItem(`_serverSyncFrom_${projectId}`, String(ts));
             } catch (_) {}
           }
           return r;
@@ -160,23 +157,25 @@
       return r.data.snapshot || null;
     },
 
-    /** Fire-and-forget: sube una imagen al servidor. */
-    uploadEvidence(compoundId, base64data) {
-      if (!compoundId || !base64data) return;
+    /** Fire-and-forget: sube una imagen al servidor. rawImageId es el ID local (sin prefijo de proyecto). */
+    uploadEvidence(rawImageId, base64data) {
+      if (!rawImageId || !base64data) return;
       const projId = (global.ValidationSuite && global.ValidationSuite.projects &&
                       global.ValidationSuite.projects.getActiveId()) || null;
       if (!projId) return;
+      const compoundId = (projId + "_" + rawImageId).replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 300);
       _apiFetch("POST",
         `/api/projects/${encodeURIComponent(projId)}/evidence/${encodeURIComponent(compoundId)}`,
         { data: base64data }
       ).catch(() => {});
     },
 
-    /** Descarga una imagen de evidencia del servidor como data URL. */
-    async fetchEvidence(compoundId) {
+    /** Descarga una imagen de evidencia del servidor como data URL. rawImageId es el ID local. */
+    async fetchEvidence(rawImageId) {
       const projId = (global.ValidationSuite && global.ValidationSuite.projects &&
                       global.ValidationSuite.projects.getActiveId()) || null;
       if (!projId) return null;
+      const compoundId = (projId + "_" + rawImageId).replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 300);
       const r = await _apiFetch("GET",
         `/api/projects/${encodeURIComponent(projId)}/evidence/${encodeURIComponent(compoundId)}`
       );
@@ -194,28 +193,35 @@
     },
 
     /**
-     * Descarga múltiples imágenes del servidor filtrando por compound IDs.
-     * ids: array de compound IDs. Retorna {compoundId: "data:..." | null}.
+     * Descarga múltiples imágenes del servidor.
+     * rawIds: array de IDs locales (sin prefijo). Retorna {rawId: "data:..." | null}.
      */
-    async fetchEvidenceBatch(ids) {
-      if (!ids || !ids.length) return {};
+    async fetchEvidenceBatch(rawIds) {
+      if (!rawIds || !rawIds.length) return {};
       const projId = (global.ValidationSuite && global.ValidationSuite.projects &&
                       global.ValidationSuite.projects.getActiveId()) || null;
       if (!projId) return {};
       const all = await this.fetchAllEvidence(projId);
       const result = {};
-      for (const id of ids) {
-        result[id] = all[id] || null;
+      for (const rawId of rawIds) {
+        const compoundId = (projId + "_" + rawId).replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 300);
+        result[rawId] = all[compoundId] || null;
       }
       return result;
     },
 
-    /** Sube un lote de imágenes al servidor en chunks de 50. */
-    async bulkUploadEvidence(images) {
-      if (!images || !Object.keys(images).length) return;
+    /** Sube un lote de imágenes al servidor en chunks de 50. rawImages: {rawId: dataUri}. */
+    async bulkUploadEvidence(rawImages) {
+      if (!rawImages || !Object.keys(rawImages).length) return;
       const projId = (global.ValidationSuite && global.ValidationSuite.projects &&
                       global.ValidationSuite.projects.getActiveId()) || null;
       if (!projId) return;
+      // Formar compound IDs con el projId real en el momento del upload
+      const images = {};
+      for (const [rawId, data] of Object.entries(rawImages)) {
+        const compoundId = (projId + "_" + rawId).replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 300);
+        images[compoundId] = data;
+      }
       const entries = Object.entries(images);
       const CHUNK = 50;
       for (let i = 0; i < entries.length; i += CHUNK) {

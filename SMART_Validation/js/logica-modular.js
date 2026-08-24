@@ -87,7 +87,7 @@ function saveImageToDB(id, imageData) {
             resolve();
             // Fire-and-forget: backup al servidor para persistencia multi-sesión
             if (window.VS && window.VS.Storage && window.VS.Storage.isAvailable()) {
-                window.VS.Storage.uploadEvidence(_evidenceCompoundId(id), imageData);
+                window.VS.Storage.uploadEvidence(id, imageData);
             }
         };
         request.onerror = () => reject(request.error);
@@ -112,7 +112,7 @@ async function getImageFromDB(id) {
     // 2. Fallback: intentar recuperar del servidor (otro navegador/máquina guardó esta imagen)
     try {
         if (window.VS && window.VS.Storage && window.VS.Storage.isAvailable()) {
-            const serverData = await window.VS.Storage.fetchEvidence(_evidenceCompoundId(id));
+            const serverData = await window.VS.Storage.fetchEvidence(id);
             if (serverData) {
                 // Cachear en IndexedDB para no volver a pedir al servidor
                 saveImageToDB(id, serverData).catch(() => {});
@@ -319,11 +319,10 @@ async function _bulkSyncImagesToServer(projectId) {
         await _downloadAllEvidenceFromServer(projectId);
         return;
     }
-    // Convertir IDs locales a compound IDs
+    // Pasar IDs locales directamente; bulkUploadEvidence forma los compound IDs con el projId real
     const toUpload = {};
     for (const localId of keys) {
-        const compoundId = _evidenceCompoundId(localId);
-        toUpload[compoundId] = allImages[localId];
+        toUpload[localId] = allImages[localId];
     }
     await window.VS.Storage.bulkUploadEvidence(toUpload).catch(() => {});
     localStorage.setItem(flagKey, '1');
@@ -412,17 +411,14 @@ async function prefetchImagesFromServer(imageIds) {
             r.onsuccess = () => res(r.result ? r.result.data : null);
             r.onerror = () => res(null);
         });
-        if (!local) missing.push(_evidenceCompoundId(id));
+        if (!local) missing.push(id);
     }
     if (!missing.length) return;
+    // fetchEvidenceBatch recibe raw IDs y devuelve {rawId: data}
     const results = await window.VS.Storage.fetchEvidenceBatch(missing).catch(() => ({}));
-    for (const [compoundId, data] of Object.entries(results)) {
+    for (const [rawId, data] of Object.entries(results)) {
         if (!data) continue;
-        // Recuperar ID local desde compound ID
-        const localId = imageIds.find(id => _evidenceCompoundId(id) === compoundId);
-        if (localId) {
-            await saveImageToDB(localId, data).catch(() => {});
-        }
+        await saveImageToDB(rawId, data).catch(() => {});
     }
 }
 
