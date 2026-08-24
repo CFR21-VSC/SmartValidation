@@ -9,6 +9,11 @@
         root.ConfigStore = result.ConfigStore;
         root.APP_VERSION = result.APP_VERSION;
     }
+    // Garantizar exposición en window aunque xlsx/jszip/pdfmake hayan definido `module`
+    if (typeof window !== 'undefined') {
+        window.APP_VERSION = result.APP_VERSION;
+        window.ConfigStore = result.ConfigStore;
+    }
 })(typeof window !== 'undefined' ? window : global, function () {
 
     var APP_VERSION = '1.0.0-beta';

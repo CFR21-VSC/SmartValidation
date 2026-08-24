@@ -271,6 +271,22 @@ def _db_init():
             expires_at   REAL
         );
         CREATE INDEX IF NOT EXISTS idx_sync_sess_exp ON sync_sessions(expires_at);
+
+        CREATE TABLE IF NOT EXISTS test_executions (
+            id           TEXT PRIMARY KEY,
+            project_id   TEXT NOT NULL,
+            test_id      TEXT NOT NULL,
+            status       TEXT,
+            notes        TEXT,
+            observations TEXT,
+            evidence_ids TEXT,
+            finalized    INTEGER DEFAULT 0,
+            executed_by  TEXT,
+            executed_at  REAL,
+            updated_at   REAL,
+            UNIQUE(project_id, test_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_te_proj_upd ON test_executions(project_id, updated_at);
     """)
     db.commit()
     # Migraciones en caliente (idempotentes — ignorar si la columna ya existe)
@@ -361,6 +377,8 @@ _RE_PROJ_PHOTOS   = re.compile(r'^/api/projects/([^/]+)/photos$')
 _RE_PROJ_PHOTO_ID = re.compile(r'^/api/projects/([^/]+)/photos/([^/]+)$')
 _RE_EVIDENCE_BULK = re.compile(r'^/api/projects/([^/]+)/evidence$')
 _RE_EVIDENCE_ONE  = re.compile(r'^/api/projects/([^/]+)/evidence/([^/]+)$')
+_RE_EXECUTIONS    = re.compile(r'^/api/projects/([^/]+)/executions$')
+_RE_EXECUTION_ONE = re.compile(r'^/api/projects/([^/]+)/executions/([^/]+)$')
 _RE_ADMIN_USER_ID = re.compile(r'^/admin/users/([^/]+)$')
 _RE_ADMIN_ACCESS  = re.compile(r'^/admin/users/([^/]+)/access$')
 _RE_ADMIN_ACC_P      = re.compile(r'^/admin/users/([^/]+)/access/([^/]+)$')
@@ -1269,8 +1287,12 @@ class SyncHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return True
 
-        # 4. Rate limit global — /health excluido para Railway healthcheck
-        if path != "/health" and not _rate_limit(_GLOBAL_ATTEMPTS, ip, _MAX_GLOBAL_PER_MIN):
+        # 4. Rate limit global — solo para API/auth, no para assets estáticos.
+        # La SPA carga ~60 JS/CSS en paralelo al abrir; aplicar el límite a estáticos
+        # causa 429 en cascada cuando el bucket de IP es compartido (proxy Railway).
+        _is_api_path = (path.startswith("/api/") or path.startswith("/auth/")
+                        or path.startswith("/ai/") or path.startswith("/admin/"))
+        if _is_api_path and not _rate_limit(_GLOBAL_ATTEMPTS, ip, _MAX_GLOBAL_PER_MIN):
             self.send_response(429)
             self.send_header("Retry-After", "60")
             self.end_headers()
@@ -2136,6 +2158,73 @@ class SyncHandler(BaseHTTPRequestHandler):
 
     _MAX_EVIDENCE_BYTES = 8 * 1024 * 1024   # 8 MB base64 por imagen (~6 MB original)
     _MAX_EVIDENCE_TOTAL = 500 * 1024 * 1024  # 500 MB por proyecto
+
+    # ── Test executions — sync granular por test case ─────────────────────────
+
+    def _api_executions_get(self, proj_id, user):
+        """GET /api/projects/{id}/executions?since={ts}
+        Devuelve solo las ejecuciones actualizadas después de `since` (0 = todas)."""
+        db = _get_db()
+        if not self._assert_project_access(db, user, proj_id):
+            return
+        try:
+            since = float(urlparse(self.path).query.replace("since=", "") or 0)
+        except ValueError:
+            since = 0.0
+        rows = db.execute(
+            "SELECT * FROM test_executions WHERE project_id=? AND updated_at>? ORDER BY updated_at ASC",
+            (proj_id, since)
+        ).fetchall()
+        executions = []
+        for r in rows:
+            e = dict(r)
+            if e.get("evidence_ids"):
+                try:
+                    e["evidence_ids"] = json.loads(e["evidence_ids"])
+                except Exception:
+                    e["evidence_ids"] = []
+            executions.append(e)
+        return self._send_json(200, {"ok": True, "executions": executions, "server_ts": time.time()})
+
+    def _api_execution_upsert(self, proj_id, test_id, user):
+        """POST /api/projects/{id}/executions/{test_id}
+        Guarda el estado de ejecución de un test case. Idempotente."""
+        if not _is_valid_doc_type(test_id):
+            return self._send_json(400, {"ok": False, "error": "test_id inválido"})
+        db = _get_db()
+        if not self._assert_project_access(db, user, proj_id):
+            return
+        data = self._read_json_body()
+        if data is None:
+            return
+        now = time.time()
+        evidence_ids = data.get("evidence_ids") or []
+        finalized = 1 if data.get("finalized") else 0
+        try:
+            db.execute("""
+                INSERT INTO test_executions
+                  (id, project_id, test_id, status, notes, observations,
+                   evidence_ids, finalized, executed_by, executed_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                  status=excluded.status,
+                  notes=excluded.notes,
+                  observations=excluded.observations,
+                  evidence_ids=excluded.evidence_ids,
+                  finalized=excluded.finalized,
+                  executed_by=excluded.executed_by,
+                  executed_at=excluded.executed_at,
+                  updated_at=excluded.updated_at
+            """, (
+                f"{proj_id}_{test_id}", proj_id, test_id,
+                data.get("status"), data.get("notes"), data.get("observations"),
+                json.dumps(evidence_ids), finalized,
+                user.get("u"), data.get("executed_at") or now, now
+            ))
+        except Exception as e:
+            print(f"[DB] Error al guardar ejecución {test_id}: {e}")
+            return self._send_json(500, {"ok": False, "error": "Error al guardar ejecución."})
+        return self._send_json(200, {"ok": True, "updated_at": now})
 
     def _api_evidence_images_get(self, proj_id, user):
         """GET /api/projects/{id}/evidence — todas las imágenes del proyecto."""
@@ -4312,6 +4401,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = re.match(r'^/api/projects/([^/]+)/validation-book$', path)
         if m:
             return self._validation_book_get(m.group(1), user)
+        m = _RE_EXECUTIONS.match(path)
+        if m:
+            return self._api_executions_get(m.group(1), user)
         m = _RE_EVIDENCE_BULK.match(path)
         if m:
             return self._api_evidence_images_get(m.group(1), user)
@@ -4463,6 +4555,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_PROJ_SNAPSHOT.match(path)
         if m:
             return self._api_snapshot_save(m.group(1), user)
+        m = _RE_EXECUTION_ONE.match(path)
+        if m:
+            return self._api_execution_upsert(m.group(1), m.group(2), user)
         m = _RE_EVIDENCE_BULK.match(path)
         if m:
             return self._api_evidence_images_upload(m.group(1), user)

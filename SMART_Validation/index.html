@@ -3975,7 +3975,7 @@
     <script>
         // Inyectar versión en todos los elementos .app-version del DOM
         document.querySelectorAll('.app-version').forEach(function(el) {
-            el.textContent = APP_VERSION;
+            el.textContent = (typeof APP_VERSION !== 'undefined') ? APP_VERSION : '1.0.0-beta';
         });
     </script>
     <script src="js/auth-manager.js"></script>

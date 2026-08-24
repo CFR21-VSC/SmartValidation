@@ -234,6 +234,79 @@ function getAllImagesFromDB() {
  * Se llama una sola vez cuando el servidor está disponible.
  * Usa un flag en localStorage para no repetirlo en cada sesión.
  */
+// ── Sync granular de ejecuciones de tests ────────────────────────────────────
+// Cada test case tiene su propia fila en test_executions → múltiples usuarios
+// pueden editar tests distintos en paralelo sin pisarse (no hay last-write-wins).
+
+let _execPollLastTs = 0;   // timestamp del último poll exitoso
+
+/**
+ * Envía el estado de ejecución de UN test al servidor.
+ * Fire-and-forget — nunca bloquea la UI.
+ */
+async function _syncTestExecution(projId, test) {
+    if (!projId || !test) return;
+    const evidenceIds = (test.evidences || [])
+        .filter(e => !e.isEmpty && (e.hasImage || e.image))
+        .map(e => `${projId}_${test.id}_evidence_${e.step}`);
+    try {
+        await fetch(`/api/projects/${encodeURIComponent(projId)}/executions/${encodeURIComponent(test.id)}`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                status: test.resultado || '',
+                notes: test.conclusion || '',
+                finalized: test.finalized ? 1 : 0,
+                evidence_ids: evidenceIds
+            })
+        });
+    } catch (_) {}
+}
+
+/**
+ * Poll cada 5s — descarga solo los tests actualizados desde la última vez.
+ * Merge no-destructivo: nunca toca el test que el usuario está editando ahora.
+ */
+async function _pollTestExecutions() {
+    const projId = window.ValidationSuite && window.ValidationSuite.projects &&
+                   window.ValidationSuite.projects.getActiveId();
+    if (!projId || !tests || !tests.length) return;
+    try {
+        const r = await fetch(
+            `/api/projects/${encodeURIComponent(projId)}/executions?since=${_execPollLastTs}`,
+            { credentials: 'include' }
+        );
+        if (!r.ok) return;
+        const data = await r.json();
+        if (!data.ok || !data.executions || !data.executions.length) {
+            if (data.server_ts) _execPollLastTs = data.server_ts;
+            return;
+        }
+        let changed = false;
+        for (const exec of data.executions) {
+            const test = tests.find(t => t.id === exec.test_id);
+            if (!test) continue;
+            // No pisar edición activa del usuario local
+            if (test.id === activeTestId) continue;
+            if (exec.status !== undefined && test.resultado !== exec.status) {
+                test.resultado = exec.status;
+                changed = true;
+            }
+            if (exec.notes !== undefined && test.conclusion !== exec.notes) {
+                test.conclusion = exec.notes;
+                changed = true;
+            }
+            if (exec.finalized !== undefined) {
+                const fin = !!exec.finalized;
+                if (test.finalized !== fin) { test.finalized = fin; changed = true; }
+            }
+        }
+        _execPollLastTs = data.server_ts || _execPollLastTs;
+        if (changed && typeof renderTests === 'function') renderTests();
+    } catch (_) {}
+}
+
 async function _bulkSyncImagesToServer(projectId) {
     if (!window.VS || !window.VS.Storage || !window.VS.Storage.isAvailable()) return;
     if (!projectId) return;
@@ -489,6 +562,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // Auto-save cada 30 segundos
     setInterval(saveToStorage, 30000);
+
+    // Poll de ejecuciones: detectar cambios de otros usuarios cada 5s
+    setInterval(_pollTestExecutions, 5000);
 
     // Cross-browser sync: detectar proyectos en el servidor que este browser no tiene activos
     setTimeout(async () => {
@@ -783,6 +859,16 @@ async function saveToStorage() {
         }
 
         updateDesviosBadge();
+
+        // Sync granular: enviar ejecución del test activo al servidor (fire-and-forget)
+        if (activeTestId && window.ValidationSuite && window.ValidationSuite.projects) {
+            const _execProjId = window.ValidationSuite.projects.getActiveId();
+            const _execTest   = tests.find(t => t.id === activeTestId);
+            if (_execProjId && _execTest) {
+                _syncTestExecution(_execProjId, _execTest).catch(() => {});
+            }
+        }
+
         return true;
     } catch (error) {
     // //         console.error('❌ Error guardando datos:', error);
