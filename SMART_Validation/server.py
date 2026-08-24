@@ -252,6 +252,16 @@ def _db_init():
             ip          TEXT
         );
         CREATE INDEX IF NOT EXISTS idx_auth_sess_user ON auth_sessions(username);
+
+        CREATE TABLE IF NOT EXISTS sync_sessions (
+            token        TEXT PRIMARY KEY,
+            session_data TEXT NOT NULL,
+            project_id   TEXT DEFAULT '',
+            created_by   TEXT DEFAULT '',
+            created_at   REAL,
+            expires_at   REAL
+        );
+        CREATE INDEX IF NOT EXISTS idx_sync_sess_exp ON sync_sessions(expires_at);
     """)
     db.commit()
     # Migraciones en caliente (idempotentes — ignorar si la columna ya existe)
@@ -1143,12 +1153,17 @@ def get_local_ip():
 
 
 def cleanup_expired_sessions():
-    """Eliminar sesiones que excedieron el TTL. ADV-17: bajo lock para thread-safety."""
+    """Eliminar sesiones expiradas de memoria y DB."""
     now = time.time()
     with _RATE_LIMIT_LOCK:
         expired = [t for t, s in list(SESSIONS.items()) if now - s["created_at"] > SESSION_TTL]
         for t in expired:
             SESSIONS.pop(t, None)
+    try:
+        db = _get_db()
+        db.execute("DELETE FROM sync_sessions WHERE expires_at<?", (now,))
+    except Exception:
+        pass
 
 
 def _safe_filename(name: str, fallback: str) -> str:
@@ -4070,11 +4085,30 @@ class SyncHandler(BaseHTTPRequestHandler):
             cleanup_expired_sessions()
             sess = SESSIONS.get(token)
             if not sess:
+                # Fallback a DB (sobrevive reinicios del servidor)
+                try:
+                    db = _get_db()
+                    row = db.execute(
+                        "SELECT session_data, created_at FROM sync_sessions WHERE token=? AND expires_at>?",
+                        (token, time.time())
+                    ).fetchone()
+                    if row:
+                        SESSIONS[token] = {
+                            "session_data": json.loads(row["session_data"]),
+                            "project_id": "",
+                            "photos": [],
+                            "created_at": row["created_at"],
+                            "created_by": "restored",
+                        }
+                        sess = SESSIONS[token]
+                except Exception:
+                    pass
+            if not sess:
                 return self._send_json(404, {"error": "Sesion no encontrada o expirada"})
             return self._send_json(200, {
                 "token": token,
                 "session_data": sess["session_data"],
-                "photos_count": len(sess["photos"]),
+                "photos_count": len(sess.get("photos", [])),
                 "created_at": sess["created_at"],
             })
 
@@ -4257,10 +4291,17 @@ class SyncHandler(BaseHTTPRequestHandler):
         if _is_auth_required() and path in ("/", "/index.html"):
             if not _check_auth(self):
                 qs = urlparse(self.path).query
-                next_path = f"/?{qs}" if qs else "/"
-                from urllib.parse import quote as _quote
+                from urllib.parse import parse_qs, quote as _quote
+                params = parse_qs(qs)
+                mobile = params.get("mobile", [""])[0]
+                # Pasar mobile como parámetro propio para evitar ?next=/?mobile=TOKEN
+                # que proxies como traefik pueden cortar en el segundo '?'
+                if mobile:
+                    loc = f"/login.html?mobile={_quote(mobile, safe='')}"
+                else:
+                    loc = "/login.html"
                 self.send_response(302)
-                self.send_header("Location", f"/login.html?next={_quote(next_path, safe='/?=&')}")
+                self.send_header("Location", loc)
                 self.end_headers()
                 return
         return self._serve_static()
@@ -4472,13 +4513,25 @@ class SyncHandler(BaseHTTPRequestHandler):
             cleanup_expired_sessions()
             if len(SESSIONS) >= MAX_SESSIONS:
                 return self._send_json(503, {"error": f"Demasiadas sesiones activas ({MAX_SESSIONS} máx). Intentá más tarde."})
+            now = time.time()
             SESSIONS[token] = {
                 "session_data": session_data,
                 "project_id": safe_project_id,
                 "photos": [],
-                "created_at": time.time(),
+                "created_at": now,
                 "created_by": user.get("u", "unknown"),
             }
+            # Persistir en DB para sobrevivir reinicios del servidor
+            try:
+                db = _get_db()
+                db.execute(
+                    "INSERT INTO sync_sessions (token, session_data, project_id, created_by, created_at, expires_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(token) DO NOTHING",
+                    (token, json.dumps(session_data), safe_project_id,
+                     user.get("u", "unknown"), now, now + SESSION_TTL)
+                )
+            except Exception as _e:
+                print(f"[SYNC] Error persistiendo sesion en DB: {_e}")
             best_ip = get_local_ip()
             all_ips = get_all_local_ips()
             if _PUBLIC_URL:
@@ -4593,13 +4646,15 @@ class SyncHandler(BaseHTTPRequestHandler):
 
         # Mobile sync — no cookie required; bloqueado en producción igual que GET/POST
         if path.startswith("/sync/session/"):
-            if _IS_PROD:
-                return self._send_json(403, {"ok": False, "error": "Sync no disponible en producción"})
             token = path[len("/sync/session/"):]
-            if token in SESSIONS:
-                del SESSIONS[token]
-                return self._send_json(200, {"ok": True})
-            return self._send_json(404, {"error": "Sesion no encontrada"})
+            found = token in SESSIONS
+            SESSIONS.pop(token, None)
+            try:
+                db = _get_db()
+                db.execute("DELETE FROM sync_sessions WHERE token=?", (token,))
+            except Exception:
+                pass
+            return self._send_json(200 if found else 404, {"ok": found})
 
         # ── Verificar autenticación ───────────────────────────────────────────
         user = _check_auth(self)

@@ -209,7 +209,8 @@
 
     <script>
         let _pendingRole = null;
-        const _nextUrl = new URLSearchParams(window.location.search).get('next') || '/';
+        const _mobileToken = new URLSearchParams(window.location.search).get('mobile') || '';
+        const _nextUrl = _mobileToken ? `/?mobile=${encodeURIComponent(_mobileToken)}` : (new URLSearchParams(window.location.search).get('next') || '/');
 
         document.addEventListener('keydown', function(e) {
             if (e.key !== 'Enter') return;
