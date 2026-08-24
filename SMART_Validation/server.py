@@ -4001,7 +4001,9 @@ class SyncHandler(BaseHTTPRequestHandler):
 
         # ── Rutas públicas (sin autenticación) ───────────────────────────────
         if path == "/favicon.ico":
-            return self._serve_static()
+            self.send_response(204)
+            self.end_headers()
+            return
 
         # Assets estáticos — no contienen datos sensibles; la seguridad está
         # en los endpoints /api/ y /auth/. Servirlos sin DB evita pool exhaustion
