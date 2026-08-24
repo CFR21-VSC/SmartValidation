@@ -251,6 +251,19 @@ async function _syncTestExecution(projId, test) {
     const evidenceIds = (test.evidences || [])
         .filter(e => !e.isEmpty && (e.hasImage || e.image))
         .map(e => `${projId}_${test.id}_evidence_${e.step}`);
+    // Serializar metadata de evidencias para que otros navegadores puedan mostrar info completa
+    const evidenceMeta = (test.evidences || [])
+        .filter(e => !e.isEmpty)
+        .map(e => ({
+            step: e.step,
+            description: e.description,
+            resultado: e.resultado,
+            size: e.size,
+            dimensions: e.dimensions,
+            captureTimestamp: e.captureTimestamp,
+            timestamp: e.timestamp,
+            executor: e.executor
+        }));
     try {
         await fetch(`/api/projects/${encodeURIComponent(projId)}/executions/${encodeURIComponent(test.id)}`, {
             method: 'POST',
@@ -260,7 +273,8 @@ async function _syncTestExecution(projId, test) {
                 status: test.resultado || '',
                 notes: test.conclusion || '',
                 finalized: test.finalized ? 1 : 0,
-                evidence_ids: evidenceIds
+                evidence_ids: evidenceIds,
+                observations: JSON.stringify({ evidences: evidenceMeta })
             })
         });
     } catch (_) {}
@@ -304,6 +318,14 @@ async function _pollTestExecutions() {
                 const fin = !!exec.finalized;
                 if (test.finalized !== fin) { test.finalized = fin; changed = true; }
             }
+            // Decodificar metadata de evidencias desde observations (enviado por _syncTestExecution)
+            let remoteEvidenceMeta = null;
+            if (exec.observations) {
+                try {
+                    const obs = JSON.parse(exec.observations);
+                    if (obs && Array.isArray(obs.evidences)) remoteEvidenceMeta = obs.evidences;
+                } catch (_) {}
+            }
             // Merge evidence_ids: marcar slots de evidencia como hasImage para que se carguen las fotos
             if (exec.evidence_ids && Array.isArray(exec.evidence_ids) && exec.evidence_ids.length) {
                 if (!test.evidences) test.evidences = [];
@@ -314,15 +336,31 @@ async function _pollTestExecutions() {
                     const stepMatch = localId.match(/_evidence_(\d+)$/);
                     if (!stepMatch) continue;
                     const step = parseInt(stepMatch[1], 10);
+                    const meta = remoteEvidenceMeta && remoteEvidenceMeta.find(m => m.step === step);
                     let ev = test.evidences.find(e => e.step === step);
                     if (!ev) {
-                        ev = { step, isEmpty: false, hasImage: true };
+                        ev = { step, isEmpty: false, hasImage: true,
+                               description: meta && meta.description || undefined,
+                               resultado: meta && meta.resultado || undefined,
+                               size: meta && meta.size || undefined,
+                               dimensions: meta && meta.dimensions || undefined,
+                               captureTimestamp: meta && meta.captureTimestamp || undefined,
+                               timestamp: meta && meta.timestamp || undefined,
+                               executor: meta && meta.executor || undefined };
                         test.evidences.push(ev);
                         changed = true;
-                    } else if (!ev.hasImage) {
-                        ev.isEmpty = false;
-                        ev.hasImage = true;
-                        changed = true;
+                    } else {
+                        if (!ev.hasImage) { ev.isEmpty = false; ev.hasImage = true; changed = true; }
+                        // Rellenar metadata si aún falta (imagen no descargada localmente)
+                        if (meta && !ev.image) {
+                            if (!ev.description && meta.description) { ev.description = meta.description; changed = true; }
+                            if (!ev.resultado && meta.resultado) { ev.resultado = meta.resultado; changed = true; }
+                            if (!ev.size && meta.size) { ev.size = meta.size; changed = true; }
+                            if (!ev.dimensions && meta.dimensions) { ev.dimensions = meta.dimensions; changed = true; }
+                            if (!ev.captureTimestamp && meta.captureTimestamp) { ev.captureTimestamp = meta.captureTimestamp; changed = true; }
+                            if (!ev.timestamp && meta.timestamp) { ev.timestamp = meta.timestamp; changed = true; }
+                            if (!ev.executor && meta.executor) { ev.executor = meta.executor; changed = true; }
+                        }
                     }
                 }
             }
@@ -6419,6 +6457,30 @@ function renderEvidenceItem(evidence, index, test) {
                     <span>${evidence.rows} filas × ${evidence.cols} columnas</span>
                     <span>⏰ ${formatDateTime24h(evidence.timestamp)}</span>
                     <span>👤 ${evidence.executor || 'N/A'}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    // Evidencia conocida en servidor pero imagen aún no descargada localmente
+    if (!evidence.isEmpty && evidence.hasImage && !evidence.image) {
+        if (!evidence._imgLoading) {
+            evidence._imgLoading = true;
+            const _loadId = `${test.id}_evidence_${evidence.step}`;
+            getImageFromDB(_loadId).then(data => {
+                evidence._imgLoading = false;
+                if (data) { evidence.image = data; if (typeof renderWorkArea === 'function') renderWorkArea(); }
+            }).catch(() => { evidence._imgLoading = false; });
+        }
+        return `
+            <div class="evidence-item">
+                <div class="evidence-header">
+                    <div class="evidence-step">Paso #${stepNumber}</div>
+                </div>
+                <div class="evidence-placeholder" style="background:var(--vsc-gris-claro,#f0f2f5);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:160px;gap:8px;">
+                    <div style="font-size:24px;">⏳</div>
+                    <div style="font-size:13px;color:var(--vsc-azul-medio,#4a6fa5);font-weight:600;">Cargando imagen del servidor…</div>
+                    ${evidence.description && evidence.description !== 'Evidencia pendiente' ? `<div style="font-size:12px;color:var(--vsc-texto,#333)">${evidence.description}</div>` : ''}
                 </div>
             </div>
         `;
