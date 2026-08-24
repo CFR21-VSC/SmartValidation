@@ -10986,7 +10986,9 @@ function checkMobileMode() {
 }
 
 async function initMobileView() {
-    // Ocultar la UI normal
+    // Ocultar splash y suite inmediatamente (antes de cualquier await)
+    const _splash = document.getElementById('splashScreen');
+    if (_splash) _splash.classList.add('splash-removed');
     document.body.style.overflow = 'hidden';
 
     // Inyectar el contenedor movil con su propio CSS
@@ -10995,7 +10997,7 @@ async function initMobileView() {
     overlay.innerHTML = `
         <style>
             #mobileViewOverlay {
-                position: fixed; inset: 0; z-index: 99999;
+                position: fixed; inset: 0; z-index: 100001;
                 background: #F0F2F5; color: #213B50;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 overflow-y: auto; -webkit-overflow-scrolling: touch;
@@ -11131,6 +11133,9 @@ async function initMobileView() {
         </div>
     `;
     document.body.appendChild(overlay);
+    // Remover placeholder de carga inline (index.html lo pone antes de que logica-modular cargue)
+    const _ph = document.getElementById('_mobileLoadingPlaceholder');
+    if (_ph) _ph.remove();
 
     // Cargar sesion del server
     try {

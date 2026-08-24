@@ -413,6 +413,22 @@
     </div>
 
     <script>
+        // Detectar ?mobile=XXX y ocultar splash de inmediato (antes de que cargue el suite)
+        (function () {
+            var mobileToken = new URLSearchParams(window.location.search).get('mobile');
+            if (!mobileToken) return;
+            var splash = document.getElementById('splashScreen');
+            if (splash) splash.classList.add('splash-removed');
+            // Mostrar placeholder mientras logica-modular.js inicializa la vista mobile
+            document.body.style.overflow = 'hidden';
+            var ph = document.createElement('div');
+            ph.id = '_mobileLoadingPlaceholder';
+            ph.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#F0F2F5;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-family:system-ui,sans-serif;';
+            ph.innerHTML = '<div style="width:36px;height:36px;border:3px solid #E8ECF0;border-top-color:#073e8b;border-radius:50%;animation:_mvSpin 0.8s linear infinite;"></div><div style="color:#073e8b;font-size:14px;font-weight:600;">Iniciando captura...</div><style>@keyframes _mvSpin{to{transform:rotate(360deg)}}</style>';
+            document.body.appendChild(ph);
+        })();
+    </script>
+    <script>
         // Detectar ?sigtoken=XXX en la URL y entrar en modo mobile signature
         (function () {
             const params = new URLSearchParams(window.location.search);
