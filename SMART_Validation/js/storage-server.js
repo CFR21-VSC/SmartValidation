@@ -83,7 +83,18 @@
       if (projectName) body.projectName = String(projectName);
       return _apiFetch("POST", `/api/projects/${encodeURIComponent(projectId)}/snapshot`, body)
         .then((r) => {
-          if (r && r.data && r.data.ok) _available = true;
+          if (r && r.data && r.data.ok) {
+            _available = true;
+            try {
+              const ts = (r.data.updated_at || (Date.now() / 1000));
+              localStorage.setItem(`_myLastUpload_${projectId}`, String(ts));
+              // En el primer upload (proyecto creado localmente), marcamos _serverSyncFrom_
+              // para que el banner no muestre "hay cambios" con la propia data.
+              if (!localStorage.getItem(`_serverSyncFrom_${projectId}`)) {
+                localStorage.setItem(`_serverSyncFrom_${projectId}`, String(ts));
+              }
+            } catch (_) {}
+          }
           return r;
         }).catch(() => null);
     },
@@ -149,52 +160,70 @@
       return r.data.snapshot || null;
     },
 
-    /**
-     * Fire-and-forget: sube una imagen de evidencia al servidor para persistencia
-     * entre sesiones y máquinas. compoundId = "{projId}_{imageId}" sanitizado.
-     */
+    /** Fire-and-forget: sube una imagen al servidor. */
     uploadEvidence(compoundId, base64data) {
       if (!compoundId || !base64data) return;
-      _apiFetch("POST", `/api/evidence/${encodeURIComponent(compoundId)}`, {
-        data: base64data,
-      }).catch(() => {});
+      const projId = (global.ValidationSuite && global.ValidationSuite.projects &&
+                      global.ValidationSuite.projects.getActiveId()) || null;
+      if (!projId) return;
+      _apiFetch("POST",
+        `/api/projects/${encodeURIComponent(projId)}/evidence/${encodeURIComponent(compoundId)}`,
+        { data: base64data }
+      ).catch(() => {});
     },
 
     /** Descarga una imagen de evidencia del servidor como data URL. */
     async fetchEvidence(compoundId) {
-      const r = await _apiFetch(
-        "GET",
-        `/api/evidence/${encodeURIComponent(compoundId)}`
+      const projId = (global.ValidationSuite && global.ValidationSuite.projects &&
+                      global.ValidationSuite.projects.getActiveId()) || null;
+      if (!projId) return null;
+      const r = await _apiFetch("GET",
+        `/api/projects/${encodeURIComponent(projId)}/evidence/${encodeURIComponent(compoundId)}`
       );
       if (!r || r.status !== 200 || !r.data.ok) return null;
       return r.data.data || null;
     },
 
-    /**
-     * Descarga múltiples imágenes del servidor en una sola request.
-     * ids: array de compound IDs (máx 500).
-     * Retorna {compoundId: "data:..." | null}.
-     */
-    async fetchEvidenceBatch(ids) {
-      if (!ids || !ids.length) return {};
-      const r = await _apiFetch("POST", "/api/evidence-batch", { ids });
+    /** Descarga TODAS las imágenes de un proyecto del servidor. */
+    async fetchAllEvidence(projectId) {
+      const r = await _apiFetch("GET",
+        `/api/projects/${encodeURIComponent(projectId)}/evidence`
+      );
       if (!r || r.status !== 200 || !r.data.ok) return {};
-      return r.data.results || {};
+      return r.data.images || {};
     },
 
     /**
-     * Sube un lote de imágenes al servidor.
-     * images: {compoundId: "data:image/...", ...}
-     * Envía en chunks de 50 para no saturar la red.
+     * Descarga múltiples imágenes del servidor filtrando por compound IDs.
+     * ids: array de compound IDs. Retorna {compoundId: "data:..." | null}.
      */
+    async fetchEvidenceBatch(ids) {
+      if (!ids || !ids.length) return {};
+      const projId = (global.ValidationSuite && global.ValidationSuite.projects &&
+                      global.ValidationSuite.projects.getActiveId()) || null;
+      if (!projId) return {};
+      const all = await this.fetchAllEvidence(projId);
+      const result = {};
+      for (const id of ids) {
+        result[id] = all[id] || null;
+      }
+      return result;
+    },
+
+    /** Sube un lote de imágenes al servidor en chunks de 50. */
     async bulkUploadEvidence(images) {
       if (!images || !Object.keys(images).length) return;
+      const projId = (global.ValidationSuite && global.ValidationSuite.projects &&
+                      global.ValidationSuite.projects.getActiveId()) || null;
+      if (!projId) return;
       const entries = Object.entries(images);
       const CHUNK = 50;
       for (let i = 0; i < entries.length; i += CHUNK) {
         const chunk = Object.fromEntries(entries.slice(i, i + CHUNK));
-        await _apiFetch("POST", "/api/evidence-batch-upload", { images: chunk })
-          .catch(() => {});
+        await _apiFetch("POST",
+          `/api/projects/${encodeURIComponent(projId)}/evidence`,
+          { images: chunk }
+        ).catch(() => {});
       }
     },
   };

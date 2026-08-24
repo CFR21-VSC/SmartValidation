@@ -291,6 +291,8 @@
         entry.lastOpenedAt = new Date().toISOString();
         const updated = refreshFromSnapshot(entry, snapshot);
         await dbPut(updated);
+        // Registrar cuándo bajamos del server → el banner "hay cambios" compara contra esto
+        try { localStorage.setItem(`_serverSyncFrom_${id}`, String(Date.now() / 1000)); } catch (_) {}
         return updated;
     }
 

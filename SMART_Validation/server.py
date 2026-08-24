@@ -253,6 +253,15 @@ def _db_init():
         );
         CREATE INDEX IF NOT EXISTS idx_auth_sess_user ON auth_sessions(username);
 
+        CREATE TABLE IF NOT EXISTS evidence_images (
+            compound_id  TEXT PRIMARY KEY,
+            project_id   TEXT NOT NULL,
+            data         TEXT NOT NULL,
+            size_bytes   INTEGER DEFAULT 0,
+            updated_at   REAL
+        );
+        CREATE INDEX IF NOT EXISTS idx_ev_img_proj ON evidence_images(project_id);
+
         CREATE TABLE IF NOT EXISTS sync_sessions (
             token        TEXT PRIMARY KEY,
             session_data TEXT NOT NULL,
@@ -281,6 +290,8 @@ def _db_init():
         "ALTER TABLE users ADD COLUMN is_superadmin INTEGER DEFAULT 0",
         # IP del último acceso exitoso — para alertas de login desde nueva ubicación
         "ALTER TABLE users ADD COLUMN last_login_ip TEXT",
+        # Snapshot del estado completo del proyecto (JSON) para restaurar en otros browsers
+        "ALTER TABLE projects ADD COLUMN snapshot_json TEXT",
     ]:
         try:
             db.execute(_migration)
@@ -345,6 +356,8 @@ _RE_SIGNING_ROUND_REV  = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/
 _RE_SIGNING_ROUND_SEAL = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/seal$')
 _RE_PROJ_PHOTOS   = re.compile(r'^/api/projects/([^/]+)/photos$')
 _RE_PROJ_PHOTO_ID = re.compile(r'^/api/projects/([^/]+)/photos/([^/]+)$')
+_RE_EVIDENCE_BULK = re.compile(r'^/api/projects/([^/]+)/evidence$')
+_RE_EVIDENCE_ONE  = re.compile(r'^/api/projects/([^/]+)/evidence/([^/]+)$')
 _RE_ADMIN_USER_ID = re.compile(r'^/admin/users/([^/]+)$')
 _RE_ADMIN_ACCESS  = re.compile(r'^/admin/users/([^/]+)/access$')
 _RE_ADMIN_ACC_P      = re.compile(r'^/admin/users/([^/]+)/access/([^/]+)$')
@@ -2098,7 +2111,7 @@ class SyncHandler(BaseHTTPRequestHandler):
                 pass
             print(f"[DB] Error al sincronizar documentos: {e}")
             return self._send_json(500, {"ok": False, "error": "Error interno al sincronizar documentos."})
-        return self._send_json(200, {"ok": True, "docs_synced": len(package_docs)})
+        return self._send_json(200, {"ok": True, "docs_synced": len(package_docs), "updated_at": now})
 
     def _api_snapshot_get(self, proj_id, user):
         """Devuelve el snapshot almacenado para restaurar IndexedDB en un navegador nuevo."""
@@ -2115,6 +2128,91 @@ class SyncHandler(BaseHTTPRequestHandler):
         except Exception:
             return self._send_json(500, {"ok": False, "error": "Snapshot corrupto"})
         return self._send_json(200, {"ok": True, "snapshot": snapshot})
+
+    # ── Evidence images (persistencia multi-navegador) ────────────────────────
+
+    _MAX_EVIDENCE_BYTES = 8 * 1024 * 1024   # 8 MB base64 por imagen (~6 MB original)
+    _MAX_EVIDENCE_TOTAL = 500 * 1024 * 1024  # 500 MB por proyecto
+
+    def _api_evidence_images_get(self, proj_id, user):
+        """GET /api/projects/{id}/evidence — todas las imágenes del proyecto."""
+        db = _get_db()
+        if not self._assert_project_access(db, user, proj_id):
+            return
+        rows = db.execute(
+            "SELECT compound_id, data FROM evidence_images WHERE project_id=?", (proj_id,)
+        ).fetchall()
+        images = {r["compound_id"]: r["data"] for r in rows}
+        return self._send_json(200, {"ok": True, "images": images})
+
+    def _api_evidence_image_get(self, proj_id, compound_id, user):
+        """GET /api/projects/{id}/evidence/{compound_id} — una imagen."""
+        db = _get_db()
+        if not self._assert_project_access(db, user, proj_id):
+            return
+        row = db.execute(
+            "SELECT data FROM evidence_images WHERE compound_id=? AND project_id=?",
+            (compound_id, proj_id)
+        ).fetchone()
+        if not row:
+            return self._send_json(404, {"ok": False, "error": "Imagen no encontrada"})
+        return self._send_json(200, {"ok": True, "compound_id": compound_id, "data": row["data"]})
+
+    def _api_evidence_images_upload(self, proj_id, user):
+        """POST /api/projects/{id}/evidence — subida masiva {images: {cid: dataUri}}."""
+        db = _get_db()
+        if not self._assert_project_access(db, user, proj_id):
+            return
+        body = self._read_json_body()
+        if body is None:
+            return
+        images = body.get("images") or {}
+        if not isinstance(images, dict):
+            return self._send_json(400, {"ok": False, "error": "images debe ser un objeto"})
+        now = time.time()
+        saved = 0
+        for cid, data in list(images.items())[:500]:  # cap 500 imágenes por llamada
+            if not isinstance(data, str) or not data.startswith("data:"):
+                continue
+            if len(data) > self._MAX_EVIDENCE_BYTES:
+                continue
+            size = len(data)
+            try:
+                db.execute(
+                    "INSERT INTO evidence_images (compound_id, project_id, data, size_bytes, updated_at) "
+                    "VALUES (?, ?, ?, ?, ?) ON CONFLICT(compound_id) DO UPDATE SET "
+                    "data=excluded.data, size_bytes=excluded.size_bytes, updated_at=excluded.updated_at",
+                    (str(cid)[:300], proj_id, data, size, now)
+                )
+                saved += 1
+            except Exception:
+                pass
+        return self._send_json(200, {"ok": True, "saved": saved})
+
+    def _api_evidence_image_upload(self, proj_id, compound_id, user):
+        """POST /api/projects/{id}/evidence/{compound_id} — subida individual."""
+        db = _get_db()
+        if not self._assert_project_access(db, user, proj_id):
+            return
+        body = self._read_json_body()
+        if body is None:
+            return
+        data = body.get("data", "")
+        if not isinstance(data, str) or not data.startswith("data:"):
+            return self._send_json(400, {"ok": False, "error": "data URI inválida"})
+        if len(data) > self._MAX_EVIDENCE_BYTES:
+            return self._send_json(413, {"ok": False, "error": "Imagen demasiado grande (máx 8 MB)"})
+        now = time.time()
+        try:
+            db.execute(
+                "INSERT INTO evidence_images (compound_id, project_id, data, size_bytes, updated_at) "
+                "VALUES (?, ?, ?, ?, ?) ON CONFLICT(compound_id) DO UPDATE SET "
+                "data=excluded.data, size_bytes=excluded.size_bytes, updated_at=excluded.updated_at",
+                (str(compound_id)[:300], proj_id, data, len(data), now)
+            )
+        except Exception as e:
+            return self._send_json(500, {"ok": False, "error": str(e)})
+        return self._send_json(200, {"ok": True})
 
     def _api_evidence_save(self, compound_id, user):
         """Guarda una imagen de evidencia en el filesystem del servidor."""
@@ -4210,6 +4308,12 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = re.match(r'^/api/projects/([^/]+)/validation-book$', path)
         if m:
             return self._validation_book_get(m.group(1), user)
+        m = _RE_EVIDENCE_BULK.match(path)
+        if m:
+            return self._api_evidence_images_get(m.group(1), user)
+        m = _RE_EVIDENCE_ONE.match(path)
+        if m:
+            return self._api_evidence_image_get(m.group(1), m.group(2), user)
         m = _RE_PROJ_PHOTOS.match(path)
         if m:
             return self._api_photos_list(m.group(1), user)
@@ -4355,6 +4459,12 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_PROJ_SNAPSHOT.match(path)
         if m:
             return self._api_snapshot_save(m.group(1), user)
+        m = _RE_EVIDENCE_BULK.match(path)
+        if m:
+            return self._api_evidence_images_upload(m.group(1), user)
+        m = _RE_EVIDENCE_ONE.match(path)
+        if m:
+            return self._api_evidence_image_upload(m.group(1), m.group(2), user)
         m = _RE_ANALYTICS.match(path)
         if m:
             return self._proxy_analytics(m.group(1) or "/", user)
@@ -4537,7 +4647,24 @@ class SyncHandler(BaseHTTPRequestHandler):
             if _PUBLIC_URL:
                 url_movil = f"{_PUBLIC_URL}?mobile={token}"
             else:
-                url_movil = f"http://{best_ip}:{self.server.server_port}?mobile={token}"
+                # Auto-detectar URL pública desde headers que Railway/Render inyectan
+                fwd_host  = self.headers.get("X-Forwarded-Host", "").strip()
+                fwd_proto = self.headers.get("X-Forwarded-Proto", "").strip()
+                req_host  = self.headers.get("Host", "").strip()
+                pub_host  = fwd_host or req_host
+                # Solo usar si NO es localhost / IP privada
+                import re as _re
+                def _is_private(h):
+                    h = h.split(":")[0]  # quitar puerto si viene incluido
+                    if not h or h == "localhost": return True
+                    return bool(_re.match(
+                        r'^(10\.|127\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|0\.)', h
+                    ))
+                if pub_host and not _is_private(pub_host):
+                    proto = fwd_proto or "https"
+                    url_movil = f"{proto}://{pub_host}?mobile={token}"
+                else:
+                    url_movil = f"http://{best_ip}:{self.server.server_port}?mobile={token}"
             return self._send_json(200, {
                 "ok": True,
                 "token": token,

@@ -242,7 +242,8 @@ async function _bulkSyncImagesToServer(projectId) {
     const allImages = await getAllImagesFromDB();
     const keys = Object.keys(allImages);
     if (!keys.length) {
-        localStorage.setItem(flagKey, '1');
+        // Sin imágenes locales: intentar descargar del servidor (proyecto cargado de otro browser)
+        await _downloadAllEvidenceFromServer(projectId);
         return;
     }
     // Convertir IDs locales a compound IDs
@@ -254,6 +255,72 @@ async function _bulkSyncImagesToServer(projectId) {
     await window.VS.Storage.bulkUploadEvidence(toUpload).catch(() => {});
     localStorage.setItem(flagKey, '1');
     console.log(`[BulkSync] ${keys.length} imágenes sincronizadas al servidor`);
+}
+
+/**
+ * Sincronización incremental de imágenes: baja del servidor solo las que
+ * no están en IndexedDB local. Se ejecuta en cada inicio, sin flag de bloqueo.
+ */
+async function _syncImagesFromServer(projectId) {
+    if (!window.VS || !window.VS.Storage || !window.VS.Storage.isAvailable()) return;
+    if (!projectId) return;
+    try {
+        const serverImages = await window.VS.Storage.fetchAllEvidence(projectId);
+        if (!serverImages || !Object.keys(serverImages).length) return;
+        const projPrefix = projectId.replace(/[^a-zA-Z0-9_-]/g, '_') + '_';
+        let downloaded = 0;
+        for (const [compoundId, data] of Object.entries(serverImages)) {
+            if (!data) continue;
+            const localId = compoundId.startsWith(projPrefix)
+                ? compoundId.slice(projPrefix.length)
+                : compoundId;
+            const exists = await new Promise(res => {
+                if (!db) { res(false); return; }
+                const req = db.transaction([IMAGES_STORE], 'readonly')
+                    .objectStore(IMAGES_STORE).get(localId);
+                req.onsuccess = () => res(!!req.result);
+                req.onerror   = () => res(false);
+            });
+            if (!exists) {
+                await saveImageToDB(localId, data).catch(() => {});
+                downloaded++;
+            }
+        }
+        if (downloaded > 0)
+            console.log(`[SyncImages] ${downloaded} imágenes nuevas descargadas del servidor`);
+    } catch (e) {
+        console.warn('[SyncImages] Error:', e);
+    }
+}
+
+/**
+ * Descarga todas las imágenes de evidencia de un proyecto desde el servidor
+ * y las guarda en IndexedDB local. Se llama al cargar un proyecto de otro browser.
+ */
+async function _downloadAllEvidenceFromServer(projectId) {
+    if (!window.VS || !window.VS.Storage || !window.VS.Storage.isAvailable()) return;
+    if (!projectId) return;
+    try {
+        const images = await window.VS.Storage.fetchAllEvidence(projectId);
+        if (!images || !Object.keys(images).length) return;
+        const projSanitized = projectId.replace(/[^a-zA-Z0-9_-]/g, '_');
+        const projPrefix = projSanitized + '_';
+        let count = 0;
+        for (const [compoundId, data] of Object.entries(images)) {
+            if (!data) continue;
+            const localId = compoundId.startsWith(projPrefix)
+                ? compoundId.slice(projPrefix.length)
+                : compoundId;
+            await saveImageToDB(localId, data).catch(() => {});
+            count++;
+        }
+        if (count > 0) {
+            localStorage.setItem(`_imgSynced_${projectId}`, '1');
+            console.log(`[DownloadEvidence] ${count} imágenes descargadas del servidor`);
+        }
+    } catch (e) {
+        console.warn('[DownloadEvidence] Error:', e);
+    }
 }
 
 /**
@@ -397,7 +464,12 @@ document.addEventListener('DOMContentLoaded', async function () {
         try {
             const projId = window.VS && window.VS.projects && window.VS.projects.getActiveId
                 ? window.VS.projects.getActiveId() : null;
-            if (projId) await _bulkSyncImagesToServer(projId);
+            if (projId) {
+                // Subir imágenes locales al server (one-time, gated por _imgSynced_)
+                await _bulkSyncImagesToServer(projId);
+                // Bajar del server imágenes que falten localmente (siempre, incremental)
+                await _syncImagesFromServer(projId);
+            }
         } catch (_) {}
     }, 3000);
 
@@ -431,7 +503,42 @@ document.addEventListener('DOMContentLoaded', async function () {
             // Si el browser está en el demo o sin proyecto, o tiene un proyecto distinto al más reciente del servidor
             real.sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0));
             const newest = real[0];
-            if (localId && localId !== DEMO_ID && localId === newest.id) return; // ya lo tiene
+            if (localId && localId !== DEMO_ID && localId === newest.id) {
+                // Mismo proyecto — ver si el server tiene versión más nueva.
+                // _serverSyncFrom_ solo se actualiza cuando BAJAMOS del server (no al subir),
+                // así que un upload propio no confunde la comparación.
+                const lastSyncFrom = parseFloat(localStorage.getItem(`_serverSyncFrom_${localId}`)) || 0;
+                const serverUpdated = newest.updated_at || 0;
+                if (serverUpdated > lastSyncFrom + 5) {  // 5s de tolerancia
+                    // Descargar imágenes nuevas en background sin recargar
+                    _syncImagesFromServer(localId)
+                        .then(() => localStorage.setItem(`_serverSyncFrom_${localId}`, String(serverUpdated)))
+                        .catch(() => {});
+                    // Banner para recargar el snapshot completo (datos de tests, evidencias)
+                    if (!document.getElementById('_serverUpdateBanner')) {
+                        const ub = document.createElement('div');
+                        ub.id = '_serverUpdateBanner';
+                        ub.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1A3550;color:#fff;padding:12px 20px;border-radius:8px;display:flex;align-items:center;gap:14px;z-index:99990;box-shadow:0 4px 16px rgba(0,0,0,.35);font-size:13px;max-width:92vw;';
+                        ub.innerHTML = `<span>Hay cambios nuevos del proyecto en el servidor.</span>
+                            <button id="_btnReloadUpdate" style="background:#3D8FD1;color:#fff;border:none;border-radius:5px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">🔄 Actualizar</button>
+                            <button id="_btnDismissUpdate" style="background:none;border:none;color:#9CB8CC;font-size:16px;cursor:pointer;line-height:1;padding:0 4px;">✕</button>`;
+                        document.body.appendChild(ub);
+                        document.getElementById('_btnDismissUpdate').onclick = () => ub.remove();
+                        document.getElementById('_btnReloadUpdate').onclick = async () => {
+                            ub.querySelector('#_btnReloadUpdate').textContent = 'Actualizando…';
+                            ub.querySelector('#_btnReloadUpdate').disabled = true;
+                            try {
+                                await window.ValidationSuite.projects.switchTo(localId);
+                                _downloadAllEvidenceFromServer(localId).catch(() => {});
+                            } catch (e) {
+                                alert('Error al actualizar: ' + e.message);
+                                ub.remove();
+                            }
+                        };
+                    }
+                }
+                return;
+            }
             // Mostrar banner persistente
             const banner = document.createElement('div');
             banner.id = '_serverSyncBanner';
@@ -446,6 +553,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                 banner.querySelector('#_btnLoadServer').disabled = true;
                 try {
                     await window.ValidationSuite.projects.switchTo(newest.id);
+                    // Descargar imágenes de evidencia del servidor a IndexedDB local
+                    _downloadAllEvidenceFromServer(newest.id).catch(() => {});
                 } catch (e) {
                     alert('Error al cargar el proyecto: ' + e.message);
                     banner.remove();
