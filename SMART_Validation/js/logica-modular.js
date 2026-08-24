@@ -10356,23 +10356,6 @@ async function startMobileCapture() {
         return;
     }
 
-    // En producción (HTTPS / Railway): el celular puede acceder directo al servidor.
-    // No se necesita sync LAN. Mostrar QR con la URL pública y un mensaje explicativo.
-    if (window.location.protocol === 'https:') {
-        const prodUrl = window.location.origin;
-        document.getElementById('mobileQrUrl').textContent = prodUrl;
-        const tokenEl = document.getElementById('mobileSessionToken');
-        if (tokenEl) tokenEl.textContent = 'acceso directo';
-        document.getElementById('mobilePhotosCount').textContent = '—';
-        document.getElementById('mobileStatusText').textContent =
-            'Modo cloud: escaneá el QR con el celular, iniciá sesión y cargá fotos normalmente. Las imágenes quedan guardadas en el servidor y aparecen al recargar.';
-        renderMobileQr(prodUrl);
-        const ipSel = document.getElementById('mobileIpSelectorContainer');
-        if (ipSel) ipSel.style.display = 'none';
-        showModal('modalMobileCapture');
-        return;
-    }
-
     // Verificar que el server esta corriendo (debe responder a /sync/info)
     try {
         const infoResp = await fetch('/sync/info');

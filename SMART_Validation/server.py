@@ -359,8 +359,8 @@ _ALERT_EMAIL         = os.environ.get("ALERT_EMAIL", "").strip().lower()
 # URL pública del servidor (Railway/Render/etc). Si se define, el QR del móvil la usa.
 # Ejemplo: PUBLIC_URL=https://smart-validation.up.railway.app
 _PUBLIC_URL = os.environ.get("PUBLIC_URL", "").rstrip("/")
-# C-4: sync habilitado en dev siempre; en prod solo si SYNC_ENABLED=true
-_SYNC_ENABLED = not _IS_PROD or os.environ.get("SYNC_ENABLED", "").lower() == "true"
+# Sync habilitado siempre — usado tanto en LAN (HTTP) como en cloud (HTTPS con token)
+_SYNC_ENABLED = True
 
 # VULN-08: clave HMAC para hashes del audit trail (Validation Book)
 # Usar AUDIT_HMAC_KEY dedicada o caer en AUTH_SECRET_KEY como mínimo.
@@ -4256,8 +4256,11 @@ class SyncHandler(BaseHTTPRequestHandler):
         # las llamadas API fallan con 401 (el login modal de IndexedDB no sirve cookies).
         if _is_auth_required() and path in ("/", "/index.html"):
             if not _check_auth(self):
+                qs = urlparse(self.path).query
+                next_path = f"/?{qs}" if qs else "/"
+                from urllib.parse import quote as _quote
                 self.send_response(302)
-                self.send_header("Location", "/login.html")
+                self.send_header("Location", f"/login.html?next={_quote(next_path, safe='/?=&')}")
                 self.end_headers()
                 return
         return self._serve_static()
