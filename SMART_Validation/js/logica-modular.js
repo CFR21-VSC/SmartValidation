@@ -329,21 +329,25 @@ async function _pollTestExecutions() {
         }
         _execPollLastTs = data.server_ts || _execPollLastTs;
         if (changed) {
-            // Cargar imágenes de los slots recién descubiertos antes de re-renderizar
-            const imgLoads = [];
-            for (const t of tests) {
-                for (const ev of (t.evidences || [])) {
-                    if (ev.hasImage && !ev.image && !ev.isEmpty) {
-                        const imgId = `${t.id}_evidence_${ev.step}`;
-                        imgLoads.push(
-                            getImageFromDB(imgId).then(d => { if (d) ev.image = d; }).catch(() => {})
-                        );
+            // Actualizar sidebar (badges de estado) sin interrumpir la edición activa
+            if (typeof renderTests === 'function') renderTests();
+            // Cargar imágenes en background para el test activo (si fue afectado)
+            if (activeTestId) {
+                const activeTest = tests.find(t => t.id === activeTestId);
+                if (activeTest) {
+                    const missingImgs = (activeTest.evidences || []).filter(ev =>
+                        ev.hasImage && !ev.image && !ev.isEmpty
+                    );
+                    if (missingImgs.length) {
+                        Promise.all(missingImgs.map(ev =>
+                            getImageFromDB(`${activeTest.id}_evidence_${ev.step}`)
+                                .then(d => { if (d) ev.image = d; }).catch(() => {})
+                        )).then(() => {
+                            if (typeof renderWorkArea === 'function') renderWorkArea();
+                        });
                     }
                 }
             }
-            if (imgLoads.length) await Promise.all(imgLoads);
-            if (typeof renderWorkArea === 'function') renderWorkArea();
-            else if (typeof renderTests === 'function') renderTests();
         }
     } catch (_) {}
 }
@@ -10113,6 +10117,45 @@ async function confirmBackupAndClose(downloadBackup) {
 }
 
 /**
+ * Borrar SOLO las imágenes (R2 + IndexedDB) sin tocar tests ni proyecto.
+ * Pone todos los slots de evidencia en isEmpty=true para que se puedan recargar.
+ */
+async function clearEvidenceImagesOnly() {
+    const projId = window.ValidationSuite && window.ValidationSuite.projects &&
+                   window.ValidationSuite.projects.getActiveId();
+    if (!projId) { showNotification('No hay proyecto activo', 'error'); return; }
+
+    if (!await drpConfirm(
+        'Se borrarán TODAS las imágenes de evidencia del servidor (R2) y de este navegador.\n' +
+        'Los tests, conclusiones y resultados NO se borran.\n' +
+        'Las imágenes deberán volver a cargarse.',
+        'Borrar imágenes del servidor', 'danger'
+    )) return;
+
+    showNotification('Borrando imágenes del servidor…', 'info');
+
+    // 1. Borrar de R2 + evidence_images + test_executions en el servidor
+    if (window.VS && window.VS.Storage) {
+        await window.VS.Storage.deleteAllEvidence(projId).catch(() => {});
+    }
+
+    // 2. Borrar de IndexedDB local
+    if (db) await clearAllImagesFromDB().catch(() => {});
+
+    // 3. Vaciar las imágenes en memoria (sin borrar la estructura de evidencias)
+    for (const test of (tests || [])) {
+        for (const ev of (test.evidences || [])) {
+            ev.image = null;
+            ev.hasImage = false;
+        }
+    }
+
+    renderWorkArea();
+    renderTests();
+    showNotification('Imágenes borradas. Podés volver a cargar fotos.', 'success');
+}
+
+/**
  * Confirmar limpieza de cache
  */
 async function confirmClearCache(downloadBackup) {
@@ -10140,15 +10183,6 @@ async function confirmClearCache(downloadBackup) {
         if (db) {
             await clearAllImagesFromDB();
         }
-
-        // 2b. Borrar imágenes del servidor (R2 + DB) para el proyecto activo
-        try {
-            const _ccProjId = window.ValidationSuite && window.ValidationSuite.projects &&
-                               window.ValidationSuite.projects.getActiveId();
-            if (_ccProjId && window.VS && window.VS.Storage) {
-                await window.VS.Storage.deleteAllEvidence(_ccProjId);
-            }
-        } catch (_) {}
 
         // 3. Resetear variables globales del sistema
         protocols = [];
