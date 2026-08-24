@@ -1813,7 +1813,7 @@ class SyncHandler(BaseHTTPRequestHandler):
                       (id, project_id, doc_type, version, status, json_data,
                        created_by, created_at, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(project_id, doc_type) DO UPDATE SET
+                    ON CONFLICT(id) DO UPDATE SET
                       json_data=excluded.json_data,
                       status=excluded.status,
                       updated_at=excluded.updated_at
@@ -1964,11 +1964,11 @@ class SyncHandler(BaseHTTPRequestHandler):
                     INSERT INTO documents
                         (id, project_id, doc_type, version, status, json_data, created_by, created_at, updated_at)
                     VALUES (?, ?, ?, 1, 'draft', ?, ?, ?, ?)
-                    ON CONFLICT(project_id, doc_type) DO UPDATE SET
+                    ON CONFLICT(id) DO UPDATE SET
                         json_data=excluded.json_data,
                         updated_at=excluded.updated_at,
                         version=version+1
-                """, (str(uuid.uuid4()), proj_id, doc_type, json.dumps(json_data, ensure_ascii=False),
+                """, (f"{proj_id}_{doc_type}", proj_id, doc_type, json.dumps(json_data, ensure_ascii=False),
                       user.get("u"), now, now))
                 results.append({"filename": fname, "ok": True, "doc_type": doc_type})
             except Exception as exc:
@@ -2111,7 +2111,7 @@ class SyncHandler(BaseHTTPRequestHandler):
                       (id, project_id, doc_type, version, status, json_data,
                        created_by, created_at, updated_at)
                     VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?)
-                    ON CONFLICT(project_id, doc_type) DO UPDATE SET
+                    ON CONFLICT(id) DO UPDATE SET
                       json_data=excluded.json_data, status=excluded.status,
                       updated_at=excluded.updated_at
                 """, (
