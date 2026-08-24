@@ -77,13 +77,32 @@ if USE_PG:
             sql, _had_ignore = _adapt_dml(sql)
             sql = sql.replace("?", "%s")
             self._cur.execute(sql, params or ())
-            # Capture last inserted serial id for callers that use cur.lastrowid
+            # Capture last inserted serial id for callers that use cur.lastrowid.
+            # lastval() only works when the INSERT involved a sequence (BIGSERIAL PK).
+            # TEXT PK tables have no sequence → lastval() raises "no sequence yet".
+            # Inside an explicit transaction that failure aborts the whole txn, so
+            # we isolate the probe with a SAVEPOINT when inside a transaction.
             if sql.lstrip().upper().startswith("INSERT") and not _had_ignore:
+                conn = self._cur.connection
                 try:
-                    probe = self._cur.connection.cursor()
-                    probe.execute("SELECT lastval()")
-                    row = probe.fetchone()
-                    self.lastrowid = row[0] if row else None
+                    in_txn = conn.status == psycopg2.extensions.STATUS_IN_TRANSACTION
+                    probe = conn.cursor()
+                    if in_txn:
+                        probe.execute("SAVEPOINT _lastval_probe")
+                    try:
+                        probe.execute("SELECT lastval()")
+                        row = probe.fetchone()
+                        self.lastrowid = row[0] if row else None
+                        if in_txn:
+                            probe.execute("RELEASE SAVEPOINT _lastval_probe")
+                    except Exception:
+                        self.lastrowid = None
+                        if in_txn:
+                            try:
+                                probe.execute("ROLLBACK TO SAVEPOINT _lastval_probe")
+                                probe.execute("RELEASE SAVEPOINT _lastval_probe")
+                            except Exception:
+                                pass
                     probe.close()
                 except Exception:
                     self.lastrowid = None
