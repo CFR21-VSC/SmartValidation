@@ -360,14 +360,25 @@ async function _pollTestExecutions() {
                         changed = true;
                     } else {
                         if (!ev.hasImage) { ev.isEmpty = false; ev.hasImage = true; changed = true; }
-                        if (meta && !ev.image) {
-                            if (!ev.description && meta.description) { ev.description = meta.description; changed = true; }
-                            if (!ev.resultado && meta.resultado) { ev.resultado = meta.resultado; changed = true; }
-                            if (!ev.size && meta.size) { ev.size = meta.size; changed = true; }
-                            if (!ev.dimensions && meta.dimensions) { ev.dimensions = meta.dimensions; changed = true; }
-                            if (!ev.captureTimestamp && meta.captureTimestamp) { ev.captureTimestamp = meta.captureTimestamp; changed = true; }
-                            if (!ev.timestamp && meta.timestamp) { ev.timestamp = meta.timestamp; changed = true; }
-                            if (!ev.executor && meta.executor) { ev.executor = meta.executor; changed = true; }
+                        if (meta) {
+                            // Si el captureTimestamp cambió → imagen reemplazada → invalidar cache local
+                            if (meta.captureTimestamp && ev.captureTimestamp && meta.captureTimestamp !== ev.captureTimestamp && ev.image) {
+                                const _staleId = `${test.id}_evidence_${ev.step}`;
+                                ev.image = null;
+                                ev._imgLoading = false;
+                                ev._imgFailed = false;
+                                deleteImageFromDB(_staleId).catch(() => {});
+                                changed = true;
+                            }
+                            // Sobreescribir metadata con valores reales del servidor
+                            const _defDesc = ['Evidencia pendiente', ''];
+                            if (meta.description && (_defDesc.includes(ev.description || '') || meta.description !== ev.description)) { ev.description = meta.description; changed = true; }
+                            if (meta.resultado && meta.resultado !== ev.resultado) { ev.resultado = meta.resultado; changed = true; }
+                            if (meta.size && meta.size !== ev.size) { ev.size = meta.size; changed = true; }
+                            if (meta.dimensions && meta.dimensions !== ev.dimensions) { ev.dimensions = meta.dimensions; changed = true; }
+                            if (meta.captureTimestamp && meta.captureTimestamp !== ev.captureTimestamp) { ev.captureTimestamp = meta.captureTimestamp; changed = true; }
+                            if (meta.timestamp && meta.timestamp !== ev.timestamp) { ev.timestamp = meta.timestamp; changed = true; }
+                            if (meta.executor && meta.executor !== ev.executor) { ev.executor = meta.executor; changed = true; }
                         }
                     }
                 }
