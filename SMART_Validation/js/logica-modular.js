@@ -6464,13 +6464,39 @@ function renderEvidenceItem(evidence, index, test) {
 
     // Evidencia conocida en servidor pero imagen aún no descargada localmente
     if (!evidence.isEmpty && evidence.hasImage && !evidence.image) {
+        if (evidence._imgFailed) {
+            // Fetch ya intentado y falló — mostrar estado degradado con botón reintentar
+            return `
+                <div class="evidence-item">
+                    <div class="evidence-header">
+                        <div class="evidence-step">Paso #${stepNumber}</div>
+                    </div>
+                    <div class="evidence-placeholder" style="background:var(--vsc-gris-claro,#f0f2f5);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:140px;gap:8px;">
+                        <div style="font-size:22px;">🔄</div>
+                        <div style="font-size:13px;color:var(--vsc-azul-medio,#4a6fa5);font-weight:600;">Imagen aún no disponible en servidor</div>
+                        ${evidence.description && evidence.description !== 'Evidencia pendiente' ? `<div style="font-size:12px;color:var(--vsc-texto,#555)">${evidence.description}</div>` : ''}
+                        <button onclick="(function(){var ev=tests.find(t=>t.id==='${test.id}')&&tests.find(t=>t.id==='${test.id}').evidences.find(e=>e.step===${evidence.step});if(ev){ev._imgFailed=false;ev._imgLoading=false;}renderWorkArea();})()" style="margin-top:4px;font-size:11px;padding:4px 10px;cursor:pointer;">Reintentar</button>
+                    </div>
+                </div>
+            `;
+        }
         if (!evidence._imgLoading) {
             evidence._imgLoading = true;
             const _loadId = `${test.id}_evidence_${evidence.step}`;
             getImageFromDB(_loadId).then(data => {
                 evidence._imgLoading = false;
-                if (data) { evidence.image = data; if (typeof renderWorkArea === 'function') renderWorkArea(); }
-            }).catch(() => { evidence._imgLoading = false; });
+                if (data) {
+                    evidence.image = data;
+                    if (typeof renderWorkArea === 'function') renderWorkArea();
+                } else {
+                    evidence._imgFailed = true;
+                    if (typeof renderWorkArea === 'function') renderWorkArea();
+                }
+            }).catch(() => {
+                evidence._imgLoading = false;
+                evidence._imgFailed = true;
+                if (typeof renderWorkArea === 'function') renderWorkArea();
+            });
         }
         return `
             <div class="evidence-item">
