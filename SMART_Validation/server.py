@@ -292,6 +292,9 @@ def _db_init():
         "ALTER TABLE users ADD COLUMN last_login_ip TEXT",
         # Snapshot del estado completo del proyecto (JSON) para restaurar en otros browsers
         "ALTER TABLE projects ADD COLUMN snapshot_json TEXT",
+        # UNIQUE index en documents(project_id, doc_type) — puede faltar si la tabla
+        # se creó antes de que el constraint apareciera en el DDL. Idempotente.
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_doc_proj_type ON documents(project_id, doc_type)",
     ]:
         try:
             db.execute(_migration)
@@ -2601,7 +2604,7 @@ class SyncHandler(BaseHTTPRequestHandler):
                   (id, project_id, doc_type, version, status, json_data,
                    created_by, created_at, updated_at)
                 VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?)
-                ON CONFLICT(project_id, doc_type) DO UPDATE SET
+                ON CONFLICT(id) DO UPDATE SET
                   json_data=excluded.json_data,
                   status=COALESCE(excluded.status, status),
                   updated_at=excluded.updated_at
@@ -2628,12 +2631,13 @@ class SyncHandler(BaseHTTPRequestHandler):
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (proj_id, doc_type, user.get("u"), doc_action, detail, self._get_client_ip(), now))
             db.execute("COMMIT")
-        except Exception:
+        except Exception as e:
             try:
                 db.execute("ROLLBACK")
             except Exception:
                 pass
-            raise
+            print(f"[DB] Error al guardar documento {doc_type}: {e}")
+            return self._send_json(500, {"ok": False, "error": "Error interno al guardar documento."})
         return self._send_json(200, {"ok": True, "id": f"{proj_id}_{doc_type}"})
 
     def _api_doc_delete(self, proj_id, doc_type, user):
