@@ -50,7 +50,7 @@ if USE_PG:
     def _ensure_pool() -> None:
         global _pg_pool
         if _pg_pool is None:
-            _pg_pool = psycopg2.pool.ThreadedConnectionPool(2, 20, DATABASE_URL)
+            _pg_pool = psycopg2.pool.ThreadedConnectionPool(4, 50, DATABASE_URL)
 
     # ── DML pattern translations (SQLite-only syntax → PostgreSQL) ───────────────
     _OR_IGNORE_RE   = re.compile(r'\bINSERT\s+OR\s+IGNORE\b',   re.IGNORECASE)

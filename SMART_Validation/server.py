@@ -4003,6 +4003,13 @@ class SyncHandler(BaseHTTPRequestHandler):
         if path == "/favicon.ico":
             return self._serve_static()
 
+        # Assets estáticos — no contienen datos sensibles; la seguridad está
+        # en los endpoints /api/ y /auth/. Servirlos sin DB evita pool exhaustion
+        # cuando el browser lanza ~70 requests simultáneos al cargar la página.
+        _STATIC_PREFIXES = ("/js/", "/css/", "/lib/", "/img/", "/fonts/")
+        if any(path.startswith(p) for p in _STATIC_PREFIXES):
+            return self._serve_static()
+
         if path == "/health":
             try:
                 _get_db().execute("SELECT 1").fetchone()
