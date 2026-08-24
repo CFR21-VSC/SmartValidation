@@ -2060,6 +2060,12 @@ class SyncHandler(BaseHTTPRequestHandler):
         package_docs = (snapshot.get("packageDocs") or [])[:50]  # cap: un paquete GxP tiene ≤ 20 tipos
         db = _get_db()
         try:
+            # Defensive: clear any stale aborted transaction left in the pooled connection.
+            # get_transaction_status() == TRANSACTION_STATUS_INERROR means aborted.
+            try:
+                db.execute("ROLLBACK")
+            except Exception:
+                pass
             db.execute("BEGIN")
             db.execute("""
                 INSERT INTO projects
@@ -2138,9 +2144,8 @@ class SyncHandler(BaseHTTPRequestHandler):
                 db.execute("ROLLBACK")
             except Exception:
                 pass
-            _err_str = str(e)
-            print(f"[DB] Error al sincronizar documentos: {_err_str}")
-            return self._send_json(500, {"ok": False, "error": "Error interno al sincronizar documentos.", "_debug": _err_str})
+            print(f"[DB] Error al sincronizar documentos: {e}")
+            return self._send_json(500, {"ok": False, "error": "Error interno al sincronizar documentos."})
         return self._send_json(200, {"ok": True, "docs_synced": len(package_docs), "updated_at": now})
 
     def _api_snapshot_get(self, proj_id, user):

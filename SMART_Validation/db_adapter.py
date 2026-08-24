@@ -82,11 +82,18 @@ if USE_PG:
             # lastval() only works when the INSERT involved a sequence (BIGSERIAL PK).
             # TEXT PK tables have no sequence → lastval() raises "no sequence yet".
             # Inside an explicit transaction that failure aborts the whole txn, so
-            # we isolate the probe with a SAVEPOINT when inside a transaction.
+            # we always use a SAVEPOINT to isolate the probe.
+            # NOTE: use get_transaction_status() + TRANSACTION_STATUS_INTRANS — NOT
+            # conn.status / STATUS_IN_TRANSACTION, which is unreliable across psycopg2
+            # versions and can return False while inside a BEGIN block, causing the
+            # failed lastval() call to abort the entire transaction silently.
             if sql.lstrip().upper().startswith("INSERT") and not _had_ignore:
                 conn = self._cur.connection
                 try:
-                    in_txn = conn.status == psycopg2.extensions.STATUS_IN_TRANSACTION
+                    in_txn = (
+                        conn.get_transaction_status()
+                        == psycopg2.extensions.TRANSACTION_STATUS_INTRANS
+                    )
                     probe = conn.cursor()
                     if in_txn:
                         probe.execute("SAVEPOINT _lastval_probe")
