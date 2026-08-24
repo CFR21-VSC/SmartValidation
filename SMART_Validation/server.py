@@ -31,6 +31,11 @@ import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 
+try:
+    import r2_adapter as _r2
+except ImportError:
+    _r2 = None  # type: ignore[assignment]
+
 # Estado en memoria (no persistente; se pierde al reiniciar el servidor)
 SESSIONS = {}
 SESSION_TTL = 3600  # 1 hora
@@ -2236,6 +2241,42 @@ class SyncHandler(BaseHTTPRequestHandler):
             return self._send_json(500, {"ok": False, "error": "Error al guardar ejecución."})
         return self._send_json(200, {"ok": True, "updated_at": now})
 
+    def _resolve_evidence_data(self, raw_data: str) -> "str | None":
+        """Return the data-URI for a stored evidence row.
+
+        If stored as 'r2:{key}', fetches from R2.
+        If stored as a data-URI directly (legacy PostgreSQL rows), returns as-is.
+        """
+        if raw_data and raw_data.startswith("r2:"):
+            if _r2 and _r2.is_configured():
+                return _r2.get_image(raw_data[3:])
+            return None
+        return raw_data if raw_data else None
+
+    def _store_evidence(self, db, cid: str, proj_id: str, data_uri: str, now: float) -> bool:
+        """Persist one evidence image. Uploads to R2 when configured; otherwise stores in DB."""
+        use_r2 = _r2 is not None and _r2.is_configured()
+        if use_r2:
+            ok = _r2.put_image(cid, data_uri)
+            if not ok:
+                return False
+            stored_data = f"r2:{cid}"
+            stored_size = len(data_uri)
+        else:
+            stored_data = data_uri
+            stored_size = len(data_uri)
+        try:
+            db.execute(
+                "INSERT INTO evidence_images (compound_id, project_id, data, size_bytes, updated_at) "
+                "VALUES (?, ?, ?, ?, ?) ON CONFLICT(compound_id) DO UPDATE SET "
+                "data=excluded.data, size_bytes=excluded.size_bytes, updated_at=excluded.updated_at",
+                (str(cid)[:300], proj_id, stored_data, stored_size, now)
+            )
+            return True
+        except Exception as exc:
+            print(f"[DB] Error al registrar evidencia {cid}: {exc}")
+            return False
+
     def _api_evidence_images_get(self, proj_id, user):
         """GET /api/projects/{id}/evidence — todas las imágenes del proyecto."""
         db = _get_db()
@@ -2244,7 +2285,11 @@ class SyncHandler(BaseHTTPRequestHandler):
         rows = db.execute(
             "SELECT compound_id, data FROM evidence_images WHERE project_id=?", (proj_id,)
         ).fetchall()
-        images = {r["compound_id"]: r["data"] for r in rows}
+        images = {}
+        for r in rows:
+            resolved = self._resolve_evidence_data(r["data"] or "")
+            if resolved:
+                images[r["compound_id"]] = resolved
         return self._send_json(200, {"ok": True, "images": images})
 
     def _api_evidence_image_get(self, proj_id, compound_id, user):
@@ -2258,7 +2303,10 @@ class SyncHandler(BaseHTTPRequestHandler):
         ).fetchone()
         if not row:
             return self._send_json(404, {"ok": False, "error": "Imagen no encontrada"})
-        return self._send_json(200, {"ok": True, "compound_id": compound_id, "data": row["data"]})
+        resolved = self._resolve_evidence_data(row["data"] or "")
+        if not resolved:
+            return self._send_json(404, {"ok": False, "error": "Imagen no disponible"})
+        return self._send_json(200, {"ok": True, "compound_id": compound_id, "data": resolved})
 
     def _api_evidence_images_upload(self, proj_id, user):
         """POST /api/projects/{id}/evidence — subida masiva {images: {cid: dataUri}}."""
@@ -2278,17 +2326,8 @@ class SyncHandler(BaseHTTPRequestHandler):
                 continue
             if len(data) > self._MAX_EVIDENCE_BYTES:
                 continue
-            size = len(data)
-            try:
-                db.execute(
-                    "INSERT INTO evidence_images (compound_id, project_id, data, size_bytes, updated_at) "
-                    "VALUES (?, ?, ?, ?, ?) ON CONFLICT(compound_id) DO UPDATE SET "
-                    "data=excluded.data, size_bytes=excluded.size_bytes, updated_at=excluded.updated_at",
-                    (str(cid)[:300], proj_id, data, size, now)
-                )
+            if self._store_evidence(db, str(cid)[:300], proj_id, data, now):
                 saved += 1
-            except Exception:
-                pass
         return self._send_json(200, {"ok": True, "saved": saved})
 
     def _api_evidence_image_upload(self, proj_id, compound_id, user):
@@ -2305,15 +2344,8 @@ class SyncHandler(BaseHTTPRequestHandler):
         if len(data) > self._MAX_EVIDENCE_BYTES:
             return self._send_json(413, {"ok": False, "error": "Imagen demasiado grande (máx 8 MB)"})
         now = time.time()
-        try:
-            db.execute(
-                "INSERT INTO evidence_images (compound_id, project_id, data, size_bytes, updated_at) "
-                "VALUES (?, ?, ?, ?, ?) ON CONFLICT(compound_id) DO UPDATE SET "
-                "data=excluded.data, size_bytes=excluded.size_bytes, updated_at=excluded.updated_at",
-                (str(compound_id)[:300], proj_id, data, len(data), now)
-            )
-        except Exception as e:
-            return self._send_json(500, {"ok": False, "error": str(e)})
+        if not self._store_evidence(db, str(compound_id)[:300], proj_id, data, now):
+            return self._send_json(500, {"ok": False, "error": "Error al guardar imagen"})
         return self._send_json(200, {"ok": True})
 
     def _api_evidence_save(self, compound_id, user):
