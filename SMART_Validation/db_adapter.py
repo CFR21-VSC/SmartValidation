@@ -12,6 +12,7 @@ import os
 import re
 import sqlite3
 import threading
+import time
 
 DATABASE_URL: str = os.environ.get("DATABASE_URL", "")
 USE_PG: bool = DATABASE_URL.startswith(("postgres://", "postgresql://"))
@@ -191,11 +192,24 @@ if USE_PG:
     _pg_local: threading.local = threading.local()
 
     def get_db() -> _PGConn:
-        """Return a per-thread PostgreSQL connection checked out from the pool."""
+        """Return a per-thread PostgreSQL connection checked out from the pool.
+
+        Retries up to 5 times with short back-off when the pool is momentarily
+        exhausted (e.g. burst of concurrent API requests).
+        """
         _ensure_pool()
         if not hasattr(_pg_local, "conn") or _pg_local.conn is None:
             assert _pg_pool is not None
-            _pg_local.conn = _PGConn(_pg_pool.getconn())
+            last_err: "Exception | None" = None
+            for attempt in range(5):
+                try:
+                    _pg_local.conn = _PGConn(_pg_pool.getconn())
+                    break
+                except psycopg2.pool.PoolError as exc:
+                    last_err = exc
+                    time.sleep(0.05 * (attempt + 1))  # 50ms, 100ms, 150ms, 200ms, 250ms
+            else:
+                raise last_err  # type: ignore[misc]
         return _pg_local.conn  # type: ignore[return-value]
 
     def release_db() -> None:

@@ -244,11 +244,37 @@
         return entry;
     }
 
+    /** Rehidrata los packageDocs de un snapshot descargado del servidor.
+     *  El servidor guarda snapshot_json sin el campo `data` de cada doc para ahorrar espacio.
+     *  Los docs completos están en la tabla documents — los re-fetcheamos en paralelo
+     *  y reinyectamos `data` para que el snapshot quede idéntico al original. */
+    async function _rehydratePackageDocs(projectId, snapshot) {
+        const pkgDocs = snapshot.packageDocs || [];
+        if (pkgDocs.length === 0 || !global.VS || !global.VS.Storage || !global.VS.Storage.getDocument) return;
+        const promises = pkgDocs.map(async (doc) => {
+            const docType = doc.type || doc.docType;
+            if (!docType) return doc;
+            try {
+                const full = await global.VS.Storage.getDocument(projectId, docType);
+                if (full && full.json_data) {
+                    const parsed = typeof full.json_data === 'string'
+                        ? JSON.parse(full.json_data) : full.json_data;
+                    return Object.assign({}, doc, { data: parsed.data || parsed });
+                }
+            } catch (e) {
+                console.warn('[projects] rehidratación falló para', docType, e);
+            }
+            return doc;
+        });
+        snapshot.packageDocs = await Promise.all(promises);
+    }
+
     /** Descarga el snapshot de un proyecto desde el servidor y lo hidrata en IndexedDB. */
     async function downloadFromServer(id) {
         if (!global.VS || !global.VS.Storage) throw new Error('Storage no disponible');
         const snapshot = await global.VS.Storage.getSnapshot(id);
         if (!snapshot) throw new Error('Proyecto no disponible en el servidor');
+        await _rehydratePackageDocs(id, snapshot);
         const si = (snapshot.systemInfo) || {};
         const existing = await dbGet(id);
         const entry = existing || {
@@ -533,6 +559,7 @@
                     try {
                         const snapshot = await global.VS.Storage.getSnapshot(activeId);
                         if (snapshot) {
+                            await _rehydratePackageDocs(activeId, snapshot);
                             const sysInfo = snapshot.systemInfo || {};
                             let entry = {
                                 id: activeId,
