@@ -6465,17 +6465,20 @@ function renderEvidenceItem(evidence, index, test) {
     // Evidencia conocida en servidor pero imagen aún no descargada localmente
     if (!evidence.isEmpty && evidence.hasImage && !evidence.image) {
         if (evidence._imgFailed) {
-            // Fetch ya intentado y falló — mostrar estado degradado con botón reintentar
+            // Fetch ya intentado y falló — mostrar estado degradado con botones reintentar/eliminar
             return `
                 <div class="evidence-item">
                     <div class="evidence-header">
                         <div class="evidence-step">Paso #${stepNumber}</div>
+                        <div class="evidence-actions">
+                            <button onclick="(function(){var t=tests.find(t=>t.id==='${test.id}');var ev=t&&t.evidences.find(e=>e.step===${evidence.step});if(ev){ev._imgFailed=false;ev._imgLoading=false;}renderWorkArea();})()" >Reintentar</button>
+                            <button onclick="deleteEvidence(${index})">Eliminar</button>
+                        </div>
                     </div>
                     <div class="evidence-placeholder" style="background:var(--vsc-gris-claro,#f0f2f5);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:140px;gap:8px;">
                         <div style="font-size:22px;">🔄</div>
-                        <div style="font-size:13px;color:var(--vsc-azul-medio,#4a6fa5);font-weight:600;">Imagen aún no disponible en servidor</div>
+                        <div style="font-size:13px;color:var(--vsc-azul-medio,#4a6fa5);font-weight:600;">Imagen no disponible en servidor</div>
                         ${evidence.description && evidence.description !== 'Evidencia pendiente' ? `<div style="font-size:12px;color:var(--vsc-texto,#555)">${evidence.description}</div>` : ''}
-                        <button onclick="(function(){var ev=tests.find(t=>t.id==='${test.id}')&&tests.find(t=>t.id==='${test.id}').evidences.find(e=>e.step===${evidence.step});if(ev){ev._imgFailed=false;ev._imgLoading=false;}renderWorkArea();})()" style="margin-top:4px;font-size:11px;padding:4px 10px;cursor:pointer;">Reintentar</button>
                     </div>
                 </div>
             `;
@@ -6483,7 +6486,16 @@ function renderEvidenceItem(evidence, index, test) {
         if (!evidence._imgLoading) {
             evidence._imgLoading = true;
             const _loadId = `${test.id}_evidence_${evidence.step}`;
+            // Timeout de 12 s: si el servidor no responde, mostrar estado de fallo
+            const _failTimer = setTimeout(() => {
+                if (evidence._imgLoading) {
+                    evidence._imgLoading = false;
+                    evidence._imgFailed = true;
+                    if (typeof renderWorkArea === 'function') renderWorkArea();
+                }
+            }, 12000);
             getImageFromDB(_loadId).then(data => {
+                clearTimeout(_failTimer);
                 evidence._imgLoading = false;
                 if (data) {
                     evidence.image = data;
@@ -6493,6 +6505,7 @@ function renderEvidenceItem(evidence, index, test) {
                     if (typeof renderWorkArea === 'function') renderWorkArea();
                 }
             }).catch(() => {
+                clearTimeout(_failTimer);
                 evidence._imgLoading = false;
                 evidence._imgFailed = true;
                 if (typeof renderWorkArea === 'function') renderWorkArea();
@@ -6502,6 +6515,9 @@ function renderEvidenceItem(evidence, index, test) {
             <div class="evidence-item">
                 <div class="evidence-header">
                     <div class="evidence-step">Paso #${stepNumber}</div>
+                    <div class="evidence-actions">
+                        <button onclick="deleteEvidence(${index})">Eliminar</button>
+                    </div>
                 </div>
                 <div class="evidence-placeholder" style="background:var(--vsc-gris-claro,#f0f2f5);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:160px;gap:8px;">
                     <div style="font-size:24px;">⏳</div>
