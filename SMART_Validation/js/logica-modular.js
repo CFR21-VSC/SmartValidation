@@ -71,7 +71,7 @@ function _evidenceCompoundId(imageId) {
     return (projId + '_' + imageId).replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 300);
 }
 
-function saveImageToDB(id, imageData) {
+function saveImageToDB(id, imageData, { upload = true } = {}) {
     return new Promise((resolve, reject) => {
         if (!db) {
             reject(new Error('IndexedDB no inicializado'));
@@ -83,12 +83,12 @@ function saveImageToDB(id, imageData) {
 
         const request = store.put({ id, data: imageData });
 
-        request.onsuccess = () => {
-            resolve();
-            // Fire-and-forget: backup al servidor para persistencia multi-sesión
-            if (window.VS && window.VS.Storage && window.VS.Storage.isAvailable()) {
-                window.VS.Storage.uploadEvidence(id, imageData);
+        request.onsuccess = async () => {
+            // upload=false cuando la imagen YA viene del servidor (evitar re-upload redundante)
+            if (upload && window.VS && window.VS.Storage) {
+                await window.VS.Storage.uploadEvidence(id, imageData).catch(() => {});
             }
+            resolve();
         };
         request.onerror = () => reject(request.error);
     });
@@ -116,8 +116,8 @@ async function getImageFromDB(id) {
         if (window.VS && window.VS.Storage) {
             const serverData = await window.VS.Storage.fetchEvidence(id);
             if (serverData) {
-                // Cachear en IndexedDB para no volver a pedir al servidor
-                saveImageToDB(id, serverData).catch(() => {});
+                // Cachear en IndexedDB sin re-subir (la imagen ya vino del servidor)
+                saveImageToDB(id, serverData, { upload: false }).catch(() => {});
                 return serverData;
             }
         }
@@ -286,6 +286,7 @@ async function _pollTestExecutions() {
             return;
         }
         let changed = false;
+        const projId2 = projId;  // capturar para cierre dentro del loop
         for (const exec of data.executions) {
             const test = tests.find(t => t.id === exec.test_id);
             if (!test) continue;
@@ -303,14 +304,52 @@ async function _pollTestExecutions() {
                 const fin = !!exec.finalized;
                 if (test.finalized !== fin) { test.finalized = fin; changed = true; }
             }
+            // Merge evidence_ids: marcar slots de evidencia como hasImage para que se carguen las fotos
+            if (exec.evidence_ids && Array.isArray(exec.evidence_ids) && exec.evidence_ids.length) {
+                if (!test.evidences) test.evidences = [];
+                const projPrefix = projId2 + '_';
+                for (const cid of exec.evidence_ids) {
+                    // compound ID → local ID (quitar prefijo de proyecto)
+                    const localId = cid.startsWith(projPrefix) ? cid.slice(projPrefix.length) : cid;
+                    const stepMatch = localId.match(/_evidence_(\d+)$/);
+                    if (!stepMatch) continue;
+                    const step = parseInt(stepMatch[1], 10);
+                    let ev = test.evidences.find(e => e.step === step);
+                    if (!ev) {
+                        ev = { step, isEmpty: false, hasImage: true };
+                        test.evidences.push(ev);
+                        changed = true;
+                    } else if (!ev.hasImage) {
+                        ev.isEmpty = false;
+                        ev.hasImage = true;
+                        changed = true;
+                    }
+                }
+            }
         }
         _execPollLastTs = data.server_ts || _execPollLastTs;
-        if (changed && typeof renderTests === 'function') renderTests();
+        if (changed) {
+            // Cargar imágenes de los slots recién descubiertos antes de re-renderizar
+            const imgLoads = [];
+            for (const t of tests) {
+                for (const ev of (t.evidences || [])) {
+                    if (ev.hasImage && !ev.image && !ev.isEmpty) {
+                        const imgId = `${t.id}_evidence_${ev.step}`;
+                        imgLoads.push(
+                            getImageFromDB(imgId).then(d => { if (d) ev.image = d; }).catch(() => {})
+                        );
+                    }
+                }
+            }
+            if (imgLoads.length) await Promise.all(imgLoads);
+            if (typeof renderWorkArea === 'function') renderWorkArea();
+            else if (typeof renderTests === 'function') renderTests();
+        }
     } catch (_) {}
 }
 
 async function _bulkSyncImagesToServer(projectId) {
-    if (!window.VS || !window.VS.Storage || !window.VS.Storage.isAvailable()) return;
+    if (!window.VS || !window.VS.Storage) return;
     if (!projectId) return;
     const flagKey = `_imgSynced_${projectId}`;
     if (localStorage.getItem(flagKey)) return;   // ya se sincronizó
@@ -336,7 +375,7 @@ async function _bulkSyncImagesToServer(projectId) {
  * no están en IndexedDB local. Se ejecuta en cada inicio, sin flag de bloqueo.
  */
 async function _syncImagesFromServer(projectId) {
-    if (!window.VS || !window.VS.Storage || !window.VS.Storage.isAvailable()) return;
+    if (!window.VS || !window.VS.Storage) return;
     if (!projectId) return;
     try {
         const serverImages = await window.VS.Storage.fetchAllEvidence(projectId);
@@ -356,7 +395,7 @@ async function _syncImagesFromServer(projectId) {
                 req.onerror   = () => res(false);
             });
             if (!exists) {
-                await saveImageToDB(localId, data).catch(() => {});
+                await saveImageToDB(localId, data, { upload: false }).catch(() => {});
                 downloaded++;
             }
         }
@@ -376,7 +415,7 @@ async function _syncImagesFromServer(projectId) {
  * y las guarda en IndexedDB local. Se llama al cargar un proyecto de otro browser.
  */
 async function _downloadAllEvidenceFromServer(projectId) {
-    if (!window.VS || !window.VS.Storage || !window.VS.Storage.isAvailable()) return;
+    if (!window.VS || !window.VS.Storage) return;
     if (!projectId) return;
     try {
         const images = await window.VS.Storage.fetchAllEvidence(projectId);
@@ -389,7 +428,7 @@ async function _downloadAllEvidenceFromServer(projectId) {
             const localId = compoundId.startsWith(projPrefix)
                 ? compoundId.slice(projPrefix.length)
                 : compoundId;
-            await saveImageToDB(localId, data).catch(() => {});
+            await saveImageToDB(localId, data, { upload: false }).catch(() => {});
             count++;
         }
         if (count > 0) {
@@ -407,7 +446,7 @@ async function _downloadAllEvidenceFromServer(projectId) {
  * imageIds: array de IDs locales (sin compound prefix).
  */
 async function prefetchImagesFromServer(imageIds) {
-    if (!window.VS || !window.VS.Storage || !window.VS.Storage.isAvailable()) return;
+    if (!window.VS || !window.VS.Storage) return;
     if (!imageIds || !imageIds.length) return;
     const missing = [];
     for (const id of imageIds) {
@@ -424,7 +463,7 @@ async function prefetchImagesFromServer(imageIds) {
     const results = await window.VS.Storage.fetchEvidenceBatch(missing).catch(() => ({}));
     for (const [rawId, data] of Object.entries(results)) {
         if (!data) continue;
-        await saveImageToDB(rawId, data).catch(() => {});
+        await saveImageToDB(rawId, data, { upload: false }).catch(() => {});
     }
 }
 
@@ -566,6 +605,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     setInterval(saveToStorage, 30000);
 
     // Poll de ejecuciones: detectar cambios de otros usuarios cada 5s
+    // Llamada inmediata para que Federico vea los datos de Lucas desde el primer render
+    _pollTestExecutions();
     setInterval(_pollTestExecutions, 5000);
 
     // Cross-browser sync: detectar proyectos en el servidor que este browser no tiene activos
@@ -760,7 +801,7 @@ async function saveToStorage() {
 
                     // Guardar imagen en IndexedDB (async)
                     imagePromises.push(
-                        saveImageToDB(imageId, evidence.image)
+                        saveImageToDB(imageId, evidence.image, { upload: false })
                             .catch(err => {
     // //                                 console.error(`Error guardando imagen ${imageId}:`, err);
                             })
@@ -6607,6 +6648,11 @@ async function smartFillEmptyEvidence(test, emptyIndex, imageData) {
     renderTests();
     saveToStorage();
 
+    // Sync granular: subir estado de evidencias al servidor para otros navegadores
+    const _sfProjId = window.ValidationSuite && window.ValidationSuite.projects &&
+                      window.ValidationSuite.projects.getActiveId();
+    if (_sfProjId) _syncTestExecution(_sfProjId, test).catch(() => {});
+
     // Contar cuántas vacías quedan
     const remaining = test.evidences.filter(ev => ev.isEmpty).length;
     const stepLabel = String(evidence.step).padStart(3, '0');
@@ -9423,6 +9469,11 @@ async function finalizeTest() {
     renderTests();
     saveToStorage();
 
+    // Sync granular: Federico ve el resultado en < 5 segundos via poll
+    const _finProjId = window.ValidationSuite && window.ValidationSuite.projects &&
+                       window.ValidationSuite.projects.getActiveId();
+    if (_finProjId) _syncTestExecution(_finProjId, test).catch(() => {});
+
     showNotification(`Prueba "${test.name}" finalizada`);
 }
 
@@ -9455,6 +9506,12 @@ async function reopenTest() {
     renderWorkArea();
     renderTests();
     saveToStorage();
+
+    // Sync granular: otros browsers ven el estado limpio en < 5 segundos
+    const _reopProjId = window.ValidationSuite && window.ValidationSuite.projects &&
+                        window.ValidationSuite.projects.getActiveId();
+    if (_reopProjId) _syncTestExecution(_reopProjId, test).catch(() => {});
+
     showNotification(`Prueba "${test.name}" reabierta`);
 }
 

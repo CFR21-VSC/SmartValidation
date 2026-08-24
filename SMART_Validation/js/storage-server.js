@@ -157,17 +157,17 @@
       return r.data.snapshot || null;
     },
 
-    /** Fire-and-forget: sube una imagen al servidor. rawImageId es el ID local (sin prefijo de proyecto). */
+    /** Sube una imagen al servidor. Retorna Promise (awaitable). rawImageId es el ID local (sin prefijo). */
     uploadEvidence(rawImageId, base64data) {
-      if (!rawImageId || !base64data) return;
+      if (!rawImageId || !base64data) return Promise.resolve(null);
       const projId = (global.ValidationSuite && global.ValidationSuite.projects &&
                       global.ValidationSuite.projects.getActiveId()) || null;
-      if (!projId) return;
+      if (!projId) return Promise.resolve(null);
       const compoundId = (projId + "_" + rawImageId).replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 300);
-      _apiFetch("POST",
+      return _apiFetch("POST",
         `/api/projects/${encodeURIComponent(projId)}/evidence/${encodeURIComponent(compoundId)}`,
         { data: base64data }
-      ).catch(() => {});
+      ).catch(() => null);
     },
 
     /** Descarga una imagen de evidencia del servidor como data URL. rawImageId es el ID local. */
