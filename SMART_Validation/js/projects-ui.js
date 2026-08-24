@@ -766,10 +766,31 @@
 
     // Globals para los onclick del HTML
     global.openEditProject  = openEditProject;
+    async function epForceSyncServer(btn) {
+        if (!VS.projects.forceSyncToServer) {
+            alert('Función no disponible en esta versión.');
+            return;
+        }
+        const orig = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = 'Subiendo…';
+        try {
+            const result = await VS.projects.forceSyncToServer();
+            btn.textContent = '✓ Subido';
+            btn.style.color = '#2E7D32';
+            setTimeout(() => { btn.textContent = orig; btn.style.color = ''; btn.disabled = false; }, 3000);
+        } catch (e) {
+            btn.textContent = '✗ Error: ' + e.message;
+            btn.style.color = '#C62828';
+            setTimeout(() => { btn.textContent = orig; btn.style.color = ''; btn.disabled = false; }, 4000);
+        }
+    }
+
     global.closeEditProject = closeEditProject;
     global.epSwitchTab      = epSwitchTab;
     global.saveEditProject  = saveEditProject;
     global.epAddSigner      = epAddSigner;
+    global.epForceSyncServer = epForceSyncServer;
     global.wizardPickFolder = wizardPickFolder;
     global.wizardCancel = wizardCancel;
     global.wizardBack = wizardBack;

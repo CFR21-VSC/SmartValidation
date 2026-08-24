@@ -418,6 +418,15 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Auto-save cada 30 segundos
     setInterval(saveToStorage, 30000);
 
+    // Forzar sync al servidor cuando el usuario oculta la tab (cambia de navegador/pestaña)
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden' &&
+            window.ValidationSuite && window.ValidationSuite.projects &&
+            window.ValidationSuite.projects.getActiveId()) {
+            window.ValidationSuite.projects.saveCurrentToActive().catch(() => {});
+        }
+    });
+
     // Llamar a initExportModalHandlers cuando se inicializa la app
     initExportModalHandlers();
 

@@ -787,6 +787,19 @@
     // ====================================================================
     // EXPORTS
     // ====================================================================
+    /** Sube el snapshot actual al servidor y devuelve {ok, name} o lanza error. */
+    async function forceSyncToServer() {
+        const id = getActiveId();
+        if (!id) throw new Error('No hay proyecto activo');
+        const entry = await saveCurrentToActive();
+        if (!entry) throw new Error('No se pudo guardar localmente');
+        if (!global.VS || !global.VS.Storage) throw new Error('Servidor no disponible');
+        const snapshot = entry.snapshot || (readCurrentSnapshot && readCurrentSnapshot()) || {};
+        const r = await global.VS.Storage.syncSnapshot(id, snapshot, entry.name);
+        if (!r || !r.data || !r.data.ok) throw new Error('El servidor rechazó el snapshot');
+        return { ok: true, name: entry.name };
+    }
+
     VS.projects.bootstrap = bootstrap;
     VS.projects.listAll = async function ({ archived } = {}) {
         const all = await dbListAll();
@@ -806,6 +819,7 @@
     VS.projects.archive = archive;
     VS.projects.deleteProject = deleteProject;
     VS.projects.downloadFromServer = downloadFromServer;
+    VS.projects.forceSyncToServer = forceSyncToServer;
     VS.projects.exportProject = exportProject;
     VS.projects.importProject = importProject;
     VS.projects.computeStats = computeStats;
