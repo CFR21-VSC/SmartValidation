@@ -2348,20 +2348,41 @@ class SyncHandler(BaseHTTPRequestHandler):
             return self._send_json(500, {"ok": False, "error": "Error al guardar imagen"})
         return self._send_json(200, {"ok": True})
 
+    @staticmethod
+    def _proj_id_from_compound(compound_id: str) -> "str | None":
+        """Extract project_id from a compound_id of the form '{proj_id}_{img_id}'.
+
+        Project IDs always have the format 'proj_{digits}_{6chars}', so the
+        first three underscore-separated tokens reconstruct the project_id.
+        """
+        parts = compound_id.split("_")
+        if len(parts) >= 3 and parts[0] == "proj":
+            return "_".join(parts[:3])
+        return None
+
     def _api_evidence_save(self, compound_id, user):
-        """Guarda una imagen de evidencia en el filesystem del servidor."""
-        data = self._read_json_body()
-        if data is None:
+        """POST /api/evidence/{compound_id} — guarda imagen; usa R2 si configurado."""
+        body = self._read_json_body()
+        if body is None:
             return
-        raw = data.get("data", "")
-        if not raw:
-            return self._send_json(400, {"ok": False, "error": "Campo 'data' requerido"})
-        # Parse data URL: data:image/jpeg;base64,...
+        raw = body.get("data", "")
+        if not raw or not isinstance(raw, str) or not raw.startswith("data:"):
+            return self._send_json(400, {"ok": False, "error": "data URI inválida"})
+        if len(raw) > self._MAX_EVIDENCE_BYTES:
+            return self._send_json(413, {"ok": False, "error": "Imagen demasiado grande (máx 8 MB)"})
+
+        if _r2 is not None and _r2.is_configured():
+            proj_id = self._proj_id_from_compound(compound_id) or "unknown"
+            db = _get_db()
+            if not self._store_evidence(db, compound_id, proj_id, raw, time.time()):
+                return self._send_json(500, {"ok": False, "error": "Error guardando imagen"})
+            return self._send_json(200, {"ok": True})
+
+        # Fallback: filesystem (dev / sin R2)
         mime = "image/jpeg"
         b64 = raw
-        if raw.startswith("data:") and "," in raw:
-            header = raw[:raw.index(",")]
-            b64 = raw[raw.index(",") + 1:]
+        if "," in raw:
+            header, b64 = raw.split(",", 1)
             if ":" in header and ";" in header:
                 mime = header.split(":")[1].split(";")[0].strip()
         if mime not in ("image/jpeg", "image/png", "image/webp", "image/gif"):
@@ -2372,20 +2393,28 @@ class SyncHandler(BaseHTTPRequestHandler):
             return self._send_json(400, {"ok": False, "error": "Datos de imagen inválidos"})
         if len(image_bytes) > MAX_PHOTO_BYTES:
             return self._send_json(413, {"ok": False, "error": "Imagen demasiado grande (máx 15 MB)"})
-        ext = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}.get(mime, ".jpg")
+        ext = {"image/jpeg": ".jpg", "image/png": ".png",
+               "image/webp": ".webp", "image/gif": ".gif"}.get(mime, ".jpg")
         try:
             os.makedirs(EVIDENCE_DIR, exist_ok=True)
             with open(os.path.join(EVIDENCE_DIR, compound_id + ext), "wb") as f:
                 f.write(image_bytes)
             with open(os.path.join(EVIDENCE_DIR, compound_id + ".meta"), "w", encoding="utf-8") as f:
                 f.write(mime)
-        except OSError as e:
-            print(f"[EVIDENCE] Error guardando {compound_id}: {e}")
+        except OSError as exc:
+            print(f"[EVIDENCE] Error guardando {compound_id}: {exc}")
             return self._send_json(500, {"ok": False, "error": "Error guardando imagen"})
         return self._send_json(200, {"ok": True})
 
     def _api_evidence_get(self, compound_id, user):
-        """Recupera una imagen de evidencia del filesystem y la devuelve como data URL."""
+        """GET /api/evidence/{compound_id} — recupera imagen; usa R2 si configurado."""
+        if _r2 is not None and _r2.is_configured():
+            data_uri = _r2.get_image(compound_id)
+            if data_uri:
+                return self._send_json(200, {"ok": True, "data": data_uri})
+            return self._send_json(404, {"ok": False, "error": "Imagen no encontrada"})
+
+        # Fallback: filesystem
         img_path = None
         mime = "image/jpeg"
         for ext in (".jpg", ".png", ".webp", ".gif"):
@@ -2417,10 +2446,15 @@ class SyncHandler(BaseHTTPRequestHandler):
         if not isinstance(ids, list) or len(ids) > 500:
             return self._send_json(400, {"ok": False, "error": "ids debe ser array ≤500"})
         results = {}
+        use_r2 = _r2 is not None and _r2.is_configured()
         for raw_id in ids:
             if not isinstance(raw_id, str) or not re.match(r'^[a-zA-Z0-9_-]{1,300}$', raw_id):
                 results[raw_id] = None
                 continue
+            if use_r2:
+                results[raw_id] = _r2.get_image(raw_id)
+                continue
+            # Fallback: filesystem
             img_path = None
             mime = "image/jpeg"
             for ext in (".jpg", ".png", ".webp", ".gif"):
