@@ -109,9 +109,11 @@ async function getImageFromDB(id) {
     });
     if (localData) return localData;
 
-    // 2. Fallback: intentar recuperar del servidor (otro navegador/máquina guardó esta imagen)
+    // 2. Fallback: intentar recuperar del servidor (otro navegador/máquina guardó esta imagen).
+    // Sin gate isAvailable() — fetchEvidence() ya retorna null si el server no responde,
+    // y el gate causaba race condition cuando _available todavía era false al inicio.
     try {
-        if (window.VS && window.VS.Storage && window.VS.Storage.isAvailable()) {
+        if (window.VS && window.VS.Storage) {
             const serverData = await window.VS.Storage.fetchEvidence(id);
             if (serverData) {
                 // Cachear en IndexedDB para no volver a pedir al servidor
@@ -358,8 +360,12 @@ async function _syncImagesFromServer(projectId) {
                 downloaded++;
             }
         }
-        if (downloaded > 0)
+        if (downloaded > 0) {
             console.log(`[SyncImages] ${downloaded} imágenes nuevas descargadas del servidor`);
+            // Re-render para mostrar imágenes que acaban de llegar del servidor
+            if (typeof renderWorkArea === 'function') renderWorkArea();
+            else if (typeof renderTests === 'function') renderTests();
+        }
     } catch (e) {
         console.warn('[SyncImages] Error:', e);
     }
