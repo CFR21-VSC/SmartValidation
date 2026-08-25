@@ -3835,17 +3835,17 @@ tryRestoreSession();
 /* ── SMART Validation PDF Style Integration ──────────────────────────────
    Overrides MapeoGxP's buildPdfDocDefinition() to align the exported PDF
    with the visual identity of SMART Validation documents:
-     · Thin lime-green (#C2E03B) accent bar on every content page
+     · Thin gold (#C8921A) accent bar on every content page
      · 3-column branded footer: "SMART Validation · empresa | code | pág X/Y"
-     · Section heading colors adjusted to SMART Validation navy (#213B50)
+     · Section heading colors adjusted to DRP Navy (#0B2341)
      · Wider margins matching other documents [40, 40, 40, 44]
    All other content (diagrams, inventories, cover, TOC) remains untouched.
    ──────────────────────────────────────────────────────────────────────── */
 (function () {
   'use strict';
 
-  var SV_PRIMARY = '#213B50';
-  var SV_ACCENT  = '#C2E03B';
+  var SV_PRIMARY = '#0B2341';
+  var SV_ACCENT  = '#C8921A';
   var SV_MUTED   = '#7B8FA1';
 
   var _origBuildPdf = window.buildPdfDocDefinition;
