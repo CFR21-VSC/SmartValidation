@@ -8,9 +8,10 @@
    VARIABLES CSS — PALETA DRP (NO MODIFICAR)
    ==================================================================== */
 :root {
-    --vsc-azul:        #213B50;
-    --vsc-azul-medio:  #405A75;
-    --vsc-verde:       #C2E03B;
+    --vsc-azul:        #0B2341;   /* DRP Navy */
+    --vsc-azul-medio:  #1F3C56;   /* DRP Navy Mid */
+    --vsc-verde:       #C8921A;   /* DRP Gold */
+    --drp-teal:        #1A7F8E;   /* DRP Teal */
     --vsc-gris:        #AFBDC8;
     --vsc-gris-claro:  #EEF3F4;
     --vsc-texto:       #393939;
@@ -124,7 +125,7 @@ body {
 
 .sys-chip:hover {
     background: rgba(255,255,255,0.15);
-    border-color: rgba(194,224,59,0.5);
+    border-color: rgba(200,146,26,0.5);
 }
 
 .sys-chip-label {
@@ -154,9 +155,9 @@ body {
 }
 
 .app-save-badge {
-    background: rgba(194,224,59,0.15);
+    background: rgba(200,146,26,0.15);
     color: var(--vsc-verde);
-    border: 1px solid rgba(194,224,59,0.3);
+    border: 1px solid rgba(200,146,26,0.3);
     border-radius: 12px;
     padding: 3px 10px;
     font-size: 11px;
@@ -264,7 +265,7 @@ body {
 .sys-panel-field select:focus {
     outline: none;
     border-color: var(--vsc-verde);
-    box-shadow: 0 0 0 2px rgba(194,224,59,0.15);
+    box-shadow: 0 0 0 2px rgba(200,146,26,0.15);
 }
 
 /* Responsive: si la pantalla es chica, colapsar grids a 2 columnas */
@@ -341,11 +342,11 @@ body {
 .tb-accent {
     color: var(--vsc-azul);
     font-weight: 700;
-    background: rgba(194,224,59,0.12);
+    background: rgba(200,146,26,0.12);
 }
 
 .tb-accent:hover {
-    background: rgba(194,224,59,0.28);
+    background: rgba(200,146,26,0.28);
 }
 
 /* Limpiar y acciones destructivas */
@@ -431,14 +432,14 @@ body {
 .tb-split-arrow.tb-accent {
     color: var(--vsc-azul);
     font-weight: 700;
-    background: rgba(194,224,59,0.12);
+    background: rgba(200,146,26,0.12);
 }
 
 .tb-split:hover .tb-split-main.tb-accent,
 .tb-split:hover .tb-split-arrow.tb-accent,
 .tb-split.open .tb-split-main.tb-accent,
 .tb-split.open .tb-split-arrow.tb-accent {
-    background: rgba(194,224,59,0.28);
+    background: rgba(200,146,26,0.28);
 }
 
 /* Dropdown menu — fixed position para evitar clipping del toolbar */
@@ -870,7 +871,7 @@ body {
 }
 
 .test-item.active {
-    background: rgba(194,224,59,0.12);
+    background: rgba(200,146,26,0.12);
     border-left-color: var(--vsc-verde);
     font-weight: 600;
 }
@@ -1080,7 +1081,7 @@ body {
 .evidence-item.selected {
     outline: 3px solid var(--vsc-verde);
     outline-offset: -3px;
-    box-shadow: 0 0 0 3px rgba(194,224,59,0.15);
+    box-shadow: 0 0 0 3px rgba(200,146,26,0.15);
 }
 
 /* Evidencias vacías */
@@ -1102,7 +1103,7 @@ body {
 
 .evidence-placeholder.drag-over {
     border-color: var(--vsc-verde);
-    background: rgba(194,224,59,0.08);
+    background: rgba(200,146,26,0.08);
     transform: scale(1.01);
 }
 
@@ -1119,11 +1120,11 @@ body {
 .inserted-table th { background: var(--vsc-azul); color: var(--vsc-blanco); padding: 9px 10px; font-weight: 700; text-align: left; border: 1px solid var(--vsc-gris); }
 .inserted-table td { padding: 7px 10px; border: 1px solid var(--vsc-gris); text-align: left; min-width: 80px; }
 .inserted-table tbody tr:nth-child(even) { background: var(--vsc-gris-claro); }
-.inserted-table tbody tr:hover { background: rgba(194,224,59,0.07); }
+.inserted-table tbody tr:hover { background: rgba(200,146,26,0.07); }
 
 .inserted-table th[contenteditable="true"]:focus,
 .inserted-table td[contenteditable="true"]:focus {
-    background: rgba(194,224,59,0.12);
+    background: rgba(200,146,26,0.12);
     box-shadow: inset 0 0 0 2px var(--vsc-verde);
     outline: none;
 }
@@ -1199,7 +1200,7 @@ body {
 .form-group textarea:focus {
     outline: none;
     border-color: var(--vsc-verde);
-    box-shadow: 0 0 0 2px rgba(194,224,59,0.15);
+    box-shadow: 0 0 0 2px rgba(200,146,26,0.15);
 }
 
 .form-group textarea { resize: vertical; min-height: 90px; }
@@ -1311,7 +1312,7 @@ body {
     background: var(--vsc-verde);
     color: var(--vsc-azul);
     border-color: var(--vsc-verde);
-    box-shadow: 0 0 0 3px rgba(194,224,59,0.25);
+    box-shadow: 0 0 0 3px rgba(200,146,26,0.25);
 }
 
 .tool-btn span { font-size: 16px; font-weight: 700; }
@@ -1546,7 +1547,7 @@ body {
     margin-bottom: 16px;
 }
 
-.drp-dialog-icon.info { background: rgba(194,224,59,0.15); color: var(--vsc-azul); }
+.drp-dialog-icon.info { background: rgba(200,146,26,0.15); color: var(--vsc-azul); }
 .drp-dialog-icon.warning { background: rgba(243,156,18,0.12); color: #F39C12; }
 .drp-dialog-icon.error { background: rgba(220,53,69,0.1); color: var(--vsc-rojo); }
 .drp-dialog-icon.confirm { background: rgba(33,59,80,0.08); color: var(--vsc-azul); }
@@ -3468,3 +3469,59 @@ body.body-theme-book #workArea { background-color: #FCFAEC; }
 .batch-obs:hover { background: #F39C12; color: white; }
 .batch-na { background: #2a2a2a; color: #95A5A6; border: 1px solid #95A5A6; }
 .batch-na:hover { background: #95A5A6; color: white; }
+
+/* ====================================================================
+   SUITE TABS — Toolbar DRP v4 (Validación / Documental / Planillas / Admin)
+   ==================================================================== */
+.tb-split .suite-tab-btn {
+    height: var(--h-toolbar);
+    padding: 0 20px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #6B7C8A;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.15s ease, border-bottom-color 0.15s ease, background 0.15s ease;
+    letter-spacing: 0.2px;
+}
+
+.tb-split .suite-tab-btn:hover {
+    color: var(--vsc-azul);
+    border-bottom-color: rgba(200,146,26,0.35);
+    background: rgba(200,146,26,0.04);
+}
+
+.tb-split.open .suite-tab-btn {
+    color: var(--vsc-azul);
+    border-bottom-color: var(--vsc-verde);
+    background: rgba(200,146,26,0.06);
+}
+
+.suite-tab-chevron {
+    opacity: 0.35;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    flex-shrink: 0;
+}
+
+.tb-split.open .suite-tab-chevron {
+    opacity: 0.75;
+    transform: rotate(180deg);
+}
+
+.suite-tab-icon {
+    opacity: 0.45;
+    flex-shrink: 0;
+    transition: opacity 0.15s ease;
+}
+
+.tb-split .suite-tab-btn:hover .suite-tab-icon,
+.tb-split.open .suite-tab-icon {
+    opacity: 0.8;
+}

@@ -401,7 +401,7 @@
     // ════════════════════════════════════════════════════════════════
     function updateBookMenuVisibility() {
         const hasPackage = Array.isArray(global.packageDocs) && global.packageDocs.length > 0;
-        const drop = document.getElementById('dropLibro');
+        const drop = document.getElementById('dropSuiteDoc');
         if (!drop) return;
         drop.querySelectorAll('[data-requires-package]').forEach(el => {
             el.style.display = hasPackage ? '' : 'none';
@@ -419,7 +419,7 @@
     // ANTES de que se vea el dropdown (setTimeout 0 cede el frame y permite
     // que se procese el display:none antes del paint).
     function attachDropdownHook() {
-        document.querySelectorAll('[data-dropdown="dropLibro"]').forEach(trigger => {
+        document.querySelectorAll('[data-dropdown="dropSuiteDoc"]').forEach(trigger => {
             trigger.addEventListener('click', () => {
                 // Ejecutar inmediatamente — toggleDropdown ya añadió .active al
                 // dropdown, pero el browser no repintó todavía. Actualizar acá

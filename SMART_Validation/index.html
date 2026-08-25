@@ -40,7 +40,7 @@
             z-index: 99999;
             background:
                 radial-gradient(ellipse at center, rgba(64, 90, 117, 0.35) 0%, transparent 60%),
-                linear-gradient(135deg, #0A1825 0%, #213B50 50%, #0E2435 100%);
+                linear-gradient(135deg, #0A1825 0%, #0B2341 50%, #0E2435 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -104,7 +104,7 @@
             font-family: 'Montserrat', sans-serif;
             font-size: 13px;
             font-weight: 500;
-            color: #C2E03B;
+            color: #C8921A;
             letter-spacing: 10px;
             text-transform: uppercase;
             margin-bottom: 8px;
@@ -127,7 +127,7 @@
             letter-spacing: 4px;
             text-transform: uppercase;
         }
-        .splash-tagline strong { color: #C2E03B; font-weight: 700; }
+        .splash-tagline strong { color: #C8921A; font-weight: 700; }
 
         .splash-bottom {
             position: absolute;
@@ -149,7 +149,7 @@
             width: 9px;
             height: 9px;
             border-radius: 50%;
-            background: #C2E03B;
+            background: #C8921A;
             animation: splashPulse 1.6s ease-in-out infinite;
         }
         .splash-loader-dot:nth-child(2) { animation-delay: 0.2s; }
@@ -260,7 +260,7 @@
                 <path class="splash-shield-stroke"
                       d="M100 10 L180 40 L180 130 Q180 180 100 210 Q20 180 20 130 L20 40 Z"
                       fill="none"
-                      stroke="#C2E03B"
+                      stroke="#C8921A"
                       stroke-width="3"
                       stroke-linecap="round"
                       stroke-linejoin="round" />
@@ -271,9 +271,9 @@
                       font-size="52"
                       fill="#FFFFFF">VSC</text>
                 <!-- 3 puntos verdes (IQ · OQ · PQ stages) -->
-                <circle class="splash-dot splash-dot-1" cx="65"  cy="165" r="3.5" fill="#C2E03B"/>
-                <circle class="splash-dot splash-dot-2" cx="100" cy="165" r="3.5" fill="#C2E03B"/>
-                <circle class="splash-dot splash-dot-3" cx="135" cy="165" r="3.5" fill="#C2E03B"/>
+                <circle class="splash-dot splash-dot-1" cx="65"  cy="165" r="3.5" fill="#C8921A"/>
+                <circle class="splash-dot splash-dot-2" cx="100" cy="165" r="3.5" fill="#C8921A"/>
+                <circle class="splash-dot splash-dot-3" cx="135" cy="165" r="3.5" fill="#C8921A"/>
             </svg>
         </div>
 
@@ -396,20 +396,20 @@
          canvas full-screen para garabatear con el dedo y submitea el PNG
          al endpoint /sync/signature. La PC está poleando ese token cada 2s.
          ════════════════════════════════════════════════════════════════════ -->
-    <div id="mobileSignatureOverlay" style="display:none; position:fixed; inset:0; z-index:100000; background:linear-gradient(135deg, #213B50 0%, #0E2435 100%); flex-direction:column; padding:14px; box-sizing:border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <div id="mobileSignatureOverlay" style="display:none; position:fixed; inset:0; z-index:100000; background:linear-gradient(135deg, #0B2341 0%, #0E2435 100%); flex-direction:column; padding:14px; box-sizing:border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
         <div style="text-align:center; color:#FFF; padding:8px 0 14px 0;">
-            <div style="font-size:13px; font-weight:700; letter-spacing:2px; color:#C2E03B; text-transform:uppercase;">DRP Validation Suite</div>
+            <div style="font-size:13px; font-weight:700; letter-spacing:2px; color:#C8921A; text-transform:uppercase;">DRP Validation Suite</div>
             <div style="font-size:11px; color:#AFBDC8; margin-top:2px;">Capturando firma manuscrita</div>
         </div>
-        <div style="flex:1; background:#FFFFFF; border-radius:8px; overflow:hidden; position:relative; border:2px dashed #C2E03B;">
+        <div style="flex:1; background:#FFFFFF; border-radius:8px; overflow:hidden; position:relative; border:2px dashed #C8921A;">
             <canvas id="mobileSigCanvas" style="width:100%; height:100%; display:block; touch-action:none;"></canvas>
             <div id="mobileSigHint" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#AFBDC8; font-size:14px; pointer-events:none;">Firmá aquí con el dedo</div>
         </div>
         <div style="display:flex; gap:8px; padding:14px 0 6px 0;">
             <button id="mobileSigClearBtn" type="button" style="flex:1; padding:14px; background:rgba(255,255,255,0.12); color:#FFF; border:1px solid rgba(255,255,255,0.3); border-radius:6px; font-size:14px; font-weight:600;">↺ Limpiar</button>
-            <button id="mobileSigSendBtn" type="button" style="flex:2; padding:14px; background:#C2E03B; color:#213B50; border:none; border-radius:6px; font-size:14px; font-weight:700; letter-spacing:0.5px;">Enviar a la PC</button>
+            <button id="mobileSigSendBtn" type="button" style="flex:2; padding:14px; background:#C8921A; color:#0B2341; border:none; border-radius:6px; font-size:14px; font-weight:700; letter-spacing:0.5px;">Enviar a la PC</button>
         </div>
-        <div id="mobileSigStatus" style="text-align:center; color:#C2E03B; font-size:12px; padding:6px 0; min-height:18px;"></div>
+        <div id="mobileSigStatus" style="text-align:center; color:#C8921A; font-size:12px; padding:6px 0; min-height:18px;"></div>
     </div>
 
     <script>
@@ -487,7 +487,7 @@
                             body: JSON.stringify({ token: sigToken, firmaImage: sc.toDataURL() })
                         });
                         if (!r.ok) throw new Error('HTTP ' + r.status);
-                        status.style.color = '#C2E03B';
+                        status.style.color = '#C8921A';
                         status.textContent = '✓ Firma enviada a la PC';
                         document.getElementById('mobileSigSendBtn').disabled = true;
                         document.getElementById('mobileSigSendBtn').textContent = 'Enviado ✓';
@@ -526,23 +526,17 @@
                 <span style="font-size:13px;">✍</span>
                 <span class="sys-chip-label" style="color:#A5D6A7;">Firmas</span>
             </button>
-            <button class="sys-chip" onclick="toggleSysPanel()" title="Configurar información del sistema">
-                <span class="sys-chip-label">Empresa</span>
-                <span class="sys-chip-val" id="chipEmpresaVal">—</span>
+            <button class="sys-chip" onclick="toggleSysPanel()" title="Empresa · Sistema · Ejecutor" style="gap:6px;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.55;flex-shrink:0;"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+                <span class="sys-chip-val" id="chipEmpresaVal" style="max-width:120px;">—</span>
             </button>
-            <button class="sys-chip" onclick="toggleSysPanel()" title="Configurar información del sistema">
-                <span class="sys-chip-label">Sistema</span>
-                <span class="sys-chip-val" id="chipSistemaVal">—</span>
-            </button>
-            <button class="sys-chip" onclick="toggleSysPanel()" title="Configurar información del sistema">
-                <span class="sys-chip-label">Ejecutor</span>
-                <span class="sys-chip-val" id="chipEjecutorVal">—</span>
-            </button>
+            <span style="display:none" id="chipSistemaVal"></span>
+            <span style="display:none" id="chipEjecutorVal"></span>
         </div>
 
         <div class="app-header-right">
             <!-- Chip de usuario logueado (Login formal) -->
-            <button class="sys-chip user-session-chip" id="userSessionChip" style="display:none; background:rgba(194,224,59,0.18); border-color:rgba(194,224,59,0.5);" title="Click para opciones de usuario">
+            <button class="sys-chip user-session-chip" id="userSessionChip" style="display:none; background:rgba(200,146,26,0.18); border-color:rgba(200,146,26,0.5);" title="Click para opciones de usuario">
                 <span class="sys-chip-label">Usuario</span>
                 <span class="sys-chip-val user-chip-name" style="color:#FFF;">—</span>
                 <span class="user-chip-role" style="font-size:9px; padding:1px 6px; border-radius:3px; margin-left:4px; color:#FFF; font-weight:700; letter-spacing:0.5px;">—</span>
@@ -678,131 +672,39 @@
          ════════════════════════════════════════════ -->
     <div class="app-toolbar">
 
-        <!-- ════════════════════════════════════════════════════════════
-             SUITE PROYECTOS — contenedor top-level del workflow
-             (multi-proyecto, switch + archivado + export/import)
-             ════════════════════════════════════════════════════════════ -->
-        <button class="tb-btn" id="btnSuiteProyectos"
-                onclick="openProjectsModal()"
-                style="background:#E67E22; color:white; font-weight:700; padding:8px 16px;"
-                title="Suite de Proyectos — gestiona múltiples paquetes documentales por cliente. Cada proyecto guarda su estado completo (paquete, tests, evidencias, audit trail).">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px; margin-right:4px;"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-            Suite Proyectos
-        </button>
+        <!-- ═══════════════════════════════════════════════════════════════
+             TOOLBAR DRP v4 — 4 suite tabs
+             Validación · Documental · Planillas · Admin
+             ═══════════════════════════════════════════════════════════════ -->
 
-        <div class="tb-divider"></div>
-
-        <!-- ════════════════════════════════════════════════════════════
-             SUITE VALIDACION — generacion y validacion de documentos GxP
-             ════════════════════════════════════════════════════════════ -->
+        <!-- ── Suite 1 — Validación ── -->
         <div class="tb-split">
-            <button class="tb-split-main" data-dropdown="dropValidacion" style="background: var(--vsc-azul); color: white;" title="Suite Validación — generación y validación de documentos GxP del paquete">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                Suite Validación
+            <button class="tb-split-main suite-tab-btn" data-dropdown="dropSuiteVal" title="Suite Validación — proyectos, evidencias, tests, exportar, cierre">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="suite-tab-icon"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                Validación
+                <svg class="suite-tab-chevron" width="8" height="5" viewBox="0 0 8 5"><path d="M0 0l4 5 4-5z" fill="currentColor"/></svg>
             </button>
-            <button class="tb-split-arrow" data-dropdown="dropValidacion" style="background: var(--vsc-azul); color: white;" title="Opciones de la suite de validación">
-                <svg width="8" height="5" viewBox="0 0 8 5"><path d="M0 0l4 5 4-5z" fill="currentColor"/></svg>
-            </button>
-            <div class="tb-dropdown tb-dropdown-wide" id="dropValidacion">
+            <div class="tb-dropdown tb-dropdown-wide" id="dropSuiteVal">
 
-                <span class="tb-dropdown-label">Editor</span>
-                <button class="tb-item-pri" onclick="openValidationSuite()" title="Abrir el editor + preview de documentos GxP">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
-                    Abrir Editor + Preview
+                <span class="tb-dropdown-label">Proyectos</span>
+                <button id="btnSuiteProyectos" class="tb-item-pri" onclick="openProjectsModal()" title="Suite de Proyectos — gestiona múltiples paquetes documentales por cliente. Cada proyecto guarda su estado completo (paquete, tests, evidencias, audit trail).">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                    Abrir proyectos
                 </button>
 
                 <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Análisis de riesgo</span>
-                <button onclick="openValidationSuite('hlra-template-vacio')" title="Generar HLRA — High Level Risk Assessment">HLRA — High Level Risk Assessment</button>
-                <button onclick="openValidationSuite('vp-template-vacio')" title="Generar VP — Validation Plan">VP — Validation Plan</button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Requerimientos y diseño</span>
-                <button onclick="openValidationSuite('urs-template-vacio')" title="Generar URS — User Requirements Specification">URS — User Requirements Spec</button>
-                <button onclick="openValidationSuite('frs-template-vacio')" title="Generar FRS — Functional Requirements Specification">FRS — Functional Requirements</button>
-                <button onclick="openValidationSuite('ds-template-vacio')" title="Generar DS — Design Specification">DS — Design Specification</button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Riesgo detallado</span>
-                <button onclick="openValidationSuite('ra-template-vacio')" title="Generar RA — Risk Assessment">RA — Risk Assessment</button>
-                <button onclick="openValidationSuite('ira-template-vacio')" title="Generar IRA — Infrastructure Risk Assessment">IRA — Infrastructure RA</button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Calificación (protocolos / informes)</span>
-                <button onclick="openValidationSuite('piq-template-vacio')" title="Generar PIQ — Protocolo IQ">PIQ — Protocolo Instalación</button>
-                <button onclick="openValidationSuite('iiq-template-vacio')" title="Generar IIQ — Informe IQ">IIQ — Informe Instalación</button>
-                <button onclick="openValidationSuite('poq-template-vacio')" title="Generar POQ — Protocolo OQ">POQ — Protocolo Operativa</button>
-                <button onclick="openValidationSuite('ioq-template-vacio')" title="Generar IOQ — Informe OQ">IOQ — Informe Operativa</button>
-                <button onclick="openValidationSuite('ppq-template-vacio')" title="Generar PPQ — Protocolo PQ">PPQ — Protocolo Performance</button>
-                <button onclick="openValidationSuite('ipq-template-vacio')" title="Generar IPQ — Informe PQ">IPQ — Informe Performance</button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Firma electrónica (21 CFR Part 11)</span>
-                <button onclick="openPeopleManagerModal()" title="Gestionar personas firmantes del paquete activo: registrar firmantes, asignar PIN, reset por user maestro">Personas del paquete</button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Hallazgos y CAPA</span>
-                <button onclick="openValidationSuite('ncr-template-vacio')" title="NCR — Non-Conformance Report: hallazgos + análisis causa raíz + plan CAPA con stage-gating por firmas">NCR — Reporte NC y CAPA</button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Reportes de liberación (firma ejecutiva)</span>
-                <button onclick="openValidationSuite('release-template-vacio')" title="Reporte de Calificación — documento ejecutivo de cierre de fase (RIQ / ROQ / RPQ). Cambiá el campo type en el documento para alternar entre los 3.">Reporte de Liberación (RIQ/ROQ/RPQ)</button>
-                <button onclick="openValidationSuite('vsr-template-vacio')" title="VSR — Reporte Maestro de Validación: doc ejecutivo final que consolida TODO el ciclo (HLRA→...→RPQ). El doc carátula que un auditor lee primero.">VSR — Reporte Maestro de Validación</button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Cierre del paquete</span>
-                <button onclick="openValidationSuite('aex-test-sample')" title="AEX — Anexo de Ejecución (también se genera desde Suite Evidencias)">AEX — Anexo de Ejecución</button>
-            </div>
-        </div>
-
-        <div class="tb-divider"></div>
-
-        <!-- ════════════════════════════════════════════════════════════
-             SUITE EVIDENCIAS — todas las funciones del gestor
-             (paquete, sesion, captura, gestion, exportar, cierre)
-             ════════════════════════════════════════════════════════════ -->
-        <div class="tb-split">
-            <button class="tb-split-main" data-dropdown="dropEvidencias" title="Suite Evidencias — todas las funciones del gestor">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                Suite Evidencias
-            </button>
-            <button class="tb-split-arrow" data-dropdown="dropEvidencias" title="Opciones de la Suite Evidencias">
-                <svg width="8" height="5" viewBox="0 0 8 5"><path d="M0 0l4 5 4-5z" fill="currentColor"/></svg>
-            </button>
-            <div class="tb-dropdown tb-dropdown-wide" id="dropEvidencias">
-
-                <span class="tb-dropdown-label">Documentos del proyecto activo</span>
-                <button id="btnCargarPaquete" class="tb-item-pri" title="Importar docs al proyecto activo (multi-archivo). Detecta URS, RA, IRA, PIQ, POQ, PPQ y los suma al paquete del proyecto. Útil cuando traés docs ya existentes desde otra carpeta o cliente.">
+                <span class="tb-dropdown-label">Documentos del proyecto</span>
+                <button id="btnCargarPaquete" class="tb-item-pri" title="Importar docs al proyecto activo (multi-archivo). Detecta URS, RA, IRA, PIQ, POQ, PPQ y los suma al paquete del proyecto.">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                     Importar docs al proyecto
                 </button>
-                <button id="btnImportarJSON" title="Agregar UN archivo individual al proyecto activo. Útil cuando te falta solo un doc (ej: un URS revisado que llegó por mail). No reemplaza, suma al paquete existente.">
+                <button id="btnImportarJSON" title="Agregar UN archivo individual al proyecto activo.">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     Agregar doc al proyecto
                 </button>
                 <button id="btnRestaurarBackup" title="Restaurar desde backup automatico" onclick="showRestoreBackupModal()">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
                     Restaurar Backup
-                </button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Sesión</span>
-                <button id="btnCargarSesion" title="Cargar sesion desde archivo">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    Cargar Sesión
-                </button>
-                <button id="btnGuardarSesion" title="Guardar sesion en archivo">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                    Guardar Sesión
-                </button>
-                <button id="btnLimpiarCache" title="Limpiar toda la cache (requiere confirmación). Borra los documentos del proyecto activo, evidencias capturadas, audit trail y datos del sistema." style="color:#A52A2A;">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-                    Limpiar Cache
-                </button>
-
-                <button id="btnBorrarImagenesServidor" title="Borra todas las imágenes del servidor (R2 + BD) y del navegador. Los tests y resultados se conservan." style="color:#A52A2A;" onclick="clearEvidenceImagesOnly()">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><line x1="21" y1="3" x2="3" y2="21" stroke="#A52A2A" stroke-width="2"/></svg>
-                    Borrar imágenes del servidor
                 </button>
 
                 <hr class="tb-dropdown-sep">
@@ -853,11 +755,30 @@
 
                 <hr class="tb-dropdown-sep">
                 <span class="tb-dropdown-label">Importar evidencias reales</span>
-                <label id="btnImportarFotos" class="tb-item-sec" title="Carga un JSON de evidencias DRP (DRP_Evidencias_*.json) con las fotos reales. Reemplaza los tests/fotos sin tocar los documentos del paquete." style="cursor:pointer;display:flex;align-items:center;gap:6px;font-size:13px;padding:6px 10px;">
+                <label id="btnImportarFotos" class="tb-item-sec" title="Carga un JSON de evidencias DRP (DRP_Evidencias_*.json) con las fotos reales." style="cursor:pointer;display:flex;align-items:center;gap:6px;font-size:13px;padding:6px 10px;">
                     <input type="file" accept=".json" style="display:none" onchange="(async(el)=>{if(el.files[0])await mergeEvidencePhotos(el.files[0]);el.value=''})(this)">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                     📸 Importar evidencias reales
                 </label>
+
+                <hr class="tb-dropdown-sep">
+                <span class="tb-dropdown-label">Sesión</span>
+                <button id="btnCargarSesion" title="Cargar sesion desde archivo">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Cargar Sesión
+                </button>
+                <button id="btnGuardarSesion" title="Guardar sesion en archivo">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Guardar Sesión
+                </button>
+                <button id="btnLimpiarCache" title="Limpiar toda la cache (requiere confirmación). Borra los documentos del proyecto activo, evidencias capturadas, audit trail y datos del sistema." style="color:#A52A2A;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                    Limpiar Cache
+                </button>
+                <button id="btnBorrarImagenesServidor" title="Borra todas las imágenes del servidor (R2 + BD) y del navegador. Los tests y resultados se conservan." style="color:#A52A2A;" onclick="clearEvidenceImagesOnly()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><line x1="21" y1="3" x2="3" y2="21" stroke="#A52A2A" stroke-width="2"/></svg>
+                    Borrar imágenes del servidor
+                </button>
 
                 <hr class="tb-dropdown-sep">
                 <span class="tb-dropdown-label">Exportar</span>
@@ -904,94 +825,86 @@
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
                     Firmas Electrónicas
                 </button>
+
             </div>
         </div>
 
-        <!-- ════════════════════════════════════════════════════════════
-             SUITE COMPARACIÓN & FIRMA — Fase A
-             4 funciones planificadas:
-               1. Comparación cruzada multi-doc (URS↔RA↔TC)        ← Fase A ✓
-               2. Comparar versiones de un mismo doc (diff)        ← Fase B
-               3. Firmar doc + carpeta de proyecto                 ← Fase C
-               4. Audit trail del proyecto                         ← Fase A ✓
-             ════════════════════════════════════════════════════════════ -->
+        <!-- ── Suite 2 — Documental ── -->
         <div class="tb-split">
-            <button class="tb-split-main" data-dropdown="dropCompare" style="background:#5B3A8C; color:white; font-weight:700;" title="Suite Comparación & Firma — trazabilidad cruzada entre documentos, diff de versiones, firma con carpeta de proyecto, audit trail.">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 00-2 2v14a2 2 0 002 2h4M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-                Comparación & Firma
+            <button class="tb-split-main suite-tab-btn" data-dropdown="dropSuiteDoc" title="Suite Documental — editor GxP, dossier, libro de validación, comparación">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="suite-tab-icon"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+                Documental
+                <svg class="suite-tab-chevron" width="8" height="5" viewBox="0 0 8 5"><path d="M0 0l4 5 4-5z" fill="currentColor"/></svg>
             </button>
-            <button class="tb-split-arrow" data-dropdown="dropCompare" style="background:#5B3A8C; color:white;" title="Opciones de comparación y firma">
-                <svg width="8" height="5" viewBox="0 0 8 5"><path d="M0 0l4 5 4-5z" fill="currentColor"/></svg>
-            </button>
-            <div class="tb-dropdown tb-dropdown-wide" id="dropCompare">
-                <span class="tb-dropdown-label">Trazabilidad cruzada</span>
-                <button class="tb-item-pri" onclick="openComparisonMatrix()" title="Análisis de trazabilidad GxP con motor Python. Detecta URS sin TC, riesgos sin mitigar, incoherencias de protocolo y gaps en ejecución. Requiere el servicio Python activo (start.bat).">★ Análisis de trazabilidad (motor Python)</button>
+            <div class="tb-dropdown tb-dropdown-wide" id="dropSuiteDoc">
+
+                <span class="tb-dropdown-label">Editor GxP</span>
+                <button class="tb-item-pri" onclick="openValidationSuite()" title="Abrir el editor + preview de documentos GxP">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+                    Abrir Editor + Preview
+                </button>
 
                 <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Control de cambios</span>
-                <button class="tb-item-pri" onclick="openVersionDiff()" title="Comparar dos versiones del mismo documento (mismo type) — detecta secciones añadidas, removidas o modificadas, items dentro de cada sección (URS, RA, TC) y cambios de metadata.">★ Comparar versiones (diff)</button>
+                <span class="tb-dropdown-label">Análisis de riesgo</span>
+                <button onclick="openValidationSuite('hlra-template-vacio')" title="Generar HLRA — High Level Risk Assessment">HLRA — High Level Risk Assessment</button>
+                <button onclick="openValidationSuite('vp-template-vacio')" title="Generar VP — Validation Plan">VP — Validation Plan</button>
 
                 <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Firma y archivado</span>
-                <button class="tb-item-pri" onclick="openSignFlow()" title="Firma un doc del paquete o del editor activo con hash SHA-256 + firmante + timestamp. Se archiva en una carpeta virtual del proyecto (IndexedDB). Exportable como ZIP regulatorio.">★ Firmar &amp; archivar (carpeta de proyecto)</button>
+                <span class="tb-dropdown-label">Requerimientos y diseño</span>
+                <button onclick="openValidationSuite('urs-template-vacio')" title="Generar URS">URS — User Requirements Spec</button>
+                <button onclick="openValidationSuite('frs-template-vacio')" title="Generar FRS">FRS — Functional Requirements</button>
+                <button onclick="openValidationSuite('ds-template-vacio')" title="Generar DS">DS — Design Specification</button>
 
                 <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Auditoría</span>
-                <button onclick="openSuiteAuditTrail()" title="Ver audit trail completo del proyecto: cada doc creado, comparado, firmado o modificado queda registrado con timestamp y hash.">Audit Trail del proyecto</button>
-            </div>
-        </div>
+                <span class="tb-dropdown-label">Riesgo detallado</span>
+                <button onclick="openValidationSuite('ra-template-vacio')" title="Generar RA">RA — Risk Assessment</button>
+                <button onclick="openValidationSuite('ira-template-vacio')" title="Generar IRA">IRA — Infrastructure RA</button>
 
-        <!-- ════════════════════════════════════════════════════════════
-             SUITE LIBRO DE VALIDACIÓN — compilación maestra del ciclo
-             completo en un único PDF tipo libro (entregable final).
-             ════════════════════════════════════════════════════════════ -->
-        <!-- Dossier en Vivo ──────────────────────────────────────────── -->
-        <button onclick="openDossierPanel()" title="Ver todos los tomos del dossier de validación con estado en tiempo real"
-            style="background:#1F3C56; color:#fff; border:none; border-radius:4px;
-                   padding:6px 13px; font-size:12px; font-weight:700; cursor:pointer;
-                   display:flex; align-items:center; gap:6px; letter-spacing:0.3px;">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/>
-                <line x1="9" y1="21" x2="9" y2="9"/>
-            </svg>
-            Dossier en Vivo
-        </button>
+                <hr class="tb-dropdown-sep">
+                <span class="tb-dropdown-label">Calificación — protocolos e informes</span>
+                <button onclick="openValidationSuite('piq-template-vacio')" title="Generar PIQ">PIQ — Protocolo Instalación</button>
+                <button onclick="openValidationSuite('iiq-template-vacio')" title="Generar IIQ">IIQ — Informe Instalación</button>
+                <button onclick="openValidationSuite('poq-template-vacio')" title="Generar POQ">POQ — Protocolo Operativa</button>
+                <button onclick="openValidationSuite('ioq-template-vacio')" title="Generar IOQ">IOQ — Informe Operativa</button>
+                <button onclick="openValidationSuite('ppq-template-vacio')" title="Generar PPQ">PPQ — Protocolo Performance</button>
+                <button onclick="openValidationSuite('ipq-template-vacio')" title="Generar IPQ">IPQ — Informe Performance</button>
 
-        <div class="tb-split">
-            <button class="tb-split-main" data-dropdown="dropLibro" style="background: #1E7E34; color: white; font-weight: 700;" title="Suite Libro de Validación — entregable maestro: compila todos los docs del proyecto en un único PDF tipo libro con índice, registro de firmas, cascada de docs y numeración global.">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
-                Suite Libro de Validación
-            </button>
-            <button class="tb-split-arrow" data-dropdown="dropLibro" style="background: #1E7E34; color: white;" title="Opciones del Libro de Validación">
-                <svg width="8" height="5" viewBox="0 0 8 5"><path d="M0 0l4 5 4-5z" fill="currentColor"/></svg>
-            </button>
-            <div class="tb-dropdown tb-dropdown-wide tb-dropdown-libro" id="dropLibro">
+                <hr class="tb-dropdown-sep">
+                <span class="tb-dropdown-label">Hallazgos y CAPA</span>
+                <button onclick="openValidationSuite('ncr-template-vacio')" title="NCR — Non-Conformance Report">NCR — Reporte NC y CAPA</button>
 
-                <!-- Banner visible SOLO cuando el paquete está vacío. -->
-                <!-- updateBookMenuVisibility() lo conmuta junto con el bloque de descargas. -->
-                <!-- Demo: cargar primero si no hay paquete -->
+                <hr class="tb-dropdown-sep">
+                <span class="tb-dropdown-label">Liberación y cierre</span>
+                <button onclick="openValidationSuite('release-template-vacio')" title="Reporte de Liberación">Reporte de Liberación (RIQ/ROQ/RPQ)</button>
+                <button onclick="openValidationSuite('vsr-template-vacio')" title="VSR — Reporte Maestro de Validación">VSR — Reporte Maestro de Validación</button>
+                <button onclick="openValidationSuite('aex-test-sample')" title="AEX — Anexo de Ejecución">AEX — Anexo de Ejecución</button>
+
+                <hr class="tb-dropdown-sep">
+                <span class="tb-dropdown-label">Dossier</span>
+                <button class="tb-item-pri" onclick="openDossierPanel()" title="Ver todos los tomos del dossier de validación con estado en tiempo real">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                    Dossier en Vivo
+                </button>
+
+                <hr class="tb-dropdown-sep">
                 <span class="tb-dropdown-label">Demo</span>
-                <button class="tb-item-pri" onclick="loadDrpDemo()" title="Reconstruye y abre el paquete demo DRP-SIS-001 completo: 20 docs (HLRA→VSR, IQ/OQ/PQ completo) + 15 TCs reales IQ.">
+                <button class="tb-item-pri" onclick="loadDrpDemo()" title="Reconstruye y abre el paquete demo DRP-SIS-001 completo">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                     Cargar Demo DRP-SIS-001
                 </button>
 
                 <hr class="tb-dropdown-sep">
-
-                <!-- Tomo I -->
                 <span class="tb-dropdown-label">Tomo I — Ciclo de Validación</span>
                 <button class="tb-item-pri" onclick="previewBookTomoI()" title="Vista previa del Tomo I en el visor (HLRA → VP → URS → ... → VSR).">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     Previsualizar Tomo I
                 </button>
-                <button onclick="downloadBookTomoI()" title="Descarga el Tomo I como PDF (~80-120 páginas).">
+                <button onclick="downloadBookTomoI()" title="Descarga el Tomo I como PDF.">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
                     Descargar Tomo I (PDF)
                 </button>
 
                 <hr class="tb-dropdown-sep">
-
-                <!-- Tomo II -->
                 <span class="tb-dropdown-label">Tomo II — Anexo de Ejecución (AEX)</span>
                 <button class="tb-item-pri" onclick="previewBookTomoII()" title="Vista previa del Tomo II — AEX con los TCs ejecutados y evidencias.">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -1003,126 +916,134 @@
                 </button>
 
                 <hr class="tb-dropdown-sep">
-
-                <!-- Tomo III -->
                 <span class="tb-dropdown-label">Tomo III — Evidencias Raw (ZIP)</span>
-                <button onclick="downloadTomoIII()" title="Descarga ZIP con evidencias raw full-res + MANIFEST.json (hashes SHA-256) + ÍNDICE_IMAGENES.pdf. Requiere haber cargado fotos reales.">
+                <button onclick="downloadTomoIII()" title="Descarga ZIP con evidencias raw full-res + MANIFEST.json (hashes SHA-256).">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
                     Descargar Tomo III (ZIP)
                 </button>
 
                 <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Libro del Validador (nueva pestaña)</span>
-                <button class="tb-item-pri" onclick="openValidatorBook('ALL')" title="Abre el Libro Completo del Validador con los 3 protocolos (PIQ + POQ + PPQ) en una sola vista navegable — para entregar al cliente o imprimir el ciclo completo">
+                <span class="tb-dropdown-label">Libro del Validador</span>
+                <button class="tb-item-pri" onclick="openValidatorBook('ALL')" title="Abre el Libro Completo del Validador con los 3 protocolos (PIQ + POQ + PPQ)">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
                     Libro Completo — IQ + OQ + PQ
                 </button>
-                <button onclick="openValidatorBook('PIQ')" title="Abre el Libro del Validador solo para el protocolo IQ (PIQ)">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
-                    Libro del Validador — IQ (PIQ)
-                </button>
-                <button onclick="openValidatorBook('POQ')" title="Abre el Libro del Validador solo para el protocolo OQ (POQ)">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
-                    Libro del Validador — OQ (POQ)
-                </button>
-                <button onclick="openValidatorBook('PPQ')" title="Abre el Libro del Validador solo para el protocolo PQ (PPQ)">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
-                    Libro del Validador — PQ (PPQ)
-                </button>
+                <button onclick="openValidatorBook('PIQ')" title="Libro IQ (PIQ)">Libro del Validador — IQ (PIQ)</button>
+                <button onclick="openValidatorBook('POQ')" title="Libro OQ (POQ)">Libro del Validador — OQ (POQ)</button>
+                <button onclick="openValidatorBook('PPQ')" title="Libro PQ (PPQ)">Libro del Validador — PQ (PPQ)</button>
+                <button onclick="showBookInfoModal()" title="Qué contiene el Libro de Validación">¿Qué es el Libro de Validación?</button>
 
                 <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Información</span>
-                <button onclick="showBookInfoModal()" title="Qué contiene el Libro de Validación y para qué sirve">¿Qué es el Libro de Validación?</button>
+                <span class="tb-dropdown-label">Trazabilidad cruzada</span>
+                <button class="tb-item-pri" onclick="openComparisonMatrix()" title="Análisis de trazabilidad GxP con motor Python. Detecta URS sin TC, riesgos sin mitigar, incoherencias de protocolo.">★ Análisis de trazabilidad (motor Python)</button>
+
+                <hr class="tb-dropdown-sep">
+                <span class="tb-dropdown-label">Control de cambios</span>
+                <button class="tb-item-pri" onclick="openVersionDiff()" title="Comparar dos versiones del mismo documento — detecta secciones añadidas, removidas o modificadas.">★ Comparar versiones (diff)</button>
+
+                <hr class="tb-dropdown-sep">
+                <span class="tb-dropdown-label">Firma y archivado</span>
+                <button class="tb-item-pri" onclick="openSignFlow()" title="Firma un doc del paquete con hash SHA-256 + firmante + timestamp.">★ Firmar &amp; archivar (carpeta de proyecto)</button>
+                <button onclick="openPeopleManagerModal()" title="Gestionar personas firmantes del paquete activo">Personas del paquete</button>
+
             </div>
         </div>
 
-        <!-- ════════════════════════════════════════════════════════════
-             SUITE VALIDACIÓN DE PLANILLAS EXCEL (GxP / GAMP 5)
-             Genera EVRA + EVPROT + EVIR usando análisis estructural del .xlsx
-             ════════════════════════════════════════════════════════════ -->
+        <!-- ── Suite 3 — Planillas ── -->
         <div class="tb-split">
-            <button class="tb-split-main" data-dropdown="dropExcel" style="background:#0F766E; color:white; font-weight:700;" title="Suite Validación de Planillas — Genera EVRA + EVPROT + EVIR para planillas Excel GxP bajo GAMP 5">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-                Suite Planillas
+            <button class="tb-split-main suite-tab-btn" data-dropdown="dropSuitePlan" title="Suite Planillas — validación de Excel GxP y MapeoGxP">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="suite-tab-icon"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                Planillas
+                <svg class="suite-tab-chevron" width="8" height="5" viewBox="0 0 8 5"><path d="M0 0l4 5 4-5z" fill="currentColor"/></svg>
             </button>
-            <button class="tb-split-arrow" data-dropdown="dropExcel" style="background:#0F766E; color:white;" title="Opciones de validación de planillas">
-                <svg width="8" height="5" viewBox="0 0 8 5"><path d="M0 0l4 5 4-5z" fill="currentColor"/></svg>
-            </button>
-            <div class="tb-dropdown tb-dropdown-wide" id="dropExcel">
+            <div class="tb-dropdown tb-dropdown-wide" id="dropSuitePlan">
 
-                <span class="tb-dropdown-label">Nueva validación</span>
+                <span class="tb-dropdown-label">Validación de planillas Excel</span>
                 <button class="tb-item-pri" onclick="SpreadsheetWizard.open()" title="Subir un .xlsx, analizar su estructura y generar EVRA + EVPROT + EVIR con IA">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                     Validar planilla Excel (.xlsx)
                 </button>
 
                 <hr class="tb-dropdown-sep">
-
                 <span class="tb-dropdown-label">Documentos generados</span>
-                <button class="tb-item-pri" onclick="openValidationSuite('EVRA')" title="Abrir Evaluación de Riesgo de Planilla en la Suite">
-                    📋 EVRA — Evaluación de Riesgo
-                </button>
-                <button onclick="openValidationSuite('EVPROT')" title="Abrir Protocolo de Validación de Planilla en la Suite">
-                    🧪 EVPROT — Protocolo de Validación
-                </button>
-                <button onclick="openValidationSuite('EVIR')" title="Abrir Informe de Validación de Planilla en la Suite">
-                    ✅ EVIR — Informe de Validación
-                </button>
+                <button class="tb-item-pri" onclick="openValidationSuite('EVRA')" title="Abrir EVRA en la Suite">📋 EVRA — Evaluación de Riesgo</button>
+                <button onclick="openValidationSuite('EVPROT')" title="Abrir EVPROT">🧪 EVPROT — Protocolo de Validación</button>
+                <button onclick="openValidationSuite('EVIR')" title="Abrir EVIR">✅ EVIR — Informe de Validación</button>
 
                 <hr class="tb-dropdown-sep">
+                <span class="tb-dropdown-label">¿Cómo funciona?</span>
+                <button onclick="alert('Suite Planillas GxP\n\nValida planillas Excel usadas en procesos regulados (GAMP 5 Cat 4).\n\nFlujo:\n1. EVRA — Evaluación de Riesgo: identifica riesgos de integridad, acceso y versión\n2. EVPROT — Protocolo: casos de prueba concretos para cada fórmula crítica\n3. EVIR — Informe de cierre: resultados y estado APROBADA / NO APROBADA\n\nEl análisis de la planilla es automático — SheetJS detecta hojas, fórmulas, protección y VBA.')" title="Información sobre la Suite de Validación de Planillas">¿Cómo funciona?</button>
 
-                <span class="tb-dropdown-label">¿Qué es esto?</span>
-                <button onclick="alert('Suite Planillas GxP\n\nValida planillas Excel usadas en procesos regulados (GAMP 5 Cat 4).\n\nFlujo:\n1. EVRA — Evaluación de Riesgo: identifica riesgos de integridad, acceso y versión\n2. EVPROT — Protocolo: casos de prueba concretos para cada fórmula crítica\n3. EVIR — Informe de cierre: resultados y estado APROBADA / NO APROBADA\n\nEl análisis de la planilla es automático — SheetJS detecta hojas, fórmulas, protección y VBA.')" title="Información sobre la Suite de Validación de Planillas">
-                    ¿Cómo funciona?
-                </button>
-            </div>
-        </div>
-
-        <!-- MapeoGxP — Mapeador de Procesos GxP -->
-        <div class="tb-split">
-            <button class="tb-split-main" data-dropdown="dropMapaProcesos" style="background:#0369A1; color:white; font-weight:700;" title="MapeoGxP — Mapeador de procesos GxP multidimensional (5 columnas swimlane)">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-                MapeoGxP
-            </button>
-            <button class="tb-split-arrow" data-dropdown="dropMapaProcesos" style="background:#0369A1; color:white;" title="Opciones MapeoGxP">
-                <svg width="8" height="5" viewBox="0 0 8 5"><path d="M0 0l4 5 4-5z" fill="currentColor"/></svg>
-            </button>
-            <div class="tb-dropdown tb-dropdown-wide" id="dropMapaProcesos">
-                <span class="tb-dropdown-label">Mapeador</span>
-                <button class="tb-item-pri" onclick="openProcessMap()" title="Abrir MapeoGxP — editor de mapas de proceso GxP">
+                <hr class="tb-dropdown-sep">
+                <span class="tb-dropdown-label">Mapeador de procesos GxP</span>
+                <button class="tb-item-pri" onclick="openProcessMap()" title="Abrir MapeoGxP — editor de mapas de proceso GxP multidimensional (5 columnas swimlane)">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                     Abrir MapeoGxP
                 </button>
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">5 Dimensiones (columnas swimlane)</span>
                 <button onclick="" style="cursor:default;opacity:.7" title="Flujo principal del proceso: terminadores, actividades, decisiones">⬜ Proceso — Flujo y decisiones</button>
                 <button onclick="" style="cursor:default;opacity:.7" title="Perfiles y roles responsables de cada paso">🟡 Perfil — Roles de usuario</button>
                 <button onclick="" style="cursor:default;opacity:.7" title="Sistemas computarizados que intervienen (GAMP 5)">🔵 Sistema — Sistemas GxP</button>
                 <button onclick="" style="cursor:default;opacity:.7" title="Cálculos y algoritmos ejecutados por el sistema">🟢 Cálculo — Algoritmos</button>
                 <button onclick="" style="cursor:default;opacity:.7" title="Datos, registros y documentos generados">⬜ Dato — Registros GxP</button>
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">¿Cómo funciona?</span>
-                <button onclick="alert('MapeoGxP — Mapeador de Procesos GxP\n\nHerramienta standalone integrada en SMART Validation.\nCreá mapas de proceso GxP en formato swimlane de 5 columnas:\n\n  Proceso · Perfil · Sistema · Cálculo · Dato\n\nFlujo de uso:\n1. Abrí MapeoGxP desde este botón\n2. Creá un nuevo proyecto o importá un JSON\n3. Dibujá el proceso arrastrando figuras al lienzo\n4. Completá los inventarios (Sistemas, Perfiles, Cálculos)\n5. Exportá a PDF (estilo SMART Validation) o JSON\n\nNormativa de referencia: PIC/S · GAMP 5 2ª ed.\nDesarrollado por Lucas Santarenz.')" title="Información sobre MapeoGxP">
-                    ¿Cómo funciona?
-                </button>
+
             </div>
         </div>
 
-        <!-- Botón Desvíos: visible solo cuando hay pasos FAIL u OBS en la sesión activa -->
+        <!-- ── Suite 4 — Admin ── -->
+        <div class="tb-split">
+            <button class="tb-split-main suite-tab-btn" data-dropdown="dropSuiteAdmin" title="Suite Admin — usuarios, firmas, auditoría, configuración">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="suite-tab-icon"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0112 0v2"/></svg>
+                Admin
+                <svg class="suite-tab-chevron" width="8" height="5" viewBox="0 0 8 5"><path d="M0 0l4 5 4-5z" fill="currentColor"/></svg>
+            </button>
+            <div class="tb-dropdown tb-dropdown-wide" id="dropSuiteAdmin">
+
+                <span class="tb-dropdown-label">Usuarios y permisos</span>
+                <button class="tb-item-pri" onclick="openUserMgmt()" title="Gestionar usuarios del sistema">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                    Gestionar usuarios
+                </button>
+                <button onclick="openReviewDashboard()" title="Rondas de revisión y aprobación">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+                    Rondas de revisión
+                </button>
+
+                <hr class="tb-dropdown-sep">
+                <span class="tb-dropdown-label">Firmas digitales</span>
+                <button onclick="FirmaDigital.open()" title="Firmas digitales del paquete activo (21 CFR Part 11)">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                    Firmas digitales del paquete
+                </button>
+
+                <hr class="tb-dropdown-sep">
+                <span class="tb-dropdown-label">Auditoría</span>
+                <button onclick="openSuiteAuditTrail()" title="Ver audit trail completo del proyecto: cada doc creado, comparado, firmado o modificado.">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+                    Audit Trail del proyecto
+                </button>
+
+                <hr class="tb-dropdown-sep">
+                <span class="tb-dropdown-label">Configuración</span>
+                <button onclick="toggleSysPanel()" title="Configurar empresa, sistema, ejecutor y período del proyecto">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+                    Contexto del sistema
+                </button>
+                <button onclick="openApiKeyModal()" title="Configurar API Key de Anthropic">
+                    API Key Anthropic
+                </button>
+
+            </div>
+        </div>
+
+        <!-- Desvíos — visible solo cuando hay pasos FAIL u OBS en la sesión activa -->
         <button id="btnDesvios" onclick="showDesviosPanel()"
                 title="Ver desvíos detectados (NO PASA / PASA CON OBS)"
-                style="display:none; background:#dc2626; color:#fff; border:none; border-radius:5px;
+                style="display:none; margin-left:auto; background:#dc2626; color:#fff; border:none; border-radius:5px;
                        padding:5px 11px; font-size:12px; font-weight:700; cursor:pointer;
-                       display:none; align-items:center; gap:6px; white-space:nowrap;">
+                       align-items:center; gap:6px; white-space:nowrap; flex-shrink:0;">
             ⚠ Desvíos
-            <span id="desviosBadge" style="background:rgba(255,255,255,0.25); border-radius:3px;
-                  padding:0 5px; font-size:11px;">0</span>
+            <span id="desviosBadge" style="background:rgba(255,255,255,0.25); border-radius:3px; padding:0 5px; font-size:11px;">0</span>
         </button>
-
-        <!-- Botones "Limpiar cache" y "Reporte →" removidos del toolbar global.
-             - "Limpiar" se movió al dropdown Suite Evidencias > Sesión (junto a Cargar/Guardar).
-             - "Reporte →" se removió porque actualmente no apunta a una vista existente. -->
-
 
         <!-- Botones de audit: ocultos visualmente, disponibles para el JS -->
         <div style="display:none">
@@ -1400,7 +1321,7 @@
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
                 <h3 style="flex:1; margin:0; color:#FFF; font-size:15px;">Vista Previa del Libro de Validación</h3>
                 <span id="bookPreviewMeta" style="font-size:11px; color:#C8DCEE; italic:true;">— compilado —</span>
-                <button id="bookAttachBtn" onclick="ValidationSuite.bookPreview.attachToProject()" style="background:#C2E03B; color:#1F3C56; border:none; padding:6px 14px; border-radius:4px; cursor:pointer; font-weight:700; font-size:12px;" title="Adjuntar este PDF a la carpeta del proyecto activo (IndexedDB)">📎 Adjuntar al proyecto</button>
+                <button id="bookAttachBtn" onclick="ValidationSuite.bookPreview.attachToProject()" style="background:#C8921A; color:#1F3C56; border:none; padding:6px 14px; border-radius:4px; cursor:pointer; font-weight:700; font-size:12px;" title="Adjuntar este PDF a la carpeta del proyecto activo (IndexedDB)">📎 Adjuntar al proyecto</button>
                 <button onclick="ValidationSuite.bookPreview.download()" style="background:#1E7E34; color:#FFF; border:none; padding:6px 14px; border-radius:4px; cursor:pointer; font-weight:600; font-size:12px;">Descargar PDF</button>
                 <button onclick="ValidationSuite.bookPreview.close()" style="background:rgba(255,255,255,0.15); color:#FFF; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:18px; line-height:1;">&times;</button>
             </div>
@@ -1614,8 +1535,8 @@
             </div>
             <style>
                 .ep-tab{background:none;border:none;padding:9px 20px;font-size:12px;font-weight:600;color:#7A8EA0;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;}
-                .ep-tab.active{color:var(--theme-project-main,#213B50);border-bottom-color:var(--theme-project-main,#213B50);}
-                .ep-tab:hover{color:var(--theme-project-main,#213B50);}
+                .ep-tab.active{color:var(--theme-project-main,#0B2341);border-bottom-color:var(--theme-project-main,#0B2341);}
+                .ep-tab:hover{color:var(--theme-project-main,#0B2341);}
             </style>
             <div style="flex:1;overflow-y:auto;padding:20px 24px;">
                 <!-- Tab Datos -->
@@ -1675,7 +1596,7 @@
                 <div id="epTabFirmantes" style="display:none;">
                     <p style="margin:0 0 14px;font-size:13px;color:#586574;">Agregá firmantes al proyecto activo. El PIN y la firma manuscrita pueden completarse después desde la Suite Validación.</p>
                     <div style="background:#FAFBFC;border:1px solid #EEF3F4;border-radius:6px;padding:14px;margin-bottom:16px;">
-                        <div style="font-size:11px;font-weight:700;color:var(--theme-project-main,#213B50);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Agregar firmante</div>
+                        <div style="font-size:11px;font-weight:700;color:var(--theme-project-main,#0B2341);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Agregar firmante</div>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px 14px;margin-bottom:10px;">
                             <div><label class="wiz-label-sm">Nombre completo *</label><input type="text" id="epSignerName" class="modal-themed-input" autocapitalize="words"></div>
                             <div><label class="wiz-label-sm">Rol *</label><input type="text" id="epSignerRole" class="modal-themed-input" placeholder="Process Owner / QA Reviewer"></div>
@@ -1972,7 +1893,7 @@
         <div class="auth-card">
             <div class="auth-header">
                 <svg width="44" height="48" viewBox="0 0 200 220" style="margin-bottom: 6px;">
-                    <path d="M100 10 L180 40 L180 130 Q180 180 100 210 Q20 180 20 130 L20 40 Z" fill="rgba(33,59,80,0.85)" stroke="#C2E03B" stroke-width="3"/>
+                    <path d="M100 10 L180 40 L180 130 Q180 180 100 210 Q20 180 20 130 L20 40 Z" fill="rgba(33,59,80,0.85)" stroke="#C8921A" stroke-width="3"/>
                     <text x="100" y="128" text-anchor="middle" font-family="Orbitron, Arial Black, sans-serif" font-weight="900" font-size="48" fill="#FFFFFF" letter-spacing="3">VSC</text>
                 </svg>
                 <div class="auth-title">DRP Validation Suite</div>
@@ -2076,7 +1997,7 @@
                     <h3 style="margin:0">👥 Gestión de usuarios</h3>
                     <div class="modal-themed-subtitle">Administradores · Auditores · Clientes del portal</div>
                 </div>
-                <button onclick="umShowCreate()" style="background:#C2E03B;color:#213B50;font-weight:700;padding:7px 14px;font-size:12px;border:none;border-radius:4px;cursor:pointer;margin-right:8px">+ Nuevo usuario</button>
+                <button onclick="umShowCreate()" style="background:#C8921A;color:#0B2341;font-weight:700;padding:7px 14px;font-size:12px;border:none;border-radius:4px;cursor:pointer;margin-right:8px">+ Nuevo usuario</button>
                 <button class="modal-themed-close" onclick="closeUserMgmt()">Cerrar</button>
             </div>
 
@@ -2154,7 +2075,7 @@
                 <div id="umProjectsPanel" style="display:none;background:rgba(15,40,65,0.5);border:1px solid #2D5278;" class="um-panel">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                         <div style="font-size:11px;color:#8FA8C4;text-transform:uppercase;letter-spacing:0.5px;font-weight:700">
-                            📁 Proyectos de <strong id="umProjUsername" style="color:#C2E03B"></strong>
+                            📁 Proyectos de <strong id="umProjUsername" style="color:#C8921A"></strong>
                         </div>
                         <button onclick="umHidePanel('umProjectsPanel')" class="um-btn um-btn-blue" style="padding:2px 10px;font-size:11px">✕ Cerrar</button>
                     </div>
@@ -2367,9 +2288,9 @@
                     <input type="color" id="drawColorPicker" value="#000000" title="Elegir color" style="width: 40px; height: 32px; border: 2px solid var(--vsc-gris); border-radius: 4px; cursor: pointer; background: none;">
                     <button class="color-quick-btn" data-color="#000000" title="Negro" style="background: #000000;"></button>
                     <button class="color-quick-btn" data-color="#FFFFFF" title="Blanco" style="background: #FFFFFF; border: 1px solid #ccc;"></button>
-                    <button class="color-quick-btn" data-color="#213B50" title="Azul DRP" style="background: #213B50;"></button>
+                    <button class="color-quick-btn" data-color="#0B2341" title="Azul DRP" style="background: #0B2341;"></button>
                     <button class="color-quick-btn" data-color="#FF0000" title="Rojo" style="background: #FF0000;"></button>
-                    <button class="color-quick-btn" data-color="#C2E03B" title="Verde DRP" style="background: #C2E03B;"></button>
+                    <button class="color-quick-btn" data-color="#C8921A" title="Verde DRP" style="background: #C8921A;"></button>
                     <button class="color-quick-btn" data-color="#FFFF00" title="Amarillo" style="background: #FFFF00;"></button>
                 </div>
                 <div class="toolbar-divider"></div>
@@ -2410,7 +2331,7 @@
                 <textarea id="evidenceDescription" rows="4" placeholder="Describe qué se está evidenciando..." spellcheck="true" lang="es"></textarea>
             </div>
             <div class="form-group">
-                <label for="evidenceOperacion">Operación/Función probada <span style="color: #C2E03B;">*</span></label>
+                <label for="evidenceOperacion">Operación/Función probada <span style="color: #C8921A;">*</span></label>
                 <input type="text" id="evidenceOperacion" placeholder="Ej: Login de usuario, Generación de reporte..." spellcheck="true" lang="es">
                 <small style="font-size: 10px; color: var(--vsc-gris); display: block; margin-top: 4px;">
                     Especifica qué funcionalidad del sistema se está probando en este paso
@@ -2462,7 +2383,7 @@
                 <textarea id="editDescription" rows="4" spellcheck="true" lang="es"></textarea>
             </div>
             <div class="form-group">
-                <label for="editOperacion">Operación/Función probada <span style="color: #C2E03B;">*</span></label>
+                <label for="editOperacion">Operación/Función probada <span style="color: #C8921A;">*</span></label>
                 <input type="text" id="editOperacion" placeholder="Ej: Login de usuario, Generación de reporte..." spellcheck="true" lang="es">
             </div>
             <div class="form-group">
@@ -4603,7 +4524,7 @@
         padding: 1px 6px;
         font-size: 9px;
         font-weight: 700;
-        background: #213B50;
+        background: #0B2341;
         color: #fff;
         border-radius: 3px;
         letter-spacing: 0.4px;
@@ -5062,8 +4983,8 @@
 
     <!-- Barra superior del modal -->
     <div style="height:46px; background:#0f172a; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; padding:0 16px; gap:12px; flex-shrink:0;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C2E03B" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-        <span style="font-size:13px; color:#94a3b8; font-family:Inter,system-ui,sans-serif;"><strong style="color:#C2E03B">Mapeo</strong><strong style="color:#f1f5f9">GxP</strong> <span style="color:#64748b; font-weight:400;">— Mapeador de Procesos</span></span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C8921A" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        <span style="font-size:13px; color:#94a3b8; font-family:Inter,system-ui,sans-serif;"><strong style="color:#C8921A">Mapeo</strong><strong style="color:#f1f5f9">GxP</strong> <span style="color:#64748b; font-weight:400;">— Mapeador de Procesos</span></span>
         <div style="flex:1"></div>
         <button onclick="closeProcessMap()" style="background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.12); color:#cbd5e1; padding:5px 14px; border-radius:5px; font-size:12px; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:6px;">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
