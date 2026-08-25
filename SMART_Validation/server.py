@@ -292,6 +292,15 @@ def _db_init():
             UNIQUE(project_id, test_id)
         );
         CREATE INDEX IF NOT EXISTS idx_te_proj_upd ON test_executions(project_id, updated_at);
+        CREATE TABLE IF NOT EXISTS mapeo_projects (
+            id         TEXT PRIMARY KEY,
+            name       TEXT NOT NULL,
+            owner      TEXT NOT NULL,
+            state_json TEXT NOT NULL DEFAULT '{}',
+            created_at REAL NOT NULL,
+            updated_at REAL NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_mapeo_owner ON mapeo_projects(owner, updated_at);
     """)
     db.commit()
     # Migraciones en caliente (idempotentes — ignorar si la columna ya existe)
@@ -384,6 +393,8 @@ _RE_EVIDENCE_BULK = re.compile(r'^/api/projects/([^/]+)/evidence$')
 _RE_EVIDENCE_ONE  = re.compile(r'^/api/projects/([^/]+)/evidence/([^/]+)$')
 _RE_EXECUTIONS    = re.compile(r'^/api/projects/([^/]+)/executions$')
 _RE_EXECUTION_ONE = re.compile(r'^/api/projects/([^/]+)/executions/([^/]+)$')
+_RE_MAPEO_LIST    = re.compile(r'^/api/mapeo/projects$')
+_RE_MAPEO_ONE     = re.compile(r'^/api/mapeo/projects/([^/]+)$')
 _RE_ADMIN_USER_ID = re.compile(r'^/admin/users/([^/]+)$')
 _RE_ADMIN_ACCESS  = re.compile(r'^/admin/users/([^/]+)/access$')
 _RE_ADMIN_ACC_P      = re.compile(r'^/admin/users/([^/]+)/access/([^/]+)$')
@@ -2255,6 +2266,58 @@ class SyncHandler(BaseHTTPRequestHandler):
                        (compound_id, proj_id))
         except Exception as e:
             print(f"[DB] Error borrando evidencia {compound_id}: {e}")
+        return self._send_json(200, {"ok": True})
+
+    # ── MapeoGxP REST endpoints ───────────────────────────────────────────────
+
+    def _api_mapeo_list(self, user):
+        """GET /api/mapeo/projects — proyectos del usuario autenticado."""
+        db = _get_db()
+        rows = db.execute(
+            "SELECT id, name, owner, created_at, updated_at FROM mapeo_projects WHERE owner=? ORDER BY updated_at DESC",
+            (user["u"],)
+        ).fetchall()
+        projects = [{"id": r[0], "name": r[1], "owner": r[2], "createdAt": r[3], "updatedAt": r[4]} for r in rows]
+        return self._send_json(200, {"ok": True, "projects": projects})
+
+    def _api_mapeo_get(self, mapeo_id: str, user):
+        """GET /api/mapeo/projects/{id}."""
+        db = _get_db()
+        row = db.execute(
+            "SELECT id, name, owner, state_json, created_at, updated_at FROM mapeo_projects WHERE id=? AND owner=?",
+            (mapeo_id, user["u"])
+        ).fetchone()
+        if not row:
+            return self._send_json(404, {"ok": False, "error": "Proyecto no encontrado"})
+        try:
+            state = json.loads(row[3])
+        except Exception:
+            state = {}
+        proj = {"id": row[0], "name": row[1], "owner": row[2], "state": state, "createdAt": row[4], "updatedAt": row[5]}
+        return self._send_json(200, {"ok": True, "project": proj})
+
+    def _api_mapeo_save(self, mapeo_id: str, user):
+        """POST /api/mapeo/projects/{id} — crear o actualizar."""
+        body = self._read_json_body()
+        if not body:
+            return self._send_json(400, {"ok": False, "error": "Body requerido"})
+        name = str(body.get("name", "Sin título"))[:200]
+        state_json = json.dumps(body.get("state", {}))
+        now = time.time()
+        db = _get_db()
+        db.execute(
+            "INSERT INTO mapeo_projects (id, name, owner, state_json, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(id) DO UPDATE SET name=excluded.name, state_json=excluded.state_json, updated_at=excluded.updated_at "
+            "WHERE owner=?",
+            (mapeo_id, name, user["u"], state_json, now, now, user["u"])
+        )
+        return self._send_json(200, {"ok": True, "updatedAt": now})
+
+    def _api_mapeo_delete(self, mapeo_id: str, user):
+        """DELETE /api/mapeo/projects/{id}."""
+        db = _get_db()
+        db.execute("DELETE FROM mapeo_projects WHERE id=? AND owner=?", (mapeo_id, user["u"]))
         return self._send_json(200, {"ok": True})
 
     def _api_evidence_delete_all(self, proj_id: str, user):
@@ -4532,6 +4595,11 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_PROJ_SNAPSHOT.match(path)
         if m:
             return self._api_snapshot_get(m.group(1), user)
+        if _RE_MAPEO_LIST.match(path):
+            return self._api_mapeo_list(user)
+        m = _RE_MAPEO_ONE.match(path)
+        if m:
+            return self._api_mapeo_get(m.group(1), user)
         m = _RE_ANALYTICS.match(path)
         if m:
             return self._proxy_analytics(m.group(1) or "/", user)
@@ -4687,6 +4755,9 @@ class SyncHandler(BaseHTTPRequestHandler):
             return self._api_evidence_batch_get(user)
         if path == "/api/evidence-batch-upload":
             return self._api_evidence_batch_upload(user)
+        m = _RE_MAPEO_ONE.match(path)
+        if m:
+            return self._api_mapeo_save(m.group(1), user)
         if _RE_NOTIFY_DESVIOS.match(path):
             return self._api_notify_desvios(user)
         m = _RE_PROJ_DOC_SIGN.match(path)
@@ -5009,6 +5080,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_PROJ_DOC.match(path)
         if m:
             return self._api_doc_delete(m.group(1), m.group(2), user)
+        m = _RE_MAPEO_ONE.match(path)
+        if m:
+            return self._api_mapeo_delete(m.group(1), user)
         m = _RE_PROJ_ID.match(path)
         if m:
             return self._api_project_delete(m.group(1), user)
