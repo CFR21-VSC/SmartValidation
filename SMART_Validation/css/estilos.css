@@ -3947,9 +3947,18 @@ body.body-theme-book #workArea { background-color: #FCFAEC; }
 }
 
 /* ====================================================================
-   DRP — Suite de Validación: elementos interiores del sidebar y editor
+   DRP — Suite de Validación: full-screen + elementos interiores
    Todos !important porque el <style> inline en index.html gana en cascada
    ==================================================================== */
+.vs-modal-content { inset: 0 !important; border-radius: 0 !important; }
+/* Pane headers y editor */
+.vs-pane-header { background: #081526 !important; color: #5A7A96 !important; border-bottom-color: rgba(255,255,255,0.06) !important; }
+.vs-pane-left { border-right-color: rgba(255,255,255,0.06) !important; }
+.vs-editor { background: #061020 !important; color: #A8C0D6 !important; }
+.vs-status-bar { background: #081526 !important; color: #3A5A72 !important; border-top-color: rgba(255,255,255,0.06) !important; }
+.vs-status-bar.vs-status-error { background: rgba(192,57,43,0.12) !important; color: #EF9A9A !important; }
+.vs-preview-frame { background: #0B1829 !important; }
+
 .vs-info-bar { background: #081526 !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; color: #A0B8CC !important; }
 .vs-info-bar .vs-doc-badge { background: #1F3C56 !important; }
 .vs-info-bar .vs-doc-code { color: #C8921A !important; }

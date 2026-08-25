@@ -2952,37 +2952,160 @@
                 backdrop-filter: blur(2px);
             }
             .vs-modal-content {
-                position: absolute; inset: 20px;
-                background: white; border-radius: 8px;
+                position: absolute; inset: 0;
+                background: #0B1829; border-radius: 0;
                 display: flex; flex-direction: column;
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
                 overflow: hidden;
             }
+
+            /* ── Nueva toolbar DRP v4 ── */
             .vs-header {
-                background: var(--vsc-azul); color: white;
-                padding: 10px 20px; display: flex; align-items: center; gap: 16px;
-                border-radius: 8px 8px 0 0;
+                background: linear-gradient(90deg, #071528 0%, #0B2341 100%);
+                color: #DDE6F0;
+                border-bottom: 2px solid rgba(200,146,26,0.35);
+                border-radius: 0;
+                padding: 0 14px;
+                height: 46px;
+                display: flex;
+                align-items: center;
+                gap: 0;
+                flex-shrink: 0;
+                overflow-x: auto;
+                scrollbar-width: none;
             }
-            .vs-header h2 { margin: 0; font-size: 15px; flex-shrink: 0; }
-            .vs-header .vs-toolbar { flex: 1; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-            .vs-header .vs-toolbar select,
-            .vs-header .vs-toolbar button {
-                padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer;
-                font-size: 12px; font-family: inherit;
+            .vs-header::-webkit-scrollbar { display: none; }
+
+            /* Branding */
+            .vs-hdr-brand {
+                display: flex; align-items: center; gap: 7px;
+                flex-shrink: 0; padding-right: 2px;
             }
-            .vs-header .vs-toolbar select { background: white; color: var(--vsc-azul); }
-            .vs-header .vs-toolbar button.vs-btn-action {
-                background: var(--vsc-verde); color: var(--vsc-azul); font-weight: 600;
+            .vs-hdr-icon { font-size: 15px; }
+            .vs-hdr-title {
+                font-size: 10px; font-weight: 800; color: rgba(200,146,26,0.75);
+                text-transform: uppercase; letter-spacing: 2px; white-space: nowrap;
             }
-            .vs-header .vs-toolbar button.vs-btn-secondary {
-                background: rgba(255, 255, 255, 0.15); color: white; border: 1px solid rgba(255,255,255,0.3);
+
+            /* Separador vertical */
+            .vs-hdr-sep {
+                width: 1px; height: 22px;
+                background: rgba(255,255,255,0.1);
+                margin: 0 10px; flex-shrink: 0;
             }
-            .vs-header .vs-toolbar button:hover { opacity: 0.9; }
+
+            /* Grupo de controles */
+            .vs-hdr-group {
+                display: flex; align-items: center; gap: 3px; flex-shrink: 0;
+            }
+
+            /* Spacer */
+            .vs-hdr-spacer { flex: 1; min-width: 8px; }
+
+            /* Selects */
+            .vs-header select.vs-hdr-select {
+                height: 28px;
+                padding: 0 8px;
+                background: rgba(5,14,30,0.6);
+                border: 1px solid rgba(255,255,255,0.12);
+                border-radius: 5px;
+                color: #A0B8CC;
+                font-size: 11.5px;
+                font-family: inherit;
+                cursor: pointer;
+                outline: none;
+                max-width: 200px;
+            }
+            .vs-header select.vs-hdr-select:focus { border-color: rgba(200,146,26,0.5); }
+            .vs-header select.vs-hdr-select-project {
+                background: rgba(11,35,65,0.6);
+                border-color: rgba(200,146,26,0.3);
+                color: #C8921A;
+                font-weight: 700;
+                max-width: 240px;
+            }
+            .vs-header select.vs-hdr-select-examples {
+                background: rgba(30,14,14,0.6);
+                border-color: rgba(192,57,43,0.3);
+                color: #E8918A;
+                max-width: 180px;
+            }
+
+            /* Botones */
+            .vs-header button.vs-hdr-btn {
+                height: 28px;
+                padding: 0 10px;
+                background: rgba(255,255,255,0.06);
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 5px;
+                color: #7A9AB8;
+                font-size: 11.5px;
+                font-weight: 600;
+                cursor: pointer;
+                white-space: nowrap;
+                font-family: inherit;
+                transition: background .12s, color .12s;
+                display: inline-flex; align-items: center; gap: 4px;
+            }
+            .vs-header button.vs-hdr-btn:hover:not(:disabled) {
+                background: rgba(255,255,255,0.1);
+                color: #DDE6F0;
+            }
+            .vs-header button.vs-hdr-btn:disabled {
+                opacity: .3; cursor: default;
+            }
+            .vs-header button.vs-hdr-btn-primary {
+                background: rgba(200,146,26,0.12);
+                border-color: rgba(200,146,26,0.35);
+                color: #C8921A;
+            }
+            .vs-header button.vs-hdr-btn-primary:hover:not(:disabled) {
+                background: #C8921A;
+                color: #0B2341;
+                border-color: #C8921A;
+            }
+            .vs-header button.vs-hdr-btn-save {
+                background: rgba(200,146,26,0.15);
+                border-color: rgba(200,146,26,0.4);
+                color: #C8921A; font-weight: 700;
+            }
+            .vs-header button.vs-hdr-btn-save:hover:not(:disabled) {
+                background: #C8921A; color: #0B2341;
+            }
+            .vs-header button.vs-hdr-btn-danger {
+                background: rgba(192,57,43,0.1);
+                border-color: rgba(192,57,43,0.25);
+                color: #E8918A;
+                padding: 0 8px;
+            }
+            .vs-header button.vs-hdr-btn-danger:hover:not(:disabled) {
+                background: rgba(192,57,43,0.25); color: #F5A5A5;
+            }
+            .vs-header button.vs-hdr-btn-ai {
+                background: rgba(15,118,110,0.15);
+                border-color: rgba(15,118,110,0.4);
+                color: #5EEAD4;
+            }
+            .vs-header button.vs-hdr-btn-ai:hover { background: rgba(15,118,110,0.28); }
+
+            /* Botón cerrar */
             .vs-header .vs-close {
-                background: transparent; border: none; color: white;
-                font-size: 24px; cursor: pointer; padding: 0 8px;
-                line-height: 1; flex-shrink: 0;
+                background: rgba(255,255,255,0.04);
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 5px;
+                color: #5A7A96;
+                font-size: 18px;
+                cursor: pointer;
+                width: 30px; height: 30px;
+                display: flex; align-items: center; justify-content: center;
+                flex-shrink: 0;
+                transition: background .12s, color .12s;
+                margin-left: 8px;
             }
+            .vs-header .vs-close:hover { background: rgba(192,57,43,0.2); color: #EF9A9A; }
+
+            /* backward compat — JS puede agregar/quitar estas clases */
+            .vs-btn-action { }
+            .vs-btn-secondary { }
 
             /* INFO BAR - identifica el documento cargado */
             .vs-info-bar {
@@ -3640,52 +3763,59 @@
         </style>
 
         <div class="vs-modal-content">
-            <!-- Header con barra de herramientas -->
+            <!-- Header / toolbar DRP v4 -->
             <div class="vs-header">
-                <h2>Suite de Validacion GxP</h2>
-                <div class="vs-toolbar">
-                    <!-- Docs del proyecto activo (verde): carga el doc REAL del paquete
-                         del proyecto en el editor. Los cambios se persisten con el botón
-                         "Guardar al proyecto". Es el flujo principal de edición. -->
-                    <select id="vsProjectDocSelector" title="Editar un documento del proyecto activo (los cambios se guardan al paquete)" style="background:#1E7E34; color:white; font-weight:600; border:1px solid #155522;">
-                        <option value="">📂 Docs del proyecto activo</option>
-                    </select>
-                    <button id="vsDeleteDocBtn" onclick="vsDeleteSelectedDoc()" title="Eliminar documento del proyecto" disabled
-                        style="background:#c0392b;color:white;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:14px;opacity:0.4;">🗑</button>
 
-                    <!-- Templates vacíos: solo plantillas en blanco para CREAR docs -->
-                    <select id="vsTemplateSelector" title="Cargar plantilla vacía para crear un documento nuevo">
-                        <option value="">— Cargar plantilla —</option>
-                        <option value="hlra-template-vacio">HLRA (vacio)</option>
-                        <option value="vp-template-vacio">VP (vacio)</option>
-                        <option value="urs-template-vacio">URS (vacio)</option>
-                        <option value="frs-template-vacio">FRS (vacio)</option>
-                        <option value="ds-template-vacio">DS (vacio)</option>
-                        <option value="ra-template-vacio">RA (vacio)</option>
-                        <option value="ira-template-vacio">IRA (vacio)</option>
-                        <option value="rrm-template-vacio">RRM (vacio)</option>
-                        <option value="mtr-template-vacio">MTR (vacio)</option>
-                        <option value="piq-template-vacio">PIQ (vacio)</option>
-                        <option value="iiq-template-vacio">IIQ (vacio)</option>
-                        <option value="poq-template-vacio">POQ (vacio)</option>
-                        <option value="ioq-template-vacio">IOQ (vacio)</option>
-                        <option value="ppq-template-vacio">PPQ (vacio)</option>
-                        <option value="ipq-template-vacio">IPQ (vacio)</option>
-                        <option value="ncr-template-vacio">NCR (vacio)</option>
-                        <option value="release-template-vacio">Reporte Liberación (vacio · RIQ/ROQ/RPQ)</option>
-                        <option value="vsr-template-vacio">VSR — Reporte Maestro (vacio)</option>
+                <!-- Branding -->
+                <div class="vs-hdr-brand">
+                    <span class="vs-hdr-icon">⚗️</span>
+                    <span class="vs-hdr-title">Suite GxP</span>
+                </div>
+                <span class="vs-hdr-sep"></span>
+
+                <!-- Grupo 1: Documento del proyecto activo -->
+                <div class="vs-hdr-group">
+                    <select id="vsProjectDocSelector" class="vs-hdr-select vs-hdr-select-project"
+                        title="Editar un documento del proyecto activo (los cambios se guardan al paquete)">
+                        <option value="">📂 Proyecto activo</option>
+                    </select>
+                    <button id="vsDeleteDocBtn" class="vs-hdr-btn vs-hdr-btn-danger"
+                        onclick="vsDeleteSelectedDoc()" disabled title="Eliminar documento del proyecto">🗑</button>
+                </div>
+                <span class="vs-hdr-sep"></span>
+
+                <!-- Grupo 2: Plantillas y ejemplos -->
+                <div class="vs-hdr-group">
+                    <select id="vsTemplateSelector" class="vs-hdr-select"
+                        title="Cargar plantilla vacía para crear un documento nuevo">
+                        <option value="">+ Plantilla vacía</option>
+                        <option value="hlra-template-vacio">HLRA</option>
+                        <option value="vp-template-vacio">VP</option>
+                        <option value="urs-template-vacio">URS</option>
+                        <option value="frs-template-vacio">FRS</option>
+                        <option value="ds-template-vacio">DS</option>
+                        <option value="ra-template-vacio">RA</option>
+                        <option value="ira-template-vacio">IRA</option>
+                        <option value="rrm-template-vacio">RRM</option>
+                        <option value="mtr-template-vacio">MTR</option>
+                        <option value="piq-template-vacio">PIQ</option>
+                        <option value="iiq-template-vacio">IIQ</option>
+                        <option value="poq-template-vacio">POQ</option>
+                        <option value="ioq-template-vacio">IOQ</option>
+                        <option value="ppq-template-vacio">PPQ</option>
+                        <option value="ipq-template-vacio">IPQ</option>
+                        <option value="ncr-template-vacio">NCR</option>
+                        <option value="release-template-vacio">RIQ / ROQ / RPQ</option>
+                        <option value="vsr-template-vacio">VSR</option>
                         <optgroup label="── Planillas Excel GxP ──">
-                        <option value="evra-template-vacio">EVRA — Evaluación de Riesgo de Planilla (vacio)</option>
-                        <option value="evprot-template-vacio">EVPROT — Protocolo de Validación de Planilla (vacio)</option>
-                        <option value="evir-template-vacio">EVIR — Informe de Validación de Planilla (vacio)</option>
+                        <option value="evra-template-vacio">EVRA</option>
+                        <option value="evprot-template-vacio">EVPROT</option>
+                        <option value="evir-template-vacio">EVIR</option>
                         </optgroup>
                     </select>
-
-                    <!-- Selector rojo de ejemplos pre-cargados (DRP + AEX sample + LIMS).
-                         Separado del de plantillas para que la creación de docs nuevos
-                         no se mezcle con la exploración de ejemplos ya completados. -->
-                    <select id="vsExamplesSelector" title="Cargar un ejemplo pre-completado (no es plantilla — son documentos ya ejecutados con datos reales)" style="background:#A52A2A; color:white; font-weight:600; border:1px solid #7a1f1f;">
-                        <option value="">★ Ver Ejemplos DRP / LIMS</option>
+                    <select id="vsExamplesSelector" class="vs-hdr-select vs-hdr-select-examples"
+                        title="Cargar un ejemplo pre-completado">
+                        <option value="">★ Ejemplos DRP / LIMS</option>
                         <optgroup label="Paquete DRP-SIS-001">
                             <option value="hlra-drp-sis-001">HLRA — Ejemplo DRP</option>
                             <option value="vp-drp-sis-001">VP — Ejemplo DRP</option>
@@ -3697,33 +3827,62 @@
                             <option value="piq-drp-sis-001">PIQ — Ejemplo DRP</option>
                             <option value="iiq-drp-sis-001">IIQ — Ejemplo DRP</option>
                             <option value="poq-drp-sis-001">POQ — Ejemplo DRP</option>
-                            <option value="ioq-drp-sis-001">IOQ — Ejemplo DRP (abreviado)</option>
+                            <option value="ioq-drp-sis-001">IOQ — Ejemplo DRP</option>
                             <option value="ppq-drp-sis-001">PPQ — Ejemplo DRP</option>
-                            <option value="ipq-drp-sis-001">IPQ — Ejemplo DRP (ejecutado)</option>
-                            <option value="ncr-drp-sis-001">NCR — Ejemplo DRP (NCs cerradas)</option>
-                            <option value="riq-drp-sis-001">RIQ — Ejemplo DRP (libera paso a OQ)</option>
-                            <option value="roq-drp-sis-001">ROQ — Ejemplo DRP (libera paso a PQ)</option>
-                            <option value="rpq-drp-sis-001">RPQ — Ejemplo DRP (LIBERACIÓN PRODUCTIVA)</option>
-                            <option value="vsr-drp-sis-001">VSR — Ejemplo DRP (Reporte Maestro)</option>
+                            <option value="ipq-drp-sis-001">IPQ — Ejemplo DRP</option>
+                            <option value="ncr-drp-sis-001">NCR — Ejemplo DRP</option>
+                            <option value="riq-drp-sis-001">RIQ — Ejemplo DRP</option>
+                            <option value="roq-drp-sis-001">ROQ — Ejemplo DRP</option>
+                            <option value="rpq-drp-sis-001">RPQ — Ejemplo DRP</option>
+                            <option value="vsr-drp-sis-001">VSR — Ejemplo DRP</option>
                         </optgroup>
                         <optgroup label="Otros samples">
                             <option value="aex-test-sample">AEX — Sample con SVGs</option>
-                            <option value="frs-lims-medicorp">FRS — Ejemplo LIMS-MediCorp</option>
-                            <option value="ds-lims-medicorp">DS — Ejemplo LIMS-MediCorp</option>
+                            <option value="frs-lims-medicorp">FRS — LIMS MediCorp</option>
+                            <option value="ds-lims-medicorp">DS — LIMS MediCorp</option>
                         </optgroup>
                     </select>
-
-                    <button class="vs-btn-secondary" onclick="vsClearEditor()" title="Limpiar el editor — cierra el documento actual sin borrar nada" style="color:#999;">✕ Limpiar</button>
-                    <button class="vs-btn-secondary" onclick="vsImportJSON()" title="Importar documento desde archivo">Importar archivo</button>
-                    <button class="vs-btn-secondary" onclick="vsExportProject()" title="Exportar el proyecto activo completo (todos sus documentos + workflow) como archivo JSON portable entre PCs" style="background:#0d5c2e;color:#a7f3c0;border-color:#0a4a24;">&#11015; Exportar proyecto</button>
-                    <button class="vs-btn-secondary" onclick="vsImportProject()" title="Importar un proyecto desde un archivo .project.json exportado desde otra PC" style="background:#3d1a5c;color:#d4a7f3;border-color:#2d1244;">&#11014; Importar proyecto</button>
-                    <button class="vs-btn-secondary" onclick="vsExportJSON()" title="Descargar documento">Descargar</button>
-                    <button id="vsBtnSaveToProject" class="vs-btn-action" onclick="vsSaveToProject()" disabled style="background:#1E7E34; border-color:#155522; opacity:0.5;" title="Guarda los cambios del doc actual en el packageDocs del proyecto activo. Solo disponible si el doc fue cargado desde 'Docs del proyecto activo'.">💾 Guardar al proyecto</button>
-                    <button id="vsBtnGenEV" class="vs-btn-action" onclick="vsOpenEVAIModal()" title="Generar este documento con IA desde una descripción de la planilla" style="display:none; background:#0F766E; border-color:#0D635D;">✨ Generar con IA</button>
-                    <button class="vs-btn-action" onclick="vsRenderPreview()" title="Generar PDF y mostrar preview">Generar Preview</button>
-                    <button class="vs-btn-action" onclick="vsDownloadPDF()" title="Descargar PDF final">Descargar PDF</button>
-                    <button id="vsBtnDownloadAll" class="vs-btn-secondary" onclick="vsDownloadAllPDFs()" title="Descargar todos los PDFs del proyecto de una vez, en secuencia" style="background:#1a3a5c;color:#a7c8f3;border-color:#153050;">Descargar todos</button>
                 </div>
+                <span class="vs-hdr-sep"></span>
+
+                <!-- Grupo 3: Archivo / portabilidad -->
+                <div class="vs-hdr-group">
+                    <button class="vs-hdr-btn" onclick="vsImportJSON()"
+                        title="Importar documento desde un archivo JSON">📥 Importar</button>
+                    <button class="vs-hdr-btn" onclick="vsExportProject()"
+                        title="Exportar proyecto completo (todos sus documentos)">📤 Exportar proy.</button>
+                    <button class="vs-hdr-btn" onclick="vsImportProject()"
+                        title="Importar un proyecto desde archivo .project.json">📦 Importar proy.</button>
+                    <button class="vs-hdr-btn" onclick="vsExportJSON()"
+                        title="Descargar el documento actual como JSON">⬇ JSON</button>
+                </div>
+                <span class="vs-hdr-sep"></span>
+
+                <!-- Grupo 4: Guardar / limpiar / IA -->
+                <div class="vs-hdr-group">
+                    <button id="vsBtnSaveToProject" class="vs-hdr-btn vs-hdr-btn-save vs-btn-action"
+                        onclick="vsSaveToProject()" disabled
+                        title="Guardar cambios del documento en el proyecto activo">💾 Guardar</button>
+                    <button id="vsBtnGenEV" class="vs-hdr-btn vs-hdr-btn-ai vs-btn-action"
+                        onclick="vsOpenEVAIModal()"
+                        title="Generar documento con IA" style="display:none;">✨ Generar IA</button>
+                    <button class="vs-hdr-btn" onclick="vsClearEditor()"
+                        title="Cerrar documento actual sin eliminar nada">✕ Limpiar</button>
+                </div>
+                <span class="vs-hdr-sep"></span>
+
+                <!-- Grupo 5: Preview y descarga PDF -->
+                <div class="vs-hdr-group">
+                    <button class="vs-hdr-btn vs-hdr-btn-primary vs-btn-action"
+                        onclick="vsRenderPreview()" title="Generar PDF y mostrar preview">👁 Preview</button>
+                    <button class="vs-hdr-btn vs-hdr-btn-primary vs-btn-action"
+                        onclick="vsDownloadPDF()" title="Descargar PDF final">⬇ PDF</button>
+                    <button id="vsBtnDownloadAll" class="vs-hdr-btn vs-btn-secondary"
+                        onclick="vsDownloadAllPDFs()" title="Descargar todos los PDFs del proyecto">⬇ Todos</button>
+                </div>
+
+                <!-- Spacer + cerrar -->
+                <span class="vs-hdr-spacer"></span>
                 <button class="vs-close" onclick="closeValidationSuite()" title="Cerrar">&times;</button>
             </div>
 
@@ -3744,19 +3903,19 @@
             <!-- SIGN DOCUMENT BAR: visible cuando el doc tiene tabla-firmas-final.
                  Firma electrónica genérica con PIN (21 CFR Part 11) que funciona
                  para PIQ/POQ/PPQ/IIQ/IOQ/IPQ/RIQ/ROQ/RPQ/VSR/NCR. -->
-            <div id="vsSignDocBar" style="display:none; padding:8px 14px; background:#E8F5E9; border-bottom:1px solid #C8E6C9; align-items:center; gap:8px; flex-wrap:wrap; font-size:12px;">
-                <span style="font-weight:700; color:#1E7E34;">Firma electrónica:</span>
-                <span id="vsSignCounter" style="font-weight:600; color:#7A5A1A;">0/0 firmadas</span>
-                <span style="margin:0 4px; color:#A8C8A8;">|</span>
-                <button class="vs-btn-action" style="padding:4px 12px; font-size:11px; background:#1E7E34;" onclick="ValidationSuite.signDocument.startSigningFlow()" title="Firmar todos los roles pendientes en secuencia. Cada firma pide elegir firmante + PIN.">Firmar documento</button>
-                <button class="vs-btn-secondary" style="padding:4px 10px; font-size:11px;" onclick="ValidationSuite.signDocument.clearSignatures()" title="Limpiar todas las firmas (requiere confirmación)">Limpiar firmas</button>
-                <span style="margin-left:auto; font-size:10px; color:#586574; font-style:italic;">Las firmas se almacenan con hash SHA-256 del PIN del firmante. Compliance 21 CFR Part 11.</span>
+            <div id="vsSignDocBar" style="display:none; padding:7px 16px; background:#081526; border-bottom:1px solid rgba(200,146,26,0.2); align-items:center; gap:8px; flex-wrap:wrap; font-size:12px;">
+                <span style="font-weight:700; color:rgba(200,146,26,0.75); font-size:10px; text-transform:uppercase; letter-spacing:1px;">Firma electrónica:</span>
+                <span id="vsSignCounter" style="font-weight:700; color:#C8921A; font-size:12px;">0/0 firmadas</span>
+                <span style="margin:0 4px; color:rgba(255,255,255,0.1);">|</span>
+                <button class="vs-btn-action" style="padding:4px 14px; font-size:11px; font-weight:700; background:#C8921A; color:#0B2341; border:none; border-radius:5px; cursor:pointer;" onclick="ValidationSuite.signDocument.startSigningFlow()" title="Firmar todos los roles pendientes en secuencia.">Firmar documento</button>
+                <button class="vs-btn-secondary" style="padding:4px 10px; font-size:11px; background:rgba(255,255,255,0.06); color:#7A9AB8; border:1px solid rgba(255,255,255,0.1); border-radius:5px; cursor:pointer;" onclick="ValidationSuite.signDocument.clearSignatures()" title="Limpiar todas las firmas">Limpiar firmas</button>
+                <span style="margin-left:auto; font-size:10px; color:#3A5A72; font-style:italic;">Las firmas se almacenan con hash SHA-256 del PIN del firmante. Compliance 21 CFR Part 11.</span>
             </div>
 
             <!-- NCR SNIPPETS BAR: solo visible cuando type=NCR. Botones que insertan
                  bloques pre-armados para que el humano complete los campos. -->
-            <div id="vsNcrSnippetBar" style="display:none; padding:8px 14px; background:#F8F4E8; border-bottom:1px solid #E8DCC0; align-items:center; gap:6px; flex-wrap:wrap; font-size:12px;">
-                <span style="font-weight:700; color:#7A5A1A; margin-right:8px;">NCR · Insertar:</span>
+            <div id="vsNcrSnippetBar" style="display:none; padding:7px 16px; background:#081526; border-bottom:1px solid rgba(200,146,26,0.15); align-items:center; gap:6px; flex-wrap:wrap; font-size:12px;">
+                <span style="font-weight:700; color:rgba(200,146,26,0.65); margin-right:8px; font-size:10px; text-transform:uppercase; letter-spacing:1px;">NCR · Insertar:</span>
                 <button class="vs-btn-secondary" style="padding:4px 10px; font-size:11px;" onclick="ValidationSuite.ncrSnippets.addHallazgo()" title="Inserta un hallazgo vacío (NC/OBS) en la sección 1 con un ID auto-incremental">+ Hallazgo</button>
                 <button class="vs-btn-secondary" style="padding:4px 10px; font-size:11px;" onclick="ValidationSuite.ncrSnippets.add5Porques()" title="Inserta un análisis 5-porqués vacío (5 preguntas guía)">+ 5-Porqués</button>
                 <button class="vs-btn-secondary" style="padding:4px 10px; font-size:11px;" onclick="ValidationSuite.ncrSnippets.addIshikawa()" title="Inserta un análisis Ishikawa con las 6 categorías (Mano de obra, Método, Máquina, Material, Medición, Medio ambiente)">+ Ishikawa</button>
