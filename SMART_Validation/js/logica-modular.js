@@ -10286,6 +10286,9 @@ async function clearEvidenceImagesOnly() {
         for (const ev of (test.evidences || [])) {
             ev.image = null;
             ev.hasImage = false;
+            ev._imgLoading = false;
+            ev._imgFailed = false;
+            ev.captureTimestamp = null;
         }
     }
 
