@@ -3547,28 +3547,6 @@ body.body-theme-book #workArea { background-color: #FCFAEC; }
     overflow-x: auto;
 }
 
-/* Reset estilos heredados de .tb-dropdown button para los sp-item */
-.tb-dropdown.tb-dropdown-wide button,
-.tb-dropdown.tb-dropdown-wide button:first-child,
-.tb-dropdown.tb-dropdown-wide button:last-child {
-    padding: 0;
-    border-radius: 0;
-    color: inherit;
-    white-space: normal;
-    background: transparent;
-    font-size: inherit;
-    gap: 0;
-    display: block;
-}
-.tb-dropdown.tb-dropdown-wide button:hover {
-    background: transparent;
-    color: inherit;
-}
-.tb-dropdown.tb-dropdown-wide button svg,
-.tb-dropdown.tb-dropdown-wide button:hover svg {
-    opacity: 1;
-}
-
 /* Columna dentro del panel */
 .sp-col {
     padding: 14px 14px 16px;
