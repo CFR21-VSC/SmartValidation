@@ -4,12 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SMART Validation — Acceso</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            background: #0b1621;
+            font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background:
+                radial-gradient(ellipse at 50% 0%, rgba(200,146,26,0.08) 0%, transparent 60%),
+                linear-gradient(160deg, #06101E 0%, #0B2341 60%, #071528 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -18,71 +22,96 @@
         }
 
         .card {
-            background: #152030;
-            border: 1px solid #1e3550;
+            background: rgba(11,35,65,0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(200,146,26,0.25);
+            border-top: 2px solid rgba(200,146,26,0.6);
             border-radius: 14px;
-            padding: 52px 44px 44px;
+            padding: 48px 44px 40px;
             width: 100%;
             max-width: 400px;
-            box-shadow: 0 24px 64px rgba(0,0,0,.5);
+            box-shadow:
+                0 24px 64px rgba(0,0,0,.5),
+                0 0 0 1px rgba(255,255,255,0.04) inset;
         }
 
         /* Logo */
         .logo { text-align: center; margin-bottom: 36px; }
         .logo-icon {
-            width: 58px; height: 58px;
-            background: linear-gradient(135deg, #1a6e3e, #27a459);
-            border-radius: 14px;
+            width: 64px; height: 64px;
+            background: linear-gradient(135deg, #0B2341 0%, #1F3C56 100%);
+            border: 2px solid rgba(200,146,26,0.5);
+            border-radius: 16px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             font-size: 28px;
-            margin-bottom: 14px;
-            box-shadow: 0 4px 20px rgba(39,164,89,.35);
+            margin-bottom: 16px;
+            box-shadow: 0 4px 20px rgba(200,146,26,0.2), 0 0 0 4px rgba(200,146,26,0.06);
+        }
+        .logo-wordmark {
+            font-size: 11px;
+            font-weight: 700;
+            color: #C8921A;
+            letter-spacing: 3.5px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
         }
         .logo h1 {
-            font-size: 21px;
+            font-size: 20px;
             font-weight: 700;
             color: #eef3f8;
-            letter-spacing: -.4px;
+            letter-spacing: -.3px;
         }
         .logo p {
             margin-top: 5px;
-            font-size: 11.5px;
-            color: #5a7a96;
+            font-size: 11px;
+            color: rgba(200,146,26,0.6);
             text-transform: uppercase;
-            letter-spacing: 1.2px;
+            letter-spacing: 1.5px;
+        }
+
+        /* Divider */
+        .logo-divider {
+            width: 40px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(200,146,26,0.5), transparent);
+            margin: 14px auto 0;
         }
 
         /* Form */
         .field { margin-bottom: 18px; }
         label {
             display: block;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 700;
-            color: #5a7a96;
+            color: rgba(200,146,26,0.75);
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.2px;
             margin-bottom: 7px;
         }
         input[type="text"],
         input[type="password"] {
             width: 100%;
             padding: 10px 13px;
-            background: #0b1621;
-            border: 1.5px solid #1e3550;
-            border-radius: 7px;
+            background: rgba(6,16,30,0.6);
+            border: 1.5px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
             color: #dde6f0;
             font-size: 14px;
+            font-family: inherit;
             outline: none;
-            transition: border-color .15s;
+            transition: border-color .15s, box-shadow .15s;
         }
-        input:focus { border-color: #27a459; }
+        input:focus {
+            border-color: rgba(200,146,26,0.7);
+            box-shadow: 0 0 0 3px rgba(200,146,26,0.1);
+        }
 
         .error {
             display: none;
-            background: #2a0e0e;
-            border: 1px solid #6b2222;
+            background: rgba(42,14,14,0.8);
+            border: 1px solid rgba(107,34,34,0.8);
             border-radius: 7px;
             padding: 10px 13px;
             font-size: 13px;
@@ -94,42 +123,47 @@
         .btn {
             width: 100%;
             padding: 11px;
-            background: linear-gradient(135deg, #1a6e3e, #27a459);
+            background: #C8921A;
             border: none;
-            border-radius: 7px;
-            color: #fff;
+            border-radius: 8px;
+            color: #0B2341;
             font-size: 14px;
             font-weight: 700;
+            font-family: inherit;
             cursor: pointer;
-            transition: opacity .15s, transform .1s;
+            transition: background .15s, transform .1s, box-shadow .15s;
             margin-top: 6px;
             letter-spacing: .3px;
+            box-shadow: 0 2px 12px rgba(200,146,26,0.3);
         }
-        .btn:hover:not(:disabled) { opacity: .92; }
+        .btn:hover:not(:disabled) {
+            background: #DBA020;
+            box-shadow: 0 4px 18px rgba(200,146,26,0.4);
+        }
         .btn:active:not(:disabled) { transform: scale(.99); }
         .btn:disabled { opacity: .45; cursor: default; }
 
         .footer {
             text-align: center;
             margin-top: 28px;
-            font-size: 11px;
-            color: #2e4a62;
+            font-size: 10.5px;
+            color: rgba(90,122,150,0.8);
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 6px;
         }
-        .footer svg { opacity: .6; flex-shrink: 0; }
+        .footer svg { opacity: .5; flex-shrink: 0; }
 
         /* Panel de cambio obligatorio de credenciales */
         #changePanel { display: none; }
         .change-banner {
-            background: #1a2e10;
-            border: 1px solid #3a6a20;
-            border-radius: 7px;
+            background: rgba(11,35,65,0.5);
+            border: 1px solid rgba(200,146,26,0.35);
+            border-radius: 8px;
             padding: 12px 14px;
             font-size: 13px;
-            color: #90d070;
+            color: rgba(200,146,26,0.9);
             margin-bottom: 20px;
             line-height: 1.4;
         }
@@ -144,8 +178,10 @@
     <div class="card">
         <div class="logo">
             <div class="logo-icon">⚗️</div>
+            <div class="logo-wordmark">DRP Assurance</div>
             <h1>SMART Validation</h1>
-            <p>DRP Assurance · Gestión de Evidencias GxP</p>
+            <p>Gestión de Evidencias GxP</p>
+            <div class="logo-divider"></div>
         </div>
 
         <div id="errorBox" class="error" role="alert"></div>
@@ -246,7 +282,6 @@
                 const data = await res.json();
                 if (data.ok) {
                     if (data.must_change) {
-                        // Primer acceso: ocultar campos de login y mostrar form de cambio
                         _pendingRole = data.role;
                         ['username','password'].forEach(id => {
                             const el = document.getElementById(id);
