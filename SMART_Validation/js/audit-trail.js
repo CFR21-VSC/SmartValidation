@@ -1463,33 +1463,31 @@ async function showAuditTrailViewer() {
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85);
+            background: #050E1E;
             display: flex;
-            justify-content: center;
-            align-items: center;
+            justify-content: stretch;
+            align-items: stretch;
             z-index: 10000;
-            padding: 20px;
         `;
 
         const content = document.createElement('div');
         content.style.cssText = `
-            background: white;
-            border-radius: 8px;
-            width: 95%;
-            max-width: 1400px;
-            height: 90vh;
+            background: #0B1829;
+            border-radius: 0;
+            width: 100%;
+            height: 100%;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         `;
 
         // Header
         const header = document.createElement('div');
         header.style.cssText = `
-            padding: 20px 30px;
-            background: #213B50;
+            padding: 18px 30px;
+            background: linear-gradient(90deg, #071528, #0B2341);
             color: white;
-            border-radius: 8px 8px 0 0;
+            border-radius: 0;
+            border-bottom: 2px solid rgba(200,146,26,0.35);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -1499,7 +1497,7 @@ async function showAuditTrailViewer() {
                 <h2 style="margin: 0; font-size: 22px;">Audit Trail - Historial de Acciones</h2>
                 <p style="margin: 5px 0 0 0; font-size: 13px; opacity: 0.9;">${entries.length} entradas registradas</p>
             </div>
-            <button id="closeAuditViewer" style="background: transparent; border: 2px solid white; color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600;">
+            <button id="closeAuditViewer" style="background: rgba(200,146,26,0.15); border: 1.5px solid rgba(200,146,26,0.5); color: #C8921A; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 700;">
                 Cerrar [ESC]
             </button>
         `;
@@ -1507,36 +1505,36 @@ async function showAuditTrailViewer() {
         // Filtros
         const filters = document.createElement('div');
         filters.style.cssText = `
-            padding: 15px 30px;
-            background: #f5f5f5;
-            border-bottom: 1px solid #ddd;
+            padding: 12px 30px;
+            background: #081526;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
             display: flex;
-            gap: 15px;
+            gap: 12px;
             align-items: center;
             flex-wrap: wrap;
         `;
         filters.innerHTML = `
-            <input type="text" id="filterSearch" placeholder="Buscar por acción, usuario, entidad..." style="flex: 1; min-width: 250px; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;">
+            <input type="text" id="filterSearch" placeholder="Buscar por acción, usuario, entidad..." style="flex: 1; min-width: 250px; padding: 8px 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 13px; background: rgba(5,14,30,0.7); color: #DDE6F0; font-family: inherit;">
 
-            <select id="filterAction" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; min-width: 180px;">
+            <select id="filterAction" style="padding: 8px 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 13px; min-width: 180px; background: rgba(5,14,30,0.7); color: #DDE6F0; font-family: inherit;">
                 <option value="">Todas las acciones</option>
                 ${[...new Set(entries.map(e => e.action))].sort().map(action =>
-                    `<option value="${action}">${action.replace(/_/g, ' ')}</option>`
+                    `<option value="${action}" style="background:#0B1829">${action.replace(/_/g, ' ')}</option>`
                 ).join('')}
             </select>
 
-            <select id="filterEntity" style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; min-width: 150px;">
+            <select id="filterEntity" style="padding: 8px 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 13px; min-width: 150px; background: rgba(5,14,30,0.7); color: #DDE6F0; font-family: inherit;">
                 <option value="">Todas las entidades</option>
-                ${[...new Set(entries.map(e => e.entityType))].sort().map(entity =>
-                    `<option value="${entity}">${entity.charAt(0).toUpperCase() + entity.slice(1)}</option>`
+                ${[...new Set(entries.map(e => e.entityType)).sort().map(entity =>
+                    `<option value="${entity}" style="background:#0B1829">${entity.charAt(0).toUpperCase() + entity.slice(1)}</option>`
                 ).join('')}
             </select>
 
-            <button id="clearFilters" style="padding: 8px 16px; background: #405A75; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600;">
+            <button id="clearFilters" style="padding: 8px 16px; background: rgba(255,255,255,0.06); color: #A0B8CC; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
                 Limpiar Filtros
             </button>
 
-            <span id="filterCount" style="margin-left: auto; color: #666; font-size: 13px; font-weight: 600;">
+            <span id="filterCount" style="margin-left: auto; color: #5A7A96; font-size: 13px; font-weight: 600;">
                 ${entries.length} resultados
             </span>
         `;
@@ -1557,15 +1555,15 @@ async function showAuditTrailViewer() {
             font-size: 12px;
         `;
         table.innerHTML = `
-            <thead style="position: sticky; top: 0; background: #405A75; color: white; z-index: 10;">
+            <thead style="position: sticky; top: 0; background: #081526; color: #5A7A96; z-index: 10;">
                 <tr>
-                    <th style="padding: 12px 15px; text-align: left; font-weight: 600; border-bottom: 2px solid #213B50; width: 130px;">Timestamp</th>
-                    <th style="padding: 12px 15px; text-align: left; font-weight: 600; border-bottom: 2px solid #213B50; width: 160px;">Acción</th>
-                    <th style="padding: 12px 15px; text-align: left; font-weight: 600; border-bottom: 2px solid #213B50; width: 110px;">Usuario</th>
-                    <th style="padding: 12px 15px; text-align: left; font-weight: 600; border-bottom: 2px solid #213B50; width: 90px;">Tipo</th>
-                    <th style="padding: 12px 15px; text-align: left; font-weight: 600; border-bottom: 2px solid #213B50; width: 280px;">Contexto / Jerarquía</th>
-                    <th style="padding: 12px 15px; text-align: left; font-weight: 600; border-bottom: 2px solid #213B50;">Detalles</th>
-                    <th style="padding: 12px 15px; text-align: center; font-weight: 600; border-bottom: 2px solid #213B50; width: 60px;">✓</th>
+                    <th style="padding: 10px 15px; text-align: left; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 2px solid rgba(255,255,255,0.06); width: 130px;">Timestamp</th>
+                    <th style="padding: 10px 15px; text-align: left; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 2px solid rgba(255,255,255,0.06); width: 160px;">Acción</th>
+                    <th style="padding: 10px 15px; text-align: left; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 2px solid rgba(255,255,255,0.06); width: 110px;">Usuario</th>
+                    <th style="padding: 10px 15px; text-align: left; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 2px solid rgba(255,255,255,0.06); width: 90px;">Tipo</th>
+                    <th style="padding: 10px 15px; text-align: left; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 2px solid rgba(255,255,255,0.06); width: 280px;">Contexto / Jerarquía</th>
+                    <th style="padding: 10px 15px; text-align: left; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 2px solid rgba(255,255,255,0.06);">Detalles</th>
+                    <th style="padding: 10px 15px; text-align: center; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 2px solid rgba(255,255,255,0.06); width: 60px;">✓</th>
                 </tr>
             </thead>
             <tbody id="auditTableBody">
@@ -1578,26 +1576,26 @@ async function showAuditTrailViewer() {
         // Footer con estadísticas
         const footer = document.createElement('div');
         footer.style.cssText = `
-            padding: 15px 30px;
-            background: #f5f5f5;
-            border-top: 1px solid #ddd;
+            padding: 12px 30px;
+            background: #081526;
+            border-top: 1px solid rgba(255,255,255,0.06);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-radius: 0 0 8px 8px;
+            border-radius: 0;
         `;
 
         const stats = generateAuditStats(entries);
         footer.innerHTML = `
-            <div style="font-size: 12px; color: #666;">
-                <strong>Estadísticas:</strong>
+            <div style="font-size: 12px; color: #5A7A96;">
+                <strong style="color:#A0B8CC;">Estadísticas:</strong>
                 ${stats.creates} creaciones | ${stats.updates} modificaciones | ${stats.deletes} eliminaciones | ${stats.exports} exportaciones
             </div>
             <div style="display: flex; gap: 10px;">
-                <button id="exportFilteredJSON" style="padding: 8px 16px; background: #C2E03B; color: #213B50; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600;">
+                <button id="exportFilteredJSON" style="padding: 7px 14px; background: #C8921A; color: #0B2341; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700;">
                     Exportar Resultados (JSON)
                 </button>
-                <button id="verifyIntegrityViewer" style="padding: 8px 16px; background: #405A75; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600;">
+                <button id="verifyIntegrityViewer" style="padding: 7px 14px; background: rgba(255,255,255,0.06); color: #A0B8CC; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">
                     Verificar Integridad
                 </button>
             </div>
@@ -1648,11 +1646,11 @@ function generateReadableDetails(entry) {
     const addRow = (label, value, highlight = false) => {
         if (value === undefined || value === null || value === '') return;
 
-        const bgColor = rowIndex % 2 === 0 ? '#f5f5f5' : 'white';
-        const valueColor = highlight ? 'color: #4CAF50; font-weight: 600;' : '';
+        const bgColor = rowIndex % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+        const valueColor = highlight ? 'color: #81C784; font-weight: 600;' : 'color: #DDE6F0;';
         html += `
             <tr style="background: ${bgColor};">
-                <td style="padding: 8px; font-weight: 600; width: 180px;">${label}:</td>
+                <td style="padding: 8px; font-weight: 600; color: #5A7A96; width: 180px;">${label}:</td>
                 <td style="padding: 8px; ${valueColor}">${value}</td>
             </tr>
         `;
@@ -1769,7 +1767,7 @@ function generateReadableDetails(entry) {
 
     // Si no se agregó ninguna fila, mostrar mensaje
     if (rowIndex === 0 && !details.error) {
-        html = '<div style="padding: 15px; text-align: center; color: #999; background: #f5f5f5; border-radius: 4px;">No hay detalles adicionales para mostrar</div>';
+        html = '<div style="padding: 15px; text-align: center; color: #3A5A72; background: rgba(255,255,255,0.04); border-radius: 6px;">No hay detalles adicionales para mostrar</div>';
     }
 
     return html;
@@ -1787,7 +1785,7 @@ function showEntryDetailsModal(entry) {
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.7);
+        background: rgba(5,14,30,0.92);
         display: flex;
         justify-content: center;
         align-items: center;
@@ -1808,45 +1806,45 @@ function showEntryDetailsModal(entry) {
     const readableDetailsHTML = generateReadableDetails(entry);
 
     modal.innerHTML = `
-        <div style="background: white; border-radius: 8px; max-width: 800px; width: 90%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.3);">
-            <div style="padding: 20px; background: #213B50; color: white; display: flex; justify-content: space-between; align-items: center;">
+        <div style="background: #0B1829; border-radius: 10px; border: 1px solid rgba(200,146,26,0.2); max-width: 800px; width: 90%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 24px 64px rgba(0,0,0,0.6);">
+            <div style="padding: 18px 24px; background: linear-gradient(90deg,#071528,#0B2341); border-bottom: 2px solid rgba(200,146,26,0.35); color: white; display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <h3 style="margin: 0; font-size: 18px;">${entry.action.replace(/_/g, ' ')}</h3>
-                    <p style="margin: 5px 0 0 0; font-size: 12px; opacity: 0.9;">${timeStr}</p>
+                    <h3 style="margin: 0; font-size: 17px; color: #DDE6F0;">${entry.action.replace(/_/g, ' ')}</h3>
+                    <p style="margin: 4px 0 0 0; font-size: 12px; color: rgba(200,146,26,0.7);">${timeStr}</p>
                 </div>
-                <button id="closeEntryDetails" style="background: transparent; border: 2px solid white; color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600;">
+                <button id="closeEntryDetails" style="background: rgba(200,146,26,0.12); border: 1.5px solid rgba(200,146,26,0.4); color: #C8921A; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700;">
                     Cerrar [ESC]
                 </button>
             </div>
 
-            <div style="flex: 1; overflow-y: auto; padding: 20px;">
+            <div style="flex: 1; overflow-y: auto; padding: 20px; background: #0B1829; color: #A8C0D6;">
                 <div style="margin-bottom: 20px;">
-                    <h4 style="margin: 0 0 10px 0; color: #213B50; font-size: 14px; border-bottom: 2px solid #C2E03B; padding-bottom: 5px;">Información General</h4>
+                    <h4 style="margin: 0 0 10px 0; color: #C8921A; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid rgba(200,146,26,0.25); padding-bottom: 6px;">Información General</h4>
                     <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
-                        <tr style="background: #f5f5f5;">
-                            <td style="padding: 8px; font-weight: 600; width: 150px;">Usuario:</td>
-                            <td style="padding: 8px;">${entry.user}</td>
+                        <tr style="background: rgba(255,255,255,0.03);">
+                            <td style="padding: 8px; font-weight: 600; color: #5A7A96; width: 150px;">Usuario:</td>
+                            <td style="padding: 8px; color: #DDE6F0;">${entry.user}</td>
                         </tr>
                         <tr>
-                            <td style="padding: 8px; font-weight: 600;">Tipo de entidad:</td>
-                            <td style="padding: 8px;">${entry.entityType}</td>
+                            <td style="padding: 8px; font-weight: 600; color: #5A7A96;">Tipo de entidad:</td>
+                            <td style="padding: 8px; color: #DDE6F0;">${entry.entityType}</td>
                         </tr>
-                        <tr style="background: #f5f5f5;">
-                            <td style="padding: 8px; font-weight: 600;">ID de entidad:</td>
-                            <td style="padding: 8px; font-family: monospace; font-size: 11px;">${entry.entityId}</td>
+                        <tr style="background: rgba(255,255,255,0.03);">
+                            <td style="padding: 8px; font-weight: 600; color: #5A7A96;">ID de entidad:</td>
+                            <td style="padding: 8px; font-family: monospace; font-size: 11px; color: #7AABCC;">${entry.entityId}</td>
                         </tr>
                         <tr>
-                            <td style="padding: 8px; font-weight: 600;">Nombre:</td>
-                            <td style="padding: 8px;">${entry.entityName || '-'}</td>
+                            <td style="padding: 8px; font-weight: 600; color: #5A7A96;">Nombre:</td>
+                            <td style="padding: 8px; color: #DDE6F0;">${entry.entityName || '-'}</td>
                         </tr>
-                        <tr style="background: #f5f5f5;">
-                            <td style="padding: 8px; font-weight: 600;">Session ID:</td>
-                            <td style="padding: 8px; font-family: monospace; font-size: 11px;">${entry.sessionId}</td>
+                        <tr style="background: rgba(255,255,255,0.03);">
+                            <td style="padding: 8px; font-weight: 600; color: #5A7A96;">Session ID:</td>
+                            <td style="padding: 8px; font-family: monospace; font-size: 11px; color: #7AABCC;">${entry.sessionId}</td>
                         </tr>
                         ${entry.hierarchyPath ? `
                         <tr>
-                            <td style="padding: 8px; font-weight: 600;">Jerarquía:</td>
-                            <td style="padding: 8px; color: #1976d2;">${entry.hierarchyPath}</td>
+                            <td style="padding: 8px; font-weight: 600; color: #5A7A96;">Jerarquía:</td>
+                            <td style="padding: 8px; color: #7AABCC;">${entry.hierarchyPath}</td>
                         </tr>
                         ` : ''}
                     </table>
@@ -1854,24 +1852,24 @@ function showEntryDetailsModal(entry) {
 
                 ${entry.hierarchy && (entry.hierarchy.protocolId || entry.hierarchy.groupId || entry.hierarchy.testId) ? `
                 <div style="margin-bottom: 20px;">
-                    <h4 style="margin: 0 0 10px 0; color: #213B50; font-size: 14px; border-bottom: 2px solid #C2E03B; padding-bottom: 5px;">Contexto Jerárquico</h4>
+                    <h4 style="margin: 0 0 10px 0; color: #C8921A; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid rgba(200,146,26,0.25); padding-bottom: 6px;">Contexto Jerárquico</h4>
                     <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
                         ${entry.hierarchy.protocolId ? `
-                        <tr style="background: #f5f5f5;">
-                            <td style="padding: 8px; font-weight: 600; width: 150px;">Protocolo:</td>
-                            <td style="padding: 8px;">${entry.hierarchy.protocolName || '-'}</td>
+                        <tr style="background: rgba(255,255,255,0.03);">
+                            <td style="padding: 8px; font-weight: 600; color: #5A7A96; width: 150px;">Protocolo:</td>
+                            <td style="padding: 8px; color: #DDE6F0;">${entry.hierarchy.protocolName || '-'}</td>
                         </tr>
                         ` : ''}
                         ${entry.hierarchy.groupId ? `
                         <tr>
-                            <td style="padding: 8px; font-weight: 600;">Carpeta:</td>
-                            <td style="padding: 8px;">${entry.hierarchy.groupName || '-'}</td>
+                            <td style="padding: 8px; font-weight: 600; color: #5A7A96;">Carpeta:</td>
+                            <td style="padding: 8px; color: #DDE6F0;">${entry.hierarchy.groupName || '-'}</td>
                         </tr>
                         ` : ''}
                         ${entry.hierarchy.testId ? `
-                        <tr style="background: #f5f5f5;">
-                            <td style="padding: 8px; font-weight: 600;">Prueba:</td>
-                            <td style="padding: 8px;">${entry.hierarchy.testName || '-'}</td>
+                        <tr style="background: rgba(255,255,255,0.03);">
+                            <td style="padding: 8px; font-weight: 600; color: #5A7A96;">Prueba:</td>
+                            <td style="padding: 8px; color: #DDE6F0;">${entry.hierarchy.testName || '-'}</td>
                         </tr>
                         ` : ''}
                     </table>
@@ -1879,18 +1877,18 @@ function showEntryDetailsModal(entry) {
                 ` : ''}
 
                 <div style="margin-bottom: 20px;">
-                    <h4 style="margin: 0 0 10px 0; color: #213B50; font-size: 14px; border-bottom: 2px solid #C2E03B; padding-bottom: 5px;">Detalles de la Acción</h4>
+                    <h4 style="margin: 0 0 10px 0; color: #C8921A; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid rgba(200,146,26,0.25); padding-bottom: 6px;">Detalles de la Acción</h4>
                     ${readableDetailsHTML}
                 </div>
 
                 <div>
-                    <h4 style="margin: 0 0 10px 0; color: #213B50; font-size: 14px; border-bottom: 2px solid #C2E03B; padding-bottom: 5px;">Hash de Integridad</h4>
-                    <div style="background: #e3f2fd; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 10px; word-break: break-all; color: #1976d2;">
+                    <h4 style="margin: 0 0 10px 0; color: #C8921A; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid rgba(200,146,26,0.25); padding-bottom: 6px;">Hash de Integridad</h4>
+                    <div style="background: rgba(31,60,86,0.35); padding: 12px; border-radius: 6px; font-family: monospace; font-size: 10px; word-break: break-all; color: #7AABCC; border: 1px solid rgba(255,255,255,0.06);">
                         ${entry.hash}
                     </div>
                     ${entry.previousHash ? `
-                    <div style="margin-top: 8px; font-size: 11px; color: #666;">
-                        Hash anterior: <code style="font-size: 10px; background: #f5f5f5; padding: 2px 6px; border-radius: 3px;">${entry.previousHash.substring(0, 16)}...</code>
+                    <div style="margin-top: 8px; font-size: 11px; color: #3A5A72;">
+                        Hash anterior: <code style="font-size: 10px; background: rgba(255,255,255,0.04); padding: 2px 6px; border-radius: 3px; color: #5A7A96;">${entry.previousHash.substring(0, 16)}...</code>
                     </div>
                     ` : ''}
                 </div>
@@ -1945,7 +1943,7 @@ function generateAuditRowHTML(entry, index) {
 
     // Mostrar jerarquía si existe
     if (entry.hierarchyPath && entry.hierarchyPath !== '-') {
-        contextHTML += `<div style="font-size: 10px; color: #666; margin-bottom: 3px;">
+        contextHTML += `<div style="font-size: 10px; color: #3A5A72; margin-bottom: 3px;">
             📂 ${entry.hierarchyPath}
         </div>`;
     }
@@ -1956,15 +1954,15 @@ function generateAuditRowHTML(entry, index) {
 
     if (entry.entityType === 'evidence' || entry.entityType === 'table') {
         if (after?.step) {
-            contextHTML += `<div style="font-size: 11px; color: #1976d2; font-weight: 600;">Paso ${after.step}</div>`;
+            contextHTML += `<div style="font-size: 11px; color: #7AABCC; font-weight: 600;">Paso ${after.step}</div>`;
         }
         if (after?.position !== undefined) {
-            contextHTML += `<div style="font-size: 10px; color: #999;">Posición: ${after.position + 1} de ${after.totalEvidences || '?'}</div>`;
+            contextHTML += `<div style="font-size: 10px; color: #3A5A72;">Posición: ${after.position + 1} de ${after.totalEvidences || '?'}</div>`;
         }
     }
 
     if (!contextHTML) {
-        contextHTML = '<div style="font-size: 10px; color: #999;">-</div>';
+        contextHTML = '<div style="font-size: 10px; color: #2A4A62;">-</div>';
     }
 
     // ========== GENERAR DETALLES ==========
@@ -1977,7 +1975,7 @@ function generateAuditRowHTML(entry, index) {
     // Para movimientos de tests
     else if (after?.oldGroupName && after?.newGroupName) {
         detailsSummary = `<strong>${entry.entityName || 'Test'}</strong><br>`;
-        detailsSummary += `<span style="font-size: 10px; color: #666;">${after.oldGroupName} → ${after.newGroupName}</span>`;
+        detailsSummary += `<span style="font-size: 10px; color: #3A5A72;">${after.oldGroupName} → ${after.newGroupName}</span>`;
     }
     // Para evidencias
     else if (entry.entityType === 'evidence') {
@@ -1988,15 +1986,15 @@ function generateAuditRowHTML(entry, index) {
             detailsSummary += `<br><span style="font-size: 10px; padding: 2px 6px; border-radius: 3px; background: ${after.resultado === 'OK' ? '#C8E6C9' : '#FFCDD2'}; color: #333;">${after.resultado}</span>`;
         }
         if (after?.hasImage) {
-            detailsSummary += ` <span style="font-size: 10px; color: #666;">🖼️</span>`;
+            detailsSummary += ` <span style="font-size: 10px; color: #3A5A72;">🖼️</span>`;
         }
         if (after?.isTable) {
-            detailsSummary += ` <span style="font-size: 10px; color: #666;">📊</span>`;
+            detailsSummary += ` <span style="font-size: 10px; color: #3A5A72;">📊</span>`;
         }
 
         // Para movimientos de evidencias
         if (after?.direction) {
-            detailsSummary += `<br><span style="font-size: 10px; color: #666;">Movido ${after.direction === 'up' ? '↑' : '↓'} (pos ${after.oldPosition} → ${after.newPosition})</span>`;
+            detailsSummary += `<br><span style="font-size: 10px; color: #3A5A72;">Movido ${after.direction === 'up' ? '↑' : '↓'} (pos ${after.oldPosition} → ${after.newPosition})</span>`;
         }
     }
     // Para tablas
@@ -2005,14 +2003,14 @@ function generateAuditRowHTML(entry, index) {
             detailsSummary = `<strong>Tabla ${after.tableRows}×${after.tableCols}</strong>`;
         }
         if (after?.step) {
-            detailsSummary += `<br><span style="font-size: 10px; color: #666;">Paso ${after.step}</span>`;
+            detailsSummary += `<br><span style="font-size: 10px; color: #3A5A72;">Paso ${after.step}</span>`;
         }
     }
     // Para creaciones
     else if (entry.action.includes('CREATE')) {
         detailsSummary = `<strong style="color: #4CAF50;">${after?.entityName || entry.entityName || 'Nueva entidad'}</strong>`;
         if (after?.groupName) {
-            detailsSummary += `<br><span style="font-size: 10px; color: #666;">En: ${after.groupName}</span>`;
+            detailsSummary += `<br><span style="font-size: 10px; color: #3A5A72;">En: ${after.groupName}</span>`;
         }
     }
     // Para eliminaciones
@@ -2027,11 +2025,11 @@ function generateAuditRowHTML(entry, index) {
     else if (entry.action.includes('EXPORT')) {
         detailsSummary = `<strong>${after?.entityName || entry.entityName || 'Exportación'}</strong>`;
         if (entry.action === 'EXPORT_PDF') {
-            detailsSummary += ` <span style="font-size: 10px; color: #666;">📄</span>`;
+            detailsSummary += ` <span style="font-size: 10px; color: #3A5A72;">📄</span>`;
         } else if (entry.action === 'EXPORT_JSON' || entry.action === 'EXPORT_AUDIT_JSON') {
-            detailsSummary += ` <span style="font-size: 10px; color: #666;">📋</span>`;
+            detailsSummary += ` <span style="font-size: 10px; color: #3A5A72;">📋</span>`;
         } else if (entry.action === 'EXPORT_EXCEL') {
-            detailsSummary += ` <span style="font-size: 10px; color: #666;">📊</span>`;
+            detailsSummary += ` <span style="font-size: 10px; color: #3A5A72;">📊</span>`;
         }
     }
     // Para importaciones
@@ -2042,7 +2040,7 @@ function generateAuditRowHTML(entry, index) {
     else if (entry.action === 'SYSTEM_INIT') {
         detailsSummary = `<strong style="color: #4CAF50;">Sistema iniciado</strong>`;
         if (after?.validationTeam?.executor) {
-            detailsSummary += `<br><span style="font-size: 10px; color: #666;">Por: ${after.validationTeam.executor}</span>`;
+            detailsSummary += `<br><span style="font-size: 10px; color: #3A5A72;">Por: ${after.validationTeam.executor}</span>`;
         }
     }
     else if (entry.action === 'CLEAR_CACHE') {
@@ -2067,7 +2065,7 @@ function generateAuditRowHTML(entry, index) {
             detailsSummary = `<strong>${name}</strong>`;
         } else {
             // Último recurso: mostrar el tipo de acción
-            detailsSummary = `<strong style="color: #666;">${entry.action.replace(/_/g, ' ')}</strong>`;
+            detailsSummary = `<strong style="color: #5A7A96;">${entry.action.replace(/_/g, ' ')}</strong>`;
         }
 
         // Agregar función si está disponible
@@ -2086,26 +2084,27 @@ function generateAuditRowHTML(entry, index) {
         detailsSummary = `<span style="color: #999;">Acción registrada</span>`;
     }
 
-    const bgColor = index % 2 === 0 ? '#ffffff' : '#f9f9f9';
+    const bgColor = index % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)';
 
     return `
-        <tr style="background: ${bgColor}; border-bottom: 1px solid #eee; cursor: pointer;"
+        <tr style="background: ${bgColor}; border-bottom: 1px solid rgba(255,255,255,0.04); cursor: pointer; transition: background .1s;"
             data-entry-id="${entry.id}"
             data-action="${entry.action}"
             data-entity="${entry.entityType}"
-            title="Click para ver detalles completos">
-            <td style="padding: 8px 12px; color: #666; font-family: 'Courier New', monospace; font-size: 10px;">${timeStr}</td>
-            <td style="padding: 8px 12px; font-weight: 600; color: #213B50; font-size: 11px;">${entry.action.replace(/_/g, ' ')}</td>
-            <td style="padding: 8px 12px; color: #666; font-size: 11px;">${entry.user || 'Sistema'}</td>
+            title="Click para ver detalles completos"
+            onmouseover="this.style.background='rgba(200,146,26,0.05)'" onmouseout="this.style.background='${bgColor}'">
+            <td style="padding: 8px 12px; color: #3A5A72; font-family: 'Courier New', monospace; font-size: 10px;">${timeStr}</td>
+            <td style="padding: 8px 12px; font-weight: 700; color: #A8C0D6; font-size: 11px;">${entry.action.replace(/_/g, ' ')}</td>
+            <td style="padding: 8px 12px; color: #5A7A96; font-size: 11px;">${entry.user || 'Sistema'}</td>
             <td style="padding: 8px 12px;">
-                <span style="background: #e3f2fd; color: #1976d2; padding: 3px 6px; border-radius: 3px; font-size: 10px; font-weight: 600;">
+                <span style="background: rgba(31,60,86,0.5); color: #7AABCC; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 700;">
                     ${entry.entityType.toUpperCase()}
                 </span>
             </td>
-            <td style="padding: 8px 12px; color: #444; font-size: 11px; line-height: 1.4;">
+            <td style="padding: 8px 12px; color: #6A8AA2; font-size: 11px; line-height: 1.4;">
                 ${contextHTML}
             </td>
-            <td style="padding: 8px 12px; color: #333; font-size: 11px; line-height: 1.4;">
+            <td style="padding: 8px 12px; color: #8AA8BE; font-size: 11px; line-height: 1.4;">
                 ${detailsSummary}
             </td>
             <td style="padding: 8px 12px; text-align: center;">
@@ -2268,7 +2267,7 @@ async function showValidationTeamModal() {
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(5,14,30,0.92);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -2276,49 +2275,49 @@ async function showValidationTeamModal() {
         `;
 
         modal.innerHTML = `
-            <div style="background: white; padding: 30px; border-radius: 8px; max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-                <h2 style="margin: 0 0 20px 0; color: #213B50; font-size: 20px;">
+            <div style="background: #0B1829; padding: 30px; border-radius: 10px; border: 1px solid rgba(200,146,26,0.2); border-top: 2px solid rgba(200,146,26,0.5); max-width: 500px; width: 90%; box-shadow: 0 24px 64px rgba(0,0,0,0.6);">
+                <h2 style="margin: 0 0 16px 0; color: #C8921A; font-size: 18px;">
                     📋 Iniciar Sesión de Validación
                 </h2>
-                <p style="color: #666; margin-bottom: 20px; font-size: 13px;">
+                <p style="color: #5A7A96; margin-bottom: 20px; font-size: 13px;">
                     Ingresa los datos del equipo de validación para esta sesión.
                 </p>
 
                 <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; color: #213B50; font-weight: 600; font-size: 12px;">
-                        Ejecutor / Tester: <span style="color: red;">*</span>
+                    <label style="display: block; margin-bottom: 5px; color: rgba(200,146,26,0.75); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">
+                        Ejecutor / Tester: <span style="color:#EF9A9A;">*</span>
                     </label>
                     <input type="text" id="auditExecutor" placeholder="Nombre completo"
-                           style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+                           style="width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 14px; background: rgba(5,14,30,0.6); color: #DDE6F0; font-family: inherit;">
                 </div>
 
                 <div style="margin-bottom: 15px;">
-                    <label style="display: block; margin-bottom: 5px; color: #213B50; font-weight: 600; font-size: 12px;">
-                        Revisor: <span style="color: #999;">(opcional)</span>
+                    <label style="display: block; margin-bottom: 5px; color: rgba(200,146,26,0.75); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">
+                        Revisor: <span style="color: #3A5A72;">(opcional)</span>
                     </label>
                     <input type="text" id="auditReviewer" placeholder="Nombre completo"
-                           style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+                           style="width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 14px; background: rgba(5,14,30,0.6); color: #DDE6F0; font-family: inherit;">
                 </div>
 
                 <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 5px; color: #213B50; font-weight: 600; font-size: 12px;">
+                    <label style="display: block; margin-bottom: 5px; color: rgba(200,146,26,0.75); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">
                         Rol:
                     </label>
-                    <select id="auditRole" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
-                        <option value="QA Tester">QA Tester</option>
-                        <option value="QA Analyst">QA Analyst</option>
-                        <option value="QA Lead">QA Lead</option>
-                        <option value="Validator">Validator</option>
-                        <option value="Developer">Developer</option>
+                    <select id="auditRole" style="width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 14px; background: rgba(5,14,30,0.6); color: #DDE6F0; font-family: inherit;">
+                        <option value="QA Tester" style="background:#0B1829">QA Tester</option>
+                        <option value="QA Analyst" style="background:#0B1829">QA Analyst</option>
+                        <option value="QA Lead" style="background:#0B1829">QA Lead</option>
+                        <option value="Validator" style="background:#0B1829">Validator</option>
+                        <option value="Developer" style="background:#0B1829">Developer</option>
                     </select>
                 </div>
 
                 <button id="btnStartSession"
-                        style="width: 100%; padding: 12px; background: #C2E03B; color: #213B50; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 14px;">
+                        style="width: 100%; padding: 12px; background: #C8921A; color: #0B2341; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 14px; letter-spacing: .3px;">
                     Iniciar Sesión
                 </button>
 
-                <p style="margin-top: 15px; font-size: 11px; color: #999; text-align: center;">
+                <p style="margin-top: 14px; font-size: 11px; color: #3A5A72; text-align: center;">
                     Esta información quedará registrada en el Audit Trail
                 </p>
             </div>
