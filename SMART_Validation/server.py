@@ -2292,16 +2292,15 @@ class SyncHandler(BaseHTTPRequestHandler):
         return raw_data if raw_data else None
 
     def _store_evidence(self, db, cid: str, proj_id: str, data_uri: str, now: float) -> bool:
-        """Persist one evidence image. Uploads to R2 when configured; otherwise stores in DB.
-        If R2 upload fails, falls back to storing the data-URI inline in SQLite."""
+        """Persist one evidence image.
+        Always stores the data-URI inline in SQLite (guaranteed retrieval).
+        Also uploads to R2 when configured — R2 is a CDN backup, not the source of truth."""
         use_r2 = _r2 is not None and _r2.is_configured()
         if use_r2:
             ok = _r2.put_image(cid, data_uri)
-            stored_data = f"r2:{cid}" if ok else data_uri  # fallback: keep inline if R2 fails
             if not ok:
-                print(f"[R2] Fallo al subir {cid} — guardando inline en SQLite como fallback")
-        else:
-            stored_data = data_uri
+                print(f"[R2] Fallo al subir {cid} (no crítico — imagen guardada en SQLite)")
+        stored_data = data_uri  # siempre inline: SQLite es la fuente de verdad del servidor
         stored_size = len(data_uri)
         try:
             db.execute(

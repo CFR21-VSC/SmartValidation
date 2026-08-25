@@ -246,7 +246,6 @@ async function _syncTestExecution(projId, test) {
     const evidenceIds = (test.evidences || [])
         .filter(e => !e.isEmpty && (e.hasImage || e.image))
         .map(e => `${projId}_${test.id}_evidence_${e.step}`);
-    // Serializar metadata de evidencias para que otros navegadores puedan mostrar info completa
     const evidenceMeta = (test.evidences || [])
         .filter(e => !e.isEmpty)
         .map(e => ({
@@ -259,20 +258,23 @@ async function _syncTestExecution(projId, test) {
             timestamp: e.timestamp,
             executor: e.executor
         }));
-    try {
-        await fetch(`/api/projects/${encodeURIComponent(projId)}/executions/${encodeURIComponent(test.id)}`, {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                status: test.resultado || '',
-                notes: test.conclusion || '',
-                finalized: test.finalized ? 1 : 0,
-                evidence_ids: evidenceIds,
-                observations: JSON.stringify({ evidences: evidenceMeta })
-            })
-        });
-    } catch (_) {}
+    const body = JSON.stringify({
+        status: test.resultado || '',
+        notes: test.conclusion || '',
+        finalized: test.finalized ? 1 : 0,
+        evidence_ids: evidenceIds,
+        observations: JSON.stringify({ evidences: evidenceMeta })
+    });
+    for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+            const resp = await fetch(
+                `/api/projects/${encodeURIComponent(projId)}/executions/${encodeURIComponent(test.id)}`,
+                { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body }
+            );
+            if (resp.ok) return;
+        } catch (_) {}
+        if (attempt < 2) await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
+    }
 }
 
 /**
