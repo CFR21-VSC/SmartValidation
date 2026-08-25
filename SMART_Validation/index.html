@@ -685,146 +685,139 @@
                 <svg class="suite-tab-chevron" width="8" height="5" viewBox="0 0 8 5"><path d="M0 0l4 5 4-5z" fill="currentColor"/></svg>
             </button>
             <div class="tb-dropdown tb-dropdown-wide" id="dropSuiteVal">
+                <div class="sp-col">
+                    <span class="sp-col-title">Proyectos</span>
+                    <button id="btnSuiteProyectos" class="sp-item sp-item-primary" onclick="openProjectsModal()" title="Suite de Proyectos">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                        Abrir proyectos
+                    </button>
+                    <button id="btnCargarPaquete" class="sp-item sp-item-primary" title="Importar docs al proyecto activo (multi-archivo)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Importar docs al proyecto
+                    </button>
+                    <button id="btnImportarJSON" class="sp-item" title="Agregar UN archivo individual al proyecto">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Agregar doc al proyecto
+                    </button>
+                    <button id="btnRestaurarBackup" class="sp-item" onclick="showRestoreBackupModal()" title="Restaurar desde backup automático">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+                        Restaurar backup
+                    </button>
+                    <hr class="sp-sep">
+                    <button id="btnNuevoProtocolo" class="sp-item" title="Crear nuevo protocolo">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+                        Nuevo protocolo
+                    </button>
+                    <button id="btnNuevaCarpeta" class="sp-item" title="Crear nueva carpeta">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+                        Nueva carpeta
+                    </button>
+                    <button id="btnNuevaPrueba" class="sp-item" title="Crear nueva prueba">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                        Nueva prueba
+                    </button>
+                    <button class="sp-item" onclick="openAssociatedDocsModal()" title="Documentos asociados al proyecto">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+                        Documentos asociados
+                    </button>
+                </div>
 
-                <span class="tb-dropdown-label">Proyectos</span>
-                <button id="btnSuiteProyectos" class="tb-item-pri" onclick="openProjectsModal()" title="Suite de Proyectos — gestiona múltiples paquetes documentales por cliente. Cada proyecto guarda su estado completo (paquete, tests, evidencias, audit trail).">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-                    Abrir proyectos
-                </button>
+                <div class="sp-col">
+                    <span class="sp-col-title">Evidencias</span>
+                    <button id="btnCapturarPantalla" class="sp-item sp-item-primary" title="Pegar imagen del portapapeles (Ctrl+V)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                        Pegar portapapeles (Ctrl+V)
+                    </button>
+                    <button id="btnSubirImagen" class="sp-item" title="Subir imagen(es)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                        Subir imagen
+                    </button>
+                    <button id="btnSubirCarpeta" class="sp-item" title="Subir carpeta completa">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                        Subir carpeta
+                    </button>
+                    <button id="btnInsertarTabla" class="sp-item" title="Insertar tabla como evidencia">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                        Insertar tabla
+                    </button>
+                    <button id="btnEvidenciaVacia" class="sp-item" title="Crear evidencia vacía">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                        Evidencia vacía
+                    </button>
+                    <button class="sp-item" onclick="startMobileCapture()" title="Capturar fotos desde el celular">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>
+                        Captura desde móvil
+                    </button>
+                    <hr class="sp-sep">
+                    <label id="btnImportarFotos" class="sp-item-label" title="Importar evidencias reales desde JSON DRP" style="cursor:pointer;">
+                        <input type="file" accept=".json" style="display:none" onchange="(async(el)=>{if(el.files[0])await mergeEvidencePhotos(el.files[0]);el.value=''})(this)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Importar evidencias reales
+                    </label>
+                </div>
 
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Documentos del proyecto</span>
-                <button id="btnCargarPaquete" class="tb-item-pri" title="Importar docs al proyecto activo (multi-archivo). Detecta URS, RA, IRA, PIQ, POQ, PPQ y los suma al paquete del proyecto.">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    Importar docs al proyecto
-                </button>
-                <button id="btnImportarJSON" title="Agregar UN archivo individual al proyecto activo.">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Agregar doc al proyecto
-                </button>
-                <button id="btnRestaurarBackup" title="Restaurar desde backup automatico" onclick="showRestoreBackupModal()">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
-                    Restaurar Backup
-                </button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Captura de evidencia</span>
-                <button id="btnCapturarPantalla" class="tb-item-pri" title="Pegar imagen del portapapeles (Ctrl+V)">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                    Pegar del portapapeles (Ctrl+V)
-                </button>
-                <button id="btnSubirImagen" title="Subir imagen(es)">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-                    Subir Imagen
-                </button>
-                <button id="btnSubirCarpeta" title="Subir carpeta completa">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-                    Subir Carpeta
-                </button>
-                <button id="btnInsertarTabla" title="Insertar tabla como evidencia">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
-                    Insertar Tabla
-                </button>
-                <button id="btnEvidenciaVacia" title="Crear evidencia vacia">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                    Evidencia Vacía
-                </button>
-                <button title="Capturar fotos desde el celular" onclick="startMobileCapture()">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>
-                    Captura desde Móvil
-                </button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Estructura del proyecto</span>
-                <button id="btnNuevoProtocolo" title="Crear nuevo protocolo">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
-                    Nuevo Protocolo
-                </button>
-                <button id="btnNuevaCarpeta" title="Crear nueva carpeta">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
-                    Nueva Carpeta
-                </button>
-                <button id="btnNuevaPrueba" title="Crear nueva prueba">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-                    Nueva Prueba
-                </button>
-                <button title="Documentos asociados al proyecto" onclick="openAssociatedDocsModal()">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
-                    Documentos Asociados
-                </button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Importar evidencias reales</span>
-                <label id="btnImportarFotos" class="tb-item-sec" title="Carga un JSON de evidencias DRP (DRP_Evidencias_*.json) con las fotos reales." style="cursor:pointer;display:flex;align-items:center;gap:6px;font-size:13px;padding:6px 10px;">
-                    <input type="file" accept=".json" style="display:none" onchange="(async(el)=>{if(el.files[0])await mergeEvidencePhotos(el.files[0]);el.value=''})(this)">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    📸 Importar evidencias reales
-                </label>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Sesión</span>
-                <button id="btnCargarSesion" title="Cargar sesion desde archivo">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    Cargar Sesión
-                </button>
-                <button id="btnGuardarSesion" title="Guardar sesion en archivo">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                    Guardar Sesión
-                </button>
-                <button id="btnLimpiarCache" title="Limpiar toda la cache (requiere confirmación). Borra los documentos del proyecto activo, evidencias capturadas, audit trail y datos del sistema." style="color:#A52A2A;">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-                    Limpiar Cache
-                </button>
-                <button id="btnBorrarImagenesServidor" title="Borra todas las imágenes del servidor (R2 + BD) y del navegador. Los tests y resultados se conservan." style="color:#A52A2A;" onclick="clearEvidenceImagesOnly()">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><line x1="21" y1="3" x2="3" y2="21" stroke="#A52A2A" stroke-width="2"/></svg>
-                    Borrar imágenes del servidor
-                </button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Exportar</span>
-                <button id="btnExportarAex" class="tb-item-pri" title="Exportar AEX — Anexo de Ejecución (modo suite con trazabilidad cruzada)">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="10" y1="14" x2="10" y2="18"/><line x1="14" y1="14" x2="14" y2="18"/></svg>
-                    Exportar AEX (suite)
-                </button>
-                <button id="btnExportarPDF" title="Exportar a PDF (modo clásico)">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                    Exportar PDF (clásico)
-                </button>
-                <button id="btnExportarExcel" title="Exportar a Excel">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
-                    Exportar Excel
-                </button>
-                <button id="btnExportarJSON" title="Exportar datos del proyecto">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
-                    Exportar datos
-                </button>
-                <button title="Exportar imagenes como ZIP trazable" onclick="openZipExportModal()">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    Raw Data (ZIP)
-                </button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Cierre y firma</span>
-                <button id="btnFinalizarPrueba" title="Finalizar prueba activa">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                    Finalizar Prueba
-                </button>
-                <button id="btnFinalizarCarpeta" title="Finalizar carpeta activa">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/><polyline points="16 11 10 17 8 15"/></svg>
-                    Finalizar Carpeta
-                </button>
-                <button id="btnFinalizarProyecto" title="Finalizar proyecto completo">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                    Finalizar Proyecto
-                </button>
-                <button id="btnReabrirProyecto" title="Reabrir proyecto finalizado" onclick="reopenProject()">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
-                    Reabrir Proyecto
-                </button>
-                <button title="Gestionar firmas electronicas" onclick="openSignatureModal()">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-                    Firmas Electrónicas
-                </button>
+                <div class="sp-col">
+                    <span class="sp-col-title">Sesión y exportar</span>
+                    <button id="btnCargarSesion" class="sp-item" title="Cargar sesión desde archivo">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Cargar sesión
+                    </button>
+                    <button id="btnGuardarSesion" class="sp-item" title="Guardar sesión en archivo">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        Guardar sesión
+                    </button>
+                    <hr class="sp-sep">
+                    <button id="btnExportarAex" class="sp-item sp-item-primary" title="Exportar AEX — Anexo de Ejecución (suite)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="10" y1="14" x2="10" y2="18"/><line x1="14" y1="14" x2="14" y2="18"/></svg>
+                        Exportar AEX (suite)
+                    </button>
+                    <button id="btnExportarPDF" class="sp-item" title="Exportar a PDF (modo clásico)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        Exportar PDF (clásico)
+                    </button>
+                    <button id="btnExportarExcel" class="sp-item" title="Exportar a Excel">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                        Exportar Excel
+                    </button>
+                    <button id="btnExportarJSON" class="sp-item" title="Exportar datos del proyecto">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+                        Exportar datos
+                    </button>
+                    <button class="sp-item" onclick="openZipExportModal()" title="Exportar imágenes como ZIP trazable">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Raw Data (ZIP)
+                    </button>
+                    <hr class="sp-sep">
+                    <button id="btnFinalizarPrueba" class="sp-item" title="Finalizar prueba activa">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        Finalizar prueba
+                    </button>
+                    <button id="btnFinalizarCarpeta" class="sp-item" title="Finalizar carpeta activa">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/><polyline points="16 11 10 17 8 15"/></svg>
+                        Finalizar carpeta
+                    </button>
+                    <button id="btnFinalizarProyecto" class="sp-item" title="Finalizar proyecto completo">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        Finalizar proyecto
+                    </button>
+                    <button id="btnReabrirProyecto" class="sp-item" onclick="reopenProject()" title="Reabrir proyecto finalizado">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+                        Reabrir proyecto
+                    </button>
+                    <button class="sp-item" onclick="openSignatureModal()" title="Gestionar firmas electrónicas">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                        Firmas electrónicas
+                    </button>
+                    <hr class="sp-sep">
+                    <button id="btnLimpiarCache" class="sp-item sp-item-danger" title="Limpiar toda la cache (requiere confirmación)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                        Limpiar cache
+                    </button>
+                    <button id="btnBorrarImagenesServidor" class="sp-item sp-item-danger" onclick="clearEvidenceImagesOnly()" title="Borra todas las imágenes del servidor">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><line x1="21" y1="3" x2="3" y2="21"/></svg>
+                        Borrar imágenes del servidor
+                    </button>
+                </div>
 
             </div>
         </div>
@@ -837,114 +830,113 @@
                 <svg class="suite-tab-chevron" width="8" height="5" viewBox="0 0 8 5"><path d="M0 0l4 5 4-5z" fill="currentColor"/></svg>
             </button>
             <div class="tb-dropdown tb-dropdown-wide" id="dropSuiteDoc">
+                <div class="sp-col" style="min-width:195px;">
+                    <span class="sp-col-title">Editor GxP</span>
+                    <button class="sp-item sp-item-primary" onclick="openValidationSuite()" title="Abrir el editor + preview de documentos GxP">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+                        Abrir editor + preview
+                    </button>
+                    <hr class="sp-sep">
+                    <span class="sp-sub-label">Análisis y planeamiento</span>
+                    <div class="sp-doc-grid">
+                        <button class="sp-doc-chip" onclick="openValidationSuite('hlra-template-vacio')" title="HLRA — High Level Risk Assessment">HLRA</button>
+                        <button class="sp-doc-chip" onclick="openValidationSuite('vp-template-vacio')" title="VP — Validation Plan">VP</button>
+                    </div>
+                    <span class="sp-sub-label">Requerimientos</span>
+                    <div class="sp-doc-grid">
+                        <button class="sp-doc-chip" onclick="openValidationSuite('urs-template-vacio')" title="URS">URS</button>
+                        <button class="sp-doc-chip" onclick="openValidationSuite('frs-template-vacio')" title="FRS">FRS</button>
+                        <button class="sp-doc-chip" onclick="openValidationSuite('ds-template-vacio')" title="DS">DS</button>
+                        <button class="sp-doc-chip" onclick="openValidationSuite('ira-template-vacio')" title="IRA">IRA</button>
+                    </div>
+                    <span class="sp-sub-label">Riesgo y hallazgos</span>
+                    <div class="sp-doc-grid">
+                        <button class="sp-doc-chip" onclick="openValidationSuite('ra-template-vacio')" title="RA">RA</button>
+                        <button class="sp-doc-chip" onclick="openValidationSuite('ncr-template-vacio')" title="NCR">NCR</button>
+                    </div>
+                    <span class="sp-sub-label">Calificación IQ / OQ / PQ</span>
+                    <div class="sp-doc-grid">
+                        <button class="sp-doc-chip" onclick="openValidationSuite('piq-template-vacio')" title="PIQ">PIQ</button>
+                        <button class="sp-doc-chip" onclick="openValidationSuite('iiq-template-vacio')" title="IIQ">IIQ</button>
+                        <button class="sp-doc-chip" onclick="openValidationSuite('poq-template-vacio')" title="POQ">POQ</button>
+                        <button class="sp-doc-chip" onclick="openValidationSuite('ioq-template-vacio')" title="IOQ">IOQ</button>
+                        <button class="sp-doc-chip" onclick="openValidationSuite('ppq-template-vacio')" title="PPQ">PPQ</button>
+                        <button class="sp-doc-chip" onclick="openValidationSuite('ipq-template-vacio')" title="IPQ">IPQ</button>
+                    </div>
+                    <span class="sp-sub-label">Liberación y cierre</span>
+                    <div class="sp-doc-grid">
+                        <button class="sp-doc-chip" onclick="openValidationSuite('release-template-vacio')" title="RIQ/ROQ/RPQ">RIQ/ROQ/RPQ</button>
+                        <button class="sp-doc-chip" onclick="openValidationSuite('vsr-template-vacio')" title="VSR">VSR</button>
+                        <button class="sp-doc-chip" onclick="openValidationSuite('aex-test-sample')" title="AEX">AEX</button>
+                    </div>
+                </div>
 
-                <span class="tb-dropdown-label">Editor GxP</span>
-                <button class="tb-item-pri" onclick="openValidationSuite()" title="Abrir el editor + preview de documentos GxP">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
-                    Abrir Editor + Preview
-                </button>
+                <div class="sp-col" style="min-width:185px;">
+                    <span class="sp-col-title">Dossier y libros</span>
+                    <button class="sp-item sp-item-primary" onclick="openDossierPanel()" title="Ver todos los tomos del dossier con estado en tiempo real">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                        Dossier en vivo
+                    </button>
+                    <button class="sp-item sp-item-primary" onclick="loadDrpDemo()" title="Cargar paquete demo DRP-SIS-001">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                        Cargar demo DRP-SIS-001
+                    </button>
+                    <hr class="sp-sep">
+                    <span class="sp-sub-label">Tomo I — Ciclo de Validación</span>
+                    <button class="sp-item" onclick="previewBookTomoI()" title="Vista previa del Tomo I">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        Previsualizar Tomo I
+                    </button>
+                    <button class="sp-item" onclick="downloadBookTomoI()" title="Descargar Tomo I como PDF">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
+                        Descargar Tomo I (PDF)
+                    </button>
+                    <span class="sp-sub-label">Tomo II — AEX</span>
+                    <button class="sp-item" onclick="previewBookTomoII()" title="Vista previa del Tomo II">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        Previsualizar Tomo II
+                    </button>
+                    <button class="sp-item" onclick="downloadBookTomoII()" title="Descargar Tomo II">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
+                        Descargar Tomo II (PDF)
+                    </button>
+                    <span class="sp-sub-label">Tomo III — Evidencias Raw</span>
+                    <button class="sp-item" onclick="downloadTomoIII()" title="Descargar ZIP con evidencias raw + MANIFEST">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
+                        Descargar Tomo III (ZIP)
+                    </button>
+                    <hr class="sp-sep">
+                    <span class="sp-sub-label">Libro del Validador</span>
+                    <button class="sp-item sp-item-primary" onclick="openValidatorBook('ALL')" title="Libro Completo — PIQ + POQ + PPQ">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+                        Libro completo IQ+OQ+PQ
+                    </button>
+                    <button class="sp-item" onclick="openValidatorBook('PIQ')" title="Libro IQ">Libro IQ (PIQ)</button>
+                    <button class="sp-item" onclick="openValidatorBook('POQ')" title="Libro OQ">Libro OQ (POQ)</button>
+                    <button class="sp-item" onclick="openValidatorBook('PPQ')" title="Libro PQ">Libro PQ (PPQ)</button>
+                    <button class="sp-item" onclick="showBookInfoModal()" title="¿Qué es el Libro de Validación?">¿Qué es el Libro?</button>
+                </div>
 
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Análisis de riesgo</span>
-                <button onclick="openValidationSuite('hlra-template-vacio')" title="Generar HLRA — High Level Risk Assessment">HLRA — High Level Risk Assessment</button>
-                <button onclick="openValidationSuite('vp-template-vacio')" title="Generar VP — Validation Plan">VP — Validation Plan</button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Requerimientos y diseño</span>
-                <button onclick="openValidationSuite('urs-template-vacio')" title="Generar URS">URS — User Requirements Spec</button>
-                <button onclick="openValidationSuite('frs-template-vacio')" title="Generar FRS">FRS — Functional Requirements</button>
-                <button onclick="openValidationSuite('ds-template-vacio')" title="Generar DS">DS — Design Specification</button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Riesgo detallado</span>
-                <button onclick="openValidationSuite('ra-template-vacio')" title="Generar RA">RA — Risk Assessment</button>
-                <button onclick="openValidationSuite('ira-template-vacio')" title="Generar IRA">IRA — Infrastructure RA</button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Calificación — protocolos e informes</span>
-                <button onclick="openValidationSuite('piq-template-vacio')" title="Generar PIQ">PIQ — Protocolo Instalación</button>
-                <button onclick="openValidationSuite('iiq-template-vacio')" title="Generar IIQ">IIQ — Informe Instalación</button>
-                <button onclick="openValidationSuite('poq-template-vacio')" title="Generar POQ">POQ — Protocolo Operativa</button>
-                <button onclick="openValidationSuite('ioq-template-vacio')" title="Generar IOQ">IOQ — Informe Operativa</button>
-                <button onclick="openValidationSuite('ppq-template-vacio')" title="Generar PPQ">PPQ — Protocolo Performance</button>
-                <button onclick="openValidationSuite('ipq-template-vacio')" title="Generar IPQ">IPQ — Informe Performance</button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Hallazgos y CAPA</span>
-                <button onclick="openValidationSuite('ncr-template-vacio')" title="NCR — Non-Conformance Report">NCR — Reporte NC y CAPA</button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Liberación y cierre</span>
-                <button onclick="openValidationSuite('release-template-vacio')" title="Reporte de Liberación">Reporte de Liberación (RIQ/ROQ/RPQ)</button>
-                <button onclick="openValidationSuite('vsr-template-vacio')" title="VSR — Reporte Maestro de Validación">VSR — Reporte Maestro de Validación</button>
-                <button onclick="openValidationSuite('aex-test-sample')" title="AEX — Anexo de Ejecución">AEX — Anexo de Ejecución</button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Dossier</span>
-                <button class="tb-item-pri" onclick="openDossierPanel()" title="Ver todos los tomos del dossier de validación con estado en tiempo real">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-                    Dossier en Vivo
-                </button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Demo</span>
-                <button class="tb-item-pri" onclick="loadDrpDemo()" title="Reconstruye y abre el paquete demo DRP-SIS-001 completo">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                    Cargar Demo DRP-SIS-001
-                </button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Tomo I — Ciclo de Validación</span>
-                <button class="tb-item-pri" onclick="previewBookTomoI()" title="Vista previa del Tomo I en el visor (HLRA → VP → URS → ... → VSR).">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    Previsualizar Tomo I
-                </button>
-                <button onclick="downloadBookTomoI()" title="Descarga el Tomo I como PDF.">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
-                    Descargar Tomo I (PDF)
-                </button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Tomo II — Anexo de Ejecución (AEX)</span>
-                <button class="tb-item-pri" onclick="previewBookTomoII()" title="Vista previa del Tomo II — AEX con los TCs ejecutados y evidencias.">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    Previsualizar Tomo II
-                </button>
-                <button onclick="downloadBookTomoII()" title="Descarga el Tomo II — AEX con TCs ejecutados.">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/></svg>
-                    Descargar Tomo II (PDF)
-                </button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Tomo III — Evidencias Raw (ZIP)</span>
-                <button onclick="downloadTomoIII()" title="Descarga ZIP con evidencias raw full-res + MANIFEST.json (hashes SHA-256).">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
-                    Descargar Tomo III (ZIP)
-                </button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Libro del Validador</span>
-                <button class="tb-item-pri" onclick="openValidatorBook('ALL')" title="Abre el Libro Completo del Validador con los 3 protocolos (PIQ + POQ + PPQ)">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
-                    Libro Completo — IQ + OQ + PQ
-                </button>
-                <button onclick="openValidatorBook('PIQ')" title="Libro IQ (PIQ)">Libro del Validador — IQ (PIQ)</button>
-                <button onclick="openValidatorBook('POQ')" title="Libro OQ (POQ)">Libro del Validador — OQ (POQ)</button>
-                <button onclick="openValidatorBook('PPQ')" title="Libro PQ (PPQ)">Libro del Validador — PQ (PPQ)</button>
-                <button onclick="showBookInfoModal()" title="Qué contiene el Libro de Validación">¿Qué es el Libro de Validación?</button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Trazabilidad cruzada</span>
-                <button class="tb-item-pri" onclick="openComparisonMatrix()" title="Análisis de trazabilidad GxP con motor Python. Detecta URS sin TC, riesgos sin mitigar, incoherencias de protocolo.">★ Análisis de trazabilidad (motor Python)</button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Control de cambios</span>
-                <button class="tb-item-pri" onclick="openVersionDiff()" title="Comparar dos versiones del mismo documento — detecta secciones añadidas, removidas o modificadas.">★ Comparar versiones (diff)</button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Firma y archivado</span>
-                <button class="tb-item-pri" onclick="openSignFlow()" title="Firma un doc del paquete con hash SHA-256 + firmante + timestamp.">★ Firmar &amp; archivar (carpeta de proyecto)</button>
-                <button onclick="openPeopleManagerModal()" title="Gestionar personas firmantes del paquete activo">Personas del paquete</button>
+                <div class="sp-col" style="min-width:175px;">
+                    <span class="sp-col-title">Utilidades</span>
+                    <button class="sp-item sp-item-primary" onclick="openComparisonMatrix()" title="Análisis de trazabilidad GxP con motor Python">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        Trazabilidad (motor Python)
+                    </button>
+                    <button class="sp-item sp-item-primary" onclick="openVersionDiff()" title="Comparar dos versiones del mismo documento">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                        Comparar versiones (diff)
+                    </button>
+                    <hr class="sp-sep">
+                    <button class="sp-item sp-item-primary" onclick="openSignFlow()" title="Firma con hash SHA-256 + firmante + timestamp">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                        Firmar y archivar
+                    </button>
+                    <button class="sp-item" onclick="openPeopleManagerModal()" title="Gestionar personas firmantes del paquete activo">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                        Personas del paquete
+                    </button>
+                </div>
 
             </div>
         </div>
@@ -957,34 +949,46 @@
                 <svg class="suite-tab-chevron" width="8" height="5" viewBox="0 0 8 5"><path d="M0 0l4 5 4-5z" fill="currentColor"/></svg>
             </button>
             <div class="tb-dropdown tb-dropdown-wide" id="dropSuitePlan">
+                <div class="sp-col">
+                    <span class="sp-col-title">Validación Excel GxP</span>
+                    <button class="sp-item sp-item-primary" onclick="SpreadsheetWizard.open()" title="Subir un .xlsx, analizar su estructura y generar EVRA + EVPROT + EVIR">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Validar planilla .xlsx
+                    </button>
+                    <hr class="sp-sep">
+                    <button class="sp-item sp-item-primary" onclick="openValidationSuite('EVRA')" title="Abrir EVRA en la Suite">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                        EVRA — Evaluación de Riesgo
+                    </button>
+                    <button class="sp-item" onclick="openValidationSuite('EVPROT')" title="Abrir EVPROT">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        EVPROT — Protocolo
+                    </button>
+                    <button class="sp-item" onclick="openValidationSuite('EVIR')" title="Abrir EVIR">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        EVIR — Informe de Validación
+                    </button>
+                    <hr class="sp-sep">
+                    <button class="sp-item" onclick="alert('Suite Planillas GxP\n\nValida planillas Excel usadas en procesos regulados (GAMP 5 Cat 4).\n\nFlujo:\n1. EVRA — Evaluación de Riesgo\n2. EVPROT — Protocolo de pruebas\n3. EVIR — Informe de cierre\n\nEl análisis es automático vía SheetJS.')" title="¿Cómo funciona la Suite Planillas?">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        ¿Cómo funciona?
+                    </button>
+                </div>
 
-                <span class="tb-dropdown-label">Validación de planillas Excel</span>
-                <button class="tb-item-pri" onclick="SpreadsheetWizard.open()" title="Subir un .xlsx, analizar su estructura y generar EVRA + EVPROT + EVIR con IA">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                    Validar planilla Excel (.xlsx)
-                </button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Documentos generados</span>
-                <button class="tb-item-pri" onclick="openValidationSuite('EVRA')" title="Abrir EVRA en la Suite">📋 EVRA — Evaluación de Riesgo</button>
-                <button onclick="openValidationSuite('EVPROT')" title="Abrir EVPROT">🧪 EVPROT — Protocolo de Validación</button>
-                <button onclick="openValidationSuite('EVIR')" title="Abrir EVIR">✅ EVIR — Informe de Validación</button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">¿Cómo funciona?</span>
-                <button onclick="alert('Suite Planillas GxP\n\nValida planillas Excel usadas en procesos regulados (GAMP 5 Cat 4).\n\nFlujo:\n1. EVRA — Evaluación de Riesgo: identifica riesgos de integridad, acceso y versión\n2. EVPROT — Protocolo: casos de prueba concretos para cada fórmula crítica\n3. EVIR — Informe de cierre: resultados y estado APROBADA / NO APROBADA\n\nEl análisis de la planilla es automático — SheetJS detecta hojas, fórmulas, protección y VBA.')" title="Información sobre la Suite de Validación de Planillas">¿Cómo funciona?</button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Mapeador de procesos GxP</span>
-                <button class="tb-item-pri" onclick="openProcessMap()" title="Abrir MapeoGxP — editor de mapas de proceso GxP multidimensional (5 columnas swimlane)">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-                    Abrir MapeoGxP
-                </button>
-                <button onclick="" style="cursor:default;opacity:.7" title="Flujo principal del proceso: terminadores, actividades, decisiones">⬜ Proceso — Flujo y decisiones</button>
-                <button onclick="" style="cursor:default;opacity:.7" title="Perfiles y roles responsables de cada paso">🟡 Perfil — Roles de usuario</button>
-                <button onclick="" style="cursor:default;opacity:.7" title="Sistemas computarizados que intervienen (GAMP 5)">🔵 Sistema — Sistemas GxP</button>
-                <button onclick="" style="cursor:default;opacity:.7" title="Cálculos y algoritmos ejecutados por el sistema">🟢 Cálculo — Algoritmos</button>
-                <button onclick="" style="cursor:default;opacity:.7" title="Datos, registros y documentos generados">⬜ Dato — Registros GxP</button>
+                <div class="sp-col">
+                    <span class="sp-col-title">Mapeador de procesos GxP</span>
+                    <button class="sp-item sp-item-primary" onclick="openProcessMap()" title="Abrir MapeoGxP — editor swimlane 5 columnas">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                        Abrir MapeoGxP
+                    </button>
+                    <hr class="sp-sep">
+                    <span class="sp-sub-label">Capas del mapa</span>
+                    <button class="sp-item sp-item-disabled">⬜ Proceso — Flujo y decisiones</button>
+                    <button class="sp-item sp-item-disabled">🟡 Perfil — Roles de usuario</button>
+                    <button class="sp-item sp-item-disabled">🔵 Sistema — Sistemas GxP</button>
+                    <button class="sp-item sp-item-disabled">🟢 Cálculo — Algoritmos</button>
+                    <button class="sp-item sp-item-disabled">⬜ Dato — Registros GxP</button>
+                </div>
 
             </div>
         </div>
@@ -997,40 +1001,39 @@
                 <svg class="suite-tab-chevron" width="8" height="5" viewBox="0 0 8 5"><path d="M0 0l4 5 4-5z" fill="currentColor"/></svg>
             </button>
             <div class="tb-dropdown tb-dropdown-wide" id="dropSuiteAdmin">
+                <div class="sp-col">
+                    <span class="sp-col-title">Gestión</span>
+                    <button class="sp-item sp-item-primary" onclick="openUserMgmt()" title="Gestionar usuarios del sistema">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                        Gestionar usuarios
+                    </button>
+                    <button class="sp-item" onclick="openReviewDashboard()" title="Rondas de revisión y aprobación">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+                        Rondas de revisión
+                    </button>
+                    <hr class="sp-sep">
+                    <button class="sp-item" onclick="FirmaDigital.open()" title="Firmas digitales del paquete activo (21 CFR Part 11)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                        Firmas digitales (21 CFR)
+                    </button>
+                    <hr class="sp-sep">
+                    <button class="sp-item" onclick="openSuiteAuditTrail()" title="Ver audit trail completo del proyecto">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+                        Audit trail del proyecto
+                    </button>
+                </div>
 
-                <span class="tb-dropdown-label">Usuarios y permisos</span>
-                <button class="tb-item-pri" onclick="openUserMgmt()" title="Gestionar usuarios del sistema">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                    Gestionar usuarios
-                </button>
-                <button onclick="openReviewDashboard()" title="Rondas de revisión y aprobación">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
-                    Rondas de revisión
-                </button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Firmas digitales</span>
-                <button onclick="FirmaDigital.open()" title="Firmas digitales del paquete activo (21 CFR Part 11)">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-                    Firmas digitales del paquete
-                </button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Auditoría</span>
-                <button onclick="openSuiteAuditTrail()" title="Ver audit trail completo del proyecto: cada doc creado, comparado, firmado o modificado.">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
-                    Audit Trail del proyecto
-                </button>
-
-                <hr class="tb-dropdown-sep">
-                <span class="tb-dropdown-label">Configuración</span>
-                <button onclick="toggleSysPanel()" title="Configurar empresa, sistema, ejecutor y período del proyecto">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-                    Contexto del sistema
-                </button>
-                <button onclick="openApiKeyModal()" title="Configurar API Key de Anthropic">
-                    API Key Anthropic
-                </button>
+                <div class="sp-col">
+                    <span class="sp-col-title">Sistema</span>
+                    <button class="sp-item sp-item-primary" onclick="toggleSysPanel()" title="Configurar empresa, sistema, ejecutor y período del proyecto">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+                        Contexto del sistema
+                    </button>
+                    <button class="sp-item" onclick="openApiKeyModal()" title="Configurar API Key de Anthropic">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                        API Key Anthropic
+                    </button>
+                </div>
 
             </div>
         </div>
