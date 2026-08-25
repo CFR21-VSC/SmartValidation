@@ -109,17 +109,12 @@ async function getImageFromDB(id) {
     });
     if (localData) return localData;
 
-    // 2. Fallback: intentar recuperar del servidor (otro navegador/máquina guardó esta imagen).
-    // Sin gate isAvailable() — fetchEvidence() ya retorna null si el server no responde,
-    // y el gate causaba race condition cuando _available todavía era false al inicio.
+    // 2. Fallback: recuperar del servidor (R2 es fuente de verdad para multi-sesión).
+    // NO cachear en IndexedDB — evita que una imagen vieja tape una nueva del servidor.
     try {
         if (window.VS && window.VS.Storage) {
             const serverData = await window.VS.Storage.fetchEvidence(id);
-            if (serverData) {
-                // Cachear en IndexedDB sin re-subir (la imagen ya vino del servidor)
-                saveImageToDB(id, serverData, { upload: false }).catch(() => {});
-                return serverData;
-            }
+            if (serverData) return serverData;
         }
     } catch (_) {}
     return null;
@@ -387,10 +382,13 @@ async function _pollTestExecutions() {
                 // Solo si el slot no tiene imagen descargada localmente
                 const before = test.evidences.length;
                 test.evidences = test.evidences.filter(ev => {
-                    if (ev.isEmpty) return true;          // placeholder local — no tocar
-                    if (ev.image) return true;            // imagen ya descargada localmente — conservar
+                    if (ev.isEmpty) return true;               // placeholder local — no tocar
+                    if (!ev.hasImage) return true;              // imagen capturada localmente — no tocar
                     if (remoteSteps.has(ev.step)) return true; // sigue existiendo en servidor
-                    return false;                         // borrado en servidor y sin imagen local
+                    // Slot del servidor eliminado — limpiar también IndexedDB y memoria
+                    ev.image = null;
+                    deleteImageFromDB(`${test.id}_evidence_${ev.step}`).catch(() => {});
+                    return false;
                 });
                 if (test.evidences.length !== before) changed = true;
             }
@@ -406,9 +404,10 @@ async function _pollTestExecutions() {
                     const missingImgs = (activeTest.evidences || []).filter(ev =>
                         ev.hasImage && !ev.image && !ev.isEmpty
                     );
-                    if (missingImgs.length) {
+                    if (missingImgs.length && window.VS && window.VS.Storage) {
+                        // Directo a R2 (fuente de verdad) — no pasar por IndexedDB
                         Promise.all(missingImgs.map(ev =>
-                            getImageFromDB(`${activeTest.id}_evidence_${ev.step}`)
+                            window.VS.Storage.fetchEvidence(`${activeTest.id}_evidence_${ev.step}`)
                                 .then(d => { if (d) ev.image = d; }).catch(() => {})
                         )).then(() => {
                             if (typeof renderWorkArea === 'function') renderWorkArea();
@@ -6524,7 +6523,11 @@ function renderEvidenceItem(evidence, index, test) {
                     if (typeof renderWorkArea === 'function') renderWorkArea();
                 }
             }, 12000);
-            getImageFromDB(_loadId).then(data => {
+            // R2 es fuente de verdad — ir directo al servidor, saltear IndexedDB
+            const _fetchPromise = (window.VS && window.VS.Storage)
+                ? window.VS.Storage.fetchEvidence(_loadId)
+                : Promise.resolve(null);
+            _fetchPromise.then(data => {
                 clearTimeout(_failTimer);
                 evidence._imgLoading = false;
                 if (data) {
