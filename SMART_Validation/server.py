@@ -3670,17 +3670,22 @@ class SyncHandler(BaseHTTPRequestHandler):
             """, (proj_id,)).fetchall()
         else:
             rounds = db.execute("""
-                SELECT sr.*, COUNT(srs2.id) AS total_signers,
-                       SUM(CASE WHEN srs2.signed_at IS NOT NULL THEN 1 ELSE 0 END) AS signed_count,
-                       SUM(CASE WHEN srs2.revision_requested_at IS NOT NULL THEN 1 ELSE 0 END) AS revision_count,
+                SELECT sr.*,
+                       agg.total_signers, agg.signed_count, agg.revision_count,
                        me.signed_at AS my_signed_at,
                        me.revision_requested_at AS my_revision_at,
                        me.role_label AS my_role
                 FROM signing_rounds sr
                 INNER JOIN signing_round_signers me ON me.round_id = sr.id AND me.username=?
-                LEFT JOIN signing_round_signers srs2 ON srs2.round_id = sr.id
+                LEFT JOIN (
+                    SELECT round_id,
+                           COUNT(id) AS total_signers,
+                           SUM(CASE WHEN signed_at IS NOT NULL THEN 1 ELSE 0 END) AS signed_count,
+                           SUM(CASE WHEN revision_requested_at IS NOT NULL THEN 1 ELSE 0 END) AS revision_count
+                    FROM signing_round_signers
+                    GROUP BY round_id
+                ) agg ON agg.round_id = sr.id
                 WHERE sr.project_id=? AND sr.status='open'
-                GROUP BY sr.id
                 ORDER BY sr.created_at DESC
             """, (username, proj_id)).fetchall()
         return self._send_json(200, {"ok": True, "rounds": [dict(r) for r in rounds]})
@@ -4210,7 +4215,8 @@ class SyncHandler(BaseHTTPRequestHandler):
             FROM signing_rounds sr
             INNER JOIN projects p ON p.id = sr.project_id
             LEFT JOIN signing_round_signers srs ON srs.round_id = sr.id
-            GROUP BY sr.id
+            GROUP BY sr.id, sr.project_id, sr.doc_type, sr.doc_version, sr.status,
+                     sr.created_at, sr.sealed_at, p.name
             ORDER BY sr.created_at DESC
             LIMIT 100
         """).fetchall()
