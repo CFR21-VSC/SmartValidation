@@ -4193,11 +4193,9 @@ class SyncHandler(BaseHTTPRequestHandler):
             FROM signing_round_signers srs
             INNER JOIN signing_rounds sr ON sr.id = srs.round_id AND sr.status='open'
             INNER JOIN projects p ON p.id = sr.project_id
-            INNER JOIN project_access pa ON pa.project_id = sr.project_id
-            INNER JOIN users u ON u.id = pa.user_id AND u.username=?
             WHERE srs.username=?
             ORDER BY sr.created_at ASC
-        """, (username, username)).fetchall()
+        """, (username,)).fetchall()
         return self._send_json(200, {"ok": True, "pending": [dict(r) for r in rows]})
 
     def _admin_review_activity(self, user):
