@@ -257,10 +257,11 @@
 <div id="modal-revision" class="modal-overlay" onclick="if(event.target===this)closeModal('revision')">
   <div class="modal-box">
     <div class="modal-title">🔄 Solicitar revisión</div>
-    <div class="modal-desc">Indicá qué debe corregirse. Esto cancela la ronda actual y notifica al administrador.</div>
+    <div class="modal-desc">Indicá qué debe corregirse. Podés agregar múltiples puntos de observación. Esto cancela la ronda actual y notifica al administrador.</div>
     <div id="revision-error" class="alert alert-error" style="display:none;margin-bottom:12px;"></div>
-    <label class="form-label">Motivo de la revisión</label>
-    <textarea id="revision-reason" class="form-textarea" placeholder="Describí qué debe cambiarse en el documento..." maxlength="1000" style="min-height:90px;"></textarea>
+    <label class="form-label">Puntos de observación</label>
+    <div id="revision-items-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;"></div>
+    <button type="button" onclick="revisionAddItem()" style="background:#0d1e32;border:1px dashed #1e4070;color:#5aaade;border-radius:6px;padding:6px 14px;font-size:13px;cursor:pointer;margin-bottom:12px;width:100%;text-align:left;">+ Agregar punto</button>
     <label class="form-label">PIN de confirmación</label>
     <input id="revision-pin" type="password" inputmode="numeric" maxlength="8" class="form-input form-pin" placeholder="••••••" oninput="this.value=this.value.replace(/\D/g,'')" onkeydown="if(event.key==='Enter')submitRevision()">
     <div class="modal-actions">
@@ -537,7 +538,8 @@ function renderRoundStatus(detail) {
     if (me.signed_at) {
       statusHtml = `<div class="alert alert-success" style="margin-bottom:12px;">✅ Firmaste este documento como <strong>${esc(me.role_label)}</strong> el ${fmtDT(me.signed_at)}.</div>`;
     } else if (me.revision_requested_at) {
-      statusHtml = `<div class="alert alert-warn" style="margin-bottom:12px;">🔄 Solicitaste revisión el ${fmtDT(me.revision_requested_at)}.<br><small>${esc(me.revision_reason||'')}</small></div>`;
+      const _revReason = (() => { try { const p = JSON.parse(me.revision_reason||''); if (Array.isArray(p)) return '<ul style="margin:4px 0 0 16px;padding:0;">' + p.map(pt=>`<li>${esc(pt)}</li>`).join('') + '</ul>'; } catch(_){} return `<small>${esc(me.revision_reason||'')}</small>`; })();
+      statusHtml = `<div class="alert alert-warn" style="margin-bottom:12px;">🔄 Solicitaste revisión el ${fmtDT(me.revision_requested_at)}.<br>${_revReason}</div>`;
     } else {
       statusHtml = `<div class="alert" style="background:#0d1e32;border:1px solid #1e4070;color:#5aaade;margin-bottom:12px;">⏳ Pendiente de tu firma como <strong>${esc(me.role_label)}</strong>.</div>`;
     }
@@ -650,24 +652,39 @@ async function submitSign() {
 }
 
 // ── Revision request ───────────────────────────────────────────────────────
+function revisionAddItem(value) {
+  const list = document.getElementById('revision-items-list');
+  const idx = list.children.length;
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:6px;align-items:flex-start;';
+  row.innerHTML = `<textarea class="form-textarea revision-item-ta" placeholder="Describí qué debe cambiarse..." maxlength="500" style="flex:1;min-height:64px;resize:vertical;"></textarea>
+    <button type="button" onclick="this.parentElement.remove()" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:6px;padding:4px 8px;font-size:14px;cursor:pointer;flex-shrink:0;margin-top:2px;" title="Eliminar punto">✕</button>`;
+  list.appendChild(row);
+  if (value) row.querySelector('textarea').value = value;
+  row.querySelector('textarea').focus();
+}
+
 function openRevisionModal() {
-  document.getElementById('revision-reason').value = '';
+  const list = document.getElementById('revision-items-list');
+  list.innerHTML = '';
+  revisionAddItem();
   document.getElementById('revision-pin').value = '';
   document.getElementById('revision-error').style.display = 'none';
   document.getElementById('btn-revision-submit').disabled = false;
   openModal('revision');
-  setTimeout(() => document.getElementById('revision-reason').focus(), 100);
 }
 
 async function submitRevision() {
-  const reason = document.getElementById('revision-reason').value.trim();
-  const pin    = document.getElementById('revision-pin').value.trim();
-  const errEl  = document.getElementById('revision-error');
-  const btn    = document.getElementById('btn-revision-submit');
+  const items = Array.from(document.querySelectorAll('.revision-item-ta'))
+    .map(ta => ta.value.trim()).filter(Boolean);
+  const pin   = document.getElementById('revision-pin').value.trim();
+  const errEl = document.getElementById('revision-error');
+  const btn   = document.getElementById('btn-revision-submit');
   errEl.style.display = 'none';
-  if (!reason) { errEl.textContent='Indicá el motivo de la revisión.'; errEl.style.display='block'; return; }
+  if (!items.length) { errEl.textContent='Agregá al menos un punto de observación.'; errEl.style.display='block'; return; }
   if (!pin || pin.length < 4) { errEl.textContent='Ingresá tu PIN.'; errEl.style.display='block'; return; }
   btn.disabled = true; btn.textContent = 'Enviando...';
+  const reason = JSON.stringify(items);
   const r = await api('POST', `/api/projects/${S.projId}/signing-rounds/${S.activeRound.round.id}/request-revision`, { reason, pin });
   btn.disabled = false; btn.textContent = 'Solicitar revisión';
   if (!r?.ok) { errEl.textContent = r?.error || 'Error.'; errEl.style.display='block'; return; }

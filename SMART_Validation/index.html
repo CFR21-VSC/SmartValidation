@@ -3959,6 +3959,8 @@
                         title="Cerrar documento actual sin eliminar nada">✕ Limpiar</button>
                     <button class="vs-hdr-btn" onclick="openMacroPanel()"
                         title="Configuración macro: cambiar campos en todos los documentos">⚙ Macro</button>
+                    <button id="vsBtnRevisiones" class="vs-hdr-btn" onclick="openRevisionesPanel()" style="display:none;"
+                        title="Ver solicitudes de revisión de este documento">📋 Revisiones <span id="vsRevBadge" style="background:#e87a8a;color:#fff;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;display:none;"></span></button>
                 </div>
                 <span class="vs-hdr-sep"></span>
 
@@ -4129,6 +4131,17 @@
                     <div id="vmpFeedback" class="vmp-feedback"></div>
                 </div>
             </div>
+
+            <!-- ── Panel de Revisiones ────────────────────────────────────── -->
+            <div id="vsRevisionesPanel" class="vs-macro-panel" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();">
+              <div class="vmp-header">
+                <span class="vmp-title">📋 Revisiones</span>
+                <button class="vmp-close" onclick="closeRevisionesPanel()">✕</button>
+              </div>
+              <div class="vmp-body" id="vsRevBody" style="gap:0;">
+                <div style="color:#4a6a86;font-size:13px;padding:8px 0;">Cargando...</div>
+              </div>
+            </div>
         </div>
 
         <input type="file" id="vsImportFileInput" accept=".json" style="display: none;">
@@ -4179,6 +4192,73 @@
 
             window.closeMacroPanel = function() {
                 document.getElementById('vsMacroPanel').classList.remove('open');
+            };
+
+            window.openRevisionesPanel = function() {
+                document.getElementById('vsRevisionesPanel').classList.add('open');
+                _vsLoadRevisiones();
+            };
+            window.closeRevisionesPanel = function() {
+                document.getElementById('vsRevisionesPanel').classList.remove('open');
+            };
+
+            async function _vsLoadRevisiones() {
+                const body = document.getElementById('vsRevBody');
+                if (!body) return;
+                body.innerHTML = '<div style="color:#4a6a86;font-size:13px;">Cargando...</div>';
+                const data = JSON.parse(localStorage.getItem('vscTestsData_v3') || '{}');
+                const projId = localStorage.getItem('vscActiveProjectId');
+                const docType = data?.currentDoc?.type || data?.docType;
+                if (!projId || !docType) {
+                    body.innerHTML = '<div style="color:#4a6a86;font-size:13px;">Abrí un documento para ver sus revisiones.</div>';
+                    return;
+                }
+                const r = await fetch(`/api/projects/${projId}/documents/${docType}/revisions`, { credentials:'include' }).then(r=>r.json()).catch(()=>null);
+                if (!r?.ok) { body.innerHTML = '<div style="color:#e87a8a;font-size:13px;">Error al cargar revisiones.</div>'; return; }
+                const revs = r.revisions || [];
+                if (!revs.length) { body.innerHTML = '<div style="color:#4a6a86;font-size:13px;padding:8px 0;">Sin solicitudes de revisión para este documento.</div>'; return; }
+
+                const fmtTs = ts => ts ? new Date(ts*1000).toLocaleString('es-AR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+
+                let html = '';
+                revs.forEach(rev => {
+                    let points = [];
+                    try { const p = JSON.parse(rev.revision_reason); if (Array.isArray(p)) points = p; else points = [rev.revision_reason]; }
+                    catch(_) { points = [rev.revision_reason || '']; }
+
+                    const isFulfilled = !!rev.revision_fulfilled_at;
+                    html += `<div style="border:1px solid ${isFulfilled ? '#1a3a20' : '#5a2030'};border-radius:8px;padding:10px 12px;margin-bottom:10px;background:${isFulfilled ? '#0d1e14' : '#1a0d10'};">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                            <div>
+                                <span style="font-size:12px;font-weight:700;color:${isFulfilled ? '#27c459' : '#e87a8a'};">${rev.display_name || rev.username}</span>
+                                <span style="font-size:11px;color:#4a6a86;"> · v${rev.doc_version||1} · ${fmtTs(rev.revision_requested_at)}</span>
+                            </div>
+                            ${isFulfilled
+                                ? `<span style="font-size:10px;color:#27c459;font-weight:700;">✓ Cumplida</span>`
+                                : `<button onclick="_vsMarkFulfilled('${rev.round_id}','${rev.username}')" style="background:#0e2820;border:1px solid #1e4830;color:#27c459;border-radius:5px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;">✓ Cumplida</button>`}
+                        </div>
+                        <ul style="margin:8px 0 0 0;padding-left:16px;${isFulfilled ? 'opacity:0.5;' : ''}">
+                            ${points.filter(Boolean).map(p => `<li style="font-size:12px;color:#b8cce0;margin-bottom:3px;">${p.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</li>`).join('')}
+                        </ul>
+                        ${isFulfilled ? `<div style="font-size:10px;color:#4a6a86;margin-top:6px;">Marcada cumplida por ${rev.revision_fulfilled_by||'admin'} · ${fmtTs(rev.revision_fulfilled_at)}</div>` : ''}
+                    </div>`;
+                });
+                body.innerHTML = html;
+
+                // Update badge
+                const pending = revs.filter(r => !r.revision_fulfilled_at).length;
+                const badge = document.getElementById('vsRevBadge');
+                if (badge) { badge.textContent = pending; badge.style.display = pending ? '' : 'none'; }
+            }
+
+            window._vsMarkFulfilled = async function(roundId, username) {
+                const projId = localStorage.getItem('vscActiveProjectId');
+                if (!projId) return;
+                const r = await fetch(`/api/projects/${projId}/signing-rounds/${roundId}/fulfill/${username}`, {
+                    method: 'POST', credentials: 'include', headers:{'Content-Type':'application/json'}, body:'{}',
+                }).then(r=>r.json()).catch(()=>null);
+                if (r?.ok) _vsLoadRevisiones();
+                else alert('Error: ' + (r?.error || 'desconocido'));
             };
 
             window.macroToggleAllDocs = function(checked) {

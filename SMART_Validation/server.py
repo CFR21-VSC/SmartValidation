@@ -325,6 +325,8 @@ def _db_init():
         # UNIQUE index en documents(project_id, doc_type) — puede faltar si la tabla
         # se creó antes de que el constraint apareciera en el DDL. Idempotente.
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_doc_proj_type ON documents(project_id, doc_type)",
+        "ALTER TABLE signing_round_signers ADD COLUMN revision_fulfilled_at REAL",
+        "ALTER TABLE signing_round_signers ADD COLUMN revision_fulfilled_by TEXT",
     ]:
         try:
             db.execute(_migration)
@@ -388,6 +390,8 @@ _RE_SIGNING_ROUND_SIGN = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/
 _RE_SIGNING_ROUND_REV  = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/request-revision$')
 _RE_SIGNING_ROUND_SEAL   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/seal$')
 _RE_SIGNING_ROUND_CANCEL = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/cancel$')
+_RE_DOC_REVISIONS  = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/revisions$')
+_RE_REV_FULFILL    = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/fulfill/([^/]+)$')
 _RE_PROJ_PHOTOS   = re.compile(r'^/api/projects/([^/]+)/photos$')
 _RE_PROJ_PHOTO_ID = re.compile(r'^/api/projects/([^/]+)/photos/([^/]+)$')
 _RE_EVIDENCE_BULK = re.compile(r'^/api/projects/([^/]+)/evidence$')
@@ -4190,6 +4194,45 @@ class SyncHandler(BaseHTTPRequestHandler):
             raise
         return self._send_json(200, {"ok": True, "seal_hash": seal_hash, "block_number": block_num})
 
+    def _api_doc_revisions(self, proj_id, doc_type, user):
+        """GET /api/projects/{id}/documents/{type}/revisions — revision requests for a doc."""
+        if user.get("r") not in ("admin", "auditor"):
+            return self._send_json(403, {"ok": False, "error": "Requiere admin o auditor"})
+        if not _is_valid_proj_id(proj_id):
+            return self._send_json(404, {"ok": False, "error": "Proyecto no encontrado"})
+        db = _get_db()
+        rows = db.execute("""
+            SELECT srs.round_id, srs.username, srs.display_name, srs.role_label,
+                   srs.revision_reason, srs.revision_requested_at,
+                   srs.revision_fulfilled_at, srs.revision_fulfilled_by,
+                   sr.status AS round_status, sr.doc_version
+            FROM signing_round_signers srs
+            INNER JOIN signing_rounds sr ON sr.id = srs.round_id
+            WHERE sr.project_id=? AND sr.doc_type=? AND srs.revision_requested_at IS NOT NULL
+            ORDER BY srs.revision_requested_at DESC
+        """, (proj_id, doc_type)).fetchall()
+        return self._send_json(200, {"ok": True, "revisions": [dict(r) for r in rows]})
+
+    def _api_rev_fulfill(self, proj_id, round_id, username, user):
+        """POST — admin marca una revision item como cumplida."""
+        if user.get("r") != "admin":
+            return self._send_json(403, {"ok": False, "error": "Solo admin"})
+        if not _is_valid_proj_id(proj_id) or not _is_valid_uuid(round_id):
+            return self._send_json(404, {"ok": False, "error": "No encontrado"})
+        db = _get_db()
+        now = time.time()
+        row = db.execute(
+            "SELECT id FROM signing_round_signers WHERE round_id=? AND username=? AND revision_requested_at IS NOT NULL",
+            (round_id, username)
+        ).fetchone()
+        if not row:
+            return self._send_json(404, {"ok": False, "error": "Revisión no encontrada"})
+        db.execute(
+            "UPDATE signing_round_signers SET revision_fulfilled_at=?, revision_fulfilled_by=? WHERE round_id=? AND username=?",
+            (now, user.get("u"), round_id, username)
+        )
+        return self._send_json(200, {"ok": True})
+
     def _signing_round_cancel(self, proj_id, round_id, user):
         """Admin cancela una ronda abierta y devuelve el documento a borrador."""
         if user.get("r") != "admin":
@@ -4641,6 +4684,9 @@ class SyncHandler(BaseHTTPRequestHandler):
             return self._signing_round_get(m.group(1), m.group(2), user)
         if path == "/api/me/pending-signatures":
             return self._api_pending_signatures(user)
+        m = _RE_DOC_REVISIONS.match(path)
+        if m:
+            return self._api_doc_revisions(m.group(1), m.group(2), user)
         if path == "/admin/review-activity":
             return self._admin_review_activity(user)
         m = re.match(r'^/api/projects/([^/]+)/validation-book$', path)
@@ -4850,6 +4896,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_SIGNING_ROUND_CANCEL.match(path)
         if m:
             return self._signing_round_cancel(m.group(1), m.group(2), user)
+        m = _RE_REV_FULFILL.match(path)
+        if m:
+            return self._api_rev_fulfill(m.group(1), m.group(2), m.group(3), user)
         m = _RE_PROJ_DOC.match(path)
         if m:
             return self._api_doc_upsert(m.group(1), m.group(2), user)
