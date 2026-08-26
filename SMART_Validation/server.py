@@ -2733,11 +2733,11 @@ class SyncHandler(BaseHTTPRequestHandler):
         """, (username, proj_id)).fetchone()
         if row:
             return True
-        # Acceso alternativo: firmante en una ronda abierta de este proyecto
+        # Acceso alternativo: fue firmante en cualquier ronda de este proyecto
         signer_row = db.execute("""
             SELECT 1 FROM signing_round_signers srs
             INNER JOIN signing_rounds sr ON sr.id = srs.round_id
-            WHERE srs.username=? AND sr.project_id=? AND sr.status='open'
+            WHERE srs.username=? AND sr.project_id=?
         """, (username, proj_id)).fetchone()
         if not signer_row:
             self._send_json(403, {"ok": False, "error": "Acceso denegado"})
@@ -4280,10 +4280,18 @@ class SyncHandler(BaseHTTPRequestHandler):
             ORDER BY ae.created_at DESC
             LIMIT 50
         """).fetchall()
+        signer_revisions = db.execute("""
+            SELECT srs.round_id, srs.username, srs.display_name, srs.revision_reason, srs.revision_requested_at
+            FROM signing_round_signers srs
+            WHERE srs.revision_requested_at IS NOT NULL
+            ORDER BY srs.revision_requested_at DESC
+            LIMIT 200
+        """).fetchall()
         return self._send_json(200, {
             "ok": True,
             "rounds": [dict(r) for r in rounds],
             "revision_requests": [dict(r) for r in revision_requests],
+            "signer_revisions": [dict(r) for r in signer_revisions],
         })
 
     def _validation_book_get(self, proj_id, user):

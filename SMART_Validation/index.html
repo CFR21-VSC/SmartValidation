@@ -1007,9 +1007,10 @@
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
                         Gestionar usuarios
                     </button>
-                    <button class="sp-item" onclick="openReviewDashboard()" title="Rondas de revisión y aprobación">
+                    <button id="btnRevDashboard" class="sp-item" onclick="openReviewDashboard()" title="Rondas de revisión y aprobación" style="position:relative;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
                         Rondas de revisión
+                        <span id="rdRevBadge" style="display:none;position:absolute;top:2px;right:2px;background:#e87a8a;color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;line-height:14px;"></span>
                     </button>
                     <hr class="sp-sep">
                     <button class="sp-item" onclick="FirmaDigital.open()" title="Firmas digitales del paquete activo (21 CFR Part 11)">
@@ -4488,12 +4489,15 @@
 
     function openReviewDashboard() {
       document.getElementById('rdModal').style.display = 'flex';
+      const _b = document.getElementById('rdRevBadge'); if (_b) _b.style.display = 'none';
+      _rdLastRevCount = 0;
       loadReviewDashboard();
     }
     function closeReviewDashboard() {
       document.getElementById('rdModal').style.display = 'none';
     }
 
+    let _rdSignerRevisions = [];
     async function loadReviewDashboard() {
       const body = document.getElementById('rdBody');
       body.innerHTML = '<div style="color:#4a6a86;font-size:13px;">Cargando...</div>';
@@ -4506,6 +4510,7 @@
       if (btnNew) btnNew.style.display = _rdIsAdmin ? '' : 'none';
       if (!r?.ok) { body.innerHTML = '<div style="color:#e87a8a;font-size:13px;">Error al cargar.</div>'; return; }
 
+      _rdSignerRevisions = r.signer_revisions || [];
       const rounds = r.rounds || [];
       const revReqs = r.revision_requests || [];
       const html = [];
@@ -4551,11 +4556,19 @@
       const statusColor = {open:'#c4a427', sealed:'#27c459', cancelled:'#e87a8a'}[rnd.status] || '#4a6a86';
       const progress = rnd.total_signers ? `${rnd.signed_count||0}/${rnd.total_signers} firmaron` : '';
       const revCount = rnd.revision_count > 0 ? `· <span style="color:#e87a8a;">${rnd.revision_count} solicitud(es) de revisión</span>` : '';
-      html.push(`<div style="background:#0d1a28;border:1px solid #1e3550;border-radius:10px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
-        <div style="min-width:0;">
+      const revDetails = _rdSignerRevisions.filter(s => s.round_id === rnd.id);
+      const revBlock = revDetails.length ? revDetails.map(s =>
+        `<div style="margin-top:6px;background:#1a0d10;border-left:3px solid #e87a8a;border-radius:0 4px 4px 0;padding:6px 10px;">
+          <span style="font-size:11px;font-weight:600;color:#e87a8a;">${esc(s.display_name||s.username)}</span>
+          <span style="font-size:11px;color:#4a6a86;"> · ${fmtDTrd(s.revision_requested_at)}</span>
+          ${s.revision_reason ? `<div style="font-size:12px;color:#b8cce0;margin-top:3px;font-style:italic;">"${esc(s.revision_reason)}"</div>` : ''}
+        </div>`).join('') : '';
+      html.push(`<div style="background:#0d1a28;border:1px solid #1e3550;border-radius:10px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+        <div style="min-width:0;flex:1;">
           <div style="font-size:13px;font-weight:600;color:#eef3f8;">${esc(rnd.doc_type)} <span style="font-size:11px;color:#4a6a86;font-weight:400;">v${rnd.doc_version||1}</span></div>
           <div style="font-size:11px;color:#4a6a86;margin-top:2px;">${esc(rnd.project_name)} · Iniciada ${fmtDTrd(rnd.created_at)}</div>
           <div style="font-size:12px;color:#7a9ab8;margin-top:4px;">${progress} ${revCount}</div>
+          ${revBlock}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
           <span style="font-size:10px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px;">${rnd.status}</span>
@@ -4655,6 +4668,44 @@
 
     let _rdUsers = null;
     let _rdIsAdmin = false;
+    let _rdLastRevCount = 0;
+
+    async function _pollRevisionBadge() {
+      try {
+        const r = await fetch('/admin/review-activity', { credentials:'include' }).then(r=>r.json()).catch(()=>null);
+        if (!r?.ok) return;
+        const count = (r.signer_revisions || []).length;
+        const badge = document.getElementById('rdRevBadge');
+        if (badge) {
+          if (count > 0) {
+            badge.textContent = count;
+            badge.style.display = '';
+          } else {
+            badge.style.display = 'none';
+          }
+        }
+        if (count > _rdLastRevCount && _rdLastRevCount >= 0 && document.getElementById('rdModal')?.style.display === 'none') {
+          const diff = count - _rdLastRevCount;
+          if (_rdLastRevCount > 0) {
+            const toastEl = document.createElement('div');
+            toastEl.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1a0d10;border:1px solid #e87a8a;color:#e87a8a;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:99999;cursor:pointer;';
+            toastEl.textContent = `🔔 ${diff} nueva solicitud de revisión`;
+            toastEl.onclick = () => { openReviewDashboard(); toastEl.remove(); };
+            document.body.appendChild(toastEl);
+            setTimeout(() => toastEl.remove(), 8000);
+          }
+        }
+        _rdLastRevCount = count;
+      } catch(_) {}
+    }
+    // Arrancar polling de revisiones (solo si hay sesión admin)
+    setTimeout(async () => {
+      const sess = await fetch('/auth/session', { credentials:'include' }).then(r=>r.json()).catch(()=>null);
+      if (sess?.role === 'admin') {
+        _pollRevisionBadge();
+        setInterval(_pollRevisionBadge, 60000);
+      }
+    }, 3000);
     async function rdGetUsers() {
       if (_rdUsers) return _rdUsers;
       const r = await fetch('/admin/users', { credentials:'include' }).then(r=>r.json()).catch(()=>null);
