@@ -4560,6 +4560,7 @@
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
           <span style="font-size:10px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px;">${rnd.status}</span>
           ${_rdIsAdmin && rnd.status==='open' ? `<button onclick="sealRound('${esc(rnd.project_id)}','${esc(rnd.id)}')" style="background:#0e2820;border:1px solid #1e4830;color:#27c459;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;">Sellar ▶</button>` : ''}
+          ${_rdIsAdmin && rnd.status==='open' ? `<button onclick="cancelRound('${esc(rnd.project_id)}','${esc(rnd.id)}')" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;">✕ Cancelar</button>` : ''}
         </div>
       </div>`);
     }
@@ -4569,6 +4570,19 @@
       return new Date(ts*1000).toLocaleString('es-AR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
     }
     function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    async function cancelRound(projId, roundId) {
+      const reason = prompt('Motivo de cancelación (opcional):') ?? '';
+      if (reason === null) return;
+      if (!confirm('¿Cancelar la ronda? El documento volverá a estado Borrador.')) return;
+      const r = await fetch(`/api/projects/${projId}/signing-rounds/${roundId}/cancel`, {
+        method:'POST', credentials:'include',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ reason: reason || 'Cancelada por administrador' }),
+      }).then(r=>r.json()).catch(()=>null);
+      if (!r?.ok) { alert('Error al cancelar: ' + (r?.error||'Error desconocido')); return; }
+      loadReviewDashboard();
+    }
 
     async function sealRound(projId, roundId) {
       if (!confirm('¿Sellar la ronda? Esta acción es irreversible.')) return;

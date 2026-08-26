@@ -386,7 +386,8 @@ _RE_SIGNING_ROUNDS     = re.compile(r'^/api/projects/([^/]+)/signing-rounds$')
 _RE_SIGNING_ROUND_ID   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)$')
 _RE_SIGNING_ROUND_SIGN = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/sign$')
 _RE_SIGNING_ROUND_REV  = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/request-revision$')
-_RE_SIGNING_ROUND_SEAL = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/seal$')
+_RE_SIGNING_ROUND_SEAL   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/seal$')
+_RE_SIGNING_ROUND_CANCEL = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/cancel$')
 _RE_PROJ_PHOTOS   = re.compile(r'^/api/projects/([^/]+)/photos$')
 _RE_PROJ_PHOTO_ID = re.compile(r'^/api/projects/([^/]+)/photos/([^/]+)$')
 _RE_EVIDENCE_BULK = re.compile(r'^/api/projects/([^/]+)/evidence$')
@@ -2724,12 +2725,21 @@ class SyncHandler(BaseHTTPRequestHandler):
             return False
         if user.get("r") in ("admin", "auditor"):
             return True
+        username = user.get("u", "")
         row = db.execute("""
             SELECT 1 FROM project_access pa
             INNER JOIN users u ON u.id = pa.user_id
             WHERE u.username=? AND pa.project_id=?
-        """, (user.get("u", ""), proj_id)).fetchone()
-        if not row:
+        """, (username, proj_id)).fetchone()
+        if row:
+            return True
+        # Acceso alternativo: firmante en una ronda abierta de este proyecto
+        signer_row = db.execute("""
+            SELECT 1 FROM signing_round_signers srs
+            INNER JOIN signing_rounds sr ON sr.id = srs.round_id
+            WHERE srs.username=? AND sr.project_id=? AND sr.status='open'
+        """, (username, proj_id)).fetchone()
+        if not signer_row:
             self._send_json(403, {"ok": False, "error": "Acceso denegado"})
             return False
         return True
@@ -4180,6 +4190,48 @@ class SyncHandler(BaseHTTPRequestHandler):
             raise
         return self._send_json(200, {"ok": True, "seal_hash": seal_hash, "block_number": block_num})
 
+    def _signing_round_cancel(self, proj_id, round_id, user):
+        """Admin cancela una ronda abierta y devuelve el documento a borrador."""
+        if user.get("r") != "admin":
+            return self._send_json(403, {"ok": False, "error": "Solo admin puede cancelar rondas"})
+        if not _is_valid_proj_id(proj_id) or not _is_valid_uuid(round_id):
+            return self._send_json(404, {"ok": False, "error": "Ronda no encontrada"})
+        data = self._read_json_body() or {}
+        reason = str(data.get("reason", "Cancelada por administrador")).strip()[:500]
+        db = _get_db()
+        now = time.time()
+        db.execute("BEGIN IMMEDIATE")
+        try:
+            rnd = db.execute(
+                "SELECT id, doc_type, status FROM signing_rounds WHERE id=? AND project_id=?",
+                (round_id, proj_id)
+            ).fetchone()
+            if not rnd:
+                db.execute("ROLLBACK")
+                return self._send_json(404, {"ok": False, "error": "Ronda no encontrada"})
+            if rnd["status"] != "open":
+                db.execute("ROLLBACK")
+                return self._send_json(409, {"ok": False, "error": f"La ronda ya está {rnd['status']}"})
+            db.execute(
+                "UPDATE signing_rounds SET status='cancelled', cancelled_at=?, cancel_reason=? WHERE id=?",
+                (now, reason, round_id)
+            )
+            db.execute(
+                "UPDATE documents SET status='draft', updated_at=? WHERE project_id=? AND doc_type=?",
+                (now, proj_id, rnd["doc_type"])
+            )
+            db.execute("""
+                INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
+                VALUES (?, ?, ?, 'signing_round_cancel', ?, ?, ?)
+            """, (proj_id, rnd["doc_type"], user.get("u"),
+                  f"Ronda {round_id} cancelada: {reason}", self._get_client_ip(), now))
+            db.execute("COMMIT")
+        except Exception:
+            try: db.execute("ROLLBACK")
+            except Exception: pass
+            raise
+        return self._send_json(200, {"ok": True})
+
     def _api_pending_signatures(self, user):
         """Retorna todas las rondas abiertas donde el revisor tiene firma pendiente."""
         if user.get("r") != "client":
@@ -4787,6 +4839,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_SIGNING_ROUND_SEAL.match(path)
         if m:
             return self._signing_round_seal(m.group(1), m.group(2), user)
+        m = _RE_SIGNING_ROUND_CANCEL.match(path)
+        if m:
+            return self._signing_round_cancel(m.group(1), m.group(2), user)
         m = _RE_PROJ_DOC.match(path)
         if m:
             return self._api_doc_upsert(m.group(1), m.group(2), user)
