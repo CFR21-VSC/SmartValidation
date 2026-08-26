@@ -3760,6 +3760,94 @@
             }
             .vs-visual-save-bar.vs-hidden { display: none; }
             .vs-visual-save-hint { flex: 1; }
+
+            /* ── Macro Configuration Panel ─────────────────────────────────── */
+            .vs-macro-panel {
+                position: absolute; right: 0; top: 0; bottom: 0; width: 340px;
+                background: #081526; border-left: 1px solid rgba(200,146,26,0.2);
+                display: flex; flex-direction: column; z-index: 200;
+                transform: translateX(100%); transition: transform 0.25s ease;
+                overflow: hidden;
+            }
+            .vs-macro-panel.open { transform: translateX(0); }
+            .vmp-header {
+                background: linear-gradient(90deg, #071528, #0B2341);
+                border-bottom: 2px solid rgba(200,146,26,0.35);
+                padding: 0 14px; height: 46px; flex-shrink: 0;
+                display: flex; align-items: center; gap: 10px;
+            }
+            .vmp-title { color: #C8921A; font-size: 13px; font-weight: 700; flex: 1; }
+            .vmp-close {
+                width: 28px; height: 28px; border: 1px solid rgba(255,255,255,0.1);
+                background: rgba(255,255,255,0.05); border-radius: 5px; color: #5A7A96;
+                cursor: pointer; display: flex; align-items: center; justify-content: center;
+                font-size: 16px; flex-shrink: 0; line-height: 1;
+            }
+            .vmp-close:hover { border-color: rgba(200,146,26,0.4); color: #C8921A; }
+            .vmp-body {
+                flex: 1; overflow-y: auto; padding: 14px;
+                display: flex; flex-direction: column; gap: 16px;
+            }
+            .vmp-body::-webkit-scrollbar { width: 4px; }
+            .vmp-body::-webkit-scrollbar-thumb { background: rgba(200,146,26,0.2); border-radius: 2px; }
+            .vmp-section { display: flex; flex-direction: column; gap: 7px; }
+            .vmp-section-title {
+                font-size: 10px; font-weight: 700; text-transform: uppercase;
+                letter-spacing: 1px; color: rgba(200,146,26,0.75); margin-bottom: 2px;
+            }
+            .vmp-desc { font-size: 10.5px; color: #3A5A72; }
+            .vmp-row { display: flex; flex-direction: column; gap: 3px; }
+            .vmp-row label { font-size: 10.5px; color: #5A7A96; font-weight: 600; }
+            .vmp-row input, .vmp-row select {
+                width: 100%; padding: 5px 8px; font-size: 11.5px; box-sizing: border-box;
+                background: rgba(5,14,30,0.6); border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 5px; color: #A0B8CC;
+            }
+            .vmp-row input:focus, .vmp-row select:focus {
+                outline: none; border-color: rgba(200,146,26,0.4); color: #DDE6F0;
+            }
+            .vmp-row input::placeholder { color: #2A4A62; }
+            .vmp-radio-group { display: flex; flex-direction: column; gap: 5px; padding: 4px 0; }
+            .vmp-radio-group label {
+                font-size: 11px; color: #7A9AB8; font-weight: 400;
+                display: flex; align-items: center; gap: 6px; cursor: pointer;
+            }
+            .vmp-radio-group input[type=radio] { accent-color: #C8921A; }
+            .vmp-divider { height: 1px; background: rgba(255,255,255,0.06); }
+            .vmp-btn {
+                padding: 7px 12px; font-size: 12px; font-weight: 700;
+                border-radius: 6px; cursor: pointer; width: 100%; margin-top: 4px;
+            }
+            .vmp-btn-primary {
+                background: rgba(200,146,26,0.12); border: 1px solid rgba(200,146,26,0.35); color: #C8921A;
+            }
+            .vmp-btn-primary:hover { background: rgba(200,146,26,0.22); }
+            .vmp-btn-apply {
+                background: #C8921A; border: 1px solid #A57010; color: #0B2341; font-size: 12.5px;
+            }
+            .vmp-btn-apply:hover { background: #D4A030; }
+            .vmp-doc-list {
+                display: flex; flex-direction: column; gap: 4px;
+                max-height: 160px; overflow-y: auto;
+            }
+            .vmp-doc-item {
+                display: flex; align-items: center; gap: 7px; padding: 5px 8px;
+                background: rgba(5,14,30,0.4); border: 1px solid rgba(255,255,255,0.06);
+                border-radius: 5px; font-size: 11px; color: #7A9AB8;
+            }
+            .vmp-doc-item input[type=checkbox] { accent-color: #C8921A; flex-shrink: 0; }
+            .vmp-doc-item:hover { border-color: rgba(200,146,26,0.2); }
+            .vmp-doc-item label { cursor: pointer; flex: 1; }
+            .vmp-check-all {
+                font-size: 10.5px; color: #3A5A72; cursor: pointer;
+                text-decoration: underline; align-self: flex-start;
+            }
+            .vmp-check-all:hover { color: #C8921A; }
+            .vmp-feedback {
+                padding: 7px 10px; border-radius: 5px; font-size: 11px;
+                background: rgba(46,125,50,0.15); color: #81C784;
+                border: 1px solid rgba(46,125,50,0.3); display: none; margin-top: 4px;
+            }
         </style>
 
         <div class="vs-modal-content">
@@ -3868,6 +3956,8 @@
                         title="Generar documento con IA" style="display:none;">✨ Generar IA</button>
                     <button class="vs-hdr-btn" onclick="vsClearEditor()"
                         title="Cerrar documento actual sin eliminar nada">✕ Limpiar</button>
+                    <button class="vs-hdr-btn" onclick="openMacroPanel()"
+                        title="Configuración macro: cambiar campos en todos los documentos">⚙ Macro</button>
                 </div>
                 <span class="vs-hdr-sep"></span>
 
@@ -3982,9 +4072,208 @@
                     <div id="vsPreviewStatus" class="vs-status-bar">Sin preview generado</div>
                 </div>
             </div>
+
+            <!-- ── Panel de Configuración Macro ──────────────────────────────── -->
+            <div id="vsMacroPanel" class="vs-macro-panel" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();" onchange="event.stopPropagation();">
+                <div class="vmp-header">
+                    <span class="vmp-title">⚙ Configuración Macro</span>
+                    <button class="vmp-close" onclick="closeMacroPanel()" title="Cerrar">×</button>
+                </div>
+                <div class="vmp-body">
+
+                    <!-- Sección 1: Datos del Proyecto (systemInfo) -->
+                    <div class="vmp-section">
+                        <div class="vmp-section-title">📋 Datos del Proyecto</div>
+                        <div class="vmp-desc">Actualiza el systemInfo compartido por todos los documentos del proyecto. Los campos vacíos no se modifican.</div>
+                        <div class="vmp-row"><label>Empresa</label><input id="mac_empresa" type="text" placeholder="(sin cambios)"></div>
+                        <div class="vmp-row"><label>Cliente</label><input id="mac_cliente" type="text" placeholder="(sin cambios)"></div>
+                        <div class="vmp-row"><label>Nombre del Sistema</label><input id="mac_nombreSistema" type="text" placeholder="(sin cambios)"></div>
+                        <div class="vmp-row"><label>Versión del Sistema</label><input id="mac_versionSistema" type="text" placeholder="(sin cambios)"></div>
+                        <div class="vmp-row"><label>Revisor</label><input id="mac_revisor" type="text" placeholder="(sin cambios)"></div>
+                        <div class="vmp-row"><label>Aprobador</label><input id="mac_aprobador" type="text" placeholder="(sin cambios)"></div>
+                        <div class="vmp-row"><label>Auditor / QA</label><input id="mac_auditor" type="text" placeholder="(sin cambios)"></div>
+                        <button class="vmp-btn vmp-btn-primary" onclick="macroApplySystemInfo()">Actualizar systemInfo del proyecto</button>
+                    </div>
+
+                    <div class="vmp-divider"></div>
+
+                    <!-- Sección 2: Cambios masivos en documentos -->
+                    <div class="vmp-section">
+                        <div class="vmp-section-title">📄 Metadatos de Documentos</div>
+                        <div class="vmp-desc">Aplica cambios masivos a los documentos cargados en el paquete.</div>
+
+                        <div class="vmp-row">
+                            <label>Estado</label>
+                            <div class="vmp-radio-group">
+                                <label><input type="radio" name="mac_status" value="" checked> Sin cambios</label>
+                                <label><input type="radio" name="mac_status" value="aprobado"> ✅ APROBADO</label>
+                                <label><input type="radio" name="mac_status" value="borrador"> 📝 BORRADOR</label>
+                                <label><input type="radio" name="mac_status" value="en-revision"> 🔍 EN REVISIÓN</label>
+                            </div>
+                        </div>
+
+                        <div class="vmp-row"><label>Versión doc.</label><input id="mac_docVersion" type="text" placeholder="ej: 1.0"></div>
+                        <div class="vmp-row"><label>Process Owner</label><input id="mac_processOwner" type="text" placeholder="(sin cambios)"></div>
+
+                        <div class="vmp-section-title" style="margin-top:8px;">Aplicar a:</div>
+                        <a class="vmp-check-all" onclick="macroToggleAllDocs(true)">Seleccionar todos</a> ·
+                        <a class="vmp-check-all" onclick="macroToggleAllDocs(false)">Ninguno</a>
+                        <div id="vmpDocList" class="vmp-doc-list">
+                            <div style="font-size:11px;color:#3A5A72;padding:6px 0;">Abrí el panel con documentos cargados.</div>
+                        </div>
+
+                        <button class="vmp-btn vmp-btn-apply" onclick="macroApplyDocs()">⚡ Aplicar a seleccionados</button>
+                    </div>
+
+                    <div id="vmpFeedback" class="vmp-feedback"></div>
+                </div>
+            </div>
         </div>
 
         <input type="file" id="vsImportFileInput" accept=".json" style="display: none;">
+
+        <script>
+        // ── MACRO CONFIGURATION PANEL ──────────────────────────────────────────
+        (function() {
+            const _SNAP_KEY = 'vscTestsData_v3';
+
+            function _readSnap() {
+                try { return JSON.parse(localStorage.getItem(_SNAP_KEY)) || {}; }
+                catch(e) { return {}; }
+            }
+            function _writeSnap(snap) {
+                localStorage.setItem(_SNAP_KEY, JSON.stringify(snap));
+            }
+
+            window.openMacroPanel = function() {
+                const snap = _readSnap();
+                const si = snap.systemInfo || {};
+                ['empresa','cliente','nombreSistema','versionSistema','revisor','aprobador','auditor'].forEach(k => {
+                    const el = document.getElementById('mac_' + k);
+                    if (el) el.value = si[k] || '';
+                });
+                // Rebuild doc list
+                const list = document.getElementById('vmpDocList');
+                const docs = snap.packageDocs || window.packageDocs || [];
+                if (list) {
+                    if (!docs.length) {
+                        list.innerHTML = '<div style="font-size:11px;color:#3A5A72;padding:6px 0;">No hay documentos cargados en el paquete.</div>';
+                    } else {
+                        list.innerHTML = docs.map((d, i) => {
+                            const label = (d.code || d.type || '?') + ' — ' + (d.title || d.type || '?');
+                            return `<div class="vmp-doc-item" onclick="event.stopPropagation();if(event.target.tagName!=='INPUT'){var cb=this.querySelector('input');cb.checked=!cb.checked;}">
+                                <input type="checkbox" data-idx="${i}" checked onclick="event.stopPropagation();">
+                                <span>${label}</span>
+                            </div>`;
+                        }).join('');
+                    }
+                }
+                // Reset radio and feedback
+                const noChange = document.querySelector('input[name="mac_status"][value=""]');
+                if (noChange) noChange.checked = true;
+                const fb = document.getElementById('vmpFeedback');
+                if (fb) fb.style.display = 'none';
+                document.getElementById('vsMacroPanel').classList.add('open');
+            };
+
+            window.closeMacroPanel = function() {
+                document.getElementById('vsMacroPanel').classList.remove('open');
+            };
+
+            window.macroToggleAllDocs = function(checked) {
+                document.querySelectorAll('#vmpDocList input[type=checkbox]')
+                        .forEach(cb => { cb.checked = checked; event && event.stopPropagation(); });
+            };
+
+            window.macroApplySystemInfo = function() {
+                const fields = ['empresa','cliente','nombreSistema','versionSistema','revisor','aprobador','auditor'];
+                const updates = {};
+                fields.forEach(k => {
+                    const v = (document.getElementById('mac_' + k)?.value || '').trim();
+                    if (v) updates[k] = v;
+                });
+                if (!Object.keys(updates).length) {
+                    _macroFeedback('No hay campos con valor para actualizar.', 'warn'); return;
+                }
+                const snap = _readSnap();
+                snap.systemInfo = Object.assign(snap.systemInfo || {}, updates);
+                _writeSnap(snap);
+                try { VS && VS.projects && VS.projects.saveCurrentToActive(); } catch(e) {}
+                _macroFeedback('✅ systemInfo actualizado: ' + Object.keys(updates).join(', ') + '.', 'ok');
+            };
+
+            window.macroApplyDocs = function() {
+                const statusVal  = (document.querySelector('input[name="mac_status"]:checked')?.value || '');
+                const versionVal = (document.getElementById('mac_docVersion')?.value || '').trim();
+                const ownerVal   = (document.getElementById('mac_processOwner')?.value || '').trim();
+
+                if (!statusVal && !versionVal && !ownerVal) {
+                    _macroFeedback('Define al menos un campo para aplicar.', 'warn'); return;
+                }
+                const selected = [...document.querySelectorAll('#vmpDocList input[type=checkbox]:checked')]
+                                     .map(cb => parseInt(cb.getAttribute('data-idx')));
+                if (!selected.length) {
+                    _macroFeedback('Seleccioná al menos un documento.', 'warn'); return;
+                }
+
+                const snap     = _readSnap();
+                const snapDocs = snap.packageDocs || [];
+                const memDocs  = window.packageDocs || [];
+
+                let updated = 0;
+                selected.forEach(i => {
+                    [snapDocs[i], memDocs[i]].filter(Boolean).forEach(doc => {
+                        if (!doc.data) doc.data = {};
+                        if (statusVal)  _macroSetField(doc.data, 'status', statusVal);
+                        if (versionVal) _macroSetField(doc.data, 'version', versionVal);
+                        if (ownerVal)   _macroSetField(doc.data, 'processOwner', ownerVal);
+                    });
+                    updated++;
+                });
+
+                _writeSnap(snap);
+                try { VS && VS.projects && VS.projects.saveCurrentToActive(); } catch(e) {}
+                const s = updated !== 1 ? 's' : '';
+                _macroFeedback('✅ ' + updated + ' documento' + s + ' actualizado' + s + ' y guardado' + s + '.', 'ok');
+            };
+
+            function _macroSetField(data, field, value) {
+                const paths = {
+                    status:       ['document.status', 'status', 'metadata.status'],
+                    version:      ['document.version', 'version'],
+                    processOwner: ['document.processOwner', 'processOwner', 'document.owner'],
+                }[field] || [field];
+
+                for (const path of paths) {
+                    const parts = path.split('.');
+                    let obj = data;
+                    for (let i = 0; i < parts.length - 1; i++) {
+                        obj = (obj && typeof obj[parts[i]] === 'object' && obj[parts[i]] !== null)
+                              ? obj[parts[i]] : null;
+                        if (obj === null) break;
+                    }
+                    const lastKey = parts[parts.length - 1];
+                    if (obj !== null && obj !== undefined && Object.prototype.hasOwnProperty.call(obj, lastKey)) {
+                        obj[lastKey] = value;
+                        return;
+                    }
+                }
+                data[field] = value;
+            }
+
+            function _macroFeedback(msg, type) {
+                const el = document.getElementById('vmpFeedback');
+                if (!el) return;
+                el.textContent = msg;
+                el.style.display = 'block';
+                el.style.background = type === 'ok' ? 'rgba(46,125,50,0.15)' : 'rgba(200,100,26,0.15)';
+                el.style.color      = type === 'ok' ? '#81C784' : '#FFB74D';
+                el.style.borderColor= type === 'ok' ? 'rgba(46,125,50,0.3)' : 'rgba(200,100,26,0.3)';
+                clearTimeout(el._tmr);
+                el._tmr = setTimeout(() => { el.style.display = 'none'; }, 4500);
+            }
+        })();
+        </script>
     </div>
 
     <!-- Modal: Documentos Asociados -->
@@ -4159,7 +4448,7 @@
           <div style="color:#4a6a86; font-size:13px;">Cargando...</div>
         </div>
         <div style="padding:14px 22px; border-top:1px solid #1a3050; flex-shrink:0; display:flex; gap:10px; justify-content:flex-end;">
-          <button onclick="openCreateRoundModal()" style="background:#1a5aaa; color:#fff; border:none; border-radius:8px; padding:9px 18px; font-size:13px; font-weight:600; cursor:pointer;">+ Nueva ronda de firma</button>
+          <button id="rd-btn-new-round" onclick="openCreateRoundModal()" style="background:#1a5aaa; color:#fff; border:none; border-radius:8px; padding:9px 18px; font-size:13px; font-weight:600; cursor:pointer;">+ Nueva ronda de firma</button>
           <button onclick="closeReviewDashboard()" style="background:transparent; border:1px solid #1e3550; color:#5a7a96; border-radius:8px; padding:9px 18px; font-size:13px; cursor:pointer;">Cerrar</button>
         </div>
       </div>
@@ -4208,7 +4497,13 @@
     async function loadReviewDashboard() {
       const body = document.getElementById('rdBody');
       body.innerHTML = '<div style="color:#4a6a86;font-size:13px;">Cargando...</div>';
-      const r = await fetch('/admin/review-activity', { credentials:'include' }).then(r=>r.json()).catch(()=>null);
+      const [r, sess] = await Promise.all([
+        fetch('/admin/review-activity', { credentials:'include' }).then(r=>r.json()).catch(()=>null),
+        fetch('/auth/session', { credentials:'include' }).then(r=>r.json()).catch(()=>null),
+      ]);
+      _rdIsAdmin = sess?.user?.r === 'admin';
+      const btnNew = document.getElementById('rd-btn-new-round');
+      if (btnNew) btnNew.style.display = _rdIsAdmin ? '' : 'none';
       if (!r?.ok) { body.innerHTML = '<div style="color:#e87a8a;font-size:13px;">Error al cargar.</div>'; return; }
 
       const rounds = r.rounds || [];
@@ -4264,7 +4559,7 @@
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
           <span style="font-size:10px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px;">${rnd.status}</span>
-          ${rnd.status==='open' ? `<button onclick="sealRound('${esc(rnd.project_id)}','${esc(rnd.id)}')" style="background:#0e2820;border:1px solid #1e4830;color:#27c459;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;">Sellar ▶</button>` : ''}
+          ${_rdIsAdmin && rnd.status==='open' ? `<button onclick="sealRound('${esc(rnd.project_id)}','${esc(rnd.id)}')" style="background:#0e2820;border:1px solid #1e4830;color:#27c459;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;">Sellar ▶</button>` : ''}
         </div>
       </div>`);
     }
@@ -4345,6 +4640,7 @@
     }
 
     let _rdUsers = null;
+    let _rdIsAdmin = false;
     async function rdGetUsers() {
       if (_rdUsers) return _rdUsers;
       const r = await fetch('/admin/users', { credentials:'include' }).then(r=>r.json()).catch(()=>null);

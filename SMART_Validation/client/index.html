@@ -288,6 +288,7 @@ const DOC_NAMES = {
   PPQ:'PPQ — Protocolo PQ', IIQ:'IIQ — Informe IQ', IOQ:'IOQ — Informe OQ', IPQ:'IPQ — Informe PQ',
   RIQ:'RIQ — Decisión IQ', ROQ:'ROQ — Decisión OQ', RPQ:'RPQ — Decisión PQ',
   NCR:'NCR — No Conformidad', VSR:'VSR — Reporte de Validación',
+  AEX:'AEX — Documentación Complementaria',
 };
 
 function badge(status) {
@@ -362,7 +363,7 @@ async function goDashboard() {
 
   // Pendientes de firma
   const pending = pendingR?.pending || [];
-  const unactioned = pending.filter(p => !p.signed_at && !p.my_revision_at);
+  const unactioned = pending.filter(p => !p.signed_at && !p.revision_requested_at);
 
   if (unactioned.length) {
     html.push(`<div class="pending-group"><div class="pending-group-title">⏳ Pendiente de tu firma (${unactioned.length})</div>`);

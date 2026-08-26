@@ -1525,7 +1525,7 @@ async function showAuditTrailViewer() {
 
             <select id="filterEntity" style="padding: 8px 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; font-size: 13px; min-width: 150px; background: rgba(5,14,30,0.7); color: #DDE6F0; font-family: inherit;">
                 <option value="">Todas las entidades</option>
-                ${[...new Set(entries.map(e => e.entityType)).sort().map(entity =>
+                ${[...new Set(entries.map(e => e.entityType))].sort().map(entity =>
                     `<option value="${entity}" style="background:#0B1829">${entity.charAt(0).toUpperCase() + entity.slice(1)}</option>`
                 ).join('')}
             </select>

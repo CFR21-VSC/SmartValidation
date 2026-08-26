@@ -256,7 +256,12 @@ async function _syncTestExecution(projId, test) {
             dimensions: e.dimensions,
             captureTimestamp: e.captureTimestamp,
             timestamp: e.timestamp,
-            executor: e.executor
+            executor: e.executor,
+            observacion: e.observacion || '',
+            operacion: e.operacion || '',
+            usuarioPrueba: e.usuarioPrueba || '',
+            rolPrueba: e.rolPrueba || '',
+            criterioRef: e.criterioRef || ''
         }));
     const body = JSON.stringify({
         status: test.resultado || '',
@@ -352,7 +357,12 @@ async function _pollTestExecutions() {
                                dimensions: meta && meta.dimensions || undefined,
                                captureTimestamp: meta && meta.captureTimestamp || undefined,
                                timestamp: meta && meta.timestamp || undefined,
-                               executor: meta && meta.executor || undefined };
+                               executor: meta && meta.executor || undefined,
+                               observacion: meta && meta.observacion || undefined,
+                               operacion: meta && meta.operacion || undefined,
+                               usuarioPrueba: meta && meta.usuarioPrueba || undefined,
+                               rolPrueba: meta && meta.rolPrueba || undefined,
+                               criterioRef: meta && meta.criterioRef || undefined };
                         test.evidences.push(ev);
                         changed = true;
                     } else {
@@ -376,6 +386,12 @@ async function _pollTestExecutions() {
                             if (meta.captureTimestamp && meta.captureTimestamp !== ev.captureTimestamp) { ev.captureTimestamp = meta.captureTimestamp; changed = true; }
                             if (meta.timestamp && meta.timestamp !== ev.timestamp) { ev.timestamp = meta.timestamp; changed = true; }
                             if (meta.executor && meta.executor !== ev.executor) { ev.executor = meta.executor; changed = true; }
+                            // Campos de texto editables — sincronización bidireccional
+                            if (meta.observacion !== undefined && meta.observacion !== (ev.observacion || '')) { ev.observacion = meta.observacion; changed = true; }
+                            if (meta.operacion !== undefined && meta.operacion !== (ev.operacion || '')) { ev.operacion = meta.operacion; changed = true; }
+                            if (meta.usuarioPrueba !== undefined && meta.usuarioPrueba !== (ev.usuarioPrueba || '')) { ev.usuarioPrueba = meta.usuarioPrueba; changed = true; }
+                            if (meta.rolPrueba !== undefined && meta.rolPrueba !== (ev.rolPrueba || '')) { ev.rolPrueba = meta.rolPrueba; changed = true; }
+                            if (meta.criterioRef !== undefined && meta.criterioRef !== (ev.criterioRef || '')) { ev.criterioRef = meta.criterioRef; changed = true; }
                         }
                     }
                 }
@@ -9057,6 +9073,12 @@ function confirmImageEditor() {
 
     evidence.image = dataURL;
     evidence.timestamp = new Date().toISOString();
+
+    // Subir imagen editada al servidor para sincronización multi-sesión.
+    // saveToStorage() usa upload:false para evitar re-subir imágenes que
+    // YA vienen del servidor; acá es una edición local nueva → upload:true.
+    const _editImageId = `${test.id}_evidence_${evidence.step}`;
+    saveImageToDB(_editImageId, dataURL, { upload: true }).catch(() => {});
 
     fabricCanvas.dispose();
     fabricCanvas = null;

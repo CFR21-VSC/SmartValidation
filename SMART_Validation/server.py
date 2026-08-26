@@ -3822,6 +3822,11 @@ class SyncHandler(BaseHTTPRequestHandler):
                     INSERT INTO signing_round_signers (round_id, username, display_name, role_label)
                     VALUES (?, ?, ?, ?)
                 """, (round_id, s["username"], s["display"], s["role"]))
+                # Garantizar acceso al proyecto para que el firmante pueda ver la firma pendiente
+                db.execute("""
+                    INSERT OR IGNORE INTO project_access (user_id, project_id, access_level, granted_by, granted_at)
+                    SELECT id, ?, 'read', ?, ? FROM users WHERE username=?
+                """, (proj_id, user.get("u"), now, s["username"]))
 
             # ADV-19: audit trail de creación de ronda de firma
             db.execute("""
