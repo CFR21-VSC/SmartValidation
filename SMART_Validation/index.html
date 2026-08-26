@@ -4501,7 +4501,7 @@
         fetch('/admin/review-activity', { credentials:'include' }).then(r=>r.json()).catch(()=>null),
         fetch('/auth/session', { credentials:'include' }).then(r=>r.json()).catch(()=>null),
       ]);
-      _rdIsAdmin = sess?.user?.r === 'admin';
+      _rdIsAdmin = sess?.role === 'admin';
       const btnNew = document.getElementById('rd-btn-new-round');
       if (btnNew) btnNew.style.display = _rdIsAdmin ? '' : 'none';
       if (!r?.ok) { body.innerHTML = '<div style="color:#e87a8a;font-size:13px;">Error al cargar.</div>'; return; }
