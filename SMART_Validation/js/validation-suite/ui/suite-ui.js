@@ -354,6 +354,7 @@
             version: entry.version,
             name: entry.type + ' · ' + (entry.code || '?')
         };
+        try { localStorage.setItem('vscActiveDocType', entry.type); } catch(_) {}
         vsUpdateContextBadge();
         vsValidateJSONLive();
         if (_vsEditMode === 'visual') vsRenderVisualFromJSON();
@@ -569,6 +570,7 @@
     /** Limpia el editor: cierra el documento actual sin borrar nada del proyecto. */
     global.vsClearEditor = function () {
         _vsEditorContext = { kind: null };
+        try { localStorage.removeItem('vscActiveDocType'); } catch(_) {}
         const editor = document.getElementById('vsJsonEditor');
         if (editor) editor.value = '';
         const visualEditor = document.getElementById('vsVisualEditor');

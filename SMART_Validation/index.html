@@ -4206,9 +4206,8 @@
                 const body = document.getElementById('vsRevBody');
                 if (!body) return;
                 body.innerHTML = '<div style="color:#4a6a86;font-size:13px;">Cargando...</div>';
-                const data = JSON.parse(localStorage.getItem('vscTestsData_v3') || '{}');
                 const projId = localStorage.getItem('vscActiveProjectId');
-                const docType = data?.currentDoc?.type || data?.docType;
+                const docType = localStorage.getItem('vscActiveDocType');
                 if (!projId || !docType) {
                     body.innerHTML = '<div style="color:#4a6a86;font-size:13px;">Abrí un documento para ver sus revisiones.</div>';
                     return;
