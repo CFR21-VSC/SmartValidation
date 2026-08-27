@@ -505,8 +505,9 @@ async function goDoc(projId, projName, docType, roundId) {
   if (typeof rawJson === 'string') { try { rawJson = JSON.parse(rawJson); } catch(_) { rawJson = null; } }
   const renderData = (rawJson?.data?.type) ? rawJson.data : rawJson;
 
-  // Secciones para comentarios
-  populateSections((renderData?.secciones || renderData?.sections) || []);
+  // Secciones para comentarios y revisiones
+  S.docSections = (renderData?.secciones || renderData?.sections) || [];
+  populateSections(S.docSections);
 
   if (renderData && window.ValidationSuite?.renderDocument && renderData.type) {
     try {
@@ -652,15 +653,21 @@ async function submitSign() {
 }
 
 // ── Revision request ───────────────────────────────────────────────────────
-function revisionAddItem(value) {
+function revisionAddItem(pt, sec) {
   const list = document.getElementById('revision-items-list');
-  const idx = list.children.length;
+  const secs = S.docSections || [];
+  const secSelect = secs.length
+    ? `<select class="revision-item-sec form-input" style="font-size:12px;padding:5px 8px;margin-bottom:6px;background:#0a1520;color:#b8cce0;border:1px solid #1e3550;border-radius:5px;width:100%;">
+        <option value="">— Sección general —</option>
+        ${secs.map(s => { const lbl = s.titulo||s.title||s.nombre||s.name||''; return lbl ? `<option value="${lbl.replace(/"/g,'')}"${sec===lbl?'selected':''}>${lbl}</option>` : ''; }).join('')}
+      </select>` : '';
   const row = document.createElement('div');
-  row.style.cssText = 'display:flex;gap:6px;align-items:flex-start;';
-  row.innerHTML = `<textarea class="form-textarea revision-item-ta" placeholder="Describí qué debe cambiarse..." maxlength="500" style="flex:1;min-height:64px;resize:vertical;"></textarea>
-    <button type="button" onclick="this.parentElement.remove()" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:6px;padding:4px 8px;font-size:14px;cursor:pointer;flex-shrink:0;margin-top:2px;" title="Eliminar punto">✕</button>`;
+  row.style.cssText = 'background:#0a1520;border:1px solid #1e3550;border-radius:6px;padding:8px;position:relative;';
+  row.innerHTML = `${secSelect}<div style="display:flex;gap:6px;align-items:flex-start;">
+    <textarea class="form-textarea revision-item-ta" placeholder="Describí qué debe cambiarse..." maxlength="500" style="flex:1;min-height:56px;resize:vertical;">${pt||''}</textarea>
+    <button type="button" onclick="this.closest('div[style]').remove()" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:6px;padding:4px 8px;font-size:14px;cursor:pointer;flex-shrink:0;margin-top:2px;">✕</button>
+  </div>`;
   list.appendChild(row);
-  if (value) row.querySelector('textarea').value = value;
   row.querySelector('textarea').focus();
 }
 
@@ -675,8 +682,11 @@ function openRevisionModal() {
 }
 
 async function submitRevision() {
-  const items = Array.from(document.querySelectorAll('.revision-item-ta'))
-    .map(ta => ta.value.trim()).filter(Boolean);
+  const rows = Array.from(document.getElementById('revision-items-list').children);
+  const items = rows.map(row => ({
+    section: (row.querySelector('.revision-item-sec')?.value || '').trim(),
+    point:   (row.querySelector('.revision-item-ta')?.value  || '').trim(),
+  })).filter(i => i.point);
   const pin   = document.getElementById('revision-pin').value.trim();
   const errEl = document.getElementById('revision-error');
   const btn   = document.getElementById('btn-revision-submit');

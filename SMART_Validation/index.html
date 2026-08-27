@@ -4222,8 +4222,8 @@
                 let html = '';
                 revs.forEach(rev => {
                     let points = [];
-                    try { const p = JSON.parse(rev.revision_reason); if (Array.isArray(p)) points = p; else points = [rev.revision_reason]; }
-                    catch(_) { points = [rev.revision_reason || '']; }
+                    try { const p = JSON.parse(rev.revision_reason); if (Array.isArray(p)) points = p.map(x => typeof x==='string'?{section:'',point:x}:x); else points = [{section:'',point:rev.revision_reason}]; }
+                    catch(_) { points = [{section:'', point: rev.revision_reason || ''}]; }
 
                     const isFulfilled = !!rev.revision_fulfilled_at;
                     html += `<div style="border:1px solid ${isFulfilled ? '#1a3a20' : '#5a2030'};border-radius:8px;padding:10px 12px;margin-bottom:10px;background:${isFulfilled ? '#0d1e14' : '#1a0d10'};">
@@ -4243,7 +4243,7 @@
                                    </div>`}
                         </div>
                         <ul style="margin:8px 0 0 0;padding-left:16px;${isFulfilled ? 'opacity:0.5;' : ''}">
-                            ${points.filter(Boolean).map(p => `<li style="font-size:12px;color:#b8cce0;margin-bottom:3px;">${p.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</li>`).join('')}
+                            ${points.filter(p=>p.point).map(p => `<li style="font-size:12px;color:#b8cce0;margin-bottom:4px;">${p.section ? `<span style="font-size:10px;font-weight:700;color:#C8921A;margin-right:5px;">[${esc(p.section)}]</span>` : ''}${esc(p.point)}</li>`).join('')}
                         </ul>
                         ${isFulfilled ? `<div style="font-size:10px;color:#4a6a86;margin-top:6px;">Marcada cumplida por ${rev.revision_fulfilled_by||'admin'} · ${fmtTs(rev.revision_fulfilled_at)}</div>` : ''}
                     </div>`;
@@ -4617,12 +4617,12 @@
           <div style="font-size:11px;font-weight:700;color:#e87a8a;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #3a1a20;">🔔 Solicitudes de revisión activas</div>`);
         openRevs.forEach(rv => {
           let points = [];
-          try { const p = JSON.parse(rv.revision_reason); if (Array.isArray(p)) points = p; else points = [rv.revision_reason]; } catch(_) { points = [rv.revision_reason||'']; }
+          try { const p = JSON.parse(rv.revision_reason); if (Array.isArray(p)) points = p.map(x=>typeof x==='string'?{section:'',point:x}:x); else points=[{section:'',point:rv.revision_reason}]; } catch(_) { points=[{section:'',point:rv.revision_reason||''}]; }
           const discardBtn = _rdIsAdmin ? `<button onclick="_rdDiscardRevision('${esc(rv.project_id)}','${esc(rv.round_id)}','${esc(rv.username)}')" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;margin-top:8px;">✕ Descartar</button>` : '';
           html.push(`<div style="background:#1a0d10;border:1px solid #3a1a20;border-radius:8px;padding:12px 14px;margin-bottom:8px;">
             <div style="font-size:12px;font-weight:600;color:#e87a8a;">${esc(rv.doc_type)} — ${esc(rv.project_name||rv.project_id)}</div>
             <div style="font-size:12px;color:#4a6a86;margin-top:2px;">${esc(rv.display_name||rv.username)} · ${fmtDTrd(rv.revision_requested_at)}</div>
-            ${points.filter(Boolean).map(p => `<div style="font-size:13px;color:#b8cce0;margin-top:4px;font-style:italic;">"${esc(p)}"</div>`).join('')}
+            <ul style="margin:6px 0 0 0;padding-left:14px;">${points.filter(p=>p.point).map(p=>`<li style="font-size:12px;color:#b8cce0;margin-bottom:3px;">${p.section?`<span style="font-size:10px;font-weight:700;color:#C8921A;margin-right:4px;">[${esc(p.section)}]</span>`:''} ${esc(p.point)}</li>`).join('')}</ul>
             ${discardBtn}
           </div>`);
         });
@@ -4658,12 +4658,12 @@
       const revDetails = _rdSignerRevisions.filter(s => s.round_id === rnd.id);
       const revBlock = revDetails.length ? revDetails.map(s => {
         let points = [];
-        try { const p = JSON.parse(s.revision_reason); if (Array.isArray(p)) points = p; else points = [s.revision_reason]; } catch(_) { points = [s.revision_reason||'']; }
+        try { const p = JSON.parse(s.revision_reason); if (Array.isArray(p)) points = p.map(x=>typeof x==='string'?{section:'',point:x}:x); else points=[{section:'',point:s.revision_reason}]; } catch(_) { points=[{section:'',point:s.revision_reason||''}]; }
         const discardBtn = _rdIsAdmin ? `<button onclick="_rdDiscardRevision('${esc(s.project_id)}','${esc(s.round_id)}','${esc(s.username)}')" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;margin-top:4px;">✕ Descartar</button>` : '';
         return `<div style="margin-top:6px;background:#1a0d10;border-left:3px solid #e87a8a;border-radius:0 4px 4px 0;padding:6px 10px;">
           <span style="font-size:11px;font-weight:600;color:#e87a8a;">${esc(s.display_name||s.username)}</span>
           <span style="font-size:11px;color:#4a6a86;"> · ${fmtDTrd(s.revision_requested_at)}</span>
-          ${points.filter(Boolean).map(p => `<div style="font-size:12px;color:#b8cce0;margin-top:3px;font-style:italic;">"${esc(p)}"</div>`).join('')}
+          <ul style="margin:4px 0 0 0;padding-left:14px;">${points.filter(p=>p.point).map(p=>`<li style="font-size:11px;color:#b8cce0;margin-bottom:2px;">${p.section?`<span style="font-size:9px;font-weight:700;color:#C8921A;margin-right:4px;">[${esc(p.section)}]</span>`:''} ${esc(p.point)}</li>`).join('')}</ul>
           ${discardBtn}
         </div>`;
       }).join('') : '';
