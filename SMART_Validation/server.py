@@ -349,6 +349,9 @@ def _db_init():
         "ALTER TABLE signing_round_signers ADD COLUMN invite_sent_at REAL",
         # F1 — Usuarios provisionales (creados por invitación, sin PIN todavía)
         "ALTER TABLE users ADD COLUMN is_provisional INTEGER DEFAULT 0",
+        # F4 — Cancelación de rondas por admin (columnas para signing_rounds existentes)
+        "ALTER TABLE signing_rounds ADD COLUMN cancelled_at REAL",
+        "ALTER TABLE signing_rounds ADD COLUMN cancel_reason TEXT",
     ]:
         try:
             db.execute(_migration)
