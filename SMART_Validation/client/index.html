@@ -330,7 +330,7 @@ async function api(method, path, body) {
 async function init() {
   const r = await api('GET', '/auth/session');
   if (!r || !r.ok) { location.href = '/login.html'; return; }
-  if (r.role !== 'client') { location.href = '/'; return; }
+  if (r.role !== 'client') { location.href = '/login.html'; return; }
   S.user = r;
   document.querySelectorAll('[id^="hdr-user"]').forEach(el => el.textContent = r.displayName || r.username);
   if (!r.pin_set) { show('pin'); return; }
@@ -364,10 +364,53 @@ async function goDashboard() {
 
   const html = [];
 
-  // Pendientes de firma
-  const pending = pendingR?.pending || [];
-  const unactioned = pending.filter(p => !p.signed_at && !p.revision_requested_at);
+  // Clasificar pendientes por estado
+  const pending            = pendingR?.pending || [];
+  const correctionsReady   = pending.filter(p => !p.signed_at && p.revision_requested_at && p.revision_fulfilled_at);
+  const awaitCorrections   = pending.filter(p => !p.signed_at && p.revision_requested_at && !p.revision_fulfilled_at);
+  const unactioned         = pending.filter(p => !p.signed_at && !p.revision_requested_at);
 
+  // ── Grupo 1: Correcciones listas — máxima prioridad ───────────────────────
+  if (correctionsReady.length) {
+    html.push(`<div class="pending-group"><div class="pending-group-title" style="color:#C8921A;">⚡ Correcciones listas — acción requerida (${correctionsReady.length})</div>`);
+    correctionsReady.forEach(p => {
+      const name = DOC_NAMES[p.doc_type] || p.doc_type;
+      html.push(`
+        <div class="card" onclick="goDoc('${esc(p.project_id)}','${esc(p.project_name)}','${esc(p.doc_type)}','${esc(p.round_id)}')" style="border-color:#C8921A;background:#100e02;">
+          <div class="card-row">
+            <div style="min-width:0;">
+              <div class="card-title" style="color:#e8be60;">${esc(name)}</div>
+              <div class="card-sub">${esc(p.project_name)}</div>
+              <div class="card-meta">Tu rol: <strong style="color:#dde6f0;">${esc(p.role_label)}</strong> · Revisión: ${fmtDT(p.revision_requested_at)}</div>
+            </div>
+            <span class="badge" style="background:#1a1504;color:#C8921A;border:1px solid #4a3010;white-space:nowrap;">✓ LISTO</span>
+          </div>
+        </div>`);
+    });
+    html.push('</div>');
+  }
+
+  // ── Grupo 2: Revisión enviada — esperando correcciones del admin ──────────
+  if (awaitCorrections.length) {
+    html.push(`<div class="pending-group"><div class="pending-group-title" style="color:#e8943a;">🔄 Aguardando correcciones del administrador (${awaitCorrections.length})</div>`);
+    awaitCorrections.forEach(p => {
+      const name = DOC_NAMES[p.doc_type] || p.doc_type;
+      html.push(`
+        <div class="card" onclick="goDoc('${esc(p.project_id)}','${esc(p.project_name)}','${esc(p.doc_type)}','${esc(p.round_id)}')" style="border-color:#4a2808;">
+          <div class="card-row">
+            <div style="min-width:0;">
+              <div class="card-title">${esc(name)}</div>
+              <div class="card-sub">${esc(p.project_name)}</div>
+              <div class="card-meta">Tu rol: <strong style="color:#dde6f0;">${esc(p.role_label)}</strong> · Revisión solicitada ${fmtDT(p.revision_requested_at)}</div>
+            </div>
+            ${badge('needs_revision')}
+          </div>
+        </div>`);
+    });
+    html.push('</div>');
+  }
+
+  // ── Grupo 3: Pendiente de firma ───────────────────────────────────────────
   if (unactioned.length) {
     html.push(`<div class="pending-group"><div class="pending-group-title">⏳ Pendiente de tu firma (${unactioned.length})</div>`);
     unactioned.forEach(p => {
@@ -385,7 +428,9 @@ async function goDashboard() {
         </div>`);
     });
     html.push('</div>');
-  } else {
+  }
+
+  if (!correctionsReady.length && !awaitCorrections.length && !unactioned.length) {
     html.push(`<div class="pending-group"><div class="pending-group-title">✅ Sin pendientes de firma</div><div style="color:#4a6a86;font-size:13px;padding:8px 0;">No tenés documentos esperando tu firma en este momento.</div></div>`);
   }
 
@@ -576,10 +621,10 @@ function renderRoundStatus(detail) {
             </div>`).join('');
         }
       } catch(_) { checklistHtml = `<div style="font-size:13px;color:#b8cce0;">${esc(me.revision_reason||'')}</div>`; }
-      statusHtml = `<div class="alert alert-warn" style="margin-bottom:12px;">🔄 Solicitaste revisión el ${fmtDT(me.revision_requested_at)}.</div>`;
+      statusHtml = `<div class="alert alert-success" style="margin-bottom:12px;border-color:#C8921A;color:#e8be60;background:#0f1200;">✅ El administrador completó las correcciones — verificá los cambios abajo y firmá el documento.</div>`;
       actPanel.innerHTML = `
         <div id="corrections-review-panel" style="background:#0a1e2e;border:1px solid #C8921A;border-radius:10px;padding:14px 16px;margin-top:12px;margin-bottom:16px;">
-          <div style="font-size:13px;font-weight:700;color:#C8921A;margin-bottom:10px;">✔ El administrador completó las correcciones</div>
+          <div style="font-size:13px;font-weight:700;color:#C8921A;margin-bottom:10px;">✔ Correcciones completadas — revisá cada punto</div>
           <div id="corrections-checklist" style="margin-bottom:14px;">${checklistHtml}</div>
           <div style="display:flex;gap:10px;">
             <button onclick="proceedToSign()" class="btn btn-primary" style="flex:1;">✓ Correcciones aceptadas — Firmar</button>

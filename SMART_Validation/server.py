@@ -1019,6 +1019,37 @@ def _notify_revision_requested(proj_id: str, doc_type: str,
         _send_email(admin["email"], subject, html)
 
 
+def _notify_revision_fulfilled(proj_id: str, doc_type: str, reviewer_username: str, admin_display: str) -> None:
+    """Email al revisor cuando el admin cumplió todas sus correcciones — puede volver a firmar."""
+    if not _RESEND_API_KEY:
+        return
+    db = _get_db()
+    reviewer = db.execute(
+        "SELECT email, display_name FROM users WHERE username=?", (reviewer_username,)
+    ).fetchone()
+    if not reviewer or not reviewer["email"]:
+        return
+    proj = db.execute("SELECT name FROM projects WHERE id=?", (proj_id,)).fetchone()
+    proj_name = proj["name"] if proj else proj_id
+    suite_url = (_ALLOWED_ORIGIN.rstrip("/") + "/client/") if _ALLOWED_ORIGIN != "*" else "/client/"
+    nombre = _html_mod.escape(reviewer["display_name"] or reviewer_username)
+    adm    = _html_mod.escape(admin_display or "El administrador")
+    dtype  = _html_mod.escape(doc_type)
+    pname  = _html_mod.escape(proj_name)
+    body = (
+        f"<p>Hola {nombre},</p>"
+        f"<p>{adm} revisó tus observaciones sobre <strong>{dtype}</strong> del proyecto "
+        f"<strong>{pname}</strong> y completó todas las correcciones solicitadas.</p>"
+        f"<p>Ya podés ingresar a la Suite de Revisión, verificar los cambios y registrar tu firma.</p>"
+    )
+    _send_email(
+        reviewer["email"],
+        f"[SMART Validation] Correcciones listas — {doc_type} — {proj_name}",
+        _email_html("Correcciones completadas — podés firmar", body,
+                    "Ir a la Suite de Revisión", suite_url)
+    )
+
+
 # ── AI Proxy helpers ──────────────────────────────────────────────────────────
 
 def _load_dotenv():
@@ -4263,6 +4294,10 @@ class SyncHandler(BaseHTTPRequestHandler):
                     "Correcciones completadas por el administrador — el revisor puede firmar o solicitar más cambios",
                     "internal", now
                 ))
+                _notify_revision_fulfilled(
+                    rnd_row["project_id"], rnd_row["doc_type"],
+                    username, user.get("u", "Administrador")
+                )
         return self._send_json(200, {"ok": True})
 
     def _api_rev_discard(self, proj_id, round_id, username, user):
@@ -4406,7 +4441,7 @@ class SyncHandler(BaseHTTPRequestHandler):
         rows = db.execute("""
             SELECT sr.id AS round_id, sr.project_id, sr.doc_type, sr.doc_version,
                    sr.created_at, p.name AS project_name,
-                   srs.role_label, srs.signed_at, srs.revision_requested_at
+                   srs.role_label, srs.signed_at, srs.revision_requested_at, srs.revision_fulfilled_at
             FROM signing_round_signers srs
             INNER JOIN signing_rounds sr ON sr.id = srs.round_id AND sr.status='open'
             INNER JOIN projects p ON p.id = sr.project_id

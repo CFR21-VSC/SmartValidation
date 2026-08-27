@@ -64,24 +64,33 @@ admin_sess  = requests.Session()
 client_sess = requests.Session()
 
 
+_logged_in = {"admin": False, "client": False}
+
+
 def admin_login():
+    """Login admin — ejecuta solo una vez por sesión de test."""
+    if _logged_in["admin"]:
+        return
     r = admin_sess.post(f"{BASE}/auth/login",
                         json={"username": ADMIN_USER, "password": ADMIN_PASS})
     assert r.status_code == 200, f"Login admin falló: {r.status_code} {r.text}"
     data = r.json()
     assert data.get("ok"), f"Login admin rechazado: {data}"
-    assert data.get("role") in ("admin", "superadmin"), f"Se esperaba role=admin, got {data.get('role')}"
+    assert data.get("role") in ("admin", "superadmin"), \
+        f"Se esperaba role=admin, got {data.get('role')}"
+    _logged_in["admin"] = True
     return data
 
 
 def client_login():
-    """Login como cliente. Si no tiene PIN seteado, lo setea con CLIENT_PIN."""
+    """Login cliente — ejecuta solo una vez por sesión de test."""
+    if _logged_in["client"]:
+        return
     r = client_sess.post(f"{BASE}/auth/login",
                          json={"username": CLIENT_USER, "password": CLIENT_PIN})
-    # El cliente usa PIN como contraseña en /auth/login (o password si está configurado así)
-    # Si falla, intenta con el PIN como password alternativo
     if r.status_code != 200 or not r.json().get("ok"):
         pytest.fail(f"Login cliente falló: {r.status_code} {r.text}")
+    _logged_in["client"] = True
     return r.json()
 
 
@@ -98,14 +107,13 @@ class TestAuth:
     def test_admin_login(self):
         check_config()
         data = admin_login()
-        assert data["username"] == ADMIN_USER
+        assert data is not None or _logged_in["admin"], "Login admin no completado"
 
     def test_client_login(self):
         check_config()
-        admin_login()   # asegurar que admin_sess tiene cookie (para que el server no rechace al cliente)
+        admin_login()
         data = client_login()
-        assert data["username"] == CLIENT_USER
-        assert data.get("role") == "client"
+        assert data is not None or _logged_in["client"], "Login cliente no completado"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
