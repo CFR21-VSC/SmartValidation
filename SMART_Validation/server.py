@@ -4364,9 +4364,10 @@ class SyncHandler(BaseHTTPRequestHandler):
         signer_revisions = db.execute("""
             SELECT srs.round_id, srs.username, srs.display_name, srs.revision_reason,
                    srs.revision_requested_at, srs.revision_fulfilled_at, srs.revision_fulfilled_by,
-                   sr.project_id, sr.doc_type
+                   sr.project_id, sr.doc_type, p.name AS project_name
             FROM signing_round_signers srs
             INNER JOIN signing_rounds sr ON sr.id = srs.round_id
+            INNER JOIN projects p ON p.id = sr.project_id
             WHERE srs.revision_requested_at IS NOT NULL
             ORDER BY srs.revision_requested_at DESC
             LIMIT 200

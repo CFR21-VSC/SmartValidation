@@ -4609,22 +4609,21 @@
 
       _rdSignerRevisions = r.signer_revisions || [];
       const rounds = r.rounds || [];
-      const revReqs = r.revision_requests || [];
       const html = [];
 
-      // Solicitudes de revisión pendientes (highlight)
-      const openRevs = revReqs.slice(0,10);
+      // Solicitudes de revisión activas (from signer_revisions — desaparecen al descartar)
+      const openRevs = _rdSignerRevisions.filter(s => !s.revision_fulfilled_at).slice(0, 10);
       if (openRevs.length) {
         html.push(`<div style="margin-bottom:20px;">
-          <div style="font-size:11px;font-weight:700;color:#e87a8a;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #3a1a20;">🔔 Solicitudes de revisión recientes</div>`);
+          <div style="font-size:11px;font-weight:700;color:#e87a8a;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #3a1a20;">🔔 Solicitudes de revisión activas</div>`);
         openRevs.forEach(rv => {
-          // Find matching signer_revision to get round_id for discard
-          const sr = _rdSignerRevisions.find(s => s.doc_type === rv.doc_type && s.username === rv.username && s.project_id === rv.project_id);
-          const discardBtn = (sr && _rdIsAdmin) ? `<button onclick="_rdDiscardRevision('${esc(sr.project_id)}','${esc(sr.round_id)}','${esc(sr.username)}')" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;margin-top:8px;">✕ Descartar</button>` : '';
+          let points = [];
+          try { const p = JSON.parse(rv.revision_reason); if (Array.isArray(p)) points = p; else points = [rv.revision_reason]; } catch(_) { points = [rv.revision_reason||'']; }
+          const discardBtn = _rdIsAdmin ? `<button onclick="_rdDiscardRevision('${esc(rv.project_id)}','${esc(rv.round_id)}','${esc(rv.username)}')" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;margin-top:8px;">✕ Descartar</button>` : '';
           html.push(`<div style="background:#1a0d10;border:1px solid #3a1a20;border-radius:8px;padding:12px 14px;margin-bottom:8px;">
-            <div style="font-size:12px;font-weight:600;color:#e87a8a;">${esc(rv.doc_type)} — ${esc(rv.project_name)}</div>
-            <div style="font-size:12px;color:#4a6a86;margin-top:2px;">${esc(rv.username)} · ${fmtDTrd(rv.created_at)}</div>
-            <div style="font-size:13px;color:#b8cce0;margin-top:6px;font-style:italic;">"${esc(rv.detail)}"</div>
+            <div style="font-size:12px;font-weight:600;color:#e87a8a;">${esc(rv.doc_type)} — ${esc(rv.project_name||rv.project_id)}</div>
+            <div style="font-size:12px;color:#4a6a86;margin-top:2px;">${esc(rv.display_name||rv.username)} · ${fmtDTrd(rv.revision_requested_at)}</div>
+            ${points.filter(Boolean).map(p => `<div style="font-size:13px;color:#b8cce0;margin-top:4px;font-style:italic;">"${esc(p)}"</div>`).join('')}
             ${discardBtn}
           </div>`);
         });
