@@ -1887,8 +1887,9 @@
 
     function vsUpdateEVAIBtn(parsed) {
         const btn = document.getElementById('vsBtnGenEV');
-        if (!btn) return;
-        btn.style.display = (parsed && _EV_TYPES.has(parsed.type)) ? '' : 'none';
+        if (btn) btn.style.display = (parsed && _EV_TYPES.has(parsed.type)) ? '' : 'none';
+        const btnRev = document.getElementById('vsBtnRevisiones');
+        if (btnRev) btnRev.style.display = parsed ? '' : 'none';
     }
 
     global.vsOpenEVAIModal = function () {
