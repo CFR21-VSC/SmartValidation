@@ -4310,6 +4310,35 @@ class SyncHandler(BaseHTTPRequestHandler):
             "all_fulfilled": bool(row["revision_fulfilled_at"]),
         })
 
+    def _signing_round_delete(self, proj_id, round_id, user):
+        """DELETE — Admin elimina una ronda no-sellada (reset de circuito de firmas)."""
+        if user.get("r") != "admin":
+            return self._send_json(403, {"ok": False, "error": "Solo admin"})
+        if not _is_valid_proj_id(proj_id) or not _is_valid_uuid(round_id):
+            return self._send_json(404, {"ok": False, "error": "No encontrado"})
+        db = _get_db()
+        rnd = db.execute(
+            "SELECT status, doc_type FROM signing_rounds WHERE id=? AND project_id=?",
+            (round_id, proj_id)
+        ).fetchone()
+        if not rnd:
+            return self._send_json(404, {"ok": False, "error": "Ronda no encontrada"})
+        if rnd["status"] == "sealed":
+            return self._send_json(409, {"ok": False, "error": "No se puede eliminar una ronda sellada — es un registro GxP permanente"})
+        db.execute("DELETE FROM signing_round_signers WHERE round_id=?", (round_id,))
+        db.execute("DELETE FROM signing_rounds WHERE id=?", (round_id,))
+        # Si no quedan rondas abiertas, volver el documento a draft
+        remaining = db.execute(
+            "SELECT COUNT(*) AS cnt FROM signing_rounds WHERE project_id=? AND doc_type=? AND status='open'",
+            (proj_id, rnd["doc_type"])
+        ).fetchone()["cnt"]
+        if remaining == 0:
+            db.execute(
+                "UPDATE documents SET status='draft', updated_at=? WHERE project_id=? AND doc_type=?",
+                (time.time(), proj_id, rnd["doc_type"])
+            )
+        return self._send_json(200, {"ok": True})
+
     def _signing_round_cancel(self, proj_id, round_id, user):
         """Admin cancela una ronda abierta y devuelve el documento a borrador."""
         if user.get("r") != "admin":
@@ -5294,6 +5323,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_PROJ_ID.match(path)
         if m:
             return self._api_project_delete(m.group(1), user)
+        m = _RE_SIGNING_ROUND_ID.match(path)
+        if m:
+            return self._signing_round_delete(m.group(1), m.group(2), user)
 
         # ── Admin API (DELETE) — requiere rol admin ───────────────────────────
         if path.startswith("/admin/"):
