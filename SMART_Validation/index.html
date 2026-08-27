@@ -4618,10 +4618,14 @@
         html.push(`<div style="margin-bottom:20px;">
           <div style="font-size:11px;font-weight:700;color:#e87a8a;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #3a1a20;">🔔 Solicitudes de revisión recientes</div>`);
         openRevs.forEach(rv => {
+          // Find matching signer_revision to get round_id for discard
+          const sr = _rdSignerRevisions.find(s => s.doc_type === rv.doc_type && s.username === rv.username && s.project_id === rv.project_id);
+          const discardBtn = (sr && _rdIsAdmin) ? `<button onclick="_rdDiscardRevision('${esc(sr.project_id)}','${esc(sr.round_id)}','${esc(sr.username)}')" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;margin-top:8px;">✕ Descartar</button>` : '';
           html.push(`<div style="background:#1a0d10;border:1px solid #3a1a20;border-radius:8px;padding:12px 14px;margin-bottom:8px;">
             <div style="font-size:12px;font-weight:600;color:#e87a8a;">${esc(rv.doc_type)} — ${esc(rv.project_name)}</div>
             <div style="font-size:12px;color:#4a6a86;margin-top:2px;">${esc(rv.username)} · ${fmtDTrd(rv.created_at)}</div>
             <div style="font-size:13px;color:#b8cce0;margin-top:6px;font-style:italic;">"${esc(rv.detail)}"</div>
+            ${discardBtn}
           </div>`);
         });
         html.push('</div>');
@@ -4654,12 +4658,17 @@
       const progress = rnd.total_signers ? `${rnd.signed_count||0}/${rnd.total_signers} firmaron` : '';
       const revCount = rnd.revision_count > 0 ? `· <span style="color:#e87a8a;">${rnd.revision_count} solicitud(es) de revisión</span>` : '';
       const revDetails = _rdSignerRevisions.filter(s => s.round_id === rnd.id);
-      const revBlock = revDetails.length ? revDetails.map(s =>
-        `<div style="margin-top:6px;background:#1a0d10;border-left:3px solid #e87a8a;border-radius:0 4px 4px 0;padding:6px 10px;">
+      const revBlock = revDetails.length ? revDetails.map(s => {
+        let points = [];
+        try { const p = JSON.parse(s.revision_reason); if (Array.isArray(p)) points = p; else points = [s.revision_reason]; } catch(_) { points = [s.revision_reason||'']; }
+        const discardBtn = _rdIsAdmin ? `<button onclick="_rdDiscardRevision('${esc(s.project_id)}','${esc(s.round_id)}','${esc(s.username)}')" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;margin-top:4px;">✕ Descartar</button>` : '';
+        return `<div style="margin-top:6px;background:#1a0d10;border-left:3px solid #e87a8a;border-radius:0 4px 4px 0;padding:6px 10px;">
           <span style="font-size:11px;font-weight:600;color:#e87a8a;">${esc(s.display_name||s.username)}</span>
           <span style="font-size:11px;color:#4a6a86;"> · ${fmtDTrd(s.revision_requested_at)}</span>
-          ${s.revision_reason ? `<div style="font-size:12px;color:#b8cce0;margin-top:3px;font-style:italic;">"${esc(s.revision_reason)}"</div>` : ''}
-        </div>`).join('') : '';
+          ${points.filter(Boolean).map(p => `<div style="font-size:12px;color:#b8cce0;margin-top:3px;font-style:italic;">"${esc(p)}"</div>`).join('')}
+          ${discardBtn}
+        </div>`;
+      }).join('') : '';
       html.push(`<div style="background:#0d1a28;border:1px solid #1e3550;border-radius:10px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
         <div style="min-width:0;flex:1;">
           <div style="font-size:13px;font-weight:600;color:#eef3f8;">${esc(rnd.doc_type)} <span style="font-size:11px;color:#4a6a86;font-weight:400;">v${rnd.doc_version||1}</span></div>
@@ -4680,6 +4689,15 @@
       return new Date(ts*1000).toLocaleString('es-AR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
     }
     function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    async function _rdDiscardRevision(projId, roundId, username) {
+      if (!confirm('¿Descartar esta solicitud de revisión? La ronda se reabrirá si no quedan otras revisiones pendientes.')) return;
+      const r = await fetch(`/api/projects/${projId}/signing-rounds/${roundId}/discard-revision/${username}`, {
+        method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'}, body: '{}'
+      }).then(r=>r.json()).catch(()=>null);
+      if (r?.ok) loadReviewDashboard();
+      else alert('Error: ' + (r?.error || 'desconocido'));
+    }
 
     async function cancelRound(projId, roundId) {
       const reason = prompt('Motivo de cancelación (opcional):') ?? '';
