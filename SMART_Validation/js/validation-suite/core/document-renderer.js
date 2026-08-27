@@ -278,7 +278,7 @@
         }
         // Prioridad 2: logo-drp.png como fallback
         try {
-            const resp = await fetch('js/validation-suite/assets/logo-drp.png');
+            const resp = await fetch('/js/validation-suite/assets/logo-drp.png');
             if (!resp.ok) return;
             const blob = await resp.blob();
             const dataUrl = await new Promise((resolve, reject) => {

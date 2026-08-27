@@ -422,10 +422,38 @@
         entry.title = (data.document && data.document.titleEs) || entry.title;
         entry.loadedAt = new Date().toISOString();
 
-        // Persistir
+        // Persistir en localStorage
         if (typeof global.saveToStorage === 'function') {
             try { await global.saveToStorage(); } catch (e) { console.warn('[suite-ui] save fallo:', e); }
         }
+
+        // Sincronizar a la DB del servidor (fuente de verdad para el cliente y las rondas de firma)
+        if (_activeSrvProjectId) {
+            try {
+                const _syncResp = await fetch(
+                    '/api/projects/' + encodeURIComponent(_activeSrvProjectId) +
+                    '/documents/' + encodeURIComponent(data.type),
+                    {
+                        method: 'PUT',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    }
+                );
+                if (!_syncResp.ok) {
+                    console.warn('[suite-ui] sync a DB fallo HTTP', _syncResp.status);
+                    if (typeof global.showNotification === 'function') {
+                        global.showNotification('⚠ Guardado local OK, pero falló la sincronización al servidor.', 'warning');
+                    }
+                }
+            } catch (_e) {
+                console.warn('[suite-ui] sync a DB error:', _e);
+                if (typeof global.showNotification === 'function') {
+                    global.showNotification('⚠ Sin conexión al servidor. El doc está guardado localmente pero no visible para el cliente.', 'warning');
+                }
+            }
+        }
+
         if (typeof global.renderPackagePanel === 'function') {
             try { global.renderPackagePanel(); } catch (e) {}
         }

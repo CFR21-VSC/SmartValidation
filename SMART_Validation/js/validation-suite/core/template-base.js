@@ -293,7 +293,7 @@
     function buildBackground(data) {
         const pkg = data.package || {};
         const year = pkg.year || new Date().getFullYear();
-        const company = pkg.client || 'Empresa';
+        const company = pkg.consultant || 'DRP Assurance';
         const text = `© ${year} ${company} — Documento Controlado — Distribución Restringida`;
 
         return function (currentPage, pageSize) {
@@ -420,8 +420,7 @@
         const doc = data.document || {};
         const titleShort = doc.headerTitle || doc.titleEs || '';
         const docCode = getDocumentCode(data);
-        const configOrgName = (typeof ConfigStore !== 'undefined' && ConfigStore.load().organizacion.nombre) || '';
-        const company = (configOrgName || pkg.client || 'EMPRESA').toUpperCase();
+        const company = (pkg.consultant || 'DRP Assurance').toUpperCase();
 
         return {
             margin: [50, 30, 50, 0],
@@ -465,7 +464,7 @@
 
         const pkg = data.package || {};
         const doc = data.document || {};
-        const company = (typeof ConfigStore !== 'undefined' && ConfigStore.load().organizacion.nombre) || pkg.client || 'Empresa';
+        const company = pkg.consultant || 'DRP Assurance';
         const docCode = getDocumentCode(data);
         const docVersion = doc.version ? ` v${doc.version}` : '';
         const year = pkg.year || new Date().getFullYear();

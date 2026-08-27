@@ -737,6 +737,20 @@ def _validate_token_against_db(payload: dict) -> dict:
         sess = db.execute("SELECT nonce FROM auth_sessions WHERE nonce=?", (nonce,)).fetchone()
         if not sess:
             return _AUTH_SUPERSEDED
+        # Idle timeout: invalidar sesión si lleva más de _IDLE_TIMEOUT sin actividad
+        now = time.time()
+        last = _SESSION_ACTIVITY.get(nonce, 0)
+        if last and now - last > _IDLE_TIMEOUT:
+            db.execute("DELETE FROM auth_sessions WHERE nonce=?", (nonce,))
+            _SESSION_ACTIVITY.pop(nonce, None)
+            return {}
+        _SESSION_ACTIVITY[nonce] = now
+        # Limpiar nonces expirados del dict en memoria ocasionalmente
+        if len(_SESSION_ACTIVITY) > 2000:
+            cutoff = now - _IDLE_TIMEOUT
+            dead = [k for k, v in list(_SESSION_ACTIVITY.items()) if v < cutoff]
+            for k in dead:
+                _SESSION_ACTIVITY.pop(k, None)
     return {**payload, "sa": bool(row["is_superadmin"])}
 
 
@@ -925,6 +939,8 @@ def _bootstrap_superadmin() -> None:
 
 _PROTECTED_USERNAME = "federicosucho"  # superusuario del sistema — indestructible
 _AUTH_SUPERSEDED = {"__superseded": True}  # sentinel: sesión válida pero reemplazada por nuevo login
+_SESSION_ACTIVITY: dict = {}  # nonce -> last_activity timestamp (idle timeout)
+_IDLE_TIMEOUT = 600            # 10 minutos en segundos
 
 def _is_superadmin(user: dict) -> bool:
     return bool(user.get("sa"))

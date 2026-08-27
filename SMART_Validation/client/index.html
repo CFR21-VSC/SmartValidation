@@ -7,29 +7,29 @@
 
   <script src="/lib/pdfmake.min.js"></script>
   <script src="/lib/vfs_fonts.js"></script>
-  <script src="/js/validation-suite/core/template-base.js"></script>
-  <script src="/js/validation-suite/core/shared-renderers.js"></script>
-  <script src="/js/validation-suite/core/document-renderer.js"></script>
-  <script src="/js/validation-suite/templates/_iq-shared.js"></script>
-  <script src="/js/validation-suite/templates/hlra.js"></script>
-  <script src="/js/validation-suite/templates/vp.js"></script>
-  <script src="/js/validation-suite/templates/urs.js"></script>
-  <script src="/js/validation-suite/templates/frs.js"></script>
-  <script src="/js/validation-suite/templates/ds.js"></script>
-  <script src="/js/validation-suite/templates/ra.js"></script>
-  <script src="/js/validation-suite/templates/ira.js"></script>
-  <script src="/js/validation-suite/templates/rrm.js"></script>
-  <script src="/js/validation-suite/templates/mtr.js"></script>
-  <script src="/js/validation-suite/templates/piq.js"></script>
-  <script src="/js/validation-suite/templates/iiq.js"></script>
-  <script src="/js/validation-suite/templates/poq.js"></script>
-  <script src="/js/validation-suite/templates/ioq.js"></script>
-  <script src="/js/validation-suite/templates/ppq.js"></script>
-  <script src="/js/validation-suite/templates/ipq.js"></script>
-  <script src="/js/validation-suite/templates/ncr.js"></script>
-  <script src="/js/validation-suite/templates/release-report.js"></script>
-  <script src="/js/validation-suite/templates/vsr.js"></script>
-  <script src="/js/validation-suite/templates/aex.js"></script>
+  <script src="/js/validation-suite/core/template-base.js?v=20260827"></script>
+  <script src="/js/validation-suite/core/shared-renderers.js?v=20260827"></script>
+  <script src="/js/validation-suite/core/document-renderer.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/_iq-shared.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/hlra.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/vp.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/urs.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/frs.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/ds.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/ra.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/ira.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/rrm.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/mtr.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/piq.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/iiq.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/poq.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/ioq.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/ppq.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/ipq.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/ncr.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/release-report.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/vsr.js?v=20260827"></script>
+  <script src="/js/validation-suite/templates/aex.js?v=20260827"></script>
 
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -781,6 +781,72 @@ async function logout() {
 }
 
 init();
+</script>
+
+<script>
+/* ── Idle auto-logout (10 min) — robusto contra throttling de tabs ──────── */
+(function () {
+  const IDLE_MS  = 10 * 60 * 1000;
+  const WARN_MS  =  9 * 60 * 1000;
+  const CHECK_MS = 15 * 1000;
+  const EVENTS   = ['mousemove','keydown','mousedown','touchstart','click','scroll'];
+
+  let lastActivity = Date.now();
+  let warnShown = false;
+  let checkInterval;
+
+  function onActivity() {
+    lastActivity = Date.now();
+    if (warnShown) dismissWarn();
+  }
+
+  function showWarn() {
+    warnShown = true;
+    let el = document.getElementById('_idleWarnToast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = '_idleWarnToast';
+      el.style.cssText = [
+        'position:fixed','bottom:24px','left:50%','transform:translateX(-50%)',
+        'background:#C8921A','color:#fff','font-weight:600','font-size:14px',
+        'padding:12px 24px','border-radius:8px','z-index:99999',
+        'box-shadow:0 4px 16px rgba(0,0,0,.4)','cursor:pointer',
+      ].join(';');
+      el.title = 'Haz clic para mantener la sesión';
+      el.onclick = onActivity;
+      document.body.appendChild(el);
+    }
+    el.textContent = '⚠ Tu sesión expirará en 1 minuto por inactividad. Haz clic para continuar.';
+    el.style.display = 'block';
+  }
+
+  function dismissWarn() {
+    warnShown = false;
+    const el = document.getElementById('_idleWarnToast');
+    if (el) el.style.display = 'none';
+  }
+
+  async function doLogout() {
+    clearInterval(checkInterval);
+    dismissWarn();
+    try { await fetch('/auth/logout', { method: 'POST', credentials: 'include' }); } catch(_) {}
+    location.href = '/login.html';
+  }
+
+  function tick() {
+    const idle = Date.now() - lastActivity;
+    if (idle >= IDLE_MS) { doLogout(); return; }
+    if (idle >= WARN_MS && !warnShown) { showWarn(); }
+    else if (idle < WARN_MS && warnShown) { dismissWarn(); }
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') tick();
+  });
+
+  EVENTS.forEach(ev => document.addEventListener(ev, onActivity, { passive: true }));
+  checkInterval = setInterval(tick, CHECK_MS);
+})();
 </script>
 </body>
 </html>

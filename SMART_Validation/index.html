@@ -5682,5 +5682,74 @@ window.addEventListener('message', (e) => {
 });
 </script>
 
+<script>
+/* ── Idle auto-logout (10 min) — robusto contra throttling de tabs ──────── */
+(function () {
+  const IDLE_MS  = 10 * 60 * 1000;
+  const WARN_MS  =  9 * 60 * 1000;
+  const CHECK_MS = 15 * 1000;          // tick de verificación cada 15 s
+  const EVENTS   = ['mousemove','keydown','mousedown','touchstart','click','scroll'];
+
+  let lastActivity = Date.now();
+  let warnShown = false;
+  let checkInterval;
+
+  function onActivity() {
+    lastActivity = Date.now();
+    if (warnShown) dismissWarn();
+  }
+
+  function showWarn() {
+    warnShown = true;
+    let el = document.getElementById('_idleWarnToast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = '_idleWarnToast';
+      el.style.cssText = [
+        'position:fixed','bottom:24px','left:50%','transform:translateX(-50%)',
+        'background:#C8921A','color:#fff','font-weight:600','font-size:14px',
+        'padding:12px 24px','border-radius:8px','z-index:99999',
+        'box-shadow:0 4px 16px rgba(0,0,0,.4)','cursor:pointer',
+      ].join(';');
+      el.title = 'Haz clic para mantener la sesión';
+      el.onclick = onActivity;
+      document.body.appendChild(el);
+    }
+    el.textContent = '⚠ Tu sesión expirará en 1 minuto por inactividad. Haz clic para continuar.';
+    el.style.display = 'block';
+  }
+
+  function dismissWarn() {
+    warnShown = false;
+    const el = document.getElementById('_idleWarnToast');
+    if (el) el.style.display = 'none';
+  }
+
+  async function doLogout() {
+    clearInterval(checkInterval);
+    dismissWarn();
+    try { await fetch('/auth/logout', { method: 'POST', credentials: 'include' }); } catch(_) {}
+    window.location.href = '/';
+  }
+
+  function tick() {
+    const idle = Date.now() - lastActivity;
+    if (idle >= IDLE_MS) { doLogout(); return; }
+    if (idle >= WARN_MS && !warnShown) { showWarn(); }
+    else if (idle < WARN_MS && warnShown) { dismissWarn(); }
+  }
+
+  // visibilitychange dispara aunque los setTimeout estén throttleados
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') tick();
+  });
+
+  EVENTS.forEach(ev => document.addEventListener(ev, onActivity, { passive: true }));
+
+  // Tick cada 15 s (funciona en tab activo; el visibilitychange cubre el background)
+  checkInterval = setInterval(tick, CHECK_MS);
+})();
+</script>
+
 </body>
 </html>
