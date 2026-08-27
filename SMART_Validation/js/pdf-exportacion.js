@@ -4827,8 +4827,39 @@ function buildProjectSignaturesPage(exportData) {
     let firmasRow = [];
     let fechasRow = [];
 
-    // Helper: construir celda de firma (imagen si existe, línea si no)
+    // Mapeo rol-label (variantes) → clave canónica del doc
+    const _roleKey = label => {
+        if (!label) return null;
+        const l = label.toLowerCase();
+        if (l.includes('ejecut') || l.includes('author') || l.includes('emit')) return 'ejecutor';
+        if (l.includes('revis') || l.includes('review')) return 'revisor';
+        if (l.includes('aprob') || l.includes('approv')) return 'aprobador';
+        return null;
+    };
+
+    // Construir índice {ejecutor|revisor|aprobador → signer} desde _sealedSigners
+    const _sealedByRole = {};
+    if (Array.isArray(exportData._sealedSigners)) {
+        exportData._sealedSigners.forEach(s => {
+            const key = _roleKey(s.role_label);
+            if (key) _sealedByRole[key] = s;
+        });
+    }
+
+    // Helper: construir celda de firma (sellada con timestamp si existe, imagen canvas, o línea en blanco)
     function buildSignatureCell(role, nombre) {
+        const sealed = _sealedByRole[role];
+        if (sealed) {
+            const fmtTs = ts => ts ? new Date(ts * 1000).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+            return {
+                stack: [
+                    { text: '✓ Firmado electrónicamente', fontSize: 8, color: '#27a855', bold: true, alignment: 'center', margin: [0, 14, 0, 2] },
+                    { text: fmtTs(sealed.signed_at), fontSize: 8, color: COLORS.neutral, alignment: 'center' },
+                    { text: sealed.audit_hash ? `ID: ${sealed.audit_hash.slice(0, 14)}…` : '', fontSize: 7, color: COLORS.neutral, alignment: 'center', italics: true, margin: [0, 2, 0, 4] },
+                ],
+                margin: [10, 5, 10, 5]
+            };
+        }
         let sigData = null;
         try { sigData = typeof getSignatureByRole === 'function' ? getSignatureByRole(role) : null; } catch (e) {}
 
@@ -4844,12 +4875,18 @@ function buildProjectSignaturesPage(exportData) {
         return { text: 'Firma: _________________', fontSize: 9, alignment: 'center', margin: [10, 30, 10, 5] };
     }
 
+    const _buildFechaCell = (role, fallback) => {
+        const s = _sealedByRole[role];
+        if (s?.signed_at) return { text: '', fontSize: 9, alignment: 'center', margin: [10, 5, 10, 15] }; // fecha ya en buildSignatureCell
+        return { text: fallback, fontSize: 9, alignment: 'center', margin: [10, 5, 10, 15] };
+    };
+
     if (tieneEjecutor) {
         tableWidths.push('*');
         headerRow.push({ text: 'EJECUTOR', fillColor: COLORS.primary, color: COLORS.white, bold: true, fontSize: 10, alignment: 'center', margin: [10, 10, 10, 10] });
         nombresRow.push({ text: exportData.ejecutor, fontSize: 10, alignment: 'center', margin: [10, 15, 10, 5] });
         firmasRow.push(buildSignatureCell('ejecutor', exportData.ejecutor));
-        fechasRow.push({ text: `Fecha: ${fechaEmision}`, fontSize: 9, alignment: 'center', margin: [10, 5, 10, 15] });
+        fechasRow.push(_buildFechaCell('ejecutor', `Fecha: ${fechaEmision}`));
     }
 
     if (tieneRevisor) {
@@ -4857,7 +4894,7 @@ function buildProjectSignaturesPage(exportData) {
         headerRow.push({ text: 'REVISOR', fillColor: COLORS.primary, color: COLORS.white, bold: true, fontSize: 10, alignment: 'center', margin: [10, 10, 10, 10] });
         nombresRow.push({ text: exportData.revisor, fontSize: 10, alignment: 'center', margin: [10, 15, 10, 5] });
         firmasRow.push(buildSignatureCell('revisor', exportData.revisor));
-        fechasRow.push({ text: 'Fecha: _____________', fontSize: 9, alignment: 'center', margin: [10, 5, 10, 15] });
+        fechasRow.push(_buildFechaCell('revisor', 'Fecha: _____________'));
     }
 
     if (tieneAprobador) {
@@ -4865,7 +4902,7 @@ function buildProjectSignaturesPage(exportData) {
         headerRow.push({ text: 'APROBADOR', fillColor: COLORS.primary, color: COLORS.white, bold: true, fontSize: 10, alignment: 'center', margin: [10, 10, 10, 10] });
         nombresRow.push({ text: exportData.aprobador, fontSize: 10, alignment: 'center', margin: [10, 15, 10, 5] });
         firmasRow.push(buildSignatureCell('aprobador', exportData.aprobador));
-        fechasRow.push({ text: 'Fecha: _____________', fontSize: 9, alignment: 'center', margin: [10, 5, 10, 15] });
+        fechasRow.push(_buildFechaCell('aprobador', 'Fecha: _____________'));
     }
 
     // Si no hay ningún firmante, usar solo ejecutor vacío

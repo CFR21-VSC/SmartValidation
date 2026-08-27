@@ -178,6 +178,10 @@
             0%, 60%, 100% { opacity: 0.35; transform: scale(0.85); }
             30%           { opacity: 1.0;  transform: scale(1.20); }
         }
+        @keyframes _rdPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(200,146,26,0.5); }
+            50%      { box-shadow: 0 0 0 6px rgba(200,146,26,0); }
+        }
 
         /* Línea diagonal lime que cruza el bg (efecto cinematográfico, más lenta) */
         #splashScreen::before {
@@ -926,11 +930,6 @@
                     <button class="sp-item sp-item-primary" onclick="openVersionDiff()" title="Comparar dos versiones del mismo documento">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                         Comparar versiones (diff)
-                    </button>
-                    <hr class="sp-sep">
-                    <button class="sp-item sp-item-primary" onclick="openSignFlow()" title="Firma con hash SHA-256 + firmante + timestamp">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-                        Firmar y archivar
                     </button>
                     <button class="sp-item" onclick="openPeopleManagerModal()" title="Gestionar personas firmantes del paquete activo">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
@@ -2122,70 +2121,6 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════
-         MODAL — FIRMA Y ARCHIVADO (Suite Comparación, Fase C)
-         Combina: candidatos para firmar (paquete + editor activo) +
-         carpeta virtual del proyecto (lista navegable de docs firmados)
-         + export ZIP. Storage en IndexedDB vía VS.projectFolder.
-         ═══════════════════════════════════════════════════════════════════ -->
-    <div id="modalSignArchive" class="modal modal-theme-compare" style="display:none;">
-        <div class="modal-content" style="max-width:1200px; width:96vw; max-height:92vh; overflow:hidden; display:flex; flex-direction:column; padding:0;">
-            <div class="modal-themed-header">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-                <div style="flex:1;">
-                    <h3>Firma &amp; archivado · Carpeta del proyecto</h3>
-                    <div class="modal-themed-subtitle">Cada doc firmado se archiva con hash SHA-256 + firmante + timestamp. Carpeta persistida en IndexedDB · exportable como ZIP regulatorio.</div>
-                </div>
-                <button class="modal-themed-close" onclick="closeSignArchiveModal()">Cerrar</button>
-            </div>
-
-            <!-- Strip de proyecto activo -->
-            <div class="vs-project-strip" data-project-strip="signArch" style="display:none;"></div>
-
-            <!-- Stats header -->
-            <div id="signArchStats" style="display:flex; gap:10px; padding:8px 22px; background:#F4F6F8; border-bottom:1px solid #C8D2DC; font-size:12px; color:#586574;"></div>
-
-            <!-- Cuerpo: 2 columnas (candidatos a la izquierda, carpeta a la derecha) -->
-            <div style="flex:1; display:grid; grid-template-columns: 380px 1fr; gap:0; min-height:0;">
-                <!-- Columna izquierda: candidatos -->
-                <div style="border-right:1px solid #C8D2DC; padding:14px 16px; overflow-y:auto; background:#FAFBFC;">
-                    <div class="sign-section-title">📄 Docs disponibles para firmar</div>
-                    <div class="sign-section-hint">Selección desde el paquete cargado + el doc activo del editor de la Suite Validación (si hay).</div>
-                    <div id="signArchCandidates"></div>
-                </div>
-
-                <!-- Columna derecha: carpeta del proyecto -->
-                <div style="padding:14px 22px; overflow-y:auto;">
-                    <div id="signArchFolderList"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: Firmar Electrónicamente con PIN -->
-    <div id="modalSignWithPin" class="modal modal-theme-evidence" style="display:none;">
-        <div class="modal-content" style="max-width:480px;">
-            <h3 id="signTitleLabel" style="margin-top:0;">Firmar electrónicamente</h3>
-            <p style="margin:0 0 14px 0; font-size:12px; color:#586574;">
-                Elegí el firmante y confirmá con su PIN. La firma se inserta automáticamente en el campo correspondiente.
-            </p>
-            <div class="form-group" style="margin-bottom:12px;">
-                <label for="signPersonaSelect" style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">Firmante:</label>
-                <select id="signPersonaSelect" style="width:100%; padding:8px; border:1px solid #C0CCD8; border-radius:4px;"></select>
-                <small id="signRolHint" style="display:block; font-size:11px; color:#586574; margin-top:4px;"></small>
-            </div>
-            <div class="form-group" style="margin-bottom:8px;">
-                <label for="signPinInput" style="display:block; font-size:12px; font-weight:600; margin-bottom:4px;">PIN del firmante:</label>
-                <input type="password" id="signPinInput" placeholder="••••" style="width:100%; padding:8px; border:1px solid #C0CCD8; border-radius:4px; font-size:14px; letter-spacing:4px;" autocomplete="off">
-            </div>
-            <p id="signErrorMsg" style="color:#A52A2A; font-size:12px; min-height:18px; margin:6px 0 12px 0;"></p>
-
-            <div style="display:flex; justify-content:flex-end; gap:8px;">
-                <button id="signCancelBtn" class="btn-cancel">Cancelar</button>
-                <button id="signConfirmBtn" class="btn-confirm">Confirmar firma</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal: Nueva Prueba -->
     <div id="modalNewTest" class="modal modal-theme-evidence">
         <div class="modal-content">
@@ -4690,7 +4625,7 @@
       // Botón sellar — prominente cuando todos firmaron
       const sealBtn = _rdIsAdmin && rnd.status === 'open'
         ? (allSigned
-          ? `<button onclick="sealRound('${esc(rnd.project_id)}','${esc(rnd.id)}')" style="background:#C8921A;border:none;color:#0B2341;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.3px;">✓ Sellar ahora</button>`
+          ? `<button onclick="sealRound('${esc(rnd.project_id)}','${esc(rnd.id)}')" style="background:#C8921A;border:none;color:#0B2341;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.3px;animation:_rdPulse 1.8s ease-in-out infinite;">✓ Sellar ahora</button>`
           : `<button onclick="sealRound('${esc(rnd.project_id)}','${esc(rnd.id)}')" style="background:#0e2820;border:1px solid #1e4830;color:#27c459;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;">Sellar ▶</button>`)
         : '';
       const cancelBtn = _rdIsAdmin && rnd.status === 'open'
@@ -4782,14 +4717,34 @@
       loadReviewDashboard();
     }
 
+    function _rdToast(msg, color) {
+      const t = document.createElement('div');
+      t.style.cssText = `position:fixed;top:68px;right:24px;background:#0B2341;border:2px solid ${color||'#27c459'};color:#eef3f8;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:340px;line-height:1.4;`;
+      t.textContent = msg;
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 5000);
+    }
+
     async function sealRound(projId, roundId) {
-      if (!confirm('¿Sellar la ronda? Esta acción es irreversible.')) return;
+      const btn = event?.currentTarget;
+      if (btn) {
+        if (btn.dataset.confirming !== '1') {
+          btn.dataset.confirming = '1';
+          const orig = btn.innerHTML;
+          btn.innerHTML = '¿Confirmar sellado?';
+          btn.style.background = '#7a5010';
+          setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = orig; btn.style.background = '#C8921A'; }, 4000);
+          return;
+        }
+        btn.disabled = true;
+        btn.innerHTML = 'Sellando...';
+      }
       const r = await fetch(`/api/projects/${projId}/signing-rounds/${roundId}/seal`, {
         method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:'{}',
       }).then(r=>r.json()).catch(()=>null);
-      if (!r?.ok) { alert('Error al sellar: ' + (r?.error||'Error desconocido')); return; }
-      alert(`Sellado correctamente. Block #${r.block_number}\nHash: ${r.seal_hash?.slice(0,20)}...`);
-      loadReviewDashboard();
+      if (!r?.ok) { _rdToast('Error al sellar: ' + (r?.error||'Error desconocido'), '#e87a8a'); if (btn) { btn.disabled=false; btn.innerHTML='✓ Sellar ahora'; } return; }
+      _rdToast(`✅ Sellado · Block #${r.block_number} · ${r.seal_hash?.slice(0,16)}…`, '#27c459');
+      setTimeout(() => loadReviewDashboard(), 800);
     }
 
     // ── Create Round ──────────────────────────────────────────────────────
@@ -5345,7 +5300,6 @@
             'modalLogin':                'validation',
             'modalRecovery':             'validation',
             'modalCmpDiff':              'compare',
-            'modalSignArchive':          'compare',
             'modalRegistroFirmante':     'evidence',  // firmas dentro de evidencias
             'modalPeopleManager':        'evidence',
             'modalBookGenerating':       'book',

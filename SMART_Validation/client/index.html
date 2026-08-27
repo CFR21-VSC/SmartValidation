@@ -474,14 +474,22 @@ async function goDocs(projId, projName) {
   ]);
 
   if (!docsR?.ok) { el.innerHTML = '<div class="placeholder">Error al cargar documentos.</div>'; return; }
-  if (!docsR.documents?.length) { el.innerHTML = '<div class="placeholder">Sin documentos disponibles.</div>'; return; }
 
-  // Indexar rondas abiertas por doc_type
+  // Solo mostrar docs donde el cliente participa como firmante
+  const clientRounds = roundsR?.rounds || [];
+  const clientDocTypes = new Set(clientRounds.map(r => r.doc_type));
+  const sharedDocs = (docsR.documents || []).filter(d => clientDocTypes.has(d.doc_type));
+
+  // Indexar rondas por doc_type (priorizar open sobre sealed)
   const openRounds = {};
-  (roundsR?.rounds || []).forEach(r => { if (r.status === 'open') openRounds[r.doc_type] = r; });
+  clientRounds.forEach(r => {
+    if (!openRounds[r.doc_type] || r.status === 'open') openRounds[r.doc_type] = r;
+  });
+
+  if (!sharedDocs.length) { el.innerHTML = '<div class="placeholder">No hay documentos compartidos con vos en este proyecto.</div>'; return; }
 
   el.innerHTML = '';
-  docsR.documents.forEach(doc => {
+  sharedDocs.forEach(doc => {
     const div = document.createElement('div');
     div.className = 'card';
     const name = DOC_NAMES[doc.doc_type] || doc.doc_type;
@@ -569,6 +577,17 @@ async function goDoc(projId, projName, docType, roundId) {
   let rawJson = doc.content || doc.json_data;
   if (typeof rawJson === 'string') { try { rawJson = JSON.parse(rawJson); } catch(_) { rawJson = null; } }
   const renderData = (rawJson?.data?.type) ? rawJson.data : rawJson;
+
+  // F5: inyectar firmantes sellados en el PDF si el doc está aprobado
+  const sealedRound = rounds.find(r => r.doc_type === S.docType && r.status === 'sealed');
+  if (renderData && sealedRound) {
+    try {
+      const sealDetail = await api('GET', `/api/projects/${S.projId}/signing-rounds/${sealedRound.id}`);
+      if (sealDetail?.ok && sealDetail.signers?.length) {
+        renderData._sealedSigners = sealDetail.signers.filter(s => s.signed_at);
+      }
+    } catch(_) {}
+  }
 
   // Secciones para comentarios y revisiones
   S.docSections = (renderData?.secciones || renderData?.sections) || [];

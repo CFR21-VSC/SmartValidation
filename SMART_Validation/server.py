@@ -3993,7 +3993,7 @@ class SyncHandler(BaseHTTPRequestHandler):
                     FROM signing_round_signers
                     GROUP BY round_id
                 ) agg ON agg.round_id = sr.id
-                WHERE sr.project_id=? AND sr.status='open'
+                WHERE sr.project_id=? AND sr.status IN ('open','sealed')
                 ORDER BY sr.created_at DESC
             """, (username, proj_id)).fetchall()
         return self._send_json(200, {"ok": True, "rounds": [dict(r) for r in rounds]})
