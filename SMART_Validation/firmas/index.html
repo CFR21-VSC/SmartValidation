@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMART Validation — Portal de Firmas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --navy:        #0B2341;
+            --navy-dark:   #06101E;
+            --navy-mid:    #0F2D52;
+            --gold:        #C8921A;
+            --gold-dim:    rgba(200,146,26,0.35);
+            --gold-glow:   rgba(200,146,26,0.08);
+            --text:        #dde6f0;
+            --text-muted:  rgba(200,220,240,0.55);
+            --border:      rgba(200,146,26,0.2);
+            --border-hi:   rgba(200,146,26,0.55);
+            --success:     #2ecc71;
+            --danger:      #e74c3c;
+            --warn:        #f39c12;
+        }
+
+        body {
+            font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background:
+                radial-gradient(ellipse at 50% 0%, rgba(200,146,26,0.08) 0%, transparent 60%),
+                linear-gradient(160deg, #06101E 0%, #0B2341 60%, #071528 100%);
+            min-height: 100vh;
+            color: var(--text);
+        }
+
+        /* ── Layout ── */
+        .page-center {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px 16px;
+        }
+
+        .card {
+            background: rgba(11,35,65,0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-top: 2px solid var(--border-hi);
+            border-radius: 14px;
+            padding: 44px 40px 36px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 24px 64px rgba(0,0,0,.5), 0 0 0 1px rgba(255,255,255,0.04) inset;
+        }
+
+        .card-wide {
+            max-width: 900px;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        /* ── Logo ── */
+        .logo { text-align: center; margin-bottom: 32px; }
+        .logo-icon {
+            width: 56px; height: 56px;
+            background: linear-gradient(135deg, #0B2341 0%, #1F3C56 100%);
+            border: 2px solid rgba(200,146,26,0.5);
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            margin-bottom: 14px;
+            box-shadow: 0 4px 20px rgba(200,146,26,0.2);
+        }
+        .logo-brand {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--gold);
+            letter-spacing: 3.5px;
+            text-transform: uppercase;
+        }
+        .logo h1 {
+            font-size: 19px;
+            font-weight: 700;
+            color: #eef3f8;
+            letter-spacing: -.2px;
+            margin-top: 5px;
+        }
+        .logo p {
+            font-size: 11px;
+            color: var(--gold-dim);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-top: 4px;
+        }
+        .logo-divider {
+            width: 36px; height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(200,146,26,0.5), transparent);
+            margin: 12px auto 0;
+        }
+
+        /* ── Form elements ── */
+        .field { margin-bottom: 18px; }
+        label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--gold);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        input[type=text], input[type=email], input[type=password], input[type=tel] {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 15px;
+            outline: none;
+            transition: border-color .2s;
+        }
+        input:focus { border-color: var(--gold-dim); }
+        input::placeholder { color: var(--text-muted); }
+
+        /* PIN dots */
+        .pin-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 10px;
+        }
+        .pin-grid input {
+            text-align: center;
+            font-size: 20px;
+            font-weight: 700;
+            padding: 14px 4px;
+            letter-spacing: 0;
+        }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 9px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: .8px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: opacity .2s, transform .1s;
+        }
+        .btn:active { transform: scale(.98); }
+        .btn:disabled { opacity: .45; cursor: default; }
+        .btn-gold {
+            background: linear-gradient(135deg, #C8921A 0%, #A67515 100%);
+            color: #fff;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+        }
+        .btn-outline:hover { border-color: var(--gold-dim); color: var(--text); }
+        .btn-success {
+            background: linear-gradient(135deg, #1e8c4a 0%, #166038 100%);
+            color: #fff;
+        }
+
+        /* Alert */
+        .alert {
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 18px;
+        }
+        .alert-error { background: rgba(231,76,60,0.12); border: 1px solid rgba(231,76,60,0.4); color: #f89; }
+        .alert-success { background: rgba(46,204,113,0.1); border: 1px solid rgba(46,204,113,0.35); color: #7fd; }
+        .alert-info { background: rgba(200,146,26,0.08); border: 1px solid var(--border); color: var(--text); }
+
+        /* ── Dashboard wide layout ── */
+        .dash-header {
+            background: rgba(6,16,30,0.6);
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .dash-header .logo-icon { width: 40px; height: 40px; font-size: 18px; margin: 0; }
+        .dash-header-title { flex: 1; }
+        .dash-header-title .brand { font-size: 9px; color: var(--gold); letter-spacing: 2.5px; text-transform: uppercase; }
+        .dash-header-title h2 { font-size: 16px; font-weight: 700; color: #eef3f8; }
+        .dash-header-user { font-size: 12px; color: var(--text-muted); text-align: right; }
+        .dash-header-user strong { color: var(--text); }
+        .btn-sm { width: auto; padding: 7px 14px; font-size: 11px; }
+
+        .dash-body { padding: 28px 32px; }
+        .dash-section-title {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--gold);
+            letter-spacing: 2.5px;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+
+        /* Signing item card */
+        .sign-item {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 18px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .sign-item:hover { border-color: var(--gold-dim); }
+        .sign-item-badge {
+            background: linear-gradient(135deg, #0B2341, #1F3C56);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--gold);
+            letter-spacing: 1px;
+            white-space: nowrap;
+            min-width: 70px;
+            text-align: center;
+        }
+        .sign-item-body { flex: 1; }
+        .sign-item-body .proj { font-size: 11px; color: var(--text-muted); }
+        .sign-item-body .doc-name { font-size: 14px; font-weight: 600; color: var(--text); margin: 2px 0 4px; }
+        .sign-item-body .role { font-size: 11px; color: var(--gold-dim); }
+        .sign-item-status {
+            font-size: 11px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+        .chip {
+            display: inline-block;
+            padding: 3px 9px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .5px;
+            text-transform: uppercase;
+        }
+        .chip-warn { background: rgba(243,156,18,0.15); color: #f39c12; border: 1px solid rgba(243,156,18,0.3); }
+        .chip-ok { background: rgba(46,204,113,0.12); color: #2ecc71; border: 1px solid rgba(46,204,113,0.25); }
+        .chip-rev { background: rgba(200,146,26,0.1); color: #e8be60; border: 1px solid var(--border); }
+
+        .btn-sign-item {
+            padding: 9px 18px;
+            border-radius: 7px;
+            border: none;
+            background: linear-gradient(135deg, #C8921A 0%, #A67515 100%);
+            color: #fff;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .5px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-sign-item:hover { opacity: .9; }
+
+        /* Sign modal overlay */
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(4,10,20,0.85);
+            backdrop-filter: blur(6px);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .overlay.open { display: flex; }
+        .modal {
+            background: rgba(11,35,65,0.9);
+            border: 1px solid var(--border);
+            border-top: 2px solid var(--border-hi);
+            border-radius: 14px;
+            width: 100%;
+            max-width: 480px;
+            padding: 36px 36px 28px;
+            box-shadow: 0 24px 64px rgba(0,0,0,.6);
+        }
+        .modal h3 {
+            font-size: 17px;
+            font-weight: 700;
+            color: #eef3f8;
+            margin-bottom: 6px;
+        }
+        .modal .subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+        .modal .doc-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: rgba(200,146,26,0.1);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--gold);
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+        .modal-actions { display: flex; gap: 10px; margin-top: 24px; }
+        .modal-actions .btn { margin: 0; }
+
+        /* Loading spinner */
+        .spinner {
+            width: 36px; height: 36px;
+            border: 3px solid rgba(200,146,26,0.2);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-wrap { text-align: center; padding: 40px 0; color: var(--text-muted); }
+        .loading-wrap p { font-size: 13px; margin-top: 8px; }
+
+        .empty { text-align: center; padding: 40px 0; color: var(--text-muted); font-size: 14px; }
+
+        /* Revision request textarea */
+        textarea {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 14px;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 13px;
+            resize: vertical;
+            outline: none;
+            min-height: 90px;
+        }
+        textarea:focus { border-color: var(--gold-dim); }
+
+        /* Signed checkmark */
+        .signed-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        /* Step indicator */
+        .steps {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 28px;
+        }
+        .step {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 700;
+            color: var(--text-muted);
+        }
+        .step.active { border-color: var(--gold); color: var(--gold); }
+        .step.done { background: var(--gold); border-color: var(--gold); color: #fff; }
+        .step-line { flex: 1; height: 1px; background: var(--border); }
+        .step-label { font-size: 10px; color: var(--text-muted); letter-spacing: .5px; }
+    </style>
+</head>
+<body>
+
+<!-- ── Screen: Loading ──────────────────────────────────────────────────────── -->
+<div id="screenLoading" class="page-center">
+    <div class="loading-wrap">
+        <div class="spinner"></div>
+        <p>Verificando acceso…</p>
+    </div>
+</div>
+
+<!-- ── Screen: Error genérico ──────────────────────────────────────────────── -->
+<div id="screenError" class="page-center" style="display:none">
+    <div class="card">
+        <div class="logo">
+            <div class="logo-icon">✍️</div>
+            <div class="logo-brand">SMART Validation</div>
+            <h1>Portal de Firmas</h1>
+            <div class="logo-divider"></div>
+        </div>
+        <div class="alert alert-error" id="errorMsg"></div>
+        <a href="/login.html" style="display:block;margin-top:8px">
+            <button class="btn btn-outline">← Volver al inicio</button>
+        </a>
+    </div>
+</div>
+
+<!-- ── Screen: Setup PIN (primera vez, via magic link) ─────────────────────── -->
+<div id="screenSetupPin" class="page-center" style="display:none">
+    <div class="card">
+        <div class="logo">
+            <div class="logo-icon">✍️</div>
+            <div class="logo-brand">SMART Validation</div>
+            <h1>Portal de Firmas</h1>
+            <p>Primera vez — configurá tu PIN</p>
+            <div class="logo-divider"></div>
+        </div>
+
+        <div class="steps">
+            <div class="step done">✓</div>
+            <div class="step-line"></div>
+            <div class="step active" id="stepPin">2</div>
+            <div class="step-line"></div>
+            <div class="step" id="stepSign">3</div>
+        </div>
+
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:24px;line-height:1.6">
+            Hola <strong id="setupWelcomeName" style="color:var(--text)"></strong>, tu acceso fue habilitado.<br>
+            Elegí un PIN de 6 dígitos para firmar documentos. Lo vas a usar en el futuro para autenticarte.
+        </p>
+        <div id="setupError" class="alert alert-error" style="display:none"></div>
+        <div class="field">
+            <label>Nuevo PIN (6 dígitos)</label>
+            <div class="pin-grid" id="pinNew"></div>
+        </div>
+        <div class="field">
+            <label>Confirmar PIN</label>
+            <div class="pin-grid" id="pinConfirm"></div>
+        </div>
+        <button class="btn btn-gold" onclick="doSetupPin()">Configurar PIN y continuar →</button>
+    </div>
+</div>
+
+<!-- ── Screen: Ingresar PIN (usuario ya registrado, via magic link) ─────────── -->
+<div id="screenEnterPin" class="page-center" style="display:none">
+    <div class="card">
+        <div class="logo">
+            <div class="logo-icon">✍️</div>
+            <div class="logo-brand">SMART Validation</div>
+            <h1>Portal de Firmas</h1>
+            <div class="logo-divider"></div>
+        </div>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:24px;line-height:1.6">
+            Ingresá tu PIN para autenticarte como <strong id="enterPinName" style="color:var(--text)"></strong>.
+        </p>
+        <div id="enterPinError" class="alert alert-error" style="display:none"></div>
+        <div class="field">
+            <label>Tu PIN (6 dígitos)</label>
+            <div class="pin-grid" id="pinLogin"></div>
+        </div>
+        <button class="btn btn-gold" onclick="doActivateWithPin()">Ingresar →</button>
+    </div>
+</div>
+
+<!-- ── Screen: Login directo (sin token — ya autenticado o acceso directo) ─── -->
+<div id="screenLogin" class="page-center" style="display:none">
+    <div class="card">
+        <div class="logo">
+            <div class="logo-icon">✍️</div>
+            <div class="logo-brand">SMART Validation</div>
+            <h1>Portal de Firmas</h1>
+            <div class="logo-divider"></div>
+        </div>
+        <div id="loginError" class="alert alert-error" style="display:none"></div>
+        <div class="field">
+            <label>Usuario</label>
+            <input type="text" id="loginUser" placeholder="nombre de usuario" autocomplete="username">
+        </div>
+        <div class="field">
+            <label>PIN</label>
+            <div class="pin-grid" id="pinDirectLogin"></div>
+        </div>
+        <button class="btn btn-gold" onclick="doDirectLogin()">Ingresar →</button>
+        <p style="text-align:center;margin-top:16px;font-size:12px;color:var(--text-muted)">
+            ¿Sos administrador? <a href="/login.html" style="color:var(--gold)">Suite principal →</a>
+        </p>
+    </div>
+</div>
+
+<!-- ── Screen: Dashboard de firmas ─────────────────────────────────────────── -->
+<div id="screenDash" class="page-center" style="display:none; align-items: flex-start; padding: 0;">
+    <div class="card card-wide" style="margin: 0; min-height: 100vh; border-radius: 0; border: none; max-width: 100%;">
+        <div class="dash-header">
+            <div class="logo-icon">✍️</div>
+            <div class="dash-header-title">
+                <div class="brand">SMART Validation</div>
+                <h2>Portal de Firmas</h2>
+            </div>
+            <div class="dash-header-user">
+                Firmante: <strong id="dashUserName"></strong><br>
+                <button class="btn btn-outline btn-sm" onclick="doLogout()" style="margin-top:6px">Cerrar sesión</button>
+            </div>
+        </div>
+        <div class="dash-body">
+            <div id="dashContent">
+                <div class="loading-wrap"><div class="spinner"></div><p>Cargando pendientes…</p></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal: Firmar / Solicitar revisión ──────────────────────────────────── -->
+<div class="overlay" id="modalSign">
+    <div class="modal">
+        <span class="doc-badge" id="modalDocBadge"></span>
+        <h3 id="modalTitle"></h3>
+        <p class="subtitle" id="modalSubtitle"></p>
+
+        <div id="modalSignPanel">
+            <div id="modalSignError" class="alert alert-error" style="display:none"></div>
+            <div class="field" style="margin-bottom:10px">
+                <label>Ingresá tu PIN para confirmar la firma</label>
+                <div class="pin-grid" id="pinSign"></div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" style="flex:1" onclick="closeModal()">Cancelar</button>
+                <button class="btn btn-success" style="flex:2" id="btnConfirmSign" onclick="doSign()">✓ Firmar documento</button>
+            </div>
+            <div style="margin-top:12px;text-align:center">
+                <button style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;font-family:inherit" onclick="showRevisionPanel()">
+                    Tengo observaciones — solicitar revisión
+                </button>
+            </div>
+        </div>
+
+        <div id="modalRevPanel" style="display:none">
+            <div id="modalRevError" class="alert alert-error" style="display:none"></div>
+            <div class="field">
+                <label>Observaciones / puntos a corregir</label>
+                <textarea id="revReason" placeholder="Describí los cambios que necesitás antes de firmar…" rows="4"></textarea>
+            </div>
+            <div class="field">
+                <label>Tu PIN para confirmar la solicitud</label>
+                <div class="pin-grid" id="pinRevision"></div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" style="flex:1" onclick="showSignPanel()">← Volver</button>
+                <button class="btn btn-gold" style="flex:2" onclick="doRequestRevision()">Enviar observaciones</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+'use strict';
+
+const API = ''; // same-origin
+let _token = null;      // magic link token (if any)
+let _invInfo = null;    // {email, display_name, already_active}
+let _session = null;    // {u, d, r} after auth
+let _currentItem = null;
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
+
+function show(id) {
+    ['screenLoading','screenError','screenSetupPin','screenEnterPin','screenLogin','screenDash']
+        .forEach(s => { document.getElementById(s).style.display = 'none'; });
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'flex';
+}
+
+function showError(msg) {
+    document.getElementById('errorMsg').textContent = msg;
+    show('screenError');
+}
+
+function pinValue(gridId) {
+    return [...document.querySelectorAll(`#${gridId} input`)].map(i => i.value).join('');
+}
+function clearPin(gridId) {
+    document.querySelectorAll(`#${gridId} input`).forEach(i => i.value = '');
+    const first = document.querySelector(`#${gridId} input`);
+    if (first) first.focus();
+}
+
+function buildPinGrid(gridId) {
+    const grid = document.getElementById(gridId);
+    if (!grid || grid.childElementCount) return;
+    for (let i = 0; i < 6; i++) {
+        const inp = document.createElement('input');
+        inp.type = 'password';
+        inp.maxLength = 1;
+        inp.inputMode = 'numeric';
+        inp.pattern = '[0-9]';
+        inp.autocomplete = 'off';
+        inp.addEventListener('input', e => {
+            if (/[^0-9]/.test(inp.value)) { inp.value = ''; return; }
+            if (inp.value && inp.nextElementSibling) inp.nextElementSibling.focus();
+        });
+        inp.addEventListener('keydown', e => {
+            if (e.key === 'Backspace' && !inp.value && inp.previousElementSibling)
+                inp.previousElementSibling.focus();
+        });
+        grid.appendChild(inp);
+    }
+    grid.querySelector('input')?.focus();
+}
+
+async function apiFetch(path, opts = {}) {
+    const r = await fetch(API + path, {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+        ...opts,
+    });
+    const data = await r.json().catch(() => ({}));
+    return { status: r.status, data };
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+
+(async function boot() {
+    // Build all pin grids upfront
+    ['pinNew','pinConfirm','pinLogin','pinSign','pinRevision','pinDirectLogin'].forEach(buildPinGrid);
+
+    const params = new URLSearchParams(location.search);
+    _token = params.get('token');
+
+    if (_token) {
+        // Magic link flow
+        const { status, data } = await apiFetch(`/auth/invite/${encodeURIComponent(_token)}`);
+        if (status !== 200 || !data.ok) {
+            showError(data.error || 'El enlace es inválido o ya fue utilizado. Solicitá uno nuevo al administrador.');
+            return;
+        }
+        _invInfo = data;
+        if (data.already_active) {
+            // User has a PIN already — just ask for it
+            document.getElementById('enterPinName').textContent = data.display_name || data.email;
+            show('screenEnterPin');
+        } else {
+            // New user — setup PIN
+            document.getElementById('setupWelcomeName').textContent = data.display_name || data.email;
+            show('screenSetupPin');
+        }
+        return;
+    }
+
+    // No token — check if already logged in
+    const { status, data } = await apiFetch('/auth/session');
+    if (status === 200 && data.ok) {
+        _session = data;
+        await loadDash();
+        return;
+    }
+
+    // Not logged in → show username+PIN form
+    show('screenLogin');
+})();
+
+// ── Setup PIN (primera vez) ────────────────────────────────────────────────────
+
+async function doSetupPin() {
+    const p1 = pinValue('pinNew');
+    const p2 = pinValue('pinConfirm');
+    const errEl = document.getElementById('setupError');
+    errEl.style.display = 'none';
+
+    if (p1.length !== 6 || p2.length !== 6) {
+        errEl.textContent = 'El PIN debe tener exactamente 6 dígitos.';
+        errEl.style.display = '';
+        return;
+    }
+    if (p1 !== p2) {
+        errEl.textContent = 'Los PINes no coinciden.';
+        errEl.style.display = '';
+        clearPin('pinConfirm');
+        return;
+    }
+
+    const { status, data } = await apiFetch(`/auth/invite/${encodeURIComponent(_token)}/activate`, {
+        method: 'POST',
+        body: JSON.stringify({ pin: p1 }),
+    });
+    if (status !== 200 || !data.ok) {
+        errEl.textContent = data.error || 'Error al activar el acceso. Intentá de nuevo.';
+        errEl.style.display = '';
+        return;
+    }
+    _session = data;
+    await loadDash();
+}
+
+// ── Ingresar PIN (usuario ya registrado via magic link) ───────────────────────
+
+async function doActivateWithPin() {
+    const pin = pinValue('pinLogin');
+    const errEl = document.getElementById('enterPinError');
+    errEl.style.display = 'none';
+
+    if (pin.length !== 6) {
+        errEl.textContent = 'PIN de 6 dígitos requerido.';
+        errEl.style.display = '';
+        return;
+    }
+
+    const { status, data } = await apiFetch(`/auth/invite/${encodeURIComponent(_token)}/activate`, {
+        method: 'POST',
+        body: JSON.stringify({ pin }),
+    });
+    if (status !== 200 || !data.ok) {
+        errEl.textContent = data.error || 'PIN incorrecto.';
+        errEl.style.display = '';
+        clearPin('pinLogin');
+        return;
+    }
+    _session = data;
+    await loadDash();
+}
+
+// ── Login directo (username + PIN) ────────────────────────────────────────────
+
+async function doDirectLogin() {
+    const username = document.getElementById('loginUser').value.trim();
+    const pin = pinValue('pinDirectLogin');
+    const errEl = document.getElementById('loginError');
+    errEl.style.display = 'none';
+
+    if (!username) {
+        errEl.textContent = 'Ingresá tu nombre de usuario.';
+        errEl.style.display = '';
+        return;
+    }
+    if (pin.length !== 6) {
+        errEl.textContent = 'PIN de 6 dígitos requerido.';
+        errEl.style.display = '';
+        return;
+    }
+
+    const { status, data } = await apiFetch('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ username, password: pin }),
+    });
+    if (status !== 200 || !data.ok) {
+        errEl.textContent = data.error || 'Credenciales incorrectas.';
+        errEl.style.display = '';
+        clearPin('pinDirectLogin');
+        return;
+    }
+    _session = data;
+    await loadDash();
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+
+async function loadDash() {
+    document.getElementById('dashUserName').textContent = _session?.display || _session?.d || _session?.u || 'Usuario';
+    show('screenDash');
+
+    const content = document.getElementById('dashContent');
+    content.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><p>Cargando firmas pendientes…</p></div>';
+
+    const { status, data } = await apiFetch('/api/me/pending-signatures');
+    if (status !== 200) {
+        content.innerHTML = '<div class="alert alert-error">Error al cargar pendientes.</div>';
+        return;
+    }
+
+    const pending = data.pending || [];
+    if (!pending.length) {
+        content.innerHTML = '<div class="empty">✅ No tenés firmas pendientes por el momento.</div>';
+        return;
+    }
+
+    const correctionsReady = pending.filter(p => !p.signed_at && p.revision_requested_at && p.revision_fulfilled_at);
+    const awaitCorrections = pending.filter(p => !p.signed_at && p.revision_requested_at && !p.revision_fulfilled_at);
+    const unactioned      = pending.filter(p => !p.signed_at && !p.revision_requested_at);
+    const signed          = pending.filter(p => !!p.signed_at);
+
+    let html = '';
+
+    if (correctionsReady.length) {
+        html += `<div class="dash-section-title">⚡ CORRECCIONES LISTAS — ACCIÓN REQUERIDA</div>`;
+        html += correctionsReady.map(p => renderItem(p, 'corrections-ready')).join('');
+    }
+    if (unactioned.length) {
+        html += `<div class="dash-section-title" style="margin-top:${correctionsReady.length ? 28 : 0}px">PENDIENTES DE FIRMA</div>`;
+        html += unactioned.map(p => renderItem(p, 'pending')).join('');
+    }
+    if (awaitCorrections.length) {
+        html += `<div class="dash-section-title" style="margin-top:28px">AGUARDANDO CORRECCIONES</div>`;
+        html += awaitCorrections.map(p => renderItem(p, 'await-corrections')).join('');
+    }
+    if (signed.length) {
+        html += `<div class="dash-section-title" style="margin-top:28px">FIRMADOS</div>`;
+        html += signed.map(p => renderItem(p, 'signed')).join('');
+    }
+
+    content.innerHTML = html;
+}
+
+function renderItem(p, state) {
+    const docType = p.doc_type || '—';
+    const projName = p.project_name || p.project_id || '—';
+    const role = p.role_label || 'Firmante';
+    const signedDate = p.signed_at ? new Date(p.signed_at * 1000).toLocaleString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : null;
+
+    let statusHtml = '';
+    let actionHtml = '';
+    let borderStyle = '';
+
+    if (state === 'corrections-ready') {
+        statusHtml = `<span class="chip chip-rev">✅ Corregido</span>`;
+        actionHtml = `<button class="btn-sign-item" onclick='openSignModal(${JSON.stringify(p)})'>Revisar y firmar ✍️</button>`;
+        borderStyle = 'border-color: #C8921A; border-left: 3px solid #C8921A;';
+    } else if (state === 'pending') {
+        statusHtml = `<span class="chip chip-warn">⏳ Pendiente</span>`;
+        actionHtml = `<button class="btn-sign-item" onclick='openSignModal(${JSON.stringify(p)})'>Firmar ✍️</button>`;
+    } else if (state === 'await-corrections') {
+        statusHtml = `<span class="chip chip-rev" style="background:rgba(243,156,18,0.1);color:#f39c12;border-color:rgba(243,156,18,0.3)">🔄 En revisión</span>`;
+        actionHtml = `<span style="font-size:11px;color:var(--text-muted)">Aguardando<br>al admin</span>`;
+        borderStyle = 'border-color: rgba(243,156,18,0.4);';
+    } else if (state === 'signed') {
+        statusHtml = `<span class="chip chip-ok">✓ Firmado</span>`;
+        actionHtml = `<span class="signed-badge">✓ ${signedDate}</span>`;
+        borderStyle = 'opacity: 0.65;';
+    }
+
+    return `
+    <div class="sign-item" style="${borderStyle}">
+        <div class="sign-item-badge">${docType}</div>
+        <div class="sign-item-body">
+            <div class="proj">${escHtml(projName)}</div>
+            <div class="doc-name">${escHtml(docType)} — ${escHtml(projName)}</div>
+            <div class="role">${escHtml(role)}</div>
+        </div>
+        <div class="sign-item-status">${statusHtml}</div>
+        <div>${actionHtml}</div>
+    </div>`;
+}
+
+function escHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Sign Modal ────────────────────────────────────────────────────────────────
+
+function openSignModal(item) {
+    _currentItem = item;
+    document.getElementById('modalDocBadge').textContent = item.doc_type || '—';
+    document.getElementById('modalTitle').textContent = `Firmar: ${item.doc_type}`;
+    document.getElementById('modalSubtitle').textContent = `Proyecto: ${item.project_name || item.project_id} · Tu rol: ${item.role_label || 'Firmante'}`;
+    document.getElementById('modalSign').classList.add('open');
+    showSignPanel();
+}
+
+function closeModal() {
+    document.getElementById('modalSign').classList.remove('open');
+    clearPin('pinSign');
+    clearPin('pinRevision');
+    document.getElementById('revReason').value = '';
+    document.getElementById('modalSignError').style.display = 'none';
+    document.getElementById('modalRevError').style.display = 'none';
+    _currentItem = null;
+}
+
+function showSignPanel() {
+    document.getElementById('modalSignPanel').style.display = '';
+    document.getElementById('modalRevPanel').style.display = 'none';
+    clearPin('pinSign');
+}
+
+function showRevisionPanel() {
+    document.getElementById('modalSignPanel').style.display = 'none';
+    document.getElementById('modalRevPanel').style.display = '';
+    clearPin('pinRevision');
+}
+
+async function doSign() {
+    if (!_currentItem) return;
+    const pin = pinValue('pinSign');
+    const errEl = document.getElementById('modalSignError');
+    errEl.style.display = 'none';
+
+    if (pin.length !== 6) {
+        errEl.textContent = 'PIN de 6 dígitos requerido.';
+        errEl.style.display = '';
+        return;
+    }
+
+    const btn = document.getElementById('btnConfirmSign');
+    btn.disabled = true; btn.textContent = 'Firmando…';
+
+    const { status, data } = await apiFetch(
+        `/api/projects/${_currentItem.project_id}/signing-rounds/${_currentItem.round_id}/sign`,
+        { method: 'POST', body: JSON.stringify({ pin }) }
+    );
+
+    btn.disabled = false; btn.textContent = '✓ Firmar documento';
+
+    if (status !== 200 || !data.ok) {
+        errEl.textContent = data.error || 'Error al firmar. Verificá tu PIN.';
+        errEl.style.display = '';
+        clearPin('pinSign');
+        return;
+    }
+
+    closeModal();
+    await loadDash();
+}
+
+async function doRequestRevision() {
+    if (!_currentItem) return;
+    const pin = pinValue('pinRevision');
+    const reason = document.getElementById('revReason').value.trim();
+    const errEl = document.getElementById('modalRevError');
+    errEl.style.display = 'none';
+
+    if (!reason) {
+        errEl.textContent = 'Describí las observaciones antes de enviar.';
+        errEl.style.display = '';
+        return;
+    }
+    if (pin.length !== 6) {
+        errEl.textContent = 'PIN de 6 dígitos requerido.';
+        errEl.style.display = '';
+        return;
+    }
+
+    const { status, data } = await apiFetch(
+        `/api/projects/${_currentItem.project_id}/signing-rounds/${_currentItem.round_id}/request-revision`,
+        { method: 'POST', body: JSON.stringify({ reason, pin }) }
+    );
+
+    if (status !== 200 || !data.ok) {
+        errEl.textContent = data.error || 'Error al enviar la solicitud.';
+        errEl.style.display = '';
+        clearPin('pinRevision');
+        return;
+    }
+
+    closeModal();
+    await loadDash();
+}
+
+// ── Logout ────────────────────────────────────────────────────────────────────
+
+async function doLogout() {
+    await apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
+    location.href = '/login.html';
+}
+
+// Close modal on backdrop click
+document.getElementById('modalSign').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+});
+</script>
+</body>
+</html>

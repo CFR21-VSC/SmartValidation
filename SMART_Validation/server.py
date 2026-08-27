@@ -301,6 +301,23 @@ def _db_init():
             updated_at REAL NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_mapeo_owner ON mapeo_projects(owner, updated_at);
+
+        CREATE TABLE IF NOT EXISTS invitations (
+            id           TEXT PRIMARY KEY,
+            token        TEXT UNIQUE NOT NULL,
+            email        TEXT NOT NULL,
+            username     TEXT NOT NULL,
+            display_name TEXT,
+            round_id     TEXT,
+            proj_id      TEXT,
+            created_by   TEXT,
+            expires_at   REAL NOT NULL,
+            used_at      REAL,
+            created_at   REAL NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_inv_token    ON invitations(token);
+        CREATE INDEX IF NOT EXISTS idx_inv_email    ON invitations(email);
+        CREATE INDEX IF NOT EXISTS idx_inv_round    ON invitations(round_id);
     """)
     db.commit()
     # Migraciones en caliente (idempotentes — ignorar si la columna ya existe)
@@ -327,6 +344,11 @@ def _db_init():
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_doc_proj_type ON documents(project_id, doc_type)",
         "ALTER TABLE signing_round_signers ADD COLUMN revision_fulfilled_at REAL",
         "ALTER TABLE signing_round_signers ADD COLUMN revision_fulfilled_by TEXT",
+        # F1 — Circuito de firmas unificado: email del firmante + flag de invitación enviada
+        "ALTER TABLE signing_round_signers ADD COLUMN email TEXT",
+        "ALTER TABLE signing_round_signers ADD COLUMN invite_sent_at REAL",
+        # F1 — Usuarios provisionales (creados por invitación, sin PIN todavía)
+        "ALTER TABLE users ADD COLUMN is_provisional INTEGER DEFAULT 0",
     ]:
         try:
             db.execute(_migration)
@@ -388,6 +410,8 @@ _RE_SIGNING_ROUNDS     = re.compile(r'^/api/projects/([^/]+)/signing-rounds$')
 _RE_SIGNING_ROUND_ID   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)$')
 _RE_SIGNING_ROUND_SIGN = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/sign$')
 _RE_SIGNING_ROUND_REV  = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/request-revision$')
+_RE_INVITE_TOKEN    = re.compile(r'^/auth/invite/([A-Za-z0-9_-]{40,})$')
+_RE_INVITE_ACTIVATE = re.compile(r'^/auth/invite/([A-Za-z0-9_-]{40,})/activate$')
 _RE_SIGNING_ROUND_SEAL   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/seal$')
 _RE_SIGNING_ROUND_CANCEL = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/cancel$')
 _RE_DOC_REVISIONS  = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/revisions$')
@@ -682,6 +706,35 @@ def _create_token(username: str, display: str, role: str) -> str:
     sig = hmac.HMAC(_AUTH_SECRET.encode(), payload_str.encode(), hashlib.sha256).hexdigest()
     data = json.dumps({"u": username, "d": display, "r": role, "e": expires, "n": nonce, "s": sig})
     return base64.urlsafe_b64encode(data.encode()).decode()
+
+
+def _issue_session(username: str) -> str | None:
+    """Genera un token de sesión para username y lo registra en auth_sessions.
+    Devuelve el header Set-Cookie listo para usar, o None si no hay AUTH_SECRET."""
+    if not _AUTH_SECRET:
+        return None
+    db = _get_db()
+    row = db.execute("SELECT display_name, role FROM users WHERE username=?", (username,)).fetchone()
+    if not row:
+        return None
+    display = row["display_name"] or username
+    role    = row["role"] or "client"
+    token   = _create_token(username, display, role)
+    now     = time.time()
+    try:
+        tok_data = json.loads(base64.urlsafe_b64decode(token.encode()).decode())
+        nonce    = tok_data.get("n", "")
+        if nonce:
+            db.execute("DELETE FROM auth_sessions WHERE username=?", (username,))
+            db.execute("INSERT INTO auth_sessions (nonce, username, created_at, ip) VALUES (?,?,?,?)",
+                       (nonce, username, now, "invite"))
+            db.commit()
+    except Exception:
+        pass
+    max_age   = _TOKEN_EXPIRE_H * 3600
+    secure    = "; Secure" if _IS_PROD else ""
+    same_site = "Strict" if _IS_PROD else "Lax"
+    return f"smart_token={token}; HttpOnly{secure}; SameSite={same_site}; Max-Age={max_age}; Path=/"
 
 
 def _decode_token(token: str) -> dict:
@@ -1017,6 +1070,92 @@ def _notify_revision_requested(proj_id: str, doc_type: str,
                        "Ver dashboard de revisión", dashboard_url)
     for admin in admins:
         _send_email(admin["email"], subject, html)
+
+
+def _create_invitation(email: str, display_name: str, round_id: str, proj_id: str,
+                       created_by: str) -> str:
+    """Crea (o reutiliza) una invitación para el email dado. Devuelve el token."""
+    import secrets as _sec
+    db = _get_db()
+    # Reutilizar invitación no usada si ya existe para este email+round
+    existing = db.execute(
+        "SELECT token FROM invitations WHERE email=? AND round_id=? AND used_at IS NULL AND expires_at > ?",
+        (email.lower(), round_id, time.time())
+    ).fetchone()
+    if existing:
+        return existing["token"]
+
+    token = _sec.token_urlsafe(32)
+    inv_id = str(uuid.uuid4())
+    now = time.time()
+    # Normalizar username desde email (parte local, sanitizada)
+    base_user = email.split("@")[0].lower()
+    base_user = "".join(c for c in base_user if c.isalnum() or c in "-_")[:30] or "signer"
+    # Asegurar unicidad del username
+    username = base_user
+    suffix = 1
+    while db.execute("SELECT id FROM users WHERE username=?", (username,)).fetchone():
+        username = f"{base_user}{suffix}"; suffix += 1
+
+    # Crear usuario provisional si no existe ninguno con este email
+    existing_user = db.execute("SELECT username FROM users WHERE email=?", (email.lower(),)).fetchone()
+    if not existing_user:
+        uid = str(uuid.uuid4())
+        db.execute(
+            "INSERT INTO users (id, username, display_name, email, role, is_active, is_provisional, created_by, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, 'client', 1, 1, ?, ?, ?)",
+            (uid, username, display_name or base_user, email.lower(), created_by, now, now)
+        )
+    else:
+        username = existing_user["username"]
+
+    db.execute(
+        "INSERT INTO invitations (id, token, email, username, display_name, round_id, proj_id, created_by, expires_at, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (inv_id, token, email.lower(), username, display_name, round_id, proj_id, created_by, now + 72*3600, now)
+    )
+    db.commit()
+    return token
+
+
+def _notify_invitation(email: str, display_name: str, token: str,
+                       proj_name: str, doc_type: str, is_returning: bool) -> None:
+    """Email de invitación con magic link al portal de firmas."""
+    pub_url = _ALLOWED_ORIGIN.rstrip("/") if _ALLOWED_ORIGIN not in ("*", "null") else ""
+    firmas_url = f"{pub_url}/firmas/?token={token}"
+    nombre = _html_mod.escape(display_name or email)
+    dtype  = _html_mod.escape(doc_type)
+    pname  = _html_mod.escape(proj_name)
+
+    if is_returning:
+        subject = f"[SMART Validation] Firma pendiente: {doc_type} — {proj_name}"
+        body = (
+            f"<p>Hola {nombre},</p>"
+            f"<p>Tenés una firma pendiente en el documento <strong>{dtype}</strong> "
+            f"del proyecto <strong>{pname}</strong>.</p>"
+            f"<p>Ingresá con tu PIN habitual en el portal de firmas.</p>"
+        )
+    else:
+        subject = f"[SMART Validation] Invitación para firmar: {doc_type} — {proj_name}"
+        body = (
+            f"<p>Hola {nombre},</p>"
+            f"<p>Fuiste invitado a revisar y firmar el documento <strong>{dtype}</strong> "
+            f"del proyecto <strong>{pname}</strong>.</p>"
+            f"<p>Hacé clic en el botón para configurar tu PIN de firma y acceder al portal. "
+            f"Este enlace es válido por 72 horas.</p>"
+        )
+
+    if not _RESEND_API_KEY:
+        # Sin email configurado — loguear el link para compartir manualmente
+        sys.stderr.write(f"[invite] Magic link para {email}: {firmas_url}\n")
+        return
+
+    _send_email(
+        email,
+        subject,
+        _email_html("Firma de documento GxP — SMART Validation", body,
+                    "Ir al portal de firmas", firmas_url)
+    )
 
 
 def _notify_revision_fulfilled(proj_id: str, doc_type: str, reviewer_username: str, admin_display: str) -> None:
@@ -1619,6 +1758,102 @@ class SyncHandler(BaseHTTPRequestHandler):
         self.send_header("Set-Cookie", cookie)
         self.end_headers()
         self.wfile.write(body)
+
+    def _auth_invite_check(self, token: str):
+        """GET /auth/invite/{token} — valida el token de invitación. Público."""
+        db = _get_db()
+        now = time.time()
+        inv = db.execute(
+            "SELECT email, display_name, username, round_id, proj_id, expires_at, used_at "
+            "FROM invitations WHERE token=?", (token,)
+        ).fetchone()
+        if not inv:
+            return self._send_json(404, {"ok": False, "error": "Invitación no encontrada"})
+        if inv["used_at"]:
+            return self._send_json(409, {"ok": False, "error": "Esta invitación ya fue utilizada", "already_used": True})
+        if inv["expires_at"] < now:
+            return self._send_json(410, {"ok": False, "error": "La invitación expiró", "expired": True})
+        # El usuario ya configuró PIN? (lo encontramos y no es provisional)
+        user_row = db.execute("SELECT is_provisional, pin_hash FROM users WHERE username=?",
+                              (inv["username"],)).fetchone()
+        already_active = user_row and not user_row["is_provisional"] and user_row["pin_hash"]
+        return self._send_json(200, {
+            "ok": True,
+            "email": inv["email"],
+            "display_name": inv["display_name"],
+            "username": inv["username"],
+            "round_id": inv["round_id"],
+            "proj_id": inv["proj_id"],
+            "already_active": bool(already_active),
+        })
+
+    def _auth_invite_activate(self, token: str):
+        """POST /auth/invite/{token}/activate — redime el token y configura PIN."""
+        data = self._read_json_body()
+        if not isinstance(data, dict):
+            return self._send_json(400, {"ok": False, "error": "Body JSON requerido"})
+        pin = str(data.get("pin", "")).strip()
+        display_name = str(data.get("display_name", "")).strip()[:80]
+        if len(pin) < 6 or not pin.isdigit():
+            return self._send_json(400, {"ok": False, "error": "PIN debe ser de 6 a 8 dígitos numéricos"})
+
+        db = _get_db()
+        now = time.time()
+        inv = db.execute(
+            "SELECT email, username, display_name, round_id, proj_id, expires_at, used_at "
+            "FROM invitations WHERE token=?", (token,)
+        ).fetchone()
+        if not inv:
+            return self._send_json(404, {"ok": False, "error": "Invitación no encontrada"})
+        if inv["expires_at"] < now:
+            return self._send_json(410, {"ok": False, "error": "La invitación expiró"})
+
+        # Determinar si el usuario ya tiene PIN configurado (returning user)
+        user_row = db.execute(
+            "SELECT pin_hash, is_provisional FROM users WHERE username=?", (inv["username"],)
+        ).fetchone()
+        is_returning = user_row and not user_row["is_provisional"] and user_row["pin_hash"]
+
+        if is_returning:
+            # Returning user: verify existing PIN (don't overwrite)
+            if not _pbkdf2_verify(pin, user_row["pin_hash"]):
+                return self._send_json(401, {"ok": False, "error": "PIN incorrecto"})
+            # Re-mark invitation used so the same link can't be replayed
+            db.execute("UPDATE invitations SET used_at=? WHERE token=?", (now, token))
+            db.commit()
+        else:
+            # New user: set PIN from this activation
+            if inv["used_at"]:
+                return self._send_json(409, {"ok": False, "error": "Esta invitación ya fue utilizada"})
+            pin_hash = _pbkdf2_hash(pin)
+            final_display = display_name or inv["display_name"] or inv["username"]
+            db.execute(
+                "UPDATE users SET pin_hash=?, pin_set=1, is_provisional=0, display_name=?, updated_at=? "
+                "WHERE username=?",
+                (pin_hash, final_display, now, inv["username"])
+            )
+            db.execute("UPDATE invitations SET used_at=? WHERE token=?", (now, token))
+            db.commit()
+
+        final_display = display_name or inv["display_name"] or inv["username"]
+        # Iniciar sesión automáticamente
+        session_data = _issue_session(inv["username"])
+        resp_body = json.dumps({
+            "ok": True,
+            "username": inv["username"],
+            "displayName": final_display,
+            "role": "client",
+            "round_id": inv["round_id"],
+            "proj_id": inv["proj_id"],
+        }).encode()
+        self.send_response(200)
+        self._set_cors_headers()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(resp_body)))
+        if session_data:
+            self.send_header("Set-Cookie", session_data)
+        self.end_headers()
+        self.wfile.write(resp_body)
 
     def _auth_change_credentials(self, user):
         """Cambio obligatorio de credenciales en primer acceso (o voluntario posterior).
@@ -3811,8 +4046,7 @@ class SyncHandler(BaseHTTPRequestHandler):
         ).fetchone()
         if not doc:
             return self._send_json(404, {"ok": False, "error": "Documento no encontrado"})
-        # ADV-15: verificar que todos los firmantes existen en el sistema
-        # Un solo SELECT con IN en lugar de 1 query por firmante (evita N+1).
+        # ADV-15: verificar/resolver firmantes. Acepta username (existente) o email (invitación).
         _signer_names = [
             str(s.get("username", "")).strip()
             for s in signers[:50]
@@ -3826,7 +4060,7 @@ class SyncHandler(BaseHTTPRequestHandler):
             _user_map = {
                 r["username"]: r
                 for r in db.execute(
-                    f"SELECT username, id, display_name FROM users "
+                    f"SELECT username, id, display_name, email FROM users "
                     f"WHERE username IN ({_ph}) AND is_active=1",
                     _signer_names,
                 ).fetchall()
@@ -3834,21 +4068,73 @@ class SyncHandler(BaseHTTPRequestHandler):
         else:
             _user_map = {}
 
+        # Preload email→user map for email-only signers
+        _signer_emails = [
+            str(s.get("email", "")).strip().lower()
+            for s in signers[:50]
+            if str(s.get("email", "")).strip() and not str(s.get("username", "")).strip()
+        ]
+        _email_map = {}
+        if _signer_emails:
+            _eph = ",".join("?" * len(_signer_emails))
+            _email_map = {
+                r["email"]: r
+                for r in db.execute(
+                    f"SELECT username, id, display_name, email FROM users "
+                    f"WHERE email IN ({_eph}) AND is_active=1",
+                    _signer_emails,
+                ).fetchall()
+            }
+
         valid_signers = []
-        _seen_signers = set()
+        _seen_signers = set()  # tracks username or email to avoid duplicates
         for s in signers[:50]:
             s_username = str(s.get("username", "")).strip()
+            s_email    = str(s.get("email", "")).strip().lower()
+            s_name     = str(s.get("display_name", "")).strip()[:200]
             s_role     = str(s.get("role_label", "Revisor")).strip()[:200]
-            if not s_username or s_username in _seen_signers:
+
+            dedup_key = s_username or s_email
+            if not dedup_key or dedup_key in _seen_signers:
                 continue
-            _seen_signers.add(s_username)
-            u_row = _user_map.get(s_username)
-            if not u_row:
-                return self._send_json(400, {
-                    "ok": False,
-                    "error": f"El usuario '{s_username}' no existe o no está activo en el sistema."
+            _seen_signers.add(dedup_key)
+
+            if s_username:
+                u_row = _user_map.get(s_username)
+                if not u_row:
+                    return self._send_json(400, {
+                        "ok": False,
+                        "error": f"El usuario '{s_username}' no existe o no está activo en el sistema."
+                    })
+                valid_signers.append({
+                    "username": s_username,
+                    "display": u_row["display_name"] or s_username,
+                    "role": s_role,
+                    "email": u_row["email"] or "",
+                    "invite_token": None,
                 })
-            valid_signers.append({"username": s_username, "display": u_row["display_name"] or s_username, "role": s_role})
+            elif s_email:
+                # Email-only signer — use existing user or create provisional + invitation
+                u_row = _email_map.get(s_email)
+                if u_row:
+                    valid_signers.append({
+                        "username": u_row["username"],
+                        "display": s_name or u_row["display_name"] or s_email,
+                        "role": s_role,
+                        "email": s_email,
+                        "invite_token": None,  # existing user: notify via regular email
+                    })
+                else:
+                    # Will create invitation after round_id is committed
+                    valid_signers.append({
+                        "username": None,  # resolved after _create_invitation
+                        "display": s_name or s_email.split("@")[0],
+                        "role": s_role,
+                        "email": s_email,
+                        "invite_token": "__pending__",
+                    })
+            else:
+                continue  # skip malformed entry
 
         if not valid_signers:
             return self._send_json(400, {"ok": False, "error": "signers requerido (array con al menos un firmante válido)"})
@@ -3856,6 +4142,22 @@ class SyncHandler(BaseHTTPRequestHandler):
         doc_hash = hashlib.sha256(doc["json_data"].encode("utf-8")).hexdigest()
         now = time.time()
         round_id = str(uuid.uuid4())
+        proj_row = db.execute("SELECT name FROM projects WHERE id=?", (proj_id,)).fetchone()
+        proj_name = proj_row["name"] if proj_row else proj_id
+
+        # Resolve pending invitations BEFORE the IMMEDIATE transaction.
+        # _create_invitation calls db.commit() internally, which would commit the
+        # outer BEGIN IMMEDIATE early. Safe here because round_id was already generated.
+        for s in valid_signers:
+            if s["invite_token"] == "__pending__":
+                token = _create_invitation(
+                    s["email"], s["display"], round_id, proj_id, user.get("u")
+                )
+                s["invite_token"] = token
+                inv_user = db.execute(
+                    "SELECT username FROM invitations WHERE token=?", (token,)
+                ).fetchone()
+                s["username"] = inv_user["username"] if inv_user else s["email"].split("@")[0]
 
         # ADV-07: BEGIN IMMEDIATE para hacer atómica la verificación de ronda + creación
         db.execute("BEGIN IMMEDIATE")
@@ -3883,9 +4185,9 @@ class SyncHandler(BaseHTTPRequestHandler):
 
             for s in valid_signers:
                 db.execute("""
-                    INSERT INTO signing_round_signers (round_id, username, display_name, role_label)
-                    VALUES (?, ?, ?, ?)
-                """, (round_id, s["username"], s["display"], s["role"]))
+                    INSERT INTO signing_round_signers (round_id, username, display_name, role_label, email)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (round_id, s["username"], s["display"], s["role"], s["email"] or None))
                 # Garantizar acceso al proyecto para que el firmante pueda ver la firma pendiente
                 db.execute("""
                     INSERT OR IGNORE INTO project_access (user_id, project_id, access_level, granted_by, granted_at)
@@ -3908,16 +4210,30 @@ class SyncHandler(BaseHTTPRequestHandler):
                 pass
             raise
 
-        # Notificar a los firmantes por email (async — no bloquea la respuesta)
-        _notify_round_created(proj_id, doc_type, round_id, user.get("d") or user.get("u"))
-        return self._send_json(200, {"ok": True, "round_id": round_id})
+        # Notificar firmantes por email
+        # — invitados por primera vez: magic link
+        # — usuarios ya registrados: notificación estándar
+        for s in valid_signers:
+            if s.get("invite_token") and s["invite_token"] != "__pending__":
+                # Check if they already had a PIN (returning user)
+                has_pin = bool(db.execute(
+                    "SELECT pin_hash FROM users WHERE username=? AND pin_hash IS NOT NULL",
+                    (s["username"],)
+                ).fetchone())
+                _notify_invitation(
+                    s["email"], s["display"], s["invite_token"],
+                    proj_name, doc_type, is_returning=has_pin
+                )
+            elif s.get("email"):
+                _notify_round_created(proj_id, doc_type, round_id, user.get("d") or user.get("u"))
+        return self._send_json(200, {"ok": True, "round_id": round_id, "round": {"id": round_id}})
 
     def _signing_round_sign(self, proj_id, round_id, user):
         """Firma un revisor con su PIN."""
         if not _is_valid_proj_id(proj_id) or not _is_valid_uuid(round_id):
             return self._send_json(404, {"ok": False, "error": "Ronda no encontrada"})
-        if user.get("r") != "client":
-            return self._send_json(403, {"ok": False, "error": "Solo revisores pueden firmar aquí"})
+        if user.get("r") not in ("client", "admin", "auditor", "superadmin"):
+            return self._send_json(403, {"ok": False, "error": "Rol no autorizado para firmar"})
 
         # A-2: rate limit — máx 5 intentos de firma por IP por minuto
         ip = self._get_client_ip()
@@ -4545,6 +4861,8 @@ class SyncHandler(BaseHTTPRequestHandler):
             path = "/index.html"
         elif path in ("/client", "/client/"):
             path = "/client/index.html"
+        elif path in ("/firmas", "/firmas/"):
+            path = "/firmas/index.html"
 
         # Sanitizar path — pathlib.resolve() resuelve ../ y symlinks
         # antes de comparar contra ROOT_DIR (inmune a encoding alternativo)
@@ -4780,7 +5098,9 @@ class SyncHandler(BaseHTTPRequestHandler):
 
         # ── Verificar autenticación para el resto ────────────────────────────
         user = _check_auth(self)
-        if _is_auth_required():
+        # /firmas es público — el portal maneja su propia autenticación vía token o PIN
+        _is_firmas = path in ("/firmas", "/firmas/", "/firmas/index.html")
+        if _is_auth_required() and not _is_firmas:
             if not user:
                 if path in ("/", "", "/client", "/client/") or path.endswith(".html"):
                     return self._redirect_to_login()
@@ -4791,9 +5111,13 @@ class SyncHandler(BaseHTTPRequestHandler):
                 return self._send_json(401, {"ok": False, "error": "Sesión reemplazada. Iniciá sesión nuevamente.", "code": "SUPERSEDED"})
 
         # ── Route guard por rol ───────────────────────────────────────────────
-        # Clientes: solo pueden acceder a /client/* (no a la app principal)
+        # Clientes: pueden acceder a /client/* y /firmas/* (no a la app principal)
         if user and user.get("r") == "client":
-            is_html = path in ("/", "") or (path.endswith(".html") and not path.startswith("/client/"))
+            is_html = path in ("/", "") or (
+                path.endswith(".html")
+                and not path.startswith("/client/")
+                and not path.startswith("/firmas/")
+            )
             if is_html:
                 self.send_response(302)
                 self.send_header("Location", "/client/")
@@ -4976,6 +5300,13 @@ class SyncHandler(BaseHTTPRequestHandler):
             return self._handle_auth_login()
         if path == "/auth/logout":
             return self._handle_auth_logout()
+        # Invitaciones — públicas (no requieren sesión)
+        m = _RE_INVITE_ACTIVATE.match(path)
+        if m:
+            return self._auth_invite_activate(m.group(1))
+        m = _RE_INVITE_TOKEN.match(path)
+        if m:
+            return self._auth_invite_check(m.group(1))
         if path == "/auth/change-credentials":
             u = _check_auth(self)
             if not u:
