@@ -392,6 +392,7 @@ _RE_SIGNING_ROUND_SEAL   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([
 _RE_SIGNING_ROUND_CANCEL = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/cancel$')
 _RE_DOC_REVISIONS  = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/revisions$')
 _RE_REV_FULFILL    = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/fulfill/([^/]+)$')
+_RE_REV_DISCARD    = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/discard-revision/([^/]+)$')
 _RE_PROJ_PHOTOS   = re.compile(r'^/api/projects/([^/]+)/photos$')
 _RE_PROJ_PHOTO_ID = re.compile(r'^/api/projects/([^/]+)/photos/([^/]+)$')
 _RE_EVIDENCE_BULK = re.compile(r'^/api/projects/([^/]+)/evidence$')
@@ -4233,6 +4234,42 @@ class SyncHandler(BaseHTTPRequestHandler):
         )
         return self._send_json(200, {"ok": True})
 
+    def _api_rev_discard(self, proj_id, round_id, username, user):
+        """POST — admin descarta una solicitud de revisión de un firmante."""
+        if user.get("r") != "admin":
+            return self._send_json(403, {"ok": False, "error": "Solo admin"})
+        if not _is_valid_proj_id(proj_id) or not _is_valid_uuid(round_id):
+            return self._send_json(404, {"ok": False, "error": "No encontrado"})
+        db = _get_db()
+        row = db.execute(
+            "SELECT id FROM signing_round_signers WHERE round_id=? AND username=? AND revision_requested_at IS NOT NULL",
+            (round_id, username)
+        ).fetchone()
+        if not row:
+            return self._send_json(404, {"ok": False, "error": "Revisión no encontrada"})
+        # Clear revision fields
+        db.execute(
+            """UPDATE signing_round_signers
+               SET revision_requested_at=NULL, revision_reason=NULL,
+                   revision_fulfilled_at=NULL, revision_fulfilled_by=NULL
+               WHERE round_id=? AND username=?""",
+            (round_id, username)
+        )
+        # If round was cancelled and no more pending revisions, reopen it
+        remaining = db.execute(
+            "SELECT COUNT(*) FROM signing_round_signers WHERE round_id=? AND revision_requested_at IS NOT NULL",
+            (round_id,)
+        ).fetchone()[0]
+        rnd = db.execute("SELECT status, project_id, doc_type FROM signing_rounds WHERE id=?", (round_id,)).fetchone()
+        if rnd and rnd["status"] == "cancelled" and remaining == 0:
+            db.execute("UPDATE signing_rounds SET status='open' WHERE id=?", (round_id,))
+            # Also reset doc status if it was needs_revision
+            db.execute(
+                "UPDATE documents SET status='draft' WHERE project_id=? AND doc_type=? AND status='needs_revision'",
+                (rnd["project_id"], rnd["doc_type"])
+            )
+        return self._send_json(200, {"ok": True})
+
     def _signing_round_cancel(self, proj_id, round_id, user):
         """Admin cancela una ronda abierta y devuelve el documento a borrador."""
         if user.get("r") != "admin":
@@ -4899,6 +4936,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_REV_FULFILL.match(path)
         if m:
             return self._api_rev_fulfill(m.group(1), m.group(2), m.group(3), user)
+        m = _RE_REV_DISCARD.match(path)
+        if m:
+            return self._api_rev_discard(m.group(1), m.group(2), m.group(3), user)
         m = _RE_PROJ_DOC.match(path)
         if m:
             return self._api_doc_upsert(m.group(1), m.group(2), user)

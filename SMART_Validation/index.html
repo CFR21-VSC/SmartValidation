@@ -4234,8 +4234,14 @@
                                 <span style="font-size:11px;color:#4a6a86;"> · v${rev.doc_version||1} · ${fmtTs(rev.revision_requested_at)}</span>
                             </div>
                             ${isFulfilled
-                                ? `<span style="font-size:10px;color:#27c459;font-weight:700;">✓ Cumplida</span>`
-                                : `<button onclick="_vsMarkFulfilled('${rev.round_id}','${rev.username}')" style="background:#0e2820;border:1px solid #1e4830;color:#27c459;border-radius:5px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;">✓ Cumplida</button>`}
+                                ? `<div style="display:flex;gap:6px;flex-shrink:0;align-items:center;">
+                                    <span style="font-size:10px;color:#27c459;font-weight:700;">✓ Cumplida</span>
+                                    <button onclick="_vsDiscardRevision('${rev.round_id}','${rev.username}')" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:5px;padding:3px 6px;font-size:10px;cursor:pointer;">✕</button>
+                                   </div>`
+                                : `<div style="display:flex;gap:6px;flex-shrink:0;">
+                                    <button onclick="_vsMarkFulfilled('${rev.round_id}','${rev.username}')" style="background:#0e2820;border:1px solid #1e4830;color:#27c459;border-radius:5px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;">✓ Cumplida</button>
+                                    <button onclick="_vsDiscardRevision('${rev.round_id}','${rev.username}')" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:5px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;">✕ Descartar</button>
+                                   </div>`}
                         </div>
                         <ul style="margin:8px 0 0 0;padding-left:16px;${isFulfilled ? 'opacity:0.5;' : ''}">
                             ${points.filter(Boolean).map(p => `<li style="font-size:12px;color:#b8cce0;margin-bottom:3px;">${p.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</li>`).join('')}
@@ -4255,6 +4261,17 @@
                 const projId = localStorage.getItem('vscActiveProjectId');
                 if (!projId) return;
                 const r = await fetch(`/api/projects/${projId}/signing-rounds/${roundId}/fulfill/${username}`, {
+                    method: 'POST', credentials: 'include', headers:{'Content-Type':'application/json'}, body:'{}',
+                }).then(r=>r.json()).catch(()=>null);
+                if (r?.ok) _vsLoadRevisiones();
+                else alert('Error: ' + (r?.error || 'desconocido'));
+            };
+
+            window._vsDiscardRevision = async function(roundId, username) {
+                if (!confirm('¿Descartar esta solicitud de revisión? La ronda se reabrirá si no quedan otras revisiones pendientes.')) return;
+                const projId = localStorage.getItem('vscActiveProjectId');
+                if (!projId) return;
+                const r = await fetch(`/api/projects/${projId}/signing-rounds/${roundId}/discard-revision/${username}`, {
                     method: 'POST', credentials: 'include', headers:{'Content-Type':'application/json'}, body:'{}',
                 }).then(r=>r.json()).catch(()=>null);
                 if (r?.ok) _vsLoadRevisiones();
@@ -4547,10 +4564,10 @@
           <option value="">— Seleccioná un proyecto —</option>
         </select>
 
-        <div style="font-size:11px;color:#4a6a86;text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px;">Documento</div>
-        <select id="cr-doc" style="width:100%;background:#0b1621;border:1.5px solid #1e3550;border-radius:8px;padding:9px 12px;font-size:13px;color:#dde6f0;outline:none;margin-bottom:12px;">
-          <option value="">— Seleccioná un documento —</option>
-        </select>
+        <div style="font-size:11px;color:#4a6a86;text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px;">Documentos</div>
+        <div id="rdDocCheckboxes" style="max-height:180px;overflow-y:auto;border:1px solid #1F3C56;border-radius:6px;padding:6px;margin-bottom:12px;">
+          <div style="color:#4a6a86;font-size:12px;padding:6px 8px;">— Seleccioná un proyecto primero —</div>
+        </div>
 
         <div style="font-size:11px;color:#4a6a86;text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;">Firmantes requeridos</div>
         <div id="cr-signers-list" style="margin-bottom:10px;"></div>
@@ -4722,9 +4739,12 @@
 
     async function rdLoadDocs() {
       const projId = document.getElementById('cr-proj').value;
-      const sel = document.getElementById('cr-doc');
-      sel.innerHTML = '<option value="">— Seleccioná un documento —</option>';
-      if (!projId) return;
+      const container = document.getElementById('rdDocCheckboxes');
+      container.innerHTML = '<div style="color:#4a6a86;font-size:12px;padding:6px 8px;">Cargando...</div>';
+      if (!projId) {
+        container.innerHTML = '<div style="color:#4a6a86;font-size:12px;padding:6px 8px;">— Seleccioná un proyecto primero —</div>';
+        return;
+      }
       const r = await fetch(`/api/projects/${projId}/documents`, { credentials:'include' }).then(r=>r.json()).catch(()=>null);
       const DOC_NAMES_ADMIN = {
         HLRA:'High Level Risk Assessment', VP:'Validation Plan', URS:'User Requirements Spec.',
@@ -4736,14 +4756,20 @@
         NCR:'Non-Conformance Report', VSR:'Validation Summary Report',
       };
       const STATUS_LABEL = { draft:'borrador', for_review:'en revisión', approved:'aprobado' };
-      (r?.documents||[]).forEach(d => {
-        const opt = document.createElement('option');
-        opt.value = d.doc_type;
+      const docs = r?.documents || [];
+      if (!docs.length) {
+        container.innerHTML = '<div style="color:#4a6a86;font-size:12px;padding:6px 8px;">Sin documentos disponibles.</div>';
+        return;
+      }
+      container.innerHTML = docs.map(d => {
         const fullName = DOC_NAMES_ADMIN[d.doc_type] || d.doc_type;
         const st = STATUS_LABEL[d.status] || d.status;
-        opt.textContent = `${d.doc_type} — ${fullName} (v${d.version||1}) [${st}]`;
-        sel.appendChild(opt);
-      });
+        const label = `${d.doc_type} — ${fullName} (v${d.version||1}) [${st}]`;
+        return `<label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;border-radius:4px;font-size:13px;color:#b8cce0;">
+          <input type="checkbox" value="${esc(d.doc_type)}" style="accent-color:#C8921A;">
+          ${esc(label)}
+        </label>`;
+      }).join('');
     }
 
     let _rdUsers = null;
@@ -4815,13 +4841,18 @@
 
     async function submitCreateRound() {
       const projId  = document.getElementById('cr-proj').value;
-      const docType = document.getElementById('cr-doc').value;
       const errEl   = document.getElementById('cr-error');
       const btn     = document.getElementById('cr-submit');
       errEl.style.display = 'none';
 
-      if (!projId || !docType) {
-        errEl.textContent = 'Seleccioná proyecto y documento.';
+      if (!projId) {
+        errEl.textContent = 'Seleccioná un proyecto.';
+        errEl.style.display = 'block'; return;
+      }
+
+      const checkedTypes = [...document.querySelectorAll('#rdDocCheckboxes input[type=checkbox]:checked')].map(cb => cb.value);
+      if (!checkedTypes.length) {
+        errEl.textContent = 'Seleccioná al menos un documento.';
         errEl.style.display = 'block'; return;
       }
 
@@ -4841,16 +4872,24 @@
       }
 
       btn.disabled = true; btn.textContent = 'Creando...';
-      const r = await fetch(`/api/projects/${projId}/signing-rounds`, {
-        method:'POST', credentials:'include',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ doc_type: docType, signers }),
-      }).then(r=>r.json()).catch(()=>null);
+      let created = 0, errors = 0;
+      for (const docType of checkedTypes) {
+        const r = await fetch(`/api/projects/${projId}/signing-rounds`, {
+          method:'POST', credentials:'include',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ doc_type: docType, signers }),
+        }).then(r=>r.json()).catch(()=>null);
+        if (r?.ok) created++; else errors++;
+      }
       btn.disabled = false; btn.textContent = 'Crear ronda';
 
-      if (!r?.ok) { errEl.textContent = r?.error||'Error.'; errEl.style.display='block'; return; }
-      closeCreateRoundModal();
-      loadReviewDashboard();
+      if (errors) {
+        errEl.textContent = `${created} ronda(s) creada(s), ${errors} error(es).`;
+        errEl.style.display = 'block';
+      } else {
+        closeCreateRoundModal();
+        loadReviewDashboard();
+      }
     }
     </script>
 
