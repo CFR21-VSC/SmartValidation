@@ -277,7 +277,9 @@ const S = {
   user: null,
   projId: null, projName: null,
   docType: null, pdfBlobUrl: null,
-  activeRound: null,  // ronda abierta del doc actual
+  activeRound: null,         // ronda abierta del doc actual
+  correctionsPollInterval: null, // polling para correcciones cumplidas
+  _mySignerData: null,       // entrada del revisor en la ronda activa
 };
 
 const DOC_NAMES = {
@@ -492,11 +494,29 @@ async function goDoc(projId, projName, docType, roundId) {
     ? rounds.find(r => r.id === roundId)
     : rounds.find(r => r.doc_type === S.docType && r.status === 'open');
 
+  if (S.correctionsPollInterval) {
+    clearInterval(S.correctionsPollInterval);
+    S.correctionsPollInterval = null;
+  }
+
   if (activeRound) {
     const roundDetail = await api('GET', `/api/projects/${S.projId}/signing-rounds/${activeRound.id}`);
     if (roundDetail?.ok) {
       S.activeRound = roundDetail;
       renderRoundStatus(roundDetail);
+    }
+    // Iniciar polling si el revisor tiene revisión pendiente sin cumplir
+    const mySignerData = (roundDetail?.signers || [])[0];
+    if (mySignerData?.revision_requested_at && !mySignerData?.revision_fulfilled_at) {
+      S.correctionsPollInterval = setInterval(async () => {
+        const rev = await api('GET', `/api/projects/${S.projId}/signing-rounds/${S.activeRound.round.id}/my-revisions`);
+        if (rev?.all_fulfilled) {
+          clearInterval(S.correctionsPollInterval);
+          S.correctionsPollInterval = null;
+          showToast('✔ El administrador completó las correcciones. Ya podés validar y firmar.');
+          await goDoc(null, null, null, S.activeRound.round.id);
+        }
+      }, 30000);
     }
   }
 
@@ -531,16 +551,51 @@ function renderRoundStatus(detail) {
   const bar = document.getElementById('round-status-bar');
   const actPanel = document.getElementById('sign-actions-panel');
 
-  // Mi entrada en la ronda
-  const me = signers[0]; // El revisor solo ve su propia fila
+  // Mi entrada en la ronda (el revisor solo ve su propia fila)
+  const me = signers[0];
+  // Guardar en estado global para uso de proceedToSign y polling
+  S._mySignerData = me || null;
 
   let statusHtml = '';
   if (me) {
     if (me.signed_at) {
       statusHtml = `<div class="alert alert-success" style="margin-bottom:12px;">✅ Firmaste este documento como <strong>${esc(me.role_label)}</strong> el ${fmtDT(me.signed_at)}.</div>`;
+    } else if (me.revision_requested_at && me.revision_fulfilled_at) {
+      // Correcciones listas — mostrar checklist de validación
+      let checklistHtml = '';
+      try {
+        const pts = JSON.parse(me.revision_reason || '[]');
+        if (Array.isArray(pts) && pts.length) {
+          checklistHtml = pts.map(pt => `
+            <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid #112030;">
+              <span style="color:#27c459;font-size:15px;flex-shrink:0;">✓</span>
+              <div>
+                ${pt.section ? `<div style="font-size:10px;color:#5aaade;font-weight:700;text-transform:uppercase;margin-bottom:2px;">${esc(pt.section)}</div>` : ''}
+                <div style="font-size:13px;color:#b8cce0;">${esc(pt.point || pt)}</div>
+              </div>
+            </div>`).join('');
+        }
+      } catch(_) { checklistHtml = `<div style="font-size:13px;color:#b8cce0;">${esc(me.revision_reason||'')}</div>`; }
+      statusHtml = `<div class="alert alert-warn" style="margin-bottom:12px;">🔄 Solicitaste revisión el ${fmtDT(me.revision_requested_at)}.</div>`;
+      actPanel.innerHTML = `
+        <div id="corrections-review-panel" style="background:#0a1e2e;border:1px solid #C8921A;border-radius:10px;padding:14px 16px;margin-top:12px;margin-bottom:16px;">
+          <div style="font-size:13px;font-weight:700;color:#C8921A;margin-bottom:10px;">✔ El administrador completó las correcciones</div>
+          <div id="corrections-checklist" style="margin-bottom:14px;">${checklistHtml}</div>
+          <div style="display:flex;gap:10px;">
+            <button onclick="proceedToSign()" class="btn btn-primary" style="flex:1;">✓ Correcciones aceptadas — Firmar</button>
+            <button onclick="openRevisionModal()" class="btn btn-warn" style="flex:1;">✗ Solicitar más cambios</button>
+          </div>
+        </div>`;
+      actPanel.style.display = '';
     } else if (me.revision_requested_at) {
-      const _revReason = (() => { try { const p = JSON.parse(me.revision_reason||''); if (Array.isArray(p)) return '<ul style="margin:4px 0 0 16px;padding:0;">' + p.map(pt=>`<li>${esc(pt)}</li>`).join('') + '</ul>'; } catch(_){} return `<small>${esc(me.revision_reason||'')}</small>`; })();
-      statusHtml = `<div class="alert alert-warn" style="margin-bottom:12px;">🔄 Solicitaste revisión el ${fmtDT(me.revision_requested_at)}.<br>${_revReason}</div>`;
+      const _revReason = (() => {
+        try {
+          const p = JSON.parse(me.revision_reason||'');
+          if (Array.isArray(p)) return '<ul style="margin:4px 0 0 16px;padding:0;">' + p.map(pt=>`<li>${esc(pt.point || pt)}</li>`).join('') + '</ul>';
+        } catch(_) {}
+        return `<small>${esc(me.revision_reason||'')}</small>`;
+      })();
+      statusHtml = `<div class="alert alert-warn" style="margin-bottom:12px;">🔄 Solicitaste revisión el ${fmtDT(me.revision_requested_at)}. Aguardando que el administrador complete las correcciones.<br>${_revReason}</div>`;
     } else {
       statusHtml = `<div class="alert" style="background:#0d1e32;border:1px solid #1e4070;color:#5aaade;margin-bottom:12px;">⏳ Pendiente de tu firma como <strong>${esc(me.role_label)}</strong>.</div>`;
     }
@@ -548,7 +603,7 @@ function renderRoundStatus(detail) {
   bar.innerHTML = statusHtml;
   bar.style.display = '';
 
-  // Acciones
+  // Acciones — solo si no firmó, no pidió revisión, y no está en el panel de correcciones
   if (me && !me.signed_at && !me.revision_requested_at) {
     actPanel.innerHTML = `
       <div style="display:flex;gap:10px;margin-bottom:16px;">
@@ -557,6 +612,14 @@ function renderRoundStatus(detail) {
       </div>`;
     actPanel.style.display = '';
   }
+}
+
+function proceedToSign() {
+  const me = S._mySignerData;
+  if (!me) return;
+  const panel = document.getElementById('corrections-review-panel');
+  if (panel) panel.remove();
+  openSignModal(me.role_label);
 }
 
 // ── PDF download ───────────────────────────────────────────────────────────
@@ -700,6 +763,15 @@ async function submitRevision() {
   if (!r?.ok) { errEl.textContent = r?.error || 'Error.'; errEl.style.display='block'; return; }
   closeModal('revision');
   await goDoc(null, null, null, null);
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function showToast(msg, color) {
+  const t = document.createElement('div');
+  t.style.cssText = `position:fixed;bottom:20px;right:20px;background:#0B2341;border:2px solid ${color||'#C8921A'};color:#eef3f8;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;max-width:280px;`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 8000);
 }
 
 // ── Logout ─────────────────────────────────────────────────────────────────

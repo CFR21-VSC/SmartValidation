@@ -393,6 +393,7 @@ _RE_SIGNING_ROUND_CANCEL = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([
 _RE_DOC_REVISIONS  = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/revisions$')
 _RE_REV_FULFILL    = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/fulfill/([^/]+)$')
 _RE_REV_DISCARD    = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/discard-revision/([^/]+)$')
+_RE_MY_REVISIONS   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/my-revisions$')
 _RE_PROJ_PHOTOS   = re.compile(r'^/api/projects/([^/]+)/photos$')
 _RE_PROJ_PHOTO_ID = re.compile(r'^/api/projects/([^/]+)/photos/([^/]+)$')
 _RE_EVIDENCE_BULK = re.compile(r'^/api/projects/([^/]+)/evidence$')
@@ -2867,30 +2868,36 @@ class SyncHandler(BaseHTTPRequestHandler):
         # ADV-01: BEGIN IMMEDIATE para hacer atómica la verificación de estado + escritura
         db.execute("BEGIN IMMEDIATE")
         try:
-            # NEW-03: no permitir sobreescribir documentos aprobados o en revisión
+            # NEW-03: no permitir sobreescribir documentos en revisión; los aprobados inician nuevo ciclo
             existing = db.execute(
-                "SELECT status, json_data FROM documents WHERE project_id=? AND doc_type=?",
+                "SELECT version, status, json_data FROM documents WHERE project_id=? AND doc_type=?",
                 (proj_id, doc_type)
             ).fetchone()
-            if existing and existing["status"] in ("approved", "for_review"):
+            if existing and existing["status"] == "for_review":
                 db.execute("ROLLBACK")
                 return self._send_json(409, {
                     "ok": False,
-                    "error": f"El documento está en estado '{existing['status']}' y no puede ser modificado."
+                    "error": "El documento está en estado 'for_review' y no puede ser modificado."
                 })
+            if existing and existing["status"] == "approved":
+                new_version = (existing["version"] or 1) + 1
+                requested_status = "draft"
+            else:
+                new_version = existing["version"] if existing else 1
             doc_action = "doc_update" if existing else "doc_create"
             db.execute("""
                 INSERT INTO documents
                   (id, project_id, doc_type, version, status, json_data,
                    created_by, created_at, updated_at)
-                VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                   json_data=excluded.json_data,
-                  status=COALESCE(excluded.status, documents.status),
+                  status=excluded.status,
+                  version=excluded.version,
                   updated_at=excluded.updated_at
             """, (
                 f"{proj_id}_{doc_type}", proj_id, doc_type,
-                requested_status,
+                new_version, requested_status,
                 content_str, user.get("u"), now, now
             ))
             # ALCOA+: audit trail de creación/modificación de documento GxP
@@ -3689,6 +3696,7 @@ class SyncHandler(BaseHTTPRequestHandler):
                        agg.total_signers, agg.signed_count, agg.revision_count,
                        me.signed_at AS my_signed_at,
                        me.revision_requested_at AS my_revision_at,
+                       me.revision_fulfilled_at AS my_fulfilled_at,
                        me.role_label AS my_role
                 FROM signing_rounds sr
                 INNER JOIN signing_round_signers me ON me.round_id = sr.id AND me.username=?
@@ -3812,22 +3820,7 @@ class SyncHandler(BaseHTTPRequestHandler):
             if existing:
                 db.execute("ROLLBACK")
                 return self._send_json(409, {"ok": False, "error": "Ya existe una ronda abierta para este documento"})
-            # Si ya existe una ronda sellada para este doc, es una revisión → nueva versión
-            prior_sealed = db.execute(
-                "SELECT 1 FROM validation_book_blocks WHERE project_id=? AND doc_type=?",
-                (proj_id, doc_type)
-            ).fetchone()
-            if prior_sealed:
-                db.execute(
-                    "UPDATE documents SET version=version+1, updated_at=? WHERE project_id=? AND doc_type=?",
-                    (now, proj_id, doc_type)
-                )
-            # Leer versión actual (puede haber sido incrementada)
-            doc_version_row = db.execute(
-                "SELECT version FROM documents WHERE project_id=? AND doc_type=?",
-                (proj_id, doc_type)
-            ).fetchone()
-            doc_version = doc_version_row["version"] if doc_version_row else 1
+            doc_version = doc["version"] or 1
 
             db.execute("""
                 INSERT INTO signing_rounds
@@ -4236,6 +4229,24 @@ class SyncHandler(BaseHTTPRequestHandler):
             "UPDATE signing_round_signers SET revision_fulfilled_at=?, revision_fulfilled_by=? WHERE round_id=? AND username=?",
             (now, user.get("u"), round_id, username)
         )
+        # Notificar al revisor si todas sus revisiones de esta ronda están cumplidas
+        all_fulfilled = db.execute(
+            """SELECT COUNT(*) AS cnt FROM signing_round_signers
+               WHERE round_id=? AND username=? AND revision_requested_at IS NOT NULL AND revision_fulfilled_at IS NULL""",
+            (round_id, username)
+        ).fetchone()["cnt"] == 0
+        if all_fulfilled:
+            rnd_row = db.execute("SELECT project_id, doc_type FROM signing_rounds WHERE id=?", (round_id,)).fetchone()
+            if rnd_row:
+                db.execute("""
+                    INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
+                    VALUES (?, ?, ?, 'corrections_ready', ?, ?, ?)
+                """, (
+                    rnd_row["project_id"], rnd_row["doc_type"],
+                    username,
+                    "Correcciones completadas por el administrador — el revisor puede firmar o solicitar más cambios",
+                    "internal", now
+                ))
         return self._send_json(200, {"ok": True})
 
     def _api_rev_discard(self, proj_id, round_id, username, user):
@@ -4274,6 +4285,30 @@ class SyncHandler(BaseHTTPRequestHandler):
                 (rnd["project_id"], rnd["doc_type"])
             )
         return self._send_json(200, {"ok": True})
+
+    def _api_my_revisions(self, proj_id, round_id, user):
+        """GET — revisor consulta el estado de sus revisiones en esta ronda."""
+        db = _get_db()
+        if not self._assert_project_access(db, user, proj_id):
+            return
+        username = user.get("u", "")
+        row = db.execute(
+            """SELECT revision_reason, revision_requested_at, revision_fulfilled_at, revision_fulfilled_by
+               FROM signing_round_signers
+               WHERE round_id=? AND username=?""",
+            (round_id, username)
+        ).fetchone()
+        if not row or not row["revision_requested_at"]:
+            return self._send_json(200, {"ok": True, "has_revision": False})
+        return self._send_json(200, {
+            "ok": True,
+            "has_revision": True,
+            "revision_reason": row["revision_reason"],
+            "revision_requested_at": row["revision_requested_at"],
+            "revision_fulfilled_at": row["revision_fulfilled_at"],
+            "revision_fulfilled_by": row["revision_fulfilled_by"],
+            "all_fulfilled": bool(row["revision_fulfilled_at"]),
+        })
 
     def _signing_round_cancel(self, proj_id, round_id, user):
         """Admin cancela una ronda abierta y devuelve el documento a borrador."""
@@ -4725,6 +4760,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_SIGNING_ROUNDS.match(path)
         if m:
             return self._signing_rounds_list(m.group(1), user)
+        m = _RE_MY_REVISIONS.match(path)
+        if m:
+            return self._api_my_revisions(m.group(1), m.group(2), user)
         m = _RE_SIGNING_ROUND_ID.match(path)
         if m:
             return self._signing_round_get(m.group(1), m.group(2), user)
