@@ -4586,7 +4586,6 @@
     function openReviewDashboard() {
       document.getElementById('rdModal').style.display = 'flex';
       const _b = document.getElementById('rdRevBadge'); if (_b) _b.style.display = 'none';
-      _rdLastRevCount = 0;
       loadReviewDashboard();
     }
     function closeReviewDashboard() {
@@ -4790,32 +4789,31 @@
 
     let _rdUsers = null;
     let _rdIsAdmin = false;
-    let _rdLastRevCount = 0;
+    let _rdLastRevCount = -1;  // -1 = primer poll aún no hecho
 
     async function _pollRevisionBadge() {
       try {
         const r = await fetch('/admin/review-activity', { credentials:'include' }).then(r=>r.json()).catch(()=>null);
         if (!r?.ok) return;
-        const count = (r.signer_revisions || []).length;
+        // Solo contar revisiones pendientes (sin cumplir)
+        const pending = (r.signer_revisions || []).filter(s => !s.revision_fulfilled_at);
+        const count = pending.length;
         const badge = document.getElementById('rdRevBadge');
         if (badge) {
-          if (count > 0) {
-            badge.textContent = count;
-            badge.style.display = '';
-          } else {
-            badge.style.display = 'none';
-          }
+          if (count > 0) { badge.textContent = count; badge.style.display = ''; }
+          else { badge.style.display = 'none'; }
         }
-        if (count > _rdLastRevCount && _rdLastRevCount >= 0 && document.getElementById('rdModal')?.style.display === 'none') {
+        const dashOpen = document.getElementById('rdModal')?.style.display !== 'none';
+        // Mostrar toast si llegó algo nuevo y el dashboard está cerrado
+        if (!dashOpen && _rdLastRevCount >= 0 && count > _rdLastRevCount) {
           const diff = count - _rdLastRevCount;
-          if (_rdLastRevCount > 0) {
-            const toastEl = document.createElement('div');
-            toastEl.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#1a0d10;border:1px solid #e87a8a;color:#e87a8a;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:99999;cursor:pointer;';
-            toastEl.textContent = `🔔 ${diff} nueva solicitud de revisión`;
-            toastEl.onclick = () => { openReviewDashboard(); toastEl.remove(); };
-            document.body.appendChild(toastEl);
-            setTimeout(() => toastEl.remove(), 8000);
-          }
+          const names = pending.slice(-diff).map(s => s.display_name || s.username).join(', ');
+          const toastEl = document.createElement('div');
+          toastEl.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#0B2341;border:2px solid #e87a8a;color:#eef3f8;padding:14px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:99999;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:300px;';
+          toastEl.innerHTML = `<div style="color:#e87a8a;font-size:14px;margin-bottom:4px;">🔔 ${diff > 1 ? diff + ' nuevas revisiones' : 'Nueva revisión solicitada'}</div><div style="font-size:12px;color:#b8cce0;font-weight:400;">${names}</div><div style="font-size:11px;color:#4a6a86;margin-top:6px;">Clic para abrir el dashboard</div>`;
+          toastEl.onclick = () => { openReviewDashboard(); toastEl.remove(); };
+          document.body.appendChild(toastEl);
+          setTimeout(() => { if (toastEl.parentNode) toastEl.remove(); }, 10000);
         }
         _rdLastRevCount = count;
       } catch(_) {}
