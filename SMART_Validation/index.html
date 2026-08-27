@@ -4630,19 +4630,37 @@
 
       // Rondas activas
       const open = rounds.filter(r=>r.status==='open');
-      if (open.length) {
+      // Distinguir: abiertas listas para sellar vs. abiertas con firma pendiente
+      const readyToSeal = open.filter(r => r.total_signers > 0 && (r.signed_count||0) >= r.total_signers);
+      const pendingSign = open.filter(r => (r.signed_count||0) < r.total_signers);
+
+      if (readyToSeal.length) {
         html.push(`<div style="margin-bottom:20px;">
-          <div style="font-size:11px;font-weight:700;color:#3a8ace;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #1a3050;">⏳ Rondas abiertas</div>`);
-        open.forEach(rnd => renderRoundCard(html, rnd));
+          <div style="font-size:11px;font-weight:700;color:#C8921A;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #3a2808;">⚡ Listas para sellar — todos firmaron</div>`);
+        readyToSeal.forEach(rnd => renderRoundCard(html, rnd, true));
         html.push('</div>');
       }
 
-      // Rondas selladas
+      if (pendingSign.length) {
+        html.push(`<div style="margin-bottom:20px;">
+          <div style="font-size:11px;font-weight:700;color:#3a8ace;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #1a3050;">⏳ Esperando firmas</div>`);
+        pendingSign.forEach(rnd => renderRoundCard(html, rnd, false));
+        html.push('</div>');
+      }
+
+      if (!open.length) {
+        html.push(`<div style="margin-bottom:20px;padding:20px;background:#0a1620;border:1px dashed #1e3550;border-radius:10px;text-align:center;">
+          <div style="font-size:13px;color:#4a6a86;margin-bottom:6px;">No hay rondas de firma abiertas</div>
+          <div style="font-size:12px;color:#2a4a66;">Usá <strong style="color:#1a5aaa;">+ Nueva ronda de firma</strong> para iniciar el circuito de un documento</div>
+        </div>`);
+      }
+
+      // Rondas selladas (colapsables)
       const sealed = rounds.filter(r=>r.status==='sealed');
       if (sealed.length) {
         html.push(`<div style="margin-bottom:20px;">
-          <div style="font-size:11px;font-weight:700;color:#27c459;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #1a3050;">✅ Selladas</div>`);
-        sealed.slice(0,20).forEach(rnd => renderRoundCard(html, rnd));
+          <div style="font-size:11px;font-weight:700;color:#27c459;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #1a3050;">✅ Selladas (${sealed.length})</div>`);
+        sealed.slice(0,20).forEach(rnd => renderRoundCard(html, rnd, false));
         html.push('</div>');
       }
 
@@ -4650,8 +4668,10 @@
       body.innerHTML = html.join('');
     }
 
-    function renderRoundCard(html, rnd) {
+    function renderRoundCard(html, rnd, allSigned) {
       const statusColor = {open:'#c4a427', sealed:'#27c459', cancelled:'#e87a8a'}[rnd.status] || '#4a6a86';
+      const borderColor = allSigned ? '#C8921A' : (rnd.status === 'sealed' ? '#1a4030' : '#1e3550');
+      const cardBg      = allSigned ? '#100e02' : '#0d1a28';
       const progress = rnd.total_signers ? `${rnd.signed_count||0}/${rnd.total_signers} firmaron` : '';
       const revCount = rnd.revision_count > 0 ? `· <span style="color:#e87a8a;">${rnd.revision_count} solicitud(es) de revisión</span>` : '';
       const revDetails = _rdSignerRevisions.filter(s => s.round_id === rnd.id);
@@ -4666,20 +4686,63 @@
           ${discardBtn}
         </div>`;
       }).join('') : '';
-      html.push(`<div style="background:#0d1a28;border:1px solid #1e3550;border-radius:10px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-        <div style="min-width:0;flex:1;">
-          <div style="font-size:13px;font-weight:600;color:#eef3f8;">${esc(rnd.doc_type)} <span style="font-size:11px;color:#4a6a86;font-weight:400;">v${rnd.doc_version||1}</span></div>
-          <div style="font-size:11px;color:#4a6a86;margin-top:2px;">${esc(rnd.project_name)} · Iniciada ${fmtDTrd(rnd.created_at)}</div>
-          <div style="font-size:12px;color:#7a9ab8;margin-top:4px;">${progress} ${revCount}</div>
-          ${revBlock}
+
+      // Botón sellar — prominente cuando todos firmaron
+      const sealBtn = _rdIsAdmin && rnd.status === 'open'
+        ? (allSigned
+          ? `<button onclick="sealRound('${esc(rnd.project_id)}','${esc(rnd.id)}')" style="background:#C8921A;border:none;color:#0B2341;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.3px;">✓ Sellar ahora</button>`
+          : `<button onclick="sealRound('${esc(rnd.project_id)}','${esc(rnd.id)}')" style="background:#0e2820;border:1px solid #1e4830;color:#27c459;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;">Sellar ▶</button>`)
+        : '';
+      const cancelBtn = _rdIsAdmin && rnd.status === 'open'
+        ? `<button onclick="cancelRound('${esc(rnd.project_id)}','${esc(rnd.id)}')" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;">✕ Cancelar</button>`
+        : '';
+      const deleteBtn = _rdIsAdmin && rnd.status !== 'sealed'
+        ? `<button onclick="deleteRound('${esc(rnd.project_id)}','${esc(rnd.id)}')" style="background:#0f0a0a;border:1px solid #3a1520;color:#7a4a56;border-radius:6px;padding:4px 10px;font-size:10px;cursor:pointer;" title="Eliminar ronda">🗑</button>`
+        : '';
+
+      // Botón ver firmantes (selladas)
+      const expandId = `rdexp_${rnd.id.replace(/-/g,'_')}`;
+      const expandBtn = rnd.status === 'sealed'
+        ? `<button onclick="_rdToggleSigners('${esc(rnd.project_id)}','${esc(rnd.id)}','${expandId}')" style="background:#0a1825;border:1px solid #1e3550;color:#5aaade;border-radius:5px;padding:3px 10px;font-size:10px;cursor:pointer;">Ver firmantes ▾</button>`
+        : '';
+
+      html.push(`<div style="background:${cardBg};border:1px solid ${borderColor};border-radius:10px;padding:12px 16px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+          <div style="min-width:0;flex:1;">
+            <div style="font-size:13px;font-weight:600;color:${allSigned?'#e8be60':'#eef3f8'};">${esc(rnd.doc_type)} <span style="font-size:11px;color:#4a6a86;font-weight:400;">v${rnd.doc_version||1}</span></div>
+            <div style="font-size:11px;color:#4a6a86;margin-top:2px;">${esc(rnd.project_name)} · Iniciada ${fmtDTrd(rnd.created_at)}</div>
+            <div style="font-size:12px;color:#7a9ab8;margin-top:4px;">${progress} ${revCount}</div>
+            ${revBlock}
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
+            <span style="font-size:10px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px;">${rnd.status}</span>
+            ${sealBtn}${cancelBtn}${deleteBtn}${expandBtn}
+          </div>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
-          <span style="font-size:10px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px;">${rnd.status}</span>
-          ${_rdIsAdmin && rnd.status==='open' ? `<button onclick="sealRound('${esc(rnd.project_id)}','${esc(rnd.id)}')" style="background:#0e2820;border:1px solid #1e4830;color:#27c459;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;">Sellar ▶</button>` : ''}
-          ${_rdIsAdmin && rnd.status==='open' ? `<button onclick="cancelRound('${esc(rnd.project_id)}','${esc(rnd.id)}')" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;">✕ Cancelar</button>` : ''}
-          ${_rdIsAdmin && rnd.status!=='sealed' ? `<button onclick="deleteRound('${esc(rnd.project_id)}','${esc(rnd.id)}')" style="background:#0f0a0a;border:1px solid #3a1520;color:#7a4a56;border-radius:6px;padding:4px 10px;font-size:10px;cursor:pointer;" title="Eliminar ronda (reset de circuito)">🗑 Eliminar</button>` : ''}
-        </div>
+        <div id="${expandId}" style="display:none;margin-top:10px;border-top:1px solid #1a3050;padding-top:10px;"></div>
       </div>`);
+    }
+
+    async function _rdToggleSigners(projId, roundId, expandId) {
+      const el = document.getElementById(expandId);
+      if (!el) return;
+      if (el.style.display !== 'none') { el.style.display = 'none'; return; }
+      el.style.display = '';
+      el.innerHTML = '<div style="color:#4a6a86;font-size:12px;">Cargando firmantes...</div>';
+      const r = await fetch(`/api/projects/${projId}/signing-rounds/${roundId}`, { credentials:'include' }).then(r=>r.json()).catch(()=>null);
+      if (!r?.ok) { el.innerHTML = '<div style="color:#e87a8a;font-size:12px;">Error al cargar.</div>'; return; }
+      const signers = r.signers || [];
+      if (!signers.length) { el.innerHTML = '<div style="color:#4a6a86;font-size:12px;">Sin firmantes registrados.</div>'; return; }
+      el.innerHTML = signers.map(s => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #102030;gap:10px;">
+          <div>
+            <span style="font-size:12px;font-weight:600;color:#dde6f0;">${esc(s.display_name||s.username)}</span>
+            <span style="font-size:11px;color:#4a6a86;margin-left:6px;">${esc(s.role_label||'')}</span>
+          </div>
+          <div style="font-size:11px;color:${s.signed_at?'#27c459':'#e87a8a'};white-space:nowrap;flex-shrink:0;">
+            ${s.signed_at ? '✓ ' + fmtDTrd(s.signed_at) : '✗ No firmó'}
+          </div>
+        </div>`).join('');
     }
 
     function fmtDTrd(ts) {
