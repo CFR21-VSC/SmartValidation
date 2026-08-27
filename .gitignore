@@ -4,6 +4,10 @@ SMART_Validation/.env
 *.env
 !*.env.example
 
+# ── Scripts de test con credenciales (solo local) ─────────────────────────────
+SMART_Validation/tests/run_circuit_test.bat
+proj_*.project.json
+
 # ── Base de datos (datos reales de clientes) ──────────────────────────────────
 data/
 *.db
