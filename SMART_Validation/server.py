@@ -3756,10 +3756,6 @@ class SyncHandler(BaseHTTPRequestHandler):
         ).fetchone()
         if not doc:
             return self._send_json(404, {"ok": False, "error": "Documento no encontrado"})
-        # LO3-FIX: documentos aprobados son inmutables bajo GxP — bloquear reapertura
-        if doc["status"] == "approved":
-            return self._send_json(409, {"ok": False, "error": "No se puede crear una ronda de firma para un documento ya aprobado"})
-
         # ADV-15: verificar que todos los firmantes existen en el sistema
         # Un solo SELECT con IN en lugar de 1 query por firmante (evita N+1).
         _signer_names = [
@@ -3816,20 +3812,28 @@ class SyncHandler(BaseHTTPRequestHandler):
             if existing:
                 db.execute("ROLLBACK")
                 return self._send_json(409, {"ok": False, "error": "Ya existe una ronda abierta para este documento"})
-            # LO3-FIX: re-verificar dentro del lock para descartar race condition (TOCTOU)
-            _doc_status = db.execute(
-                "SELECT status FROM documents WHERE project_id=? AND doc_type=?",
+            # Si ya existe una ronda sellada para este doc, es una revisión → nueva versión
+            prior_sealed = db.execute(
+                "SELECT 1 FROM validation_book_blocks WHERE project_id=? AND doc_type=?",
                 (proj_id, doc_type)
             ).fetchone()
-            if not _doc_status or _doc_status["status"] == "approved":
-                db.execute("ROLLBACK")
-                return self._send_json(409, {"ok": False, "error": "No se puede crear una ronda de firma para un documento ya aprobado"})
+            if prior_sealed:
+                db.execute(
+                    "UPDATE documents SET version=version+1, updated_at=? WHERE project_id=? AND doc_type=?",
+                    (now, proj_id, doc_type)
+                )
+            # Leer versión actual (puede haber sido incrementada)
+            doc_version_row = db.execute(
+                "SELECT version FROM documents WHERE project_id=? AND doc_type=?",
+                (proj_id, doc_type)
+            ).fetchone()
+            doc_version = doc_version_row["version"] if doc_version_row else 1
 
             db.execute("""
                 INSERT INTO signing_rounds
                   (id, project_id, doc_type, doc_version, doc_hash, status, created_by, created_at)
                 VALUES (?, ?, ?, ?, ?, 'open', ?, ?)
-            """, (round_id, proj_id, doc_type, doc["version"] or 1, doc_hash, user.get("u"), now))
+            """, (round_id, proj_id, doc_type, doc_version, doc_hash, user.get("u"), now))
 
             # Bloquear documento → for_review
             db.execute(
@@ -4187,7 +4191,7 @@ class SyncHandler(BaseHTTPRequestHandler):
                 INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
                 VALUES (?, ?, ?, 'signing_round_seal', ?, ?, ?)
             """, (proj_id, rnd["doc_type"], user.get("u"),
-                  f"Ronda {round_id} sellada — bloque #{block_num} en Validation Book (hash: {seal_hash[:16]}...)",
+                  f"Ronda {round_id} sellada — v{rnd['doc_version']} — bloque #{block_num} en Validation Book (hash: {seal_hash[:16]}...)",
                   self._get_client_ip(), now))
             db.execute("COMMIT")
         except Exception:
