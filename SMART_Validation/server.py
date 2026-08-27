@@ -4256,10 +4256,11 @@ class SyncHandler(BaseHTTPRequestHandler):
             (round_id, username)
         )
         # If round was cancelled and no more pending revisions, reopen it
-        remaining = db.execute(
-            "SELECT COUNT(*) FROM signing_round_signers WHERE round_id=? AND revision_requested_at IS NOT NULL",
+        remaining_row = db.execute(
+            "SELECT COUNT(*) AS cnt FROM signing_round_signers WHERE round_id=? AND revision_requested_at IS NOT NULL",
             (round_id,)
-        ).fetchone()[0]
+        ).fetchone()
+        remaining = remaining_row["cnt"] if remaining_row else 0
         rnd = db.execute("SELECT status, project_id, doc_type FROM signing_rounds WHERE id=?", (round_id,)).fetchone()
         if rnd and rnd["status"] == "cancelled" and remaining == 0:
             db.execute("UPDATE signing_rounds SET status='open' WHERE id=?", (round_id,))
