@@ -764,6 +764,7 @@ async function loadDash() {
     show('screenDash');
 
     const content = document.getElementById('dashContent');
+    _signItems = [];
     content.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><p>Cargando firmas pendientes…</p></div>';
 
     const { status, data } = await apiFetch('/api/me/pending-signatures');
@@ -803,7 +804,17 @@ async function loadDash() {
     }
 
     content.innerHTML = html;
+    // SEC: delegated handler — avoids onclick with JSON payload en atributo HTML
+    if (!content._signClickBound) {
+        content.addEventListener('click', e => {
+            const btn = e.target.closest('[data-sign-idx]');
+            if (btn) openSignModal(_signItems[+btn.dataset.signIdx]);
+        });
+        content._signClickBound = true;
+    }
 }
+
+let _signItems = [];
 
 function renderItem(p, state) {
     const docType = p.doc_type || '—';
@@ -817,11 +828,13 @@ function renderItem(p, state) {
 
     if (state === 'corrections-ready') {
         statusHtml = `<span class="chip chip-rev">✅ Corregido</span>`;
-        actionHtml = `<button class="btn-sign-item" onclick='openSignModal(${JSON.stringify(p)})'>Revisar y firmar ✍️</button>`;
+        const idx1 = _signItems.push(p) - 1;
+        actionHtml = `<button class="btn-sign-item" data-sign-idx="${idx1}">Revisar y firmar ✍️</button>`;
         borderStyle = 'border-color: #C8921A; border-left: 3px solid #C8921A;';
     } else if (state === 'pending') {
         statusHtml = `<span class="chip chip-warn">⏳ Pendiente</span>`;
-        actionHtml = `<button class="btn-sign-item" onclick='openSignModal(${JSON.stringify(p)})'>Firmar ✍️</button>`;
+        const idx2 = _signItems.push(p) - 1;
+        actionHtml = `<button class="btn-sign-item" data-sign-idx="${idx2}">Firmar ✍️</button>`;
     } else if (state === 'await-corrections') {
         statusHtml = `<span class="chip chip-rev" style="background:rgba(243,156,18,0.1);color:#f39c12;border-color:rgba(243,156,18,0.3)">🔄 En revisión</span>`;
         actionHtml = `<span style="font-size:11px;color:var(--text-muted)">Aguardando<br>al admin</span>`;

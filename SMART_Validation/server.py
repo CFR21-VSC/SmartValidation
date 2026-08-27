@@ -1811,6 +1811,11 @@ class SyncHandler(BaseHTTPRequestHandler):
         if inv["expires_at"] < now:
             return self._send_json(410, {"ok": False, "error": "La invitación expiró"})
 
+        # SEC: token single-use — aplicar ANTES del branch is_returning para
+        # que un link ya usado no permita iterar PINs en returning users.
+        if inv["used_at"]:
+            return self._send_json(409, {"ok": False, "error": "Esta invitación ya fue utilizada"})
+
         # Determinar si el usuario ya tiene PIN configurado (returning user)
         user_row = db.execute(
             "SELECT pin_hash, is_provisional FROM users WHERE username=?", (inv["username"],)
@@ -1821,13 +1826,10 @@ class SyncHandler(BaseHTTPRequestHandler):
             # Returning user: verify existing PIN (don't overwrite)
             if not _pbkdf2_verify(pin, user_row["pin_hash"]):
                 return self._send_json(401, {"ok": False, "error": "PIN incorrecto"})
-            # Re-mark invitation used so the same link can't be replayed
             db.execute("UPDATE invitations SET used_at=? WHERE token=?", (now, token))
             db.commit()
         else:
             # New user: set PIN from this activation
-            if inv["used_at"]:
-                return self._send_json(409, {"ok": False, "error": "Esta invitación ya fue utilizada"})
             pin_hash = _pbkdf2_hash(pin)
             final_display = display_name or inv["display_name"] or inv["username"]
             db.execute(
