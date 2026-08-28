@@ -5003,6 +5003,7 @@
     }
     function closeCreateRoundModal() {
       document.getElementById('crModal').style.display = 'none';
+      _rdKnownEmails = null; // reset cache so next open re-fetches
     }
 
     async function rdLoadProjects() {
@@ -5111,22 +5112,87 @@
       const users = await rdGetUsers();
       const container = document.getElementById('cr-signers-list');
       const idx = container.children.length;
+      const rowId = `sr_${Date.now()}_${idx}`;
       const row = document.createElement('div');
-      row.style.cssText = 'display:flex;gap:8px;margin-bottom:8px;align-items:center;';
+      row.style.cssText = 'background:#080f18;border:1px solid #1a3050;border-radius:8px;padding:10px 12px;margin-bottom:8px;';
+      row.dataset.rowId = rowId;
+
+      const userOptions = users.map(u =>
+        `<option value="${esc(u.username)}">${esc(u.display_name||u.username)} &lt;${esc(u.email||'')}></option>`
+      ).join('');
+
       row.innerHTML = `
-        <span style="font-size:10px;color:#4a6a86;min-width:28px;text-align:center;" title="Orden de firma">${idx+1}</span>
-        <select class="cr-signer-user" style="flex:2;background:#0b1621;border:1.5px solid #1e3550;border-radius:7px;padding:8px 10px;font-size:12px;color:#dde6f0;outline:none;">
-          <option value="">— Usuario —</option>
-          ${users.map(u=>`<option value="${esc(u.username)}">${esc(u.display_name||u.username)}</option>`).join('')}
-        </select>
-        <select class="cr-signer-role" style="flex:1;background:#0b1621;border:1.5px solid #1e3550;border-radius:7px;padding:8px 10px;font-size:12px;color:#dde6f0;outline:none;">
-          <option>Revisor</option>
-          <option>Aprobador</option>
-          <option>Ejecutor</option>
-        </select>
-        <input type="number" class="cr-signer-order" min="0" max="99" placeholder="#" value="${idx+1}" title="Orden de firma (0=sin orden)" style="width:44px;background:#0b1621;border:1.5px solid #1e3550;border-radius:7px;padding:8px 6px;font-size:12px;color:#dde6f0;outline:none;text-align:center;">
-        <button onclick="this.parentElement.remove()" style="background:#2a1520;border:1px solid #5a2030;color:#e87a8a;border-radius:6px;padding:7px 10px;font-size:12px;cursor:pointer;">✕</button>`;
+        <!-- Fila superior: modo + rol + orden -->
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+          <span style="font-size:11px;font-weight:700;color:#3a6a8a;min-width:20px;">${idx+1}</span>
+          <!-- Toggle modo -->
+          <div style="display:flex;border:1px solid #1a3050;border-radius:6px;overflow:hidden;flex-shrink:0;">
+            <button class="cr-mode-btn cr-mode-existing" onclick="rdSignerMode(this,'existing')"
+              style="padding:5px 10px;font-size:11px;border:none;cursor:pointer;background:#0f2a45;color:#5aaade;font-weight:600;">
+              👤 Sistema
+            </button>
+            <button class="cr-mode-btn cr-mode-email" onclick="rdSignerMode(this,'email')"
+              style="padding:5px 10px;font-size:11px;border:none;cursor:pointer;background:#0b1621;color:#4a6a86;">
+              ✉ Invitar
+            </button>
+          </div>
+          <!-- Rol -->
+          <select class="cr-signer-role" style="flex:1;background:#0b1621;border:1.5px solid #1e3550;border-radius:7px;padding:7px 8px;font-size:12px;color:#dde6f0;outline:none;">
+            <option>Revisor</option>
+            <option>Aprobador</option>
+            <option>Ejecutor</option>
+            <option>Calidad</option>
+          </select>
+          <!-- Orden -->
+          <input type="number" class="cr-signer-order" min="0" max="99" value="${idx+1}"
+            title="Orden de firma (1=primero, 0=sin orden)"
+            style="width:44px;background:#0b1621;border:1.5px solid #1e3550;border-radius:7px;padding:7px 6px;font-size:12px;color:#dde6f0;outline:none;text-align:center;">
+          <button onclick="this.closest('[data-row-id]').remove()"
+            style="background:#1a0810;border:1px solid #5a2030;color:#e87a8a;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;">✕</button>
+        </div>
+        <!-- Panel: usuario existente -->
+        <div class="cr-panel-existing" style="display:block;">
+          <select class="cr-signer-user" style="width:100%;background:#0b1621;border:1.5px solid #1e3550;border-radius:7px;padding:8px 10px;font-size:12px;color:#dde6f0;outline:none;">
+            <option value="">— Seleccioná un usuario —</option>
+            ${userOptions}
+          </select>
+        </div>
+        <!-- Panel: invitar por email -->
+        <div class="cr-panel-email" style="display:none;">
+          <div style="display:flex;gap:8px;">
+            <input type="email" class="cr-signer-email" placeholder="nombre@empresa.com"
+              style="flex:1;background:#0b1621;border:1.5px solid #C8921A55;border-radius:7px;padding:8px 10px;font-size:12px;color:#dde6f0;outline:none;"
+              oninput="rdSignerEmailHint(this)">
+            <input type="text" class="cr-signer-name" placeholder="Nombre Apellido (opcional)"
+              style="flex:1;background:#0b1621;border:1.5px solid #1e3550;border-radius:7px;padding:8px 10px;font-size:12px;color:#dde6f0;outline:none;">
+          </div>
+          <div class="cr-email-hint" style="font-size:10px;color:#C8921A;margin-top:4px;display:none;">
+            ⚠ Este email no tiene cuenta — se creará la invitación y recibirá el magic link al crear la ronda.
+          </div>
+        </div>`;
       container.appendChild(row);
+    }
+
+    function rdSignerMode(btn, mode) {
+      const row = btn.closest('[data-row-id]');
+      row.querySelectorAll('.cr-mode-btn').forEach(b => {
+        b.style.background = '#0b1621'; b.style.color = '#4a6a86'; b.style.fontWeight = '400';
+      });
+      btn.style.background = '#0f2a45'; btn.style.color = '#5aaade'; btn.style.fontWeight = '600';
+      row.querySelector('.cr-panel-existing').style.display = mode === 'existing' ? 'block' : 'none';
+      row.querySelector('.cr-panel-email').style.display    = mode === 'email'    ? 'block' : 'none';
+    }
+
+    let _rdKnownEmails = null;
+    async function rdSignerEmailHint(input) {
+      const email = input.value.trim().toLowerCase();
+      const hint = input.closest('[data-row-id]').querySelector('.cr-email-hint');
+      if (!email || !email.includes('@')) { hint.style.display = 'none'; return; }
+      if (!_rdKnownEmails) {
+        const users = await rdGetUsers();
+        _rdKnownEmails = new Set(users.map(u => (u.email||'').toLowerCase()).filter(Boolean));
+      }
+      hint.style.display = _rdKnownEmails.has(email) ? 'none' : 'block';
     }
 
     async function submitCreateRound() {
@@ -5147,20 +5213,29 @@
         errEl.style.display = 'block'; return;
       }
 
-      const signerRows = document.querySelectorAll('#cr-signers-list > div');
+      const signerRows = [...document.querySelectorAll('#cr-signers-list [data-row-id]')];
       const signers = [];
-      let valid = true;
-      signerRows.forEach(row => {
-        const username   = row.querySelector('.cr-signer-user').value;
+      let signerError = '';
+      for (const row of signerRows) {
         const role_label = row.querySelector('.cr-signer-role').value;
-        const orderEl    = row.querySelector('.cr-signer-order');
-        const sign_order = orderEl ? (parseInt(orderEl.value) || 0) : 0;
-        if (!username) { valid = false; return; }
-        signers.push({ username, role_label, sign_order });
-      });
+        const sign_order = parseInt(row.querySelector('.cr-signer-order')?.value) || 0;
+        const emailPanel = row.querySelector('.cr-panel-email');
+        const isEmailMode = emailPanel && emailPanel.style.display !== 'none';
 
-      if (!valid || !signers.length) {
-        errEl.textContent = 'Agregá al menos un firmante válido.';
+        if (isEmailMode) {
+          const email = row.querySelector('.cr-signer-email')?.value.trim().toLowerCase();
+          const name  = row.querySelector('.cr-signer-name')?.value.trim();
+          if (!email || !email.includes('@')) { signerError = `Ingresá un email válido en el firmante ${signers.length+1}.`; break; }
+          signers.push({ email, display_name: name || undefined, role_label, sign_order });
+        } else {
+          const username = row.querySelector('.cr-signer-user')?.value;
+          if (!username) { signerError = `Seleccioná un usuario en el firmante ${signers.length+1}.`; break; }
+          signers.push({ username, role_label, sign_order });
+        }
+      }
+
+      if (signerError || !signers.length) {
+        errEl.textContent = signerError || 'Agregá al menos un firmante.';
         errEl.style.display = 'block'; return;
       }
 
