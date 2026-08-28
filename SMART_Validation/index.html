@@ -5218,15 +5218,28 @@
         </div>
         <!-- Panel: invitar por email -->
         <div class="cr-panel-email" style="display:none;">
-          <div style="display:flex;gap:8px;">
-            <input type="email" class="cr-signer-email" placeholder="nombre@empresa.com"
-              style="flex:1;background:#0b1621;border:1.5px solid #C8921A55;border-radius:7px;padding:8px 10px;font-size:12px;color:#dde6f0;outline:none;"
-              oninput="rdSignerEmailHint(this)">
-            <input type="text" class="cr-signer-name" placeholder="Nombre Apellido (opcional)"
-              style="flex:1;background:#0b1621;border:1.5px solid #1e3550;border-radius:7px;padding:8px 10px;font-size:12px;color:#dde6f0;outline:none;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">
+            <div>
+              <div style="font-size:10px;color:#4a6a86;margin-bottom:3px;">Usuario (login) <span style="color:#e87a8a;">*</span></div>
+              <input type="text" class="cr-signer-username" placeholder="jperez"
+                autocomplete="off" autocapitalize="off" spellcheck="false"
+                style="width:100%;box-sizing:border-box;background:#0b1621;border:1.5px solid #1e3550;border-radius:7px;padding:8px 10px;font-size:12px;color:#dde6f0;outline:none;font-family:monospace;"
+                oninput="this.value=this.value.replace(/[^a-z0-9._-]/gi,'').toLowerCase()">
+            </div>
+            <div>
+              <div style="font-size:10px;color:#4a6a86;margin-bottom:3px;">Nombre completo <span style="color:#e87a8a;">*</span></div>
+              <input type="text" class="cr-signer-name" placeholder="Juan Pérez"
+                style="width:100%;box-sizing:border-box;background:#0b1621;border:1.5px solid #1e3550;border-radius:7px;padding:8px 10px;font-size:12px;color:#dde6f0;outline:none;">
+            </div>
           </div>
-          <div class="cr-email-hint" style="font-size:10px;color:#C8921A;margin-top:4px;display:none;">
-            ⚠ Este email no tiene cuenta — se creará la invitación y recibirá el magic link al crear la ronda.
+          <div>
+            <div style="font-size:10px;color:#4a6a86;margin-bottom:3px;">Email (recibirá el acceso) <span style="color:#e87a8a;">*</span></div>
+            <input type="email" class="cr-signer-email" placeholder="jperez@empresa.com"
+              style="width:100%;box-sizing:border-box;background:#0b1621;border:1.5px solid #C8921A55;border-radius:7px;padding:8px 10px;font-size:12px;color:#dde6f0;outline:none;"
+              oninput="rdSignerEmailHint(this)">
+          </div>
+          <div class="cr-email-hint" style="font-size:10px;color:#C8921A;margin-top:5px;display:none;">
+            ⚠ Este email no tiene cuenta — se creará el usuario y recibirá el magic link al crear la ronda.
           </div>
         </div>`;
       container.appendChild(row);
@@ -5282,10 +5295,13 @@
         const isEmailMode = emailPanel && emailPanel.style.display !== 'none';
 
         if (isEmailMode) {
-          const email = row.querySelector('.cr-signer-email')?.value.trim().toLowerCase();
-          const name  = row.querySelector('.cr-signer-name')?.value.trim();
+          const usernameInv = row.querySelector('.cr-signer-username')?.value.trim().toLowerCase();
+          const name        = row.querySelector('.cr-signer-name')?.value.trim();
+          const email       = row.querySelector('.cr-signer-email')?.value.trim().toLowerCase();
+          if (!usernameInv) { signerError = `Definí el nombre de usuario en el firmante ${signers.length+1}.`; break; }
+          if (!name)        { signerError = `Ingresá el nombre completo en el firmante ${signers.length+1}.`; break; }
           if (!email || !email.includes('@')) { signerError = `Ingresá un email válido en el firmante ${signers.length+1}.`; break; }
-          signers.push({ email, display_name: name || undefined, role_label, sign_order });
+          signers.push({ username: usernameInv, email, display_name: name, role_label, sign_order });
         } else {
           const username = row.querySelector('.cr-signer-user')?.value;
           if (!username) { signerError = `Seleccioná un usuario en el firmante ${signers.length+1}.`; break; }

@@ -1082,8 +1082,10 @@ def _notify_revision_requested(proj_id: str, doc_type: str,
 
 
 def _create_invitation(email: str, display_name: str, round_id: str, proj_id: str,
-                       created_by: str) -> str:
-    """Crea (o reutiliza) una invitación para el email dado. Devuelve el token."""
+                       created_by: str, preferred_username: str = "") -> str:
+    """Crea (o reutiliza) una invitación para el email dado. Devuelve el token.
+    preferred_username: si se provee, se usa como username (definido por el admin).
+    """
     import secrets as _sec
     db = _get_db()
     # Reutilizar invitación no usada si ya existe para este email+round
@@ -1097,10 +1099,15 @@ def _create_invitation(email: str, display_name: str, round_id: str, proj_id: st
     token = _sec.token_urlsafe(32)
     inv_id = str(uuid.uuid4())
     now = time.time()
-    # Normalizar username desde email (parte local, sanitizada)
-    base_user = email.split("@")[0].lower()
-    base_user = "".join(c for c in base_user if c.isalnum() or c in "-_")[:30] or "signer"
-    # Asegurar unicidad del username
+
+    # Determinar username: preferir el definido por el admin, luego derivar del email
+    if preferred_username:
+        base_user = "".join(c for c in preferred_username.lower() if c.isalnum() or c in "-_.")[:30] or "signer"
+    else:
+        base_user = email.split("@")[0].lower()
+        base_user = "".join(c for c in base_user if c.isalnum() or c in "-_")[:30] or "signer"
+
+    # Asegurar unicidad del username (si ya existe, agregar sufijo)
     username = base_user
     suffix = 1
     while db.execute("SELECT id FROM users WHERE username=?", (username,)).fetchone():
@@ -4124,12 +4131,50 @@ class SyncHandler(BaseHTTPRequestHandler):
                 continue
             _seen_signers.add(dedup_key)
 
-            if s_username:
+            if s_username and s_email:
+                # Modo "Invitar con usuario definido por el admin":
+                # username + email juntos = crear usuario nuevo con ese username exacto
+                # Si ya existe ese username o email, reutilizamos; si no, creamos.
+                u_by_name  = _user_map.get(s_username)
+                u_by_email = _email_map.get(s_email)
+                if u_by_name:
+                    # Ya existe ese username — verificar que el email coincida o agregar email
+                    valid_signers.append({
+                        "username": u_by_name["username"],
+                        "display": s_name or u_by_name["display_name"] or s_username,
+                        "role": s_role,
+                        "email": u_by_name["email"] or s_email,
+                        "invite_token": None,
+                        "sign_order": s_order,
+                    })
+                elif u_by_email:
+                    # Ya existe ese email — reutilizar usuario existente
+                    valid_signers.append({
+                        "username": u_by_email["username"],
+                        "display": s_name or u_by_email["display_name"] or s_email,
+                        "role": s_role,
+                        "email": s_email,
+                        "invite_token": None,
+                        "sign_order": s_order,
+                    })
+                else:
+                    # Nuevo — invitar con el username preferido definido por el admin
+                    valid_signers.append({
+                        "username": None,
+                        "display": s_name or s_username,
+                        "role": s_role,
+                        "email": s_email,
+                        "invite_token": "__pending__",
+                        "preferred_username": s_username,
+                        "sign_order": s_order,
+                    })
+            elif s_username:
+                # Solo username: tiene que existir en el sistema
                 u_row = _user_map.get(s_username)
                 if not u_row:
                     return self._send_json(400, {
                         "ok": False,
-                        "error": f"El usuario '{s_username}' no existe o no está activo en el sistema."
+                        "error": f"El usuario '{s_username}' no existe. Para invitar a alguien nuevo, completá también el email."
                     })
                 valid_signers.append({
                     "username": s_username,
@@ -4140,7 +4185,7 @@ class SyncHandler(BaseHTTPRequestHandler):
                     "sign_order": s_order,
                 })
             elif s_email:
-                # Email-only signer — use existing user or create provisional + invitation
+                # Solo email: usar usuario existente o crear provisional con username auto
                 u_row = _email_map.get(s_email)
                 if u_row:
                     valid_signers.append({
@@ -4148,13 +4193,12 @@ class SyncHandler(BaseHTTPRequestHandler):
                         "display": s_name or u_row["display_name"] or s_email,
                         "role": s_role,
                         "email": s_email,
-                        "invite_token": None,  # existing user: notify via regular email
+                        "invite_token": None,
                         "sign_order": s_order,
                     })
                 else:
-                    # Will create invitation after round_id is committed
                     valid_signers.append({
-                        "username": None,  # resolved after _create_invitation
+                        "username": None,
                         "display": s_name or s_email.split("@")[0],
                         "role": s_role,
                         "email": s_email,
@@ -4179,7 +4223,8 @@ class SyncHandler(BaseHTTPRequestHandler):
         for s in valid_signers:
             if s["invite_token"] == "__pending__":
                 token = _create_invitation(
-                    s["email"], s["display"], round_id, proj_id, user.get("u")
+                    s["email"], s["display"], round_id, proj_id, user.get("u"),
+                    preferred_username=s.get("preferred_username", "")
                 )
                 s["invite_token"] = token
                 inv_user = db.execute(
