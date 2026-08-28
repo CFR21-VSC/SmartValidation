@@ -1855,7 +1855,23 @@
         }
 
         try {
-            await VS.renderDocument(lastValidJSON, { download: true });
+            // Inyectar firmantes del People Book si el doc tiene fase aprobación sellada
+            const renderData = Object.assign({}, lastValidJSON);
+            try {
+                const projId = VS.projects && VS.projects.getActiveId ? VS.projects.getActiveId() : null;
+                const docType = (lastValidJSON.type || '').toUpperCase();
+                if (projId && docType) {
+                    const pb = await fetch(`/api/projects/${projId}/people-book`, {credentials:'include'}).then(r=>r.json()).catch(()=>null);
+                    if (pb?.ok) {
+                        const approvalSigners = (pb.entries || []).filter(e =>
+                            e.doc_type === docType && e.round_status === 'sealed' &&
+                            (e.phase || 'review') === 'approval' && e.signed_at
+                        );
+                        if (approvalSigners.length) renderData._sealedSigners = approvalSigners;
+                    }
+                }
+            } catch (_) {}
+            await VS.renderDocument(renderData, { download: true });
         } catch (err) {
             console.error('Error descargando PDF:', err);
             alert('Error descargando PDF:\n\n' + err.message);
@@ -1885,12 +1901,32 @@
         const ok = [];
         const fail = [];
 
+        // Pre-cargar People Book una sola vez para inyectar firmas en todos los docs
+        let _pbEntries = [];
+        try {
+            const projId = VS.projects && VS.projects.getActiveId ? VS.projects.getActiveId() : null;
+            if (projId) {
+                const pb = await fetch(`/api/projects/${projId}/people-book`, {credentials:'include'}).then(r=>r.json()).catch(()=>null);
+                if (pb?.ok) _pbEntries = pb.entries || [];
+            }
+        } catch (_) {}
+
         for (let i = 0; i < docs.length; i++) {
             const doc = docs[i];
             if (btn) btn.textContent = 'Descargando ' + (i + 1) + '/' + docs.length + '...';
             try {
                 if (i > 0) await new Promise(r => setTimeout(r, 800));
-                await VS.renderDocument(doc.data, { download: true });
+                // Inyectar firmantes sellados de fase aprobación si existen
+                const renderData = Object.assign({}, doc.data);
+                const docType = (doc.data && doc.data.type || '').toUpperCase();
+                if (docType && _pbEntries.length) {
+                    const approvalSigners = _pbEntries.filter(e =>
+                        e.doc_type === docType && e.round_status === 'sealed' &&
+                        (e.phase || 'review') === 'approval' && e.signed_at
+                    );
+                    if (approvalSigners.length) renderData._sealedSigners = approvalSigners;
+                }
+                await VS.renderDocument(renderData, { download: true });
                 ok.push(doc.code || doc.type);
             } catch (err) {
                 console.warn('[vsDownloadAllPDFs] Error en ' + (doc.code || doc.type) + ':', err);

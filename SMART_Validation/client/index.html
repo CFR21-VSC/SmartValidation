@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SMART Validation — Suite de Revisión</title>
+  <title>SMART Validation — Portal Firmas</title>
 
   <script src="/lib/pdfmake.min.js"></script>
   <script src="/lib/vfs_fonts.js"></script>
@@ -168,7 +168,7 @@
   <div id="screen-dashboard" class="screen">
     <div class="header">
       <div>
-        <div class="header-brand">SMART Validation — Suite de Revisión y Aprobación</div>
+        <div class="header-brand">SMART Validation — Portal Firmas</div>
         <div class="header-user" id="hdr-user"></div>
       </div>
       <button class="btn btn-ghost" onclick="logout()">Cerrar sesión</button>
@@ -180,7 +180,7 @@
   <div id="screen-docs" class="screen">
     <div class="header">
       <div>
-        <div class="header-brand">SMART Validation — Suite de Revisión y Aprobación</div>
+        <div class="header-brand">SMART Validation — Portal Firmas</div>
         <div class="header-user" id="hdr-user-docs"></div>
       </div>
       <button class="btn btn-ghost" onclick="logout()">Cerrar sesión</button>
@@ -195,7 +195,7 @@
   <div id="screen-doc" class="screen">
     <div class="header">
       <div>
-        <div class="header-brand">SMART Validation — Suite de Revisión y Aprobación</div>
+        <div class="header-brand">SMART Validation — Portal Firmas</div>
         <div class="header-user" id="hdr-user-doc"></div>
       </div>
       <button class="btn btn-ghost" onclick="logout()">Cerrar sesión</button>
@@ -488,8 +488,20 @@ async function goDocs(projId, projName) {
 
   if (!sharedDocs.length) { el.innerHTML = '<div class="placeholder">No hay documentos compartidos con vos en este proyecto.</div>'; return; }
 
+  // Separar: pendientes de firma vs. aprobados
+  const pendingDocs  = sharedDocs.filter(d => d.status !== 'approved');
+  const approvedDocs = sharedDocs.filter(d => d.status === 'approved');
+
   el.innerHTML = '';
-  sharedDocs.forEach(doc => {
+
+  if (pendingDocs.length) {
+    const secLabel = document.createElement('div');
+    secLabel.style.cssText = 'font-size:11px;font-weight:700;color:#5a8aaa;text-transform:uppercase;letter-spacing:.7px;margin:0 0 8px 2px;';
+    secLabel.textContent = 'Pendientes de firma';
+    el.appendChild(secLabel);
+  }
+
+  pendingDocs.forEach(doc => {
     const div = document.createElement('div');
     div.className = 'card';
     const name = DOC_NAMES[doc.doc_type] || doc.doc_type;
@@ -506,6 +518,30 @@ async function goDocs(projId, projName) {
         <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">${roundTag}${badge(doc.status)}</div>
       </div>`;
     div.onclick = () => goDoc(S.projId, S.projName, doc.doc_type, rnd?.id || null);
+    el.appendChild(div);
+  });
+
+  if (approvedDocs.length) {
+    const sep = document.createElement('div');
+    sep.style.cssText = 'font-size:11px;font-weight:700;color:#27a855;text-transform:uppercase;letter-spacing:.7px;margin:18px 0 8px 2px;';
+    sep.textContent = '✅ Protocolos firmados electrónicamente';
+    el.appendChild(sep);
+  }
+
+  approvedDocs.forEach(doc => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.style.borderColor = '#1a4030';
+    const name = DOC_NAMES[doc.doc_type] || doc.doc_type;
+    div.innerHTML = `
+      <div class="card-row">
+        <div style="min-width:0;">
+          <div class="card-title" style="color:#27a855;">✓ ${esc(name)}</div>
+          <div class="card-meta">v${doc.version||1} · Aprobado ${fmtDate(doc.updated_at)} · Firmado electrónicamente · Trazable en Validation Book</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">${badge(doc.status)}</div>
+      </div>`;
+    div.onclick = () => goDoc(S.projId, S.projName, doc.doc_type, null);
     el.appendChild(div);
   });
 }
@@ -578,13 +614,16 @@ async function goDoc(projId, projName, docType, roundId) {
   if (typeof rawJson === 'string') { try { rawJson = JSON.parse(rawJson); } catch(_) { rawJson = null; } }
   const renderData = (rawJson?.data?.type) ? rawJson.data : rawJson;
 
-  // F5: inyectar firmantes sellados en el PDF si el doc está aprobado
-  const sealedRound = rounds.find(r => r.doc_type === S.docType && r.status === 'sealed');
-  if (renderData && sealedRound) {
+  // Inyectar firmantes del People Book (fase aprobación) si el doc está aprobado
+  if (renderData && doc.status === 'approved') {
     try {
-      const sealDetail = await api('GET', `/api/projects/${S.projId}/signing-rounds/${sealedRound.id}`);
-      if (sealDetail?.ok && sealDetail.signers?.length) {
-        renderData._sealedSigners = sealDetail.signers.filter(s => s.signed_at);
+      const pb = await api('GET', `/api/projects/${S.projId}/people-book`);
+      if (pb?.ok) {
+        const approvalSigners = (pb.entries || []).filter(e =>
+          e.doc_type === S.docType && e.round_status === 'sealed' &&
+          (e.phase || 'review') === 'approval' && e.signed_at
+        );
+        if (approvalSigners.length) renderData._sealedSigners = approvalSigners;
       }
     } catch(_) {}
   }
