@@ -425,6 +425,7 @@ _RE_DOC_REVISIONS  = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/revis
 _RE_REV_FULFILL    = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/fulfill/([^/]+)$')
 _RE_REV_DISCARD    = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/discard-revision/([^/]+)$')
 _RE_ROUND_RESEND   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/resend/([^/]+)$')
+_RE_USER_REVOKE    = re.compile(r'^/api/projects/([^/]+)/signers/([^/]+)/revoke$')
 _RE_MY_REVISIONS   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/my-revisions$')
 _RE_PROJ_PHOTOS   = re.compile(r'^/api/projects/([^/]+)/photos$')
 _RE_PROJ_PHOTO_ID = re.compile(r'^/api/projects/([^/]+)/photos/([^/]+)$')
@@ -3024,6 +3025,13 @@ class SyncHandler(BaseHTTPRequestHandler):
         if user.get("r") in ("admin", "auditor"):
             return True
         username = user.get("u", "")
+        # Chequear is_active antes de cualquier acceso
+        active_row = db.execute(
+            "SELECT is_active FROM users WHERE username=?", (username,)
+        ).fetchone()
+        if not active_row or not active_row["is_active"]:
+            self._send_json(403, {"ok": False, "error": "Usuario inactivo. Contactá al administrador."})
+            return False
         row = db.execute("""
             SELECT 1 FROM project_access pa
             INNER JOIN users u ON u.id = pa.user_id
@@ -4812,6 +4820,47 @@ class SyncHandler(BaseHTTPRequestHandler):
         _send_email(email, subject, _email_html(f"Firma pendiente — {doc_type}", body))
         return self._send_json(200, {"ok": True})
 
+    def _api_signer_revoke(self, proj_id, username_target, admin_user):
+        """POST /api/projects/{id}/signers/{username}/revoke
+        Revoca (is_active=0) o reactiva (is_active=1) a un firmante provisional
+        que participó en este proyecto. Solo admin. No puede afectar a otros admins/auditores.
+        Body: {action: "revoke"|"reactivate"}
+        """
+        if admin_user.get("r") != "admin":
+            return self._send_json(403, {"ok": False, "error": "Solo admin"})
+        if not _is_valid_proj_id(proj_id):
+            return self._send_json(404, {"ok": False, "error": "Proyecto no encontrado"})
+        data = self._read_json_body()
+        action = str(data.get("action", "revoke")).strip().lower()
+        if action not in ("revoke", "reactivate"):
+            return self._send_json(400, {"ok": False, "error": "action debe ser 'revoke' o 'reactivate'"})
+
+        db = _get_db()
+        # El usuario tiene que ser firmante de este proyecto
+        signer_row = db.execute("""
+            SELECT u.id, u.username, u.display_name, u.role, u.is_active, u.is_provisional
+            FROM users u
+            INNER JOIN signing_round_signers srs ON srs.username = u.username
+            INNER JOIN signing_rounds sr ON sr.id = srs.round_id
+            WHERE u.username=? AND sr.project_id=?
+            LIMIT 1
+        """, (username_target, proj_id)).fetchone()
+        if not signer_row:
+            return self._send_json(404, {"ok": False, "error": "Firmante no encontrado en este proyecto"})
+        if signer_row["role"] in ("admin", "auditor"):
+            return self._send_json(403, {"ok": False, "error": "No se puede revocar a un administrador o auditor"})
+
+        new_active = 0 if action == "revoke" else 1
+        db.execute(
+            "UPDATE users SET is_active=?, updated_at=? WHERE username=?",
+            (new_active, time.time(), username_target)
+        )
+        # Invalidar sesión activa del usuario
+        db.execute("DELETE FROM auth_sessions WHERE username=?", (username_target,))
+        action_label = "revocado" if action == "revoke" else "reactivado"
+        sys.stderr.write(f"[access] Firmante '{username_target}' {action_label} por admin '{admin_user.get('u')}' en proyecto {proj_id}\n")
+        return self._send_json(200, {"ok": True, "username": username_target, "is_active": new_active})
+
     def _api_my_revisions(self, proj_id, round_id, user):
         """GET — revisor consulta el estado de sus revisiones en esta ronda."""
         db = _get_db()
@@ -4996,10 +5045,14 @@ class SyncHandler(BaseHTTPRequestHandler):
             SELECT srs.id, srs.display_name, srs.role_label, srs.sign_order,
                    srs.signed_at, srs.audit_hash, srs.email,
                    srs.revision_requested_at, srs.revision_reason,
+                   srs.username,
                    sr.id AS round_id, sr.doc_type, sr.doc_version, sr.status AS round_status,
-                   sr.phase, sr.created_at AS round_created_at, sr.sealed_at, sr.seal_hash
+                   sr.phase, sr.created_at AS round_created_at, sr.sealed_at, sr.seal_hash,
+                   COALESCE(u.is_active, 1) AS is_active,
+                   COALESCE(u.is_provisional, 0) AS is_provisional
             FROM signing_round_signers srs
             INNER JOIN signing_rounds sr ON sr.id = srs.round_id
+            LEFT JOIN users u ON u.username = srs.username
             WHERE sr.project_id = ?
             ORDER BY sr.created_at ASC, srs.sign_order ASC, srs.id ASC
         """, (proj_id,)).fetchall()
@@ -5584,6 +5637,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_ROUND_RESEND.match(path)
         if m:
             return self._api_round_resend(m.group(1), m.group(2), m.group(3), user)
+        m = _RE_USER_REVOKE.match(path)
+        if m:
+            return self._api_signer_revoke(m.group(1), m.group(2), user)
         m = _RE_PROJ_DOC.match(path)
         if m:
             return self._api_doc_upsert(m.group(1), m.group(2), user)

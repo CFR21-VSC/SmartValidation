@@ -4557,6 +4557,35 @@
       document.getElementById('rdModal').style.display = 'none';
     }
 
+    async function archivoToggleAccess(projId, username, btn) {
+      const action = btn.dataset.action || 'revoke';
+      const label  = action === 'revoke' ? 'Revocar' : 'Reactivar';
+      if (!confirm(`¿${label} el acceso de "${username}" al Portal de Firmas?`)) return;
+      btn.disabled = true; btn.textContent = '…';
+      const r = await fetch(`/api/projects/${projId}/signers/${encodeURIComponent(username)}/revoke`, {
+        method: 'POST', credentials: 'include',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ action }),
+      }).then(r=>r.json()).catch(()=>null);
+      if (!r?.ok) {
+        alert(r?.error || 'Error al cambiar el acceso');
+        btn.disabled = false; btn.textContent = label;
+        return;
+      }
+      const isNowActive = r.is_active === 1;
+      const statusEl = btn.closest('.archivo-signer-row')?.querySelector('[class^="archivo-status-"]');
+      if (statusEl) {
+        statusEl.textContent = isNowActive ? '● Activo' : '○ Revocado';
+        statusEl.style.color = isNowActive ? '#27a855' : '#e87a8a';
+      }
+      btn.dataset.action = isNowActive ? 'revoke' : 'reactivate';
+      btn.textContent    = isNowActive ? 'Revocar' : 'Reactivar';
+      btn.style.color    = isNowActive ? '#c87a9a' : '#27a855';
+      btn.style.borderColor = isNowActive ? '#5a2050' : '#1a4030';
+      btn.disabled = false;
+      _rdToast(isNowActive ? `"${username}" reactivado` : `"${username}" revocado`, isNowActive ? '#27a855' : '#C8921A');
+    }
+
     async function vsDownloadPDFForDoc(docType) {
       // Cierra el archivo modal y abre el documento en la Suite Validación
       const projId = window._currentProjectId;
@@ -4633,6 +4662,36 @@
             </div>`;
         }
       }
+
+      // Sección gestión de acceso: firmantes únicos del proyecto
+      const uniqueSigners = {};
+      for (const e of pbEntries) {
+        if (!uniqueSigners[e.username]) {
+          uniqueSigners[e.username] = { ...e };
+        }
+      }
+      const signersList = Object.values(uniqueSigners);
+      let accessHtml = '';
+      if (signersList.length) {
+        accessHtml = `
+          <div style="margin-top:20px;border-top:1px solid #1a3050;padding-top:16px;">
+            <div style="font-size:11px;color:#4a6a86;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Gestión de acceso — Firmantes del proyecto</div>
+            <div style="font-size:11px;color:#3a5a76;margin-bottom:12px;">Podés revocar el acceso al Portal de Firmas a firmantes provisionales cuando el proyecto concluya. No afecta a admins ni auditores.</div>
+            ${signersList.map(s => `
+              <div class="archivo-signer-row" data-username="${esc(s.username||'')}" style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #0d1e30;">
+                <div style="flex:1;">
+                  <span style="font-size:12px;color:#dde6f0;">${s.display_name||s.email||s.username||'—'}</span>
+                  ${s.email ? `<span style="font-size:10px;color:#2a4a66;margin-left:6px;">&lt;${esc(s.email)}&gt;</span>` : ''}
+                </div>
+                <span style="font-size:10px;color:#4a6a86;">${s.role_label||'—'}</span>
+                <span class="archivo-status-${esc(s.username||'')}" style="font-size:10px;color:${s.is_active!==0?'#27a855':'#e87a8a'};">${s.is_active!==0?'● Activo':'○ Revocado'}</span>
+                <button onclick="archivoToggleAccess('${esc(projId)}','${esc(s.username||'')}',this)"
+                  style="background:${s.is_active!==0?'#1a0d1a':'#0a1e0a'};border:1px solid ${s.is_active!==0?'#5a2050':'#1a4030'};color:${s.is_active!==0?'#c87a9a':'#27a855'};border-radius:5px;padding:3px 10px;font-size:10px;cursor:pointer;"
+                  data-action="${s.is_active!==0?'revoke':'reactivate'}">${s.is_active!==0?'Revocar':'Reactivar'}</button>
+              </div>`).join('')}
+          </div>`;
+      }
+      html = (html || '') + accessHtml;
 
       let ar = document.getElementById('archivoModal');
       if (!ar) {
