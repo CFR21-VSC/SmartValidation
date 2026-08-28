@@ -424,6 +424,7 @@ _RE_SIGNING_ROUND_CANCEL = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([
 _RE_DOC_REVISIONS  = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/revisions$')
 _RE_REV_FULFILL    = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/fulfill/([^/]+)$')
 _RE_REV_DISCARD    = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/discard-revision/([^/]+)$')
+_RE_ROUND_RESEND   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/resend/([^/]+)$')
 _RE_MY_REVISIONS   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/my-revisions$')
 _RE_PROJ_PHOTOS   = re.compile(r'^/api/projects/([^/]+)/photos$')
 _RE_PROJ_PHOTO_ID = re.compile(r'^/api/projects/([^/]+)/photos/([^/]+)$')
@@ -4747,6 +4748,70 @@ class SyncHandler(BaseHTTPRequestHandler):
             )
         return self._send_json(200, {"ok": True})
 
+    def _api_round_resend(self, proj_id, round_id, signer_row_id, user):
+        """POST /api/projects/{id}/signing-rounds/{round}/resend/{signer_id}
+        Reenvía la notificación por email a un firmante que aún no firmó.
+        Solo admin. El signer_row_id es el PK de signing_round_signers.
+        """
+        if user.get("r") != "admin":
+            return self._send_json(403, {"ok": False, "error": "Solo admin"})
+        if not _is_valid_proj_id(proj_id) or not _is_valid_uuid(round_id):
+            return self._send_json(404, {"ok": False, "error": "No encontrado"})
+        db = _get_db()
+        signer = db.execute(
+            """SELECT srs.id, srs.email, srs.display_name, srs.signed_at,
+                      sr.doc_type, sr.status AS round_status, sr.phase,
+                      u.invite_token
+               FROM signing_round_signers srs
+               INNER JOIN signing_rounds sr ON sr.id = srs.round_id
+               LEFT JOIN users u ON u.email = srs.email
+               WHERE srs.id=? AND srs.round_id=? AND sr.project_id=?""",
+            (signer_row_id, round_id, proj_id)
+        ).fetchone()
+        if not signer:
+            return self._send_json(404, {"ok": False, "error": "Firmante no encontrado"})
+        if signer["signed_at"]:
+            return self._send_json(409, {"ok": False, "error": "El firmante ya completó su firma"})
+        if signer["round_status"] != "open":
+            return self._send_json(409, {"ok": False, "error": "La ronda no está abierta"})
+        if not signer["email"]:
+            return self._send_json(422, {"ok": False, "error": "El firmante no tiene email registrado"})
+        if not _RESEND_API_KEY:
+            return self._send_json(200, {"ok": True, "warn": "RESEND_API_KEY no configurada — email no enviado"})
+
+        proj = db.execute("SELECT name FROM projects WHERE id=?", (proj_id,)).fetchone()
+        proj_name = proj["name"] if proj else proj_id
+        doc_type = signer["doc_type"]
+        display  = signer["display_name"] or signer["email"]
+        email    = signer["email"]
+
+        # Reutilizar token de invitación existente o crear uno nuevo
+        token = signer["invite_token"]
+        if not token:
+            token = secrets.token_urlsafe(32)
+            db.execute(
+                "UPDATE users SET invite_token=?, invite_expires_at=? WHERE email=?",
+                (token, int(time.time()) + 72*3600, email)
+            )
+
+        pub_url = _ALLOWED_ORIGIN.rstrip("/") if _ALLOWED_ORIGIN not in ("*", "null") else ""
+        firmas_url = f"{pub_url}/firmas/?token={token}" if token else f"{pub_url}/client/"
+        nombre = _html_mod.escape(display)
+        dtype  = _html_mod.escape(doc_type)
+        pname  = _html_mod.escape(proj_name)
+        phase_label = "Aprobación" if (signer["phase"] or "review") == "approval" else "Revisión"
+
+        body = (
+            f"<p>Hola <strong>{nombre}</strong>,</p>"
+            f"<p>Se te recuerda que tenés pendiente tu firma de <strong>{phase_label}</strong> "
+            f"para el documento <strong>{dtype}</strong> del proyecto <strong>{pname}</strong>.</p>"
+            f"<p><a href='{firmas_url}' style='background:#C8921A;color:#0B2341;padding:10px 22px;border-radius:6px;text-decoration:none;font-weight:700;display:inline-block;'>Ir al Portal de Firmas</a></p>"
+            f"<p style='font-size:12px;color:#777;'>Este recordatorio fue enviado por un administrador del sistema.</p>"
+        )
+        subject = f"[SMART Validation] Recordatorio de firma — {doc_type} / {proj_name}"
+        _send_email(email, subject, _email_html(f"Firma pendiente — {doc_type}", body))
+        return self._send_json(200, {"ok": True})
+
     def _api_my_revisions(self, proj_id, round_id, user):
         """GET — revisor consulta el estado de sus revisiones en esta ronda."""
         db = _get_db()
@@ -5516,6 +5581,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_REV_DISCARD.match(path)
         if m:
             return self._api_rev_discard(m.group(1), m.group(2), m.group(3), user)
+        m = _RE_ROUND_RESEND.match(path)
+        if m:
+            return self._api_round_resend(m.group(1), m.group(2), m.group(3), user)
         m = _RE_PROJ_DOC.match(path)
         if m:
             return self._api_doc_upsert(m.group(1), m.group(2), user)
