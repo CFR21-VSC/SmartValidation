@@ -4868,15 +4868,17 @@ class SyncHandler(BaseHTTPRequestHandler):
         # Rondas abiertas con progreso
         rounds = db.execute("""
             SELECT sr.id, sr.project_id, sr.doc_type, sr.doc_version, sr.status,
-                   sr.created_at, sr.sealed_at, p.name AS project_name,
+                   sr.phase, sr.created_at, sr.sealed_at, sr.cancel_reason,
+                   p.name AS project_name,
                    COUNT(srs.id) AS total_signers,
                    SUM(CASE WHEN srs.signed_at IS NOT NULL THEN 1 ELSE 0 END) AS signed_count,
                    SUM(CASE WHEN srs.revision_requested_at IS NOT NULL THEN 1 ELSE 0 END) AS revision_count
             FROM signing_rounds sr
             INNER JOIN projects p ON p.id = sr.project_id
             LEFT JOIN signing_round_signers srs ON srs.round_id = sr.id
+            WHERE NOT (sr.status = 'sealed' AND (sr.phase = 'approval' OR sr.phase IS NULL))
             GROUP BY sr.id, sr.project_id, sr.doc_type, sr.doc_version, sr.status,
-                     sr.created_at, sr.sealed_at, p.name
+                     sr.phase, sr.created_at, sr.sealed_at, sr.cancel_reason, p.name
             ORDER BY sr.created_at DESC
             LIMIT 100
         """).fetchall()
