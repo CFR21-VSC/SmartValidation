@@ -352,6 +352,10 @@ def _db_init():
         # F4 — Cancelación de rondas por admin (columnas para signing_rounds existentes)
         "ALTER TABLE signing_rounds ADD COLUMN cancelled_at REAL",
         "ALTER TABLE signing_rounds ADD COLUMN cancel_reason TEXT",
+        # F9 — Arquitectura Review/Approval: fase, orden de firma obligatorio, tipo de bloque
+        "ALTER TABLE signing_rounds ADD COLUMN phase TEXT DEFAULT 'review'",
+        "ALTER TABLE signing_round_signers ADD COLUMN sign_order INTEGER DEFAULT 0",
+        "ALTER TABLE validation_book_blocks ADD COLUMN block_type TEXT DEFAULT 'seal'",
     ]:
         try:
             db.execute(_migration)
@@ -4039,6 +4043,9 @@ class SyncHandler(BaseHTTPRequestHandler):
             return
         doc_type = str(data.get("doc_type", "")).strip().upper()
         signers  = data.get("signers", [])
+        phase    = str(data.get("phase", "review")).strip().lower()
+        if phase not in ("review", "approval"):
+            phase = "review"
         if not doc_type:
             return self._send_json(400, {"ok": False, "error": "doc_type requerido"})
         if not signers or not isinstance(signers, list):
@@ -4098,6 +4105,10 @@ class SyncHandler(BaseHTTPRequestHandler):
             s_email    = str(s.get("email", "")).strip().lower()
             s_name     = str(s.get("display_name", "")).strip()[:200]
             s_role     = str(s.get("role_label", "Revisor")).strip()[:200]
+            try:
+                s_order = max(0, int(s.get("sign_order", 0)))
+            except (ValueError, TypeError):
+                s_order = 0
 
             dedup_key = s_username or s_email
             if not dedup_key or dedup_key in _seen_signers:
@@ -4117,6 +4128,7 @@ class SyncHandler(BaseHTTPRequestHandler):
                     "role": s_role,
                     "email": u_row["email"] or "",
                     "invite_token": None,
+                    "sign_order": s_order,
                 })
             elif s_email:
                 # Email-only signer — use existing user or create provisional + invitation
@@ -4128,6 +4140,7 @@ class SyncHandler(BaseHTTPRequestHandler):
                         "role": s_role,
                         "email": s_email,
                         "invite_token": None,  # existing user: notify via regular email
+                        "sign_order": s_order,
                     })
                 else:
                     # Will create invitation after round_id is committed
@@ -4137,6 +4150,7 @@ class SyncHandler(BaseHTTPRequestHandler):
                         "role": s_role,
                         "email": s_email,
                         "invite_token": "__pending__",
+                        "sign_order": s_order,
                     })
             else:
                 continue  # skip malformed entry
@@ -4174,13 +4188,26 @@ class SyncHandler(BaseHTTPRequestHandler):
             if existing:
                 db.execute("ROLLBACK")
                 return self._send_json(409, {"ok": False, "error": "Ya existe una ronda abierta para este documento"})
+
+            # F9: bloquear si el documento ya está aprobado (sellado) para esta combinación
+            doc_status_row = db.execute(
+                "SELECT status FROM documents WHERE project_id=? AND doc_type=?",
+                (proj_id, doc_type)
+            ).fetchone()
+            if doc_status_row and doc_status_row["status"] == "approved":
+                db.execute("ROLLBACK")
+                return self._send_json(409, {
+                    "ok": False,
+                    "error": "El documento ya está aprobado. Revertí su estado a Borrador antes de crear una nueva ronda."
+                })
+
             doc_version = doc["version"] or 1
 
             db.execute("""
                 INSERT INTO signing_rounds
-                  (id, project_id, doc_type, doc_version, doc_hash, status, created_by, created_at)
-                VALUES (?, ?, ?, ?, ?, 'open', ?, ?)
-            """, (round_id, proj_id, doc_type, doc_version, doc_hash, user.get("u"), now))
+                  (id, project_id, doc_type, doc_version, doc_hash, status, phase, created_by, created_at)
+                VALUES (?, ?, ?, ?, ?, 'open', ?, ?, ?)
+            """, (round_id, proj_id, doc_type, doc_version, doc_hash, phase, user.get("u"), now))
 
             # Bloquear documento → for_review
             db.execute(
@@ -4190,21 +4217,56 @@ class SyncHandler(BaseHTTPRequestHandler):
 
             for s in valid_signers:
                 db.execute("""
-                    INSERT INTO signing_round_signers (round_id, username, display_name, role_label, email)
-                    VALUES (?, ?, ?, ?, ?)
-                """, (round_id, s["username"], s["display"], s["role"], s["email"] or None))
+                    INSERT INTO signing_round_signers (round_id, username, display_name, role_label, email, sign_order)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (round_id, s["username"], s["display"], s["role"], s["email"] or None, s.get("sign_order", 0)))
                 # Garantizar acceso al proyecto para que el firmante pueda ver la firma pendiente
                 db.execute("""
                     INSERT OR IGNORE INTO project_access (user_id, project_id, access_level, granted_by, granted_at)
                     SELECT id, ?, 'read', ?, ? FROM users WHERE username=?
                 """, (proj_id, user.get("u"), now, s["username"]))
 
+            # F9: bloque de DESIGNACIÓN en el Validation Book (etapa 1 de 3)
+            last_blk = db.execute(
+                "SELECT block_hash FROM validation_book_blocks WHERE project_id=? ORDER BY block_number DESC LIMIT 1",
+                (proj_id,)
+            ).fetchone()
+            prev_hash_d = last_blk["block_hash"] if last_blk else "0" * 64
+            desig_payload = {
+                "block_type": "designation",
+                "project_id": proj_id,
+                "round_id": round_id,
+                "doc_type": doc_type,
+                "doc_version": doc_version,
+                "phase": phase,
+                "created_at": now,
+                "created_by": user.get("u"),
+                "prev_block_hash": prev_hash_d,
+                "signers": [
+                    {"display": s["display"], "role": s["role"], "sign_order": s.get("sign_order", 0)}
+                    for s in valid_signers
+                ],
+            }
+            desig_json = json.dumps(desig_payload, sort_keys=True)
+            desig_hash = _make_audit_hash(f"{prev_hash_d}|{desig_json}")
+            max_blk = db.execute(
+                "SELECT COALESCE(MAX(block_number), 0) AS m FROM validation_book_blocks WHERE project_id=?",
+                (proj_id,)
+            ).fetchone()
+            db.execute("""
+                INSERT INTO validation_book_blocks
+                  (project_id, round_id, block_number, doc_type, doc_version,
+                   doc_hash, block_hash, prev_block_hash, block_json, sealed_at, block_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'designation')
+            """, (proj_id, round_id, max_blk["m"] + 1, doc_type, doc_version,
+                  doc_hash, desig_hash, prev_hash_d, desig_json, now))
+
             # ADV-19: audit trail de creación de ronda de firma
             db.execute("""
                 INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
                 VALUES (?, ?, ?, 'signing_round_create', ?, ?, ?)
             """, (proj_id, doc_type, user.get("u"),
-                  f"Ronda {round_id} creada con {len(valid_signers)} firmante(s)",
+                  f"Ronda {round_id} ({phase}) creada con {len(valid_signers)} firmante(s) — bloque #{max_blk['m'] + 1} en People Book",
                   self._get_client_ip(), now))
 
             db.execute("COMMIT")
@@ -4317,6 +4379,22 @@ class SyncHandler(BaseHTTPRequestHandler):
             if signer["revision_requested_at"]:
                 db.execute("ROLLBACK")
                 return self._send_json(409, {"ok": False, "error": "Ya solicitaste revisión — no podés firmar"})
+
+            # F9: respetar sign_order — signer N no puede firmar si alguien con orden menor no firmó todavía
+            my_order = signer["sign_order"] if signer["sign_order"] is not None else 0
+            if my_order > 0:
+                blockers = db.execute(
+                    """SELECT display_name FROM signing_round_signers
+                       WHERE round_id=? AND sign_order > 0 AND sign_order < ? AND signed_at IS NULL""",
+                    (round_id, my_order)
+                ).fetchall()
+                if blockers:
+                    db.execute("ROLLBACK")
+                    names = ", ".join(b["display_name"] or "firmante anterior" for b in blockers)
+                    return self._send_json(409, {
+                        "ok": False,
+                        "error": f"Debe firmar primero: {names}"
+                    })
 
             audit_hash = _make_audit_hash(f"{rnd['doc_hash']}|{username}|{now}|{ip}")
             db.execute("""
@@ -4502,6 +4580,10 @@ class SyncHandler(BaseHTTPRequestHandler):
                 })
 
             now = time.time()
+            # F9: la fase de la ronda determina el tipo de bloque y si el doc queda aprobado
+            rnd_phase  = rnd["phase"] or "review"
+            block_type = "review_seal" if rnd_phase == "review" else "approval_seal"
+
             last_block = db.execute(
                 "SELECT block_hash FROM validation_book_blocks WHERE project_id=? ORDER BY block_number DESC LIMIT 1",
                 (proj_id,)
@@ -4509,6 +4591,8 @@ class SyncHandler(BaseHTTPRequestHandler):
             prev_hash = last_block["block_hash"] if last_block else "0" * 64
 
             block_payload = {
+                "block_type": block_type,
+                "phase": rnd_phase,
                 "project_id": proj_id,
                 "round_id": round_id,
                 "doc_type": rnd["doc_type"],
@@ -4534,25 +4618,30 @@ class SyncHandler(BaseHTTPRequestHandler):
             db.execute("""
                 INSERT INTO validation_book_blocks
                   (project_id, round_id, block_number, doc_type, doc_version,
-                   doc_hash, block_hash, prev_block_hash, block_json, sealed_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   doc_hash, block_hash, prev_block_hash, block_json, sealed_at, block_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (proj_id, round_id, block_num, rnd["doc_type"], rnd["doc_version"],
-                  rnd["doc_hash"], seal_hash, prev_hash, block_json, now))
+                  rnd["doc_hash"], seal_hash, prev_hash, block_json, now, block_type))
 
             db.execute("""
                 UPDATE signing_rounds SET status='sealed', sealed_at=?, seal_hash=?, prev_block_hash=?
                 WHERE id=?
             """, (now, seal_hash, prev_hash, round_id))
-            db.execute(
-                "UPDATE documents SET status='approved', updated_at=? WHERE project_id=? AND doc_type=?",
-                (now, proj_id, rnd["doc_type"])
-            )
+
+            # F9: solo la fase de aprobación marca el documento como 'approved'
+            if rnd_phase == "approval":
+                db.execute(
+                    "UPDATE documents SET status='approved', updated_at=? WHERE project_id=? AND doc_type=?",
+                    (now, proj_id, rnd["doc_type"])
+                )
+            # Para fase review: el documento permanece 'for_review' hasta que se selle la aprobación
+
             # ADV-19: audit trail de sellado de ronda (acción regulatoria crítica)
             db.execute("""
                 INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
                 VALUES (?, ?, ?, 'signing_round_seal', ?, ?, ?)
             """, (proj_id, rnd["doc_type"], user.get("u"),
-                  f"Ronda {round_id} sellada — v{rnd['doc_version']} — bloque #{block_num} en Validation Book (hash: {seal_hash[:16]}...)",
+                  f"Ronda {round_id} ({rnd_phase}) sellada — v{rnd['doc_version']} — bloque #{block_num} ({block_type}) en Validation Book (hash: {seal_hash[:16]}...)",
                   self._get_client_ip(), now))
             db.execute("COMMIT")
         except Exception:
@@ -4828,6 +4917,26 @@ class SyncHandler(BaseHTTPRequestHandler):
             SELECT * FROM validation_book_blocks WHERE project_id=? ORDER BY block_number ASC
         """, (proj_id,)).fetchall()
         return self._send_json(200, {"ok": True, "blocks": [dict(b) for b in blocks]})
+
+    def _people_book_get(self, proj_id, user):
+        """GET /api/projects/{id}/people-book — firmas electrónicas por ronda y firmante."""
+        if user.get("r") not in ("admin", "auditor", "superadmin"):
+            return self._send_json(403, {"ok": False, "error": "Requiere admin o auditor"})
+        if not _is_valid_proj_id(proj_id):
+            return self._send_json(404, {"ok": False, "error": "Proyecto no encontrado"})
+        db = _get_db()
+        rows = db.execute("""
+            SELECT srs.id, srs.display_name, srs.role_label, srs.sign_order,
+                   srs.signed_at, srs.audit_hash, srs.email,
+                   srs.revision_requested_at, srs.revision_reason,
+                   sr.id AS round_id, sr.doc_type, sr.doc_version, sr.status AS round_status,
+                   sr.phase, sr.created_at AS round_created_at, sr.sealed_at, sr.seal_hash
+            FROM signing_round_signers srs
+            INNER JOIN signing_rounds sr ON sr.id = srs.round_id
+            WHERE sr.project_id = ?
+            ORDER BY sr.created_at ASC, srs.sign_order ASC, srs.id ASC
+        """, (proj_id,)).fetchall()
+        return self._send_json(200, {"ok": True, "entries": [dict(r) for r in rows]})
 
     def _read_json_body(self):
         try:
@@ -5185,6 +5294,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = re.match(r'^/api/projects/([^/]+)/validation-book$', path)
         if m:
             return self._validation_book_get(m.group(1), user)
+        m = re.match(r'^/api/projects/([^/]+)/people-book$', path)
+        if m:
+            return self._people_book_get(m.group(1), user)
         m = _RE_EXECUTIONS.match(path)
         if m:
             return self._api_executions_get(m.group(1), user)
