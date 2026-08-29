@@ -2188,6 +2188,7 @@ async function openDocViewer(projId, docType) {
     }
 
     _setPanelStatus('Cargando documento…');
+    document.getElementById('docPanelBadge').textContent = `${docType} · proyecto: ${projId}`;
     const { status, data } = await apiFetch(
         `/api/projects/${encodeURIComponent(projId)}/documents/${encodeURIComponent(docType)}`
     );
