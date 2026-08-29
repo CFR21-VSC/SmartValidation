@@ -643,7 +643,7 @@ async function goDoc(projId, projName, docType, roundId) {
       renderRoundStatus(roundDetail);
     }
     // Iniciar polling si el revisor tiene revisión pendiente sin cumplir
-    const mySignerData = (roundDetail?.signers || [])[0];
+    const mySignerData = (roundDetail?.signers || []).find(s => s.username === S.user?.username);
     if (mySignerData?.revision_requested_at && !mySignerData?.revision_fulfilled_at) {
       S.correctionsPollInterval = setInterval(async () => {
         const rev = await api('GET', `/api/projects/${S.projId}/signing-rounds/${S.activeRound.round.id}/my-revisions`);
@@ -707,10 +707,18 @@ function renderRoundStatus(detail) {
   // Guardar en estado global para uso de proceedToSign y polling
   S._mySignerData = me || null;
 
-  let statusHtml = '';
+  // Encabezado de la ronda (siempre visible)
+  const pendingCount = signers.filter(s => !s.signed_at).length;
+  const signedCount  = signers.filter(s => s.signed_at).length;
+  let statusHtml = `<div style="background:#081828;border:1px solid #1a3050;border-radius:8px;padding:10px 14px;margin-bottom:12px;">
+    <div style="font-size:11px;color:#4a7aaa;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px;">Ronda de firma activa</div>
+    <div style="font-size:14px;font-weight:700;color:#c8d8e8;">${esc(rnd.name||'Sin nombre')}</div>
+    <div style="font-size:12px;color:#3a6a8a;margin-top:3px;">✅ ${signedCount} firmado${signedCount!==1?'s':''} · ⏳ ${pendingCount} pendiente${pendingCount!==1?'s':''}</div>
+  </div>`;
+
   if (me) {
     if (me.signed_at) {
-      statusHtml = `<div class="alert alert-success" style="margin-bottom:12px;">✅ Firmaste este documento como <strong>${esc(me.role_label)}</strong> el ${fmtDT(me.signed_at)}.</div>`;
+      statusHtml += `<div class="alert alert-success" style="margin-bottom:12px;">✅ Firmaste este documento como <strong>${esc(me.role_label)}</strong> el ${fmtDT(me.signed_at)}.</div>`;
     } else if (me.revision_requested_at && me.revision_fulfilled_at) {
       // Correcciones listas — mostrar checklist de validación
       let checklistHtml = '';
@@ -746,9 +754,9 @@ function renderRoundStatus(detail) {
         } catch(_) {}
         return `<small>${esc(me.revision_reason||'')}</small>`;
       })();
-      statusHtml = `<div class="alert alert-warn" style="margin-bottom:12px;">🔄 Solicitaste revisión el ${fmtDT(me.revision_requested_at)}. Aguardando que el administrador complete las correcciones.<br>${_revReason}</div>`;
+      statusHtml += `<div class="alert alert-warn" style="margin-bottom:12px;">🔄 Solicitaste revisión el ${fmtDT(me.revision_requested_at)}. Aguardando que el administrador complete las correcciones.<br>${_revReason}</div>`;
     } else {
-      statusHtml = `<div class="alert" style="background:#0d1e32;border:1px solid #1e4070;color:#5aaade;margin-bottom:12px;">⏳ Pendiente de tu firma como <strong>${esc(me.role_label)}</strong>.</div>`;
+      statusHtml += `<div class="alert" style="background:#0d1e32;border:1px solid #1e4070;color:#5aaade;margin-bottom:12px;">⏳ Pendiente de tu firma como <strong>${esc(me.role_label)}</strong>.</div>`;
     }
   }
   bar.innerHTML = statusHtml;
@@ -796,25 +804,39 @@ function populateSections(secciones) {
 }
 
 async function loadComments() {
-  const el = document.getElementById('comments-list');
-  const r = await api('GET', `/api/projects/${S.projId}/documents/${S.docType}/comments`);
+  const el      = document.getElementById('comments-list');
+  const form    = document.querySelector('.comment-form');
+  const roundId = S.activeRound?.round?.id;
+
+  // Sin ronda activa → no hay comentarios ni formulario
+  if (!roundId) {
+    el.innerHTML = '<div style="color:#4a6a86;font-size:13px;line-height:1.6;">Sin ronda activa.<br>Los comentarios se habilitan cuando el administrador inicia una ronda de firma.</div>';
+    if (form) form.style.display = 'none';
+    return;
+  }
+  if (form) form.style.display = '';
+
+  const r = await api('GET', `/api/projects/${S.projId}/signing-rounds/${roundId}/comments`);
   if (!r?.ok) { el.innerHTML = '<div style="color:#4a6a86;font-size:13px;">No se pudieron cargar.</div>'; return; }
   if (!r.comments?.length) {
-    el.innerHTML = '<div style="color:#4a6a86;font-size:13px;">Sin observaciones registradas todavía.</div>';
+    el.innerHTML = '<div style="color:#4a6a86;font-size:13px;">Sin observaciones en esta ronda todavía.</div>';
     return;
   }
   el.innerHTML = r.comments.map(c => {
     const secTag = c.section_ref
       ? `<span style="background:#0d2040;border:1px solid #1a4070;color:#5aaade;font-size:10px;font-weight:600;padding:1px 7px;border-radius:4px;margin-left:6px;">§ ${esc(c.section_ref)}</span>`
       : '';
+    const who = c.display_name || c.username;
     return `<div class="comment-item">
-      <div class="comment-meta">${fmtDT(c.created_at)}${secTag}</div>
+      <div class="comment-meta">${esc(who)} · ${fmtDT(c.created_at)}${secTag}</div>
       <div class="comment-body">${esc(c.body)}</div>
     </div>`;
   }).join('');
 }
 
 async function submitComment() {
+  const roundId = S.activeRound?.round?.id;
+  if (!roundId) return;
   const input = document.getElementById('comment-input');
   const secEl = document.getElementById('comment-section');
   const errEl = document.getElementById('comment-error');
@@ -823,13 +845,8 @@ async function submitComment() {
   errEl.style.display = 'none';
   if (!body) return;
   btn.disabled = true;
-  // Si hay ronda activa, guardar también en round_comments para trazabilidad
-  const roundId = S.activeRound?.id;
-  const commentPayload = { body, section_ref: secEl?.value || null };
-  if (roundId) {
-    api('POST', `/api/projects/${S.projId}/signing-rounds/${roundId}/comments`, commentPayload);
-  }
-  const r = await api('POST', `/api/projects/${S.projId}/documents/${S.docType}/comments`, commentPayload);
+  const r = await api('POST', `/api/projects/${S.projId}/signing-rounds/${roundId}/comments`,
+    { body, section_ref: secEl?.value || null });
   btn.disabled = false;
   if (!r?.ok) { errEl.textContent = r?.error || 'Error.'; errEl.style.display='block'; return; }
   input.value = '';
