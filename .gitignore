@@ -39,3 +39,8 @@ desktop.ini
 
 # ── Memoria de sesiones Claude (datos de proyecto, no van al repo) ────────────
 memory/
+
+# ── Playwright / Node ─────────────────────────────────────────────────────────
+node_modules/
+test-results/
+playwright-report/
