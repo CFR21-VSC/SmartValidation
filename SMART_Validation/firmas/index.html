@@ -824,6 +824,37 @@
     </div>
 </div>
 
+<!-- ── Drawer: Visor de documento ─────────────────────────────────────── -->
+<div id="docViewerDrawer" style="
+    position:fixed;inset:0;z-index:2000;display:none;
+    background:rgba(4,10,22,.7);backdrop-filter:blur(4px);"
+    onclick="if(event.target===this)closeDocViewer()">
+    <div style="
+        position:absolute;right:0;top:0;bottom:0;
+        width:min(760px,100vw);background:#07152a;
+        border-left:1px solid rgba(200,146,26,.25);
+        display:flex;flex-direction:column;overflow:hidden;">
+        <div style="
+            display:flex;align-items:center;gap:12px;
+            padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.07);
+            flex-shrink:0;">
+            <span id="dvBadge" style="
+                background:rgba(200,146,26,.15);border:1px solid rgba(200,146,26,.4);
+                color:#C8921A;border-radius:6px;padding:3px 10px;
+                font-size:12px;font-weight:700;letter-spacing:.5px;"></span>
+            <div style="flex:1;min-width:0">
+                <div id="dvTitle" style="font-size:15px;font-weight:700;color:#eef3f8;"></div>
+                <div id="dvMeta" style="font-size:11px;color:rgba(150,180,210,.7);margin-top:2px;"></div>
+            </div>
+            <button onclick="closeDocViewer()" style="
+                background:none;border:1px solid rgba(255,255,255,.12);color:#8aa4be;
+                border-radius:6px;padding:6px 14px;cursor:pointer;font-size:13px;
+                font-family:inherit;">✕ Cerrar</button>
+        </div>
+        <div id="dvContent" style="flex:1;overflow-y:auto;padding:24px 28px;font-size:13px;line-height:1.7;color:#c8d8e8;"></div>
+    </div>
+</div>
+
 <script>
 'use strict';
 
@@ -1164,6 +1195,15 @@ function renderCard(p, state) {
     const metaParts = [`Tu rol: <strong style="color:var(--text)">${escHtml(role)}</strong>`];
     if (order) metaParts.push(escHtml(order));
 
+    const projId = p.project_id || '';
+    const viewBtn = projId ? `<button
+        onclick="openDocViewer('${escHtml(projId)}','${escHtml(docType)}')"
+        style="background:transparent;border:1px solid rgba(90,150,200,.35);color:#5aaade;
+               border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;
+               font-family:inherit;margin-bottom:8px;width:100%;text-align:left;">
+        📄 Leer documento completo
+    </button>` : '';
+
     return `
     <div class="${cardClass}">
         <div class="rc-top">
@@ -1174,6 +1214,7 @@ function renderCard(p, state) {
                 <div class="rc-meta">${metaParts.join('<span class="dot"> · </span>')}</div>
             </div>
         </div>
+        ${viewBtn}
         <div class="rc-bottom">
             <div>${chipHtml}</div>
             <div>${actionHtml}</div>
@@ -1190,6 +1231,16 @@ function openSignModal(item) {
     document.getElementById('modalTitle').textContent = `Firmar: ${item.doc_type}`;
     document.getElementById('modalSubtitle').textContent =
         `Proyecto: ${item.project_name || item.project_id} · Tu rol: ${item.role_label || 'Firmante'}`;
+    // Link "ver documento" en el modal
+    let dvLink = document.getElementById('modalDocViewLink');
+    if (!dvLink) {
+        dvLink = document.createElement('button');
+        dvLink.id = 'modalDocViewLink';
+        dvLink.style.cssText = 'background:transparent;border:none;color:#5aaade;font-size:12px;cursor:pointer;font-family:inherit;text-decoration:underline;text-underline-offset:3px;padding:0;margin-bottom:10px;display:block;';
+        document.getElementById('modalSubtitle').insertAdjacentElement('afterend', dvLink);
+    }
+    dvLink.textContent = '📄 Leer el documento antes de firmar';
+    dvLink.onclick = () => openDocViewer(item.project_id, item.doc_type);
     document.getElementById('modalSign').classList.add('open');
     showSignPanel();
 }
@@ -1801,6 +1852,139 @@ async function crSubmit() {
         _toast(`Ronda(s) creada(s) para ${selectedDocs.join(', ')}`, '#2ecc71');
         await renderAdminRounds();
     }
+}
+
+// ── Visor de documento ────────────────────────────────────────────────────
+
+async function openDocViewer(projId, docType) {
+    const drawer = document.getElementById('docViewerDrawer');
+    const dvContent = document.getElementById('dvContent');
+    document.getElementById('dvBadge').textContent = docType;
+    document.getElementById('dvTitle').textContent = docType;
+    document.getElementById('dvMeta').textContent = '';
+    dvContent.innerHTML = '<div style="padding:40px 0;text-align:center;color:rgba(150,180,210,.6);">Cargando documento…</div>';
+    drawer.style.display = '';
+
+    const { status, data } = await apiFetch(`/api/projects/${encodeURIComponent(projId)}/documents/${encodeURIComponent(docType)}`);
+    if (status !== 200 || !data.ok) {
+        dvContent.innerHTML = `<div style="color:#e87a8a;padding:20px 0;">No se pudo cargar el documento.<br><small>${escHtml(data?.error||'')}</small></div>`;
+        return;
+    }
+
+    let doc = {};
+    try { doc = typeof data.json_data === 'string' ? JSON.parse(data.json_data) : (data.json_data || {}); } catch(e) {}
+
+    // Metadata header
+    const meta = doc.metadata || doc.header || {};
+    const title  = meta.title || meta.document_title || meta.doc_title || docType;
+    const ver    = meta.version || meta.doc_version || data.version || '';
+    const date   = meta.date || meta.effective_date || meta.issue_date || '';
+    const proj   = meta.project || meta.project_name || '';
+    const owner  = meta.owner || meta.prepared_by || meta.author || '';
+
+    document.getElementById('dvTitle').textContent = title;
+    const metaParts = [ver && `v${ver}`, date, proj, owner].filter(Boolean);
+    document.getElementById('dvMeta').textContent = metaParts.join(' · ');
+
+    dvContent.innerHTML = renderDocJson(doc, docType);
+}
+
+function closeDocViewer() {
+    document.getElementById('docViewerDrawer').style.display = 'none';
+}
+
+function renderDocJson(doc, docType) {
+    let html = '';
+
+    // Metadata table
+    const meta = doc.metadata || doc.header || {};
+    const metaFields = [
+        ['Título', meta.title || meta.document_title],
+        ['Versión', meta.version || meta.doc_version],
+        ['Fecha', meta.date || meta.effective_date || meta.issue_date],
+        ['Proyecto', meta.project || meta.project_name],
+        ['Responsable', meta.owner || meta.prepared_by || meta.author],
+        ['Estado', meta.status],
+        ['Clasificación GAMP', meta.gamp_category],
+        ['Alcance', meta.scope],
+    ].filter(([,v]) => v);
+
+    if (metaFields.length) {
+        html += `<table style="width:100%;border-collapse:collapse;margin-bottom:28px;font-size:12px;">`;
+        metaFields.forEach(([k, v]) => {
+            html += `<tr>
+                <td style="padding:6px 10px;color:rgba(200,146,26,.8);font-weight:600;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,.05);width:35%;">${escHtml(k)}</td>
+                <td style="padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.05);">${escHtml(String(v))}</td>
+            </tr>`;
+        });
+        html += `</table>`;
+    }
+
+    // Sections
+    const sections = doc.sections || doc.chapters || [];
+    sections.forEach(sec => { html += renderSection(sec); });
+
+    // Top-level arrays (requirements, risks, etc.) not inside sections
+    const knownKeys = new Set(['metadata','header','sections','chapters']);
+    Object.entries(doc).forEach(([key, val]) => {
+        if (knownKeys.has(key) || typeof val !== 'object' || !val) return;
+        if (Array.isArray(val) && val.length) {
+            html += `<h3 style="font-size:13px;font-weight:700;color:#C8921A;letter-spacing:.5px;text-transform:uppercase;margin:24px 0 10px;border-bottom:1px solid rgba(200,146,26,.2);padding-bottom:6px;">${escHtml(key)}</h3>`;
+            html += renderItems(val);
+        }
+    });
+
+    return html || `<div style="color:rgba(150,180,210,.5);font-style:italic;">El documento no tiene contenido renderizable.</div>`;
+}
+
+function renderSection(sec) {
+    if (!sec || typeof sec !== 'object') return '';
+    const title = sec.title || sec.section_title || sec.heading || '';
+    let html = '';
+    if (title) {
+        html += `<h3 style="font-size:13px;font-weight:700;color:#C8921A;letter-spacing:.5px;text-transform:uppercase;margin:24px 0 10px;border-bottom:1px solid rgba(200,146,26,.2);padding-bottom:6px;">${escHtml(title)}</h3>`;
+    }
+    const body = sec.content || sec.description || sec.text || '';
+    if (body) html += `<p style="margin-bottom:12px;">${escHtml(String(body))}</p>`;
+
+    // Items / requirements / risks as table
+    const items = sec.items || sec.requirements || sec.risks || sec.test_cases || sec.entries || [];
+    if (items.length) html += renderItems(items);
+
+    // Sub-sections
+    const subs = sec.subsections || sec.sub_sections || sec.children || [];
+    subs.forEach(sub => { html += renderSection(sub); });
+
+    return html;
+}
+
+function renderItems(items) {
+    if (!items.length) return '';
+    // Detect columns from first item
+    const first = items[0];
+    const cols = Object.keys(first).filter(k =>
+        typeof first[k] === 'string' || typeof first[k] === 'number'
+    ).slice(0, 6);
+    if (!cols.length) return '';
+
+    const prettyCol = k => k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+    let html = `<div style="overflow-x:auto;margin-bottom:20px;"><table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+        <thead><tr>`;
+    cols.forEach(c => {
+        html += `<th style="padding:6px 8px;text-align:left;background:rgba(200,146,26,.1);color:rgba(200,146,26,.9);font-weight:700;border-bottom:2px solid rgba(200,146,26,.25);white-space:nowrap;">${escHtml(prettyCol(c))}</th>`;
+    });
+    html += `</tr></thead><tbody>`;
+    items.forEach((item, i) => {
+        const bg = i % 2 === 0 ? 'rgba(255,255,255,.02)' : 'transparent';
+        html += `<tr style="background:${bg};">`;
+        cols.forEach(c => {
+            const v = item[c] ?? '';
+            html += `<td style="padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:top;">${escHtml(String(v))}</td>`;
+        });
+        html += `</tr>`;
+    });
+    html += `</tbody></table></div>`;
+    return html;
 }
 
 // ── Utilities ──────────────────────────────────────────────────────────────
