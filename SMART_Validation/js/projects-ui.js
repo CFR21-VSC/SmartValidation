@@ -57,6 +57,8 @@
             if (VS.Storage) {
                 try { serverList = (await VS.Storage.listProjects()) || []; } catch (_) {}
             }
+            console.log('[projects-ui] serverList:', serverList.length, serverList.map(p => p.id + ' ' + p.name));
+            console.log('[projects-ui] localList:', localList.length, localList.map(p => p.id + ' ' + p.name));
             const serverIds = new Set(serverList.map(sp => sp.id));
 
             // Paso 3: unificar — servidor como base, IndexedDB enriquece con stats

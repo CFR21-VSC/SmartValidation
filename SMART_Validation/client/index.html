@@ -330,6 +330,13 @@ async function api(method, path, body) {
 async function init() {
   const r = await api('GET', '/auth/session');
   if (!r || !r.ok) { location.href = '/login.html'; return; }
+  // Admin y auditor pueden ver el portal sin PIN (ven sus rondas como firmante, o vacío)
+  if (r.role === 'admin' || r.role === 'auditor') {
+    S.user = r;
+    document.querySelectorAll('[id^="hdr-user"]').forEach(el => el.textContent = r.displayName || r.username);
+    goDashboard();
+    return;
+  }
   if (r.role !== 'client') { location.href = '/login.html'; return; }
   S.user = r;
   document.querySelectorAll('[id^="hdr-user"]').forEach(el => el.textContent = r.displayName || r.username);
