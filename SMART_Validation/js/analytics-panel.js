@@ -689,9 +689,9 @@
         if (VS.diffVersions && VS.diffVersions.openDiffModal) VS.diffVersions.openDiffModal();
     };
 
-    // Firma & archivado → sign-archive.js (sin cambios)
+    // Firma & archivado → Suite Firmas (nuevo circuito GxP)
     global.openSignFlow = () => {
-        if (VS.signArchive && VS.signArchive.openSignModal) VS.signArchive.openSignModal();
+        if (typeof openReviewDashboard === 'function') openReviewDashboard();
     };
 
     // Audit trail → audit-trail.js (sin cambios)
