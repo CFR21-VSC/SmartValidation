@@ -555,7 +555,9 @@ class TestN1StaticAudit:
         guard_end   = src.find("# SEC-FIX-SEC01", guard_start)
         guard_src   = src[guard_start:guard_end]
         assert "firmas" in guard_src, \
-            "El guard de rol client no exime /firmas/ de redirigir a /client/"
+            "El guard de rol client debe redirigir a /firmas/ (no a /client/)"
+        assert "/client/" not in guard_src or "redirect" not in guard_src.lower(), \
+            "El guard de rol client no debe redirigir a /client/ — solo a /firmas/"
 
 
 # ─── Integración funcional mínima ─────────────────────────────────────────────

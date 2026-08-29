@@ -4967,7 +4967,7 @@ class SyncHandler(BaseHTTPRequestHandler):
             )
 
         pub_url = _ALLOWED_ORIGIN.rstrip("/") if _ALLOWED_ORIGIN not in ("*", "null") else ""
-        firmas_url = f"{pub_url}/firmas/?token={token}" if token else f"{pub_url}/client/"
+        firmas_url = f"{pub_url}/firmas/?token={token}" if token else f"{pub_url}/firmas/"
         nombre = _html_mod.escape(display)
         dtype  = _html_mod.escape(doc_type)
         pname  = _html_mod.escape(proj_name)
@@ -5331,7 +5331,11 @@ class SyncHandler(BaseHTTPRequestHandler):
         if path in ("/", ""):
             path = "/index.html"
         elif path in ("/client", "/client/"):
-            path = "/client/index.html"
+            # Portal viejo eliminado — redirigir permanentemente a Suite de Firmas
+            self.send_response(301)
+            self.send_header("Location", "/firmas/")
+            self.end_headers()
+            return
         elif path in ("/firmas", "/firmas/"):
             path = "/firmas/index.html"
 
@@ -5582,16 +5586,15 @@ class SyncHandler(BaseHTTPRequestHandler):
                 return self._send_json(401, {"ok": False, "error": "Sesión reemplazada. Iniciá sesión nuevamente.", "code": "SUPERSEDED"})
 
         # ── Route guard por rol ───────────────────────────────────────────────
-        # Clientes: pueden acceder a /client/* y /firmas/* (no a la app principal)
+        # Clientes: solo pueden acceder a /firmas/* (portal unificado)
         if user and user.get("r") == "client":
             is_html = path in ("/", "") or (
                 path.endswith(".html")
-                and not path.startswith("/client/")
                 and not path.startswith("/firmas/")
             )
             if is_html:
                 self.send_response(302)
-                self.send_header("Location", "/client/")
+                self.send_header("Location", "/firmas/")
                 self.end_headers()
                 return
 
