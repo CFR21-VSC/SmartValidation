@@ -1592,26 +1592,34 @@ function renderAdminRoundCard(rnd, allSigned) {
 
     const expandId = `adm_${rnd.id.replace(/-/g,'_')}`;
 
+    const pId = escHtml(rnd.project_id);
+    const rId = escHtml(rnd.id);
+    const dType = escHtml(rnd.doc_type);
+    const phaseKey = isApproval ? 'approval' : 'review';
+
     return `<div class="admin-round${allSigned ? ' urgent' : ''}" style="border-left:3px solid ${phColor};">
-        <div class="admin-round-top">
-            <div class="admin-round-info">
-                <div class="admin-round-name">
-                    <span style="background:${phColor}28;border:1px solid ${phColor}66;color:${phColor};border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.5px;margin-right:8px;">${phIcon} ${phase.toUpperCase()}</span>
-                    <strong>${escHtml(rnd.doc_type)}</strong> <span style="font-size:11px;color:var(--text-muted);font-weight:400;">v${rnd.doc_version||1}</span>
+        <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:200px;">
+                <div style="font-size:14px;font-weight:600;color:#eef3f8;margin-bottom:4px;">
+                    <span style="background:${phColor}28;border:1px solid ${phColor}66;color:${phColor};border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;letter-spacing:.5px;margin-right:8px;">${phIcon} ${phase.toUpperCase()}</span>
+                    <strong>${dType}</strong> <span style="font-size:11px;color:var(--text-muted);font-weight:400;">v${rnd.doc_version||1}</span>
                 </div>
-                <div class="admin-round-meta">${escHtml(rnd.project_name||rnd.project_id)} · Iniciada ${fmtDate(rnd.created_at)}</div>
-                <div style="font-size:12px;color:${n===total&&total?'var(--success)':'var(--text-muted)'};margin-top:4px;">${progress}</div>
+                <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:3px;">${escHtml(rnd.project_name||rnd.project_id)} · Iniciada ${fmtDate(rnd.created_at)}</div>
+                <div style="font-size:12px;color:${n===total&&total?'var(--success)':'var(--text-muted)'};">${progress}</div>
                 ${progressBar}
                 ${revBlock}
             </div>
-            <div class="admin-round-actions">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;flex-shrink:0;">
+                <button class="admin-btn" style="border-color:rgba(90,170,222,.4);color:#5aaade;"
+                    onclick="openDocViewer('${pId}','${dType}')">📄 Ver doc</button>
                 ${actions}
-                <button class="admin-btn admin-btn-view" onclick="toggleAdminSigners('${escHtml(rnd.project_id)}','${escHtml(rnd.id)}','${expandId}','${isApproval?'approval':'review'}')">
+                <button class="admin-btn admin-btn-view"
+                    onclick="toggleAdminSigners('${pId}','${rId}','${expandId}','${phaseKey}')">
                     ${participantLabel} ▾
                 </button>
             </div>
         </div>
-        <div id="${expandId}" class="admin-signers-block" style="display:none;" data-phase="${isApproval?'approval':'review'}"></div>
+        <div id="${expandId}" class="admin-signers-block" style="display:none;" data-phase="${phaseKey}"></div>
     </div>`;
 }
 
