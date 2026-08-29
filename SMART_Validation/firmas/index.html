@@ -1539,21 +1539,65 @@ function showAdminTab(tab) {
 }
 
 async function renderAdminRounds() {
+    _signItems = [];
     const wrap = document.getElementById('adminTabContent');
     wrap.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><p>Cargando…</p></div>';
 
-    const { status, data } = await apiFetch('/admin/review-activity');
-    if (status !== 200 || !data.ok) {
+    const [actRes, myRes] = await Promise.all([
+        apiFetch('/admin/review-activity'),
+        apiFetch('/api/me/pending-signatures'),
+    ]);
+    if (actRes.status !== 200 || !actRes.data.ok) {
         wrap.innerHTML = '<div class="alert alert-error">Error al cargar rondas.</div>';
         return;
     }
 
-    _adminSignerRevs = data.signer_revisions || [];
-    const rounds = data.rounds || [];
+    _adminSignerRevs = actRes.data.signer_revisions || [];
+    const rounds = actRes.data.rounds || [];
     const open    = rounds.filter(r => r.status === 'open');
     const sealed  = rounds.filter(r => r.status === 'sealed');
 
+    // Mis firmas pendientes como firmante/revisor
+    const myPending = (myRes.status === 200 && myRes.data.ok) ? (myRes.data.pending || []) : [];
+    const myToSign  = myPending.filter(p => !p.signed_at);
+
+    // Delegación de click para los botones de firma de "Mis firmas"
+    if (!wrap._signBound) {
+        wrap.addEventListener('click', e => {
+            const btn = e.target.closest('[data-my-sign-idx]');
+            if (btn) openSignModal(_signItems[+btn.dataset.mySignIdx]);
+        });
+        wrap._signBound = true;
+    }
+
     let html = '';
+
+    // ── Sección "Mis firmas pendientes" ──────────────────────────────────────
+    if (myToSign.length) {
+        html += `<div class="section-group" style="border-left:3px solid #C8921A;padding-left:12px;margin-bottom:20px;">
+            <div class="section-title" style="color:#C8921A;margin-bottom:10px;">✍ Mis firmas pendientes</div>`;
+        myToSign.forEach(p => {
+            const idx = _signItems.push(p) - 1;
+            const isApproval = p.phase === 'approval';
+            const phaseLabel = isApproval ? 'APROBACIÓN' : 'REVISIÓN';
+            const btnLabel   = isApproval ? 'Firmar con PIN ✍️' : 'Revisar y firmar ✍️';
+            const docType = p.doc_type || '—';
+            const projId  = p.project_id || '';
+            html += `<div class="admin-round" style="margin-bottom:10px;">
+                <div class="admin-round-top">
+                    <div class="admin-round-info">
+                        <div class="admin-round-name">${escHtml(docType)} <span style="font-size:10px;color:#C8921A;font-weight:700;">${escHtml(phaseLabel)}</span></div>
+                        <div class="admin-round-meta">${escHtml(p.project_name || projId)} · Tu rol: ${escHtml(p.role_label || 'Firmante')}</div>
+                    </div>
+                    <div class="admin-round-actions">
+                        ${projId ? `<button class="admin-btn admin-btn-view" onclick="openDocViewer('${escHtml(projId)}','${escHtml(docType)}')">📄 Ver</button>` : ''}
+                        <button class="admin-btn admin-btn-seal" data-my-sign-idx="${idx}">${escHtml(btnLabel)}</button>
+                    </div>
+                </div>
+            </div>`;
+        });
+        html += `</div>`;
+    }
 
     // Solicitudes de revisión activas
     const openRevs = _adminSignerRevs.filter(s => !s.revision_fulfilled_at);
@@ -2157,28 +2201,44 @@ async function openDocViewer(projId, docType) {
     }
 
     const docRow = data.document || {};
-    let docJson = docRow.content || {};
+    let docJson = docRow.content || null;
     if (!docJson || typeof docJson !== 'object') {
         try { docJson = JSON.parse(docRow.json_data || '{}'); } catch(e) { docJson = {}; }
     }
 
+    console.log('[firmas] docJson type:', docJson && docJson.type,
+                '| secciones:', Array.isArray(docJson && docJson.secciones) ? docJson.secciones.length : 'n/a',
+                '| keys:', docJson ? Object.keys(docJson).join(',') : 'none');
+
+    if (!docJson || !docJson.type) {
+        _setPanelStatus(`Documento sin campo "type" (keys: ${docJson ? Object.keys(docJson).join(', ') : 'vacío'})`, true);
+        return;
+    }
+
     const VS = window.ValidationSuite;
     if (!VS || typeof VS.renderDocument !== 'function') {
-        _setPanelStatus('Renderer no disponible', true); return;
+        _setPanelStatus('Renderer no disponible — revisá console', true); return;
+    }
+    const registeredTypes = VS.renderers ? Object.keys(VS.renderers) : [];
+    if (!VS.renderers || !VS.renderers[docJson.type]) {
+        _setPanelStatus(`Sin renderer para "${docJson.type}" (disponibles: ${registeredTypes.join(', ') || 'ninguno'})`, true);
+        return;
     }
 
     try {
         _setPanelStatus('Generando PDF…');
         const blob = await VS.renderDocument(docJson, { download: false });
         if (!blob || !(blob instanceof Blob)) {
-            _setPanelStatus('El renderer no devolvió un documento válido', true); return;
+            _setPanelStatus('El renderer no devolvió un blob válido', true); return;
         }
+        console.log('[firmas] PDF generado, blob size:', blob.size, 'bytes');
         if (_docBlobUrl) { URL.revokeObjectURL(_docBlobUrl); _docBlobUrl = null; }
         _docBlobUrl = URL.createObjectURL(blob);
         document.getElementById('docViewerFrame').src = _docBlobUrl;
-        _setPanelStatus(docType);
+        _setPanelStatus(docType + ' — ' + (blob.size / 1024).toFixed(0) + ' KB');
     } catch(e) {
-        _setPanelStatus(`Error al renderizar: ${e.message || e}`, true);
+        console.error('[firmas] Error renderizando:', e);
+        _setPanelStatus(`Error: ${e.message || e}`, true);
     }
 }
 
