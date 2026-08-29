@@ -1463,14 +1463,23 @@ async function renderAdminRounds() {
         const waiting     = open.filter(r => (r.signed_count||0) < r.total_signers);
 
         if (readyToSeal.length) {
-            html += `<div class="section-group"><div class="section-title">⚡ Listas para sellar — todos firmaron</div>`;
+            html += `<div class="section-group"><div class="section-title">⚡ Listas para sellar — todos completaron</div>`;
             readyToSeal.forEach(r => { html += renderAdminRoundCard(r, true); });
             html += '</div>';
         }
         if (waiting.length) {
-            html += `<div class="section-group"><div class="section-title">⏳ Esperando firmas</div>`;
-            waiting.forEach(r => { html += renderAdminRoundCard(r, false); });
-            html += '</div>';
+            const waitReview   = waiting.filter(r => (r.phase||'review') !== 'approval');
+            const waitApproval = waiting.filter(r => (r.phase||'review') === 'approval');
+            if (waitReview.length) {
+                html += `<div class="section-group"><div class="section-title" style="color:#3a9aee;">🔍 Esperando revisiones</div>`;
+                waitReview.forEach(r => { html += renderAdminRoundCard(r, false); });
+                html += '</div>';
+            }
+            if (waitApproval.length) {
+                html += `<div class="section-group"><div class="section-title" style="color:#C8921A;">✍ Esperando firmas</div>`;
+                waitApproval.forEach(r => { html += renderAdminRoundCard(r, false); });
+                html += '</div>';
+            }
         }
     }
 
@@ -1497,9 +1506,17 @@ async function renderAdminRounds() {
 }
 
 function renderAdminRoundCard(rnd, allSigned) {
-    const phase = (rnd.phase||'review') === 'approval' ? 'Aprobación' : 'Revisión';
-    const phColor = (rnd.phase||'review') === 'approval' ? '#C8921A' : '#3a7aaa';
-    const progress = rnd.total_signers ? `${rnd.signed_count||0}/${rnd.total_signers} firmaron` : 'sin firmantes';
+    const isApproval = (rnd.phase||'review') === 'approval';
+    const phase    = isApproval ? 'Aprobación' : 'Revisión';
+    const phColor  = isApproval ? '#C8921A'    : '#3a9aee';
+    const phIcon   = isApproval ? '✍'          : '🔍';
+    const actionWord = isApproval ? 'firmaron' : 'revisaron';
+    const pendingLabel = isApproval ? 'Pendiente de firma' : 'Pendiente de revisión';
+    const participantLabel = isApproval ? 'Firmantes' : 'Revisores';
+
+    const n = rnd.signed_count || 0;
+    const total = rnd.total_signers || 0;
+    const progress = total ? `${n}/${total} ${actionWord}` : 'sin participantes';
     const revs = _adminSignerRevs.filter(s => s.round_id === rnd.id && !s.revision_fulfilled_at);
 
     let actions = '';
@@ -1513,41 +1530,53 @@ function renderAdminRoundCard(rnd, allSigned) {
     }
 
     const revBlock = revs.length ? `<div style="margin-top:8px;padding:8px 10px;background:#1a0d10;border-left:3px solid #e87a8a;border-radius:0 6px 6px 0;font-size:12px;color:#e87a8a;">
-        ${revs.length} solicitud(es) de cambio pendiente(s)
+        ⚠ ${revs.length} solicitud(es) de cambio pendiente(s)
+    </div>` : '';
+
+    // Progress bar
+    const pct = total ? Math.round((n / total) * 100) : 0;
+    const progressBar = total ? `<div style="margin-top:6px;height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;">
+        <div style="height:100%;width:${pct}%;background:${phColor};border-radius:2px;transition:width .3s;"></div>
     </div>` : '';
 
     const expandId = `adm_${rnd.id.replace(/-/g,'_')}`;
 
-    return `<div class="admin-round${allSigned ? ' urgent' : ''}">
+    return `<div class="admin-round${allSigned ? ' urgent' : ''}" style="border-left:3px solid ${phColor};">
         <div class="admin-round-top">
             <div class="admin-round-info">
                 <div class="admin-round-name">
-                    <span style="background:${phColor}22;border:1px solid ${phColor}55;color:${phColor};border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700;margin-right:6px;">${phase}</span>
-                    ${escHtml(rnd.doc_type)} <span style="font-size:11px;color:var(--text-muted);font-weight:400;">v${rnd.doc_version||1}</span>
+                    <span style="background:${phColor}28;border:1px solid ${phColor}66;color:${phColor};border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700;letter-spacing:.5px;margin-right:8px;">${phIcon} ${phase.toUpperCase()}</span>
+                    <strong>${escHtml(rnd.doc_type)}</strong> <span style="font-size:11px;color:var(--text-muted);font-weight:400;">v${rnd.doc_version||1}</span>
                 </div>
                 <div class="admin-round-meta">${escHtml(rnd.project_name||rnd.project_id)} · Iniciada ${fmtDate(rnd.created_at)}</div>
-                <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${progress}</div>
+                <div style="font-size:12px;color:${n===total&&total?'var(--success)':'var(--text-muted)'};margin-top:4px;">${progress}</div>
+                ${progressBar}
                 ${revBlock}
             </div>
             <div class="admin-round-actions">
                 ${actions}
-                <button class="admin-btn admin-btn-view" onclick="toggleAdminSigners('${escHtml(rnd.project_id)}','${escHtml(rnd.id)}','${expandId}')">Firmantes ▾</button>
+                <button class="admin-btn admin-btn-view" onclick="toggleAdminSigners('${escHtml(rnd.project_id)}','${escHtml(rnd.id)}','${expandId}','${isApproval?'approval':'review'}')">
+                    ${participantLabel} ▾
+                </button>
             </div>
         </div>
-        <div id="${expandId}" class="admin-signers-block" style="display:none;"></div>
+        <div id="${expandId}" class="admin-signers-block" style="display:none;" data-phase="${isApproval?'approval':'review'}"></div>
     </div>`;
 }
 
-async function toggleAdminSigners(projId, roundId, expandId) {
+async function toggleAdminSigners(projId, roundId, expandId, phase) {
     const el = document.getElementById(expandId);
     if (!el) return;
     if (el.style.display !== 'none') { el.style.display = 'none'; return; }
     el.style.display = '';
-    el.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">Cargando firmantes…</div>';
+    const isApproval = (phase || el.dataset.phase) === 'approval';
+    const pendingLabel = isApproval ? 'Pendiente de firma' : 'Pendiente de revisión';
+    const doneLabel    = isApproval ? 'Firmado'           : 'Revisado';
+    el.innerHTML = `<div style="font-size:12px;color:var(--text-muted);">Cargando ${isApproval?'firmantes':'revisores'}…</div>`;
     const { status, data } = await apiFetch(`/api/projects/${projId}/signing-rounds/${roundId}`);
     if (status !== 200 || !data.ok) { el.innerHTML = '<div style="color:#e87a8a;font-size:12px;">Error al cargar.</div>'; return; }
     const signers = data.signers || [];
-    if (!signers.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">Sin firmantes.</div>'; return; }
+    if (!signers.length) { el.innerHTML = `<div style="font-size:12px;color:var(--text-muted);">Sin ${isApproval?'firmantes':'revisores'}.</div>`; return; }
     el.innerHTML = signers.map(s => `<div class="admin-signer-row">
         <div style="flex:1">
             <span style="font-weight:600;color:var(--text);">${escHtml(s.display_name||s.username)}</span>
@@ -1555,7 +1584,7 @@ async function toggleAdminSigners(projId, roundId, expandId) {
             ${s.email ? `<span style="font-size:10px;color:#2a4a66;margin-left:4px;">&lt;${escHtml(s.email)}&gt;</span>` : ''}
         </div>
         <span style="font-size:11px;color:${s.signed_at ? 'var(--success)' : '#e87a8a'};">
-            ${s.signed_at ? '✓ ' + fmtDate(s.signed_at) : '✗ Pendiente'}
+            ${s.signed_at ? `✓ ${doneLabel} · ${fmtDate(s.signed_at)}` : `✗ ${pendingLabel}`}
         </span>
         ${!s.signed_at && s.email ? `<button onclick="adminResend('${escHtml(projId)}','${escHtml(roundId)}','${escHtml(s.id)}')" style="background:transparent;border:1px solid rgba(90,170,222,0.4);color:#5aaade;border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;">✉ Reenviar</button>` : ''}
     </div>`).join('');
