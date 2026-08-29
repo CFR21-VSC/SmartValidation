@@ -104,13 +104,38 @@
     .pending-group-title { font-size:11px; font-weight:700; color:#3a8ace; text-transform:uppercase; letter-spacing:.8px; margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid #1a3050; }
     .pending-status-row { display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap; }
 
-    /* PDF viewer */
+    /* PDF viewer (dashboard/docs flow - unused now but kept for safety) */
     .doc-toolbar { display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
     .doc-toolbar-title { flex:1; font-size:16px; font-weight:700; color:#eef3f8; min-width:0; }
     .pdf-wrap { background:#06101a; border:1px solid #1e3550; border-radius:12px; overflow:hidden; margin-bottom:16px; min-height:400px; display:flex; align-items:center; justify-content:center; }
-    .pdf-wrap iframe { width:100%; height:72vh; border:none; display:block; }
+    .pdf-wrap iframe { width:100%; height:100%; border:none; display:block; }
     .pdf-msg { color:#3a6a9a; font-size:13px; padding:40px; text-align:center; }
     .pdf-err { color:#e87a8a; font-size:13px; padding:40px; text-align:center; }
+
+    /* ── Document viewer — full-screen split (estilo sfPanel) ─────────────── */
+    #screen-doc.active {
+      position: fixed; inset: 0; z-index: 500;
+      background: #060D16;
+      display: flex !important;
+      flex-direction: column;
+    }
+    .dv-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 16px; background: #0A1825;
+      border-bottom: 2px solid #1A3050; flex-shrink: 0; gap: 10px;
+    }
+    .dv-header-left { display:flex; align-items:center; gap:10px; min-width:0; flex:1; }
+    .dv-brand { font-size:9px; color:#3a6a9a; text-transform:uppercase; letter-spacing:1.2px; white-space:nowrap; }
+    .dv-title { font-size:13px; font-weight:700; color:#eef3f8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .dv-split { flex:1; display:flex; overflow:hidden; }
+    .dv-left  { flex:0 0 62%; border-right:2px solid #1A3050; display:flex; flex-direction:column; overflow:hidden; }
+    .dv-right { flex:1; overflow-y:auto; background:#070E18; }
+    .dv-right-inner { padding:14px; display:flex; flex-direction:column; gap:10px; }
+    #screen-doc .pdf-wrap { margin:0; border-radius:0; border:none; flex:1; min-height:0; }
+    @media (max-width: 768px) {
+      .dv-split { flex-direction:column; }
+      .dv-left  { flex:0 0 55vh; border-right:none; border-bottom:2px solid #1A3050; }
+    }
 
     /* Panels */
     .panel { background:#0f1e2e; border:1px solid #1e3550; border-radius:12px; margin-bottom:14px; overflow:hidden; }
@@ -191,46 +216,62 @@
     <div id="doc-list"><div class="placeholder">Cargando...</div></div>
   </div>
 
-  <!-- Document Viewer -->
+  <!-- Document Viewer — full-screen split layout -->
   <div id="screen-doc" class="screen">
-    <div class="header">
-      <div>
-        <div class="header-brand">SMART Validation — Portal Firmas</div>
-        <div class="header-user" id="hdr-user-doc"></div>
+
+    <!-- ── Header bar ─────────────────────────────────────────────────── -->
+    <div class="dv-header">
+      <div class="dv-header-left">
+        <button class="back-btn" onclick="goDocs()" style="margin:0;flex-shrink:0;">&#8592; Documentos</button>
+        <div style="min-width:0;">
+          <div class="dv-brand">SMART Validation — Portal Firmas</div>
+          <div class="dv-title" id="doc-title-bar">—</div>
+        </div>
+        <div id="doc-meta-bar" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-left:8px;flex-shrink:0;"></div>
       </div>
-      <button class="btn btn-ghost" onclick="logout()">Cerrar sesión</button>
-    </div>
-    <button class="back-btn" onclick="goDocs()">&#8592; Documentos</button>
-
-    <div class="doc-toolbar">
-      <div class="doc-toolbar-title" id="doc-title-bar"></div>
-      <div id="doc-meta-bar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"></div>
-      <button class="btn btn-ghost btn-sm" onclick="downloadPdf()" id="btn-download" style="display:none">⬇ PDF</button>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <div class="header-user" id="hdr-user-doc"></div>
+        <button class="btn btn-ghost btn-sm" onclick="downloadPdf()" id="btn-download" style="display:none;">⬇ PDF</button>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">Salir</button>
+      </div>
     </div>
 
-    <!-- Estado de la ronda -->
-    <div id="round-status-bar" style="display:none"></div>
+    <!-- ── Split body ──────────────────────────────────────────────────── -->
+    <div class="dv-split">
 
-    <!-- PDF -->
-    <div class="pdf-wrap" id="pdf-wrap">
-      <div class="pdf-msg">Generando documento...</div>
-    </div>
+      <!-- Left: PDF render -->
+      <div class="dv-left">
+        <div class="pdf-wrap" id="pdf-wrap">
+          <div class="pdf-msg">Generando documento...</div>
+        </div>
+      </div>
 
-    <!-- Acciones de firma -->
-    <div id="sign-actions-panel" style="display:none"></div>
+      <!-- Right: estado ronda + firma + comentarios -->
+      <div class="dv-right">
+        <div class="dv-right-inner">
 
-    <!-- Mis comentarios -->
-    <div class="panel">
-      <div class="panel-hdr">💬 Mis observaciones</div>
-      <div class="panel-body">
-        <div id="comments-list"><div style="color:#4a6a86;font-size:13px;">Cargando...</div></div>
-        <div class="comment-form">
-          <label class="form-label">Sección referenciada (opcional)</label>
-          <select id="comment-section" class="form-select"></select>
-          <label class="form-label">Observación</label>
-          <textarea id="comment-input" class="form-textarea" placeholder="Escribí tu observación o sugerencia sobre este documento..." maxlength="2000"></textarea>
-          <button class="btn btn-primary btn-sm" onclick="submitComment()" id="btn-comment">Agregar observación</button>
-          <div id="comment-error" class="alert alert-error" style="display:none;margin-top:8px;"></div>
+          <!-- Estado de la ronda -->
+          <div id="round-status-bar" style="display:none"></div>
+
+          <!-- Acciones de firma -->
+          <div id="sign-actions-panel" style="display:none"></div>
+
+          <!-- Mis observaciones -->
+          <div class="panel">
+            <div class="panel-hdr">💬 Mis observaciones</div>
+            <div class="panel-body">
+              <div id="comments-list"><div style="color:#4a6a86;font-size:13px;">Cargando...</div></div>
+              <div class="comment-form">
+                <label class="form-label">Sección referenciada (opcional)</label>
+                <select id="comment-section" class="form-select"><option value="">— sin referencia —</option></select>
+                <label class="form-label">Observación</label>
+                <textarea id="comment-input" class="form-textarea" placeholder="Escribí tu observación o sugerencia sobre este documento..." maxlength="2000"></textarea>
+                <button class="btn btn-primary btn-sm" onclick="submitComment()" id="btn-comment">Agregar observación</button>
+                <div id="comment-error" class="alert alert-error" style="display:none;margin-top:8px;"></div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -661,8 +702,8 @@ function renderRoundStatus(detail) {
   const bar = document.getElementById('round-status-bar');
   const actPanel = document.getElementById('sign-actions-panel');
 
-  // Mi entrada en la ronda (el revisor solo ve su propia fila)
-  const me = signers[0];
+  // Mi entrada en la ronda — buscar por username del usuario actual
+  const me = signers.find(s => s.username === S.user?.username) || null;
   // Guardar en estado global para uso de proceedToSign y polling
   S._mySignerData = me || null;
 
@@ -745,8 +786,9 @@ function downloadPdf() {
 function populateSections(secciones) {
   const sel = document.getElementById('comment-section');
   while (sel.options.length > 1) sel.remove(1);
-  secciones.forEach((s, i) => {
-    const lbl = s.titulo || s.title || s.nombre || `Sección ${i+1}`;
+  secciones.forEach((s) => {
+    const lbl = s.titulo || s.title || s.nombre;
+    if (!lbl) return; // omitir secciones sin título
     const opt = document.createElement('option');
     opt.value = lbl; opt.textContent = lbl;
     sel.appendChild(opt);
