@@ -824,6 +824,30 @@
     </div>
 </div>
 
+<!-- ── Modal: Comentario admin ───────────────────────────────────────── -->
+<div id="adminCommentOverlay" style="
+    display:none;position:fixed;inset:0;z-index:1800;
+    background:rgba(4,10,22,.75);backdrop-filter:blur(4px);
+    align-items:center;justify-content:center;"
+    onclick="if(event.target===this)adminCloseComment()">
+    <div style="
+        background:#07152a;border:1px solid rgba(200,146,26,.3);
+        border-top:2px solid rgba(200,146,26,.6);border-radius:14px;
+        padding:28px 28px 24px;width:min(500px,95vw);">
+        <h3 style="font-size:15px;font-weight:700;color:#eef3f8;margin-bottom:6px;">Agregar comentario de revisión</h3>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:18px;">El comentario queda registrado en el historial de la ronda y es visible para todos los participantes.</p>
+        <div id="adminCommentError" class="alert alert-error" style="display:none;margin-bottom:12px;"></div>
+        <div class="field">
+            <label>Comentario</label>
+            <textarea id="adminCommentBody" placeholder="Describí tu observación sobre el documento…" style="min-height:100px;"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+            <button class="btn btn-outline" style="flex:1" onclick="adminCloseComment()">Cancelar</button>
+            <button class="btn btn-gold" id="adminCommentSubmitBtn" style="flex:2" onclick="adminSubmitComment()">Agregar comentario</button>
+        </div>
+    </div>
+</div>
+
 <!-- ── Drawer: Visor de documento ─────────────────────────────────────── -->
 <div id="docViewerDrawer" style="
     position:fixed;inset:0;z-index:2000;display:none;
@@ -1612,6 +1636,8 @@ function renderAdminRoundCard(rnd, allSigned) {
             <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start;flex-shrink:0;">
                 <button class="admin-btn" style="border-color:rgba(90,170,222,.4);color:#5aaade;"
                     onclick="openDocViewer('${pId}','${dType}')">📄 Ver doc</button>
+                <button class="admin-btn" style="border-color:rgba(150,200,100,.3);color:#90c860;"
+                    onclick="adminOpenComment('${pId}','${rId}','${expandId}')">💬 Comentar</button>
                 ${actions}
                 <button class="admin-btn admin-btn-view"
                     onclick="toggleAdminSigners('${pId}','${rId}','${expandId}','${phaseKey}')">
@@ -1631,22 +1657,142 @@ async function toggleAdminSigners(projId, roundId, expandId, phase) {
     const isApproval = (phase || el.dataset.phase) === 'approval';
     const pendingLabel = isApproval ? 'Pendiente de firma' : 'Pendiente de revisión';
     const doneLabel    = isApproval ? 'Firmado'           : 'Revisado';
-    el.innerHTML = `<div style="font-size:12px;color:var(--text-muted);">Cargando ${isApproval?'firmantes':'revisores'}…</div>`;
-    const { status, data } = await apiFetch(`/api/projects/${projId}/signing-rounds/${roundId}`);
-    if (status !== 200 || !data.ok) { el.innerHTML = '<div style="color:#e87a8a;font-size:12px;">Error al cargar.</div>'; return; }
-    const signers = data.signers || [];
-    if (!signers.length) { el.innerHTML = `<div style="font-size:12px;color:var(--text-muted);">Sin ${isApproval?'firmantes':'revisores'}.</div>`; return; }
-    el.innerHTML = signers.map(s => `<div class="admin-signer-row">
-        <div style="flex:1">
-            <span style="font-weight:600;color:var(--text);">${escHtml(s.display_name||s.username)}</span>
-            <span style="color:var(--text-muted);margin-left:6px;font-size:11px;">${escHtml(s.role_label||'')}</span>
-            ${s.email ? `<span style="font-size:10px;color:#2a4a66;margin-left:4px;">&lt;${escHtml(s.email)}&gt;</span>` : ''}
-        </div>
-        <span style="font-size:11px;color:${s.signed_at ? 'var(--success)' : '#e87a8a'};">
-            ${s.signed_at ? `✓ ${doneLabel} · ${fmtDate(s.signed_at)}` : `✗ ${pendingLabel}`}
-        </span>
-        ${!s.signed_at && s.email ? `<button onclick="adminResend('${escHtml(projId)}','${escHtml(roundId)}','${escHtml(s.id)}')" style="background:transparent;border:1px solid rgba(90,170,222,0.4);color:#5aaade;border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;">✉ Reenviar</button>` : ''}
-    </div>`).join('');
+    el.innerHTML = `<div style="font-size:12px;color:var(--text-muted);">Cargando…</div>`;
+
+    // Fetch signers and comments in parallel
+    const [roundRes, commRes] = await Promise.all([
+        apiFetch(`/api/projects/${projId}/signing-rounds/${roundId}`),
+        apiFetch(`/api/projects/${projId}/signing-rounds/${roundId}/comments`)
+    ]);
+
+    if (roundRes.status !== 200 || !roundRes.data.ok) {
+        el.innerHTML = '<div style="color:#e87a8a;font-size:12px;">Error al cargar.</div>'; return;
+    }
+
+    const signers  = roundRes.data.signers || [];
+    const comments = (commRes.data?.comments || []);
+
+    let html = '';
+
+    // ── Participantes ──────────────────────────────────────────────────
+    if (signers.length) {
+        html += signers.map(s => `<div class="admin-signer-row">
+            <div style="flex:1">
+                <span style="font-weight:600;color:var(--text);">${escHtml(s.display_name||s.username)}</span>
+                <span style="color:var(--text-muted);margin-left:6px;font-size:11px;">${escHtml(s.role_label||'')}</span>
+                ${s.email ? `<span style="font-size:10px;color:#2a4a66;margin-left:4px;">&lt;${escHtml(s.email)}&gt;</span>` : ''}
+            </div>
+            <span style="font-size:11px;color:${s.signed_at ? 'var(--success)' : '#e87a8a'};">
+                ${s.signed_at ? `✓ ${doneLabel} · ${fmtDate(s.signed_at)}` : `✗ ${pendingLabel}`}
+            </span>
+            ${!s.signed_at && s.email ? `<button onclick="adminResend('${escHtml(projId)}','${escHtml(roundId)}','${escHtml(s.id)}')" style="background:transparent;border:1px solid rgba(90,170,222,0.4);color:#5aaade;border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;">✉ Reenviar</button>` : ''}
+        </div>`).join('');
+    } else {
+        html += `<div style="font-size:12px;color:var(--text-muted);">Sin ${isApproval?'firmantes':'revisores'}.</div>`;
+    }
+
+    // ── Comentarios ────────────────────────────────────────────────────
+    if (comments.length) {
+        html += `<div style="margin-top:14px;border-top:1px solid rgba(255,255,255,.06);padding-top:12px;">
+            <div style="font-size:10px;font-weight:700;color:rgba(200,146,26,.7);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;">
+                Comentarios de revisión (${comments.length})
+            </div>`;
+        comments.forEach(c => {
+            const isChange = c.comment_type === 'change_request';
+            const typeColor = isChange ? '#e87a8a' : '#5aaade';
+            const typeLabel = isChange ? '🚨 Solicitud de cambio' : '💬 Observación';
+            const resolved  = c.status === 'resolved';
+            html += `<div style="
+                background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
+                border-left:3px solid ${typeColor};border-radius:6px;
+                padding:10px 12px;margin-bottom:8px;
+                ${resolved ? 'opacity:.55;' : ''}">
+                <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                    <span style="font-size:10px;font-weight:700;color:${typeColor};">${typeLabel}</span>
+                    <span style="font-size:10px;color:var(--text-muted);">${escHtml(c.display_name||c.username)} · ${fmtDate(c.created_at)}</span>
+                </div>
+                <div style="font-size:13px;color:#c8d8e8;line-height:1.5;">${escHtml(c.body||'')}</div>
+                ${c.section_ref ? `<div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Sección: ${escHtml(c.section_ref)}</div>` : ''}
+                ${resolved ? `<div style="font-size:10px;color:var(--success);margin-top:4px;">✓ Resuelto</div>` :
+                    `<button onclick="adminResolveComment('${escHtml(projId)}','${escHtml(roundId)}','${escHtml(c.id)}','${escHtml(expandId)}')"
+                        style="margin-top:6px;background:transparent;border:1px solid rgba(100,180,100,.3);color:#90c860;border-radius:4px;padding:2px 8px;font-size:10px;cursor:pointer;">
+                        ✓ Marcar resuelto
+                    </button>`}
+            </div>`;
+        });
+        html += `</div>`;
+    } else {
+        html += `<div style="margin-top:10px;font-size:11px;color:rgba(150,180,210,.4);font-style:italic;">Sin comentarios en esta ronda.</div>`;
+    }
+
+    el.innerHTML = html;
+}
+
+async function adminResolveComment(projId, roundId, commentId, expandId) {
+    const { data } = await apiFetch(
+        `/api/projects/${projId}/signing-rounds/${roundId}/comments/${commentId}/resolve`,
+        { method: 'POST', body: '{}' }
+    );
+    if (data?.ok) {
+        // Refresh the expanded view
+        const el = document.getElementById(expandId);
+        if (el) { el.style.display = 'none'; }
+        toggleAdminSigners(projId, roundId, expandId, el?.dataset?.phase);
+    } else {
+        _toast(data?.error || 'Error al resolver', '#e87a8a');
+    }
+}
+
+let _adminCommentTarget = null;
+
+function adminOpenComment(projId, roundId, expandId) {
+    _adminCommentTarget = { projId, roundId, expandId };
+    const overlay = document.getElementById('adminCommentOverlay');
+    if (overlay) {
+        document.getElementById('adminCommentBody').value = '';
+        document.getElementById('adminCommentError').style.display = 'none';
+        overlay.style.display = 'flex';
+        document.getElementById('adminCommentBody').focus();
+    }
+}
+
+function adminCloseComment() {
+    const overlay = document.getElementById('adminCommentOverlay');
+    if (overlay) overlay.style.display = 'none';
+    _adminCommentTarget = null;
+}
+
+async function adminSubmitComment() {
+    if (!_adminCommentTarget) return;
+    const body = document.getElementById('adminCommentBody').value.trim();
+    const errEl = document.getElementById('adminCommentError');
+    errEl.style.display = 'none';
+    if (!body) { errEl.textContent = 'Escribí el comentario.'; errEl.style.display = ''; return; }
+
+    const btn = document.getElementById('adminCommentSubmitBtn');
+    btn.disabled = true; btn.textContent = 'Enviando…';
+
+    const { projId, roundId, expandId } = _adminCommentTarget;
+    const { status, data } = await apiFetch(
+        `/api/projects/${projId}/signing-rounds/${roundId}/comments`,
+        { method: 'POST', body: JSON.stringify({ body, comment_type: 'observation' }) }
+    );
+
+    btn.disabled = false; btn.textContent = 'Agregar comentario';
+
+    if (status === 201 || data?.ok) {
+        adminCloseComment();
+        _toast('💬 Comentario agregado', '#5aaade');
+        // Refresh expanded view if open
+        const el = document.getElementById(expandId);
+        if (el && el.style.display !== 'none') {
+            el.style.display = 'none';
+            toggleAdminSigners(projId, roundId, expandId, el.dataset.phase);
+        }
+    } else {
+        errEl.textContent = data?.error || 'Error al enviar.';
+        errEl.style.display = '';
+    }
 }
 
 async function adminSealRound(projId, roundId) {
@@ -1874,18 +2020,26 @@ async function openDocViewer(projId, docType) {
     drawer.style.display = '';
 
     const { status, data } = await apiFetch(`/api/projects/${encodeURIComponent(projId)}/documents/${encodeURIComponent(docType)}`);
+    if (status === 404) {
+        dvContent.innerHTML = `<div style="color:#e87a8a;padding:20px 0;">⚠ El documento <strong>${escHtml(docType)}</strong> aún no tiene contenido guardado en el sistema.<br><small style="color:rgba(150,180,210,.5)">Generalo desde la suite de validación primero.</small></div>`;
+        return;
+    }
     if (status !== 200 || !data.ok) {
-        dvContent.innerHTML = `<div style="color:#e87a8a;padding:20px 0;">No se pudo cargar el documento.<br><small>${escHtml(data?.error||'')}</small></div>`;
+        dvContent.innerHTML = `<div style="color:#e87a8a;padding:20px 0;">No se pudo cargar: ${escHtml(data?.error||'Error desconocido')}</div>`;
         return;
     }
 
-    let doc = {};
-    try { doc = typeof data.json_data === 'string' ? JSON.parse(data.json_data) : (data.json_data || {}); } catch(e) {}
+    // Servidor devuelve { ok, document: { content, json_data, doc_type, version, ... } }
+    const docRow = data.document || {};
+    let doc = docRow.content || {};
+    if (!doc || typeof doc !== 'object') {
+        try { doc = JSON.parse(docRow.json_data || '{}'); } catch(e) { doc = {}; }
+    }
 
     // Metadata header
     const meta = doc.metadata || doc.header || {};
     const title  = meta.title || meta.document_title || meta.doc_title || docType;
-    const ver    = meta.version || meta.doc_version || data.version || '';
+    const ver    = meta.version || meta.doc_version || docRow.version || '';
     const date   = meta.date || meta.effective_date || meta.issue_date || '';
     const proj   = meta.project || meta.project_name || '';
     const owner  = meta.owner || meta.prepared_by || meta.author || '';
