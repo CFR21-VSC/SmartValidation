@@ -295,7 +295,7 @@
                             document.getElementById('changePinFields').style.display = 'block';
                         }
                     } else {
-                        window.location.replace(data.role === 'client' ? '/client/' : _nextUrl);
+                        window.location.replace(data.role === 'client' ? '/firmas/' : _nextUrl);
                     }
                 } else {
                     showError(data.error || 'Credenciales incorrectas. Intentá de nuevo.');
@@ -352,7 +352,7 @@
                 });
                 const data = await res.json();
                 if (data.ok) {
-                    window.location.replace(_pendingRole === 'client' ? '/client/' : _nextUrl);
+                    window.location.replace(_pendingRole === 'client' ? '/firmas/' : _nextUrl);
                 } else {
                     showError(data.error || 'Error al guardar. Intentá de nuevo.');
                     btn.disabled = false; btn.textContent = 'Guardar y continuar';

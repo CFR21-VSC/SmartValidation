@@ -332,6 +332,19 @@ def _db_init():
         CREATE INDEX IF NOT EXISTS idx_inv_token    ON invitations(token);
         CREATE INDEX IF NOT EXISTS idx_inv_email    ON invitations(email);
         CREATE INDEX IF NOT EXISTS idx_inv_round    ON invitations(round_id);
+
+        CREATE TABLE IF NOT EXISTS document_versions (
+            id          TEXT PRIMARY KEY,
+            project_id  TEXT NOT NULL,
+            doc_type    TEXT NOT NULL,
+            version_num INTEGER NOT NULL DEFAULT 1,
+            json_data   TEXT NOT NULL,
+            saved_by    TEXT NOT NULL,
+            saved_at    REAL NOT NULL,
+            round_id    TEXT,
+            change_note TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_docver_proj ON document_versions(project_id, doc_type, version_num);
     """)
     db.commit()
     # Migraciones en caliente (idempotentes — ignorar si la columna ya existe)
@@ -370,6 +383,12 @@ def _db_init():
         "ALTER TABLE signing_rounds ADD COLUMN phase TEXT DEFAULT 'review'",
         "ALTER TABLE signing_round_signers ADD COLUMN sign_order INTEGER DEFAULT 0",
         "ALTER TABLE validation_book_blocks ADD COLUMN block_type TEXT DEFAULT 'seal'",
+        # P1 — Suite de Revisión y Firma: tipos de comentario + texto sugerido
+        "ALTER TABLE round_comments ADD COLUMN comment_type TEXT DEFAULT 'observation'",
+        "ALTER TABLE round_comments ADD COLUMN suggested_text TEXT",
+        # P1 — Usuarios con password (todos los roles, no solo admin/auditor)
+        "ALTER TABLE users ADD COLUMN invite_token TEXT",
+        "ALTER TABLE users ADD COLUMN invite_expires_at REAL",
     ]:
         try:
             db.execute(_migration)
@@ -436,6 +455,7 @@ _RE_INVITE_ACTIVATE = re.compile(r'^/auth/invite/([A-Za-z0-9_-]{40,})/activate$'
 _RE_SIGNING_ROUND_SEAL   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/seal$')
 _RE_SIGNING_ROUND_CANCEL = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/cancel$')
 _RE_DOC_REVISIONS  = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/revisions$')
+_RE_DOC_VERSIONS   = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/versions$')
 _RE_REV_FULFILL    = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/fulfill/([^/]+)$')
 _RE_REV_DISCARD    = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/discard-revision/([^/]+)$')
 _RE_ROUND_RESEND   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/resend/([^/]+)$')
@@ -1037,7 +1057,7 @@ def _notify_round_created(proj_id: str, doc_type: str, round_id: str, admin_disp
         "LEFT JOIN users u ON u.username = srs.username "
         "WHERE srs.round_id=?", (round_id,)
     ).fetchall()
-    suite_url = (_ALLOWED_ORIGIN.rstrip("/") + "/client/") if _ALLOWED_ORIGIN != "*" else "/client/"
+    suite_url = (_ALLOWED_ORIGIN.rstrip("/") + "/firmas/") if _ALLOWED_ORIGIN != "*" else "/firmas/"
     for s in signers:
         if not s["email"]:
             continue
@@ -1202,7 +1222,7 @@ def _notify_revision_fulfilled(proj_id: str, doc_type: str, reviewer_username: s
         return
     proj = db.execute("SELECT name FROM projects WHERE id=?", (proj_id,)).fetchone()
     proj_name = proj["name"] if proj else proj_id
-    suite_url = (_ALLOWED_ORIGIN.rstrip("/") + "/client/") if _ALLOWED_ORIGIN != "*" else "/client/"
+    suite_url = (_ALLOWED_ORIGIN.rstrip("/") + "/firmas/") if _ALLOWED_ORIGIN != "*" else "/firmas/"
     nombre = _html_mod.escape(reviewer["display_name"] or reviewer_username)
     adm    = _html_mod.escape(admin_display or "El administrador")
     dtype  = _html_mod.escape(doc_type)
@@ -1628,10 +1648,14 @@ class SyncHandler(BaseHTTPRequestHandler):
         display = row["display_name"] or username
         ok      = False
 
-        if role == "client":
-            ok = bool(row["pin_hash"]) and _pbkdf2_verify(password, row["pin_hash"])
+        # P1 — Todos los roles usan password_hash para login.
+        # Fallback a pin_hash para clientes legados que aún no tienen password_hash.
+        if bool(row["password_hash"]):
+            ok = _pbkdf2_verify(password, row["password_hash"])
+        elif role == "client" and bool(row["pin_hash"]):
+            ok = _pbkdf2_verify(password, row["pin_hash"])
         else:
-            ok = bool(row["password_hash"]) and _pbkdf2_verify(password, row["password_hash"])
+            ok = False
 
         if not ok:
             # SEC-FIX-AUTH001: UPDATE atómico para evitar race condition en counter de lockout
@@ -1805,10 +1829,10 @@ class SyncHandler(BaseHTTPRequestHandler):
             return self._send_json(409, {"ok": False, "error": "Esta invitación ya fue utilizada", "already_used": True})
         if inv["expires_at"] < now:
             return self._send_json(410, {"ok": False, "error": "La invitación expiró", "expired": True})
-        # El usuario ya configuró PIN? (lo encontramos y no es provisional)
-        user_row = db.execute("SELECT is_provisional, pin_hash FROM users WHERE username=?",
+        # P1: usuario ya activó si tiene password_hash (nuevo) o pin_hash (legado) y no es provisional
+        user_row = db.execute("SELECT is_provisional, pin_hash, password_hash FROM users WHERE username=?",
                               (inv["username"],)).fetchone()
-        already_active = user_row and not user_row["is_provisional"] and user_row["pin_hash"]
+        already_active = user_row and not user_row["is_provisional"] and (user_row["password_hash"] or user_row["pin_hash"])
         return self._send_json(200, {
             "ok": True,
             "email": inv["email"],
@@ -1820,14 +1844,23 @@ class SyncHandler(BaseHTTPRequestHandler):
         })
 
     def _auth_invite_activate(self, token: str):
-        """POST /auth/invite/{token}/activate — redime el token y configura PIN."""
+        """POST /auth/invite/{token}/activate — redime el token y configura contraseña.
+        P1: los firmantes ahora crean una contraseña (no un PIN) para login.
+        El PIN de firma se configura por separado en /auth/set-signing-pin.
+        """
         data = self._read_json_body()
         if not isinstance(data, dict):
             return self._send_json(400, {"ok": False, "error": "Body JSON requerido"})
-        pin = str(data.get("pin", "")).strip()
+        # Acepta 'password' (nuevo flujo) o 'pin' (legado — compatibilidad)
+        password = str(data.get("password", data.get("pin", ""))).strip()
         display_name = str(data.get("display_name", "")).strip()[:80]
-        if len(pin) < 6 or not pin.isdigit():
-            return self._send_json(400, {"ok": False, "error": "PIN debe ser de 6 a 8 dígitos numéricos"})
+        is_legacy_pin = "pin" in data and "password" not in data
+        if is_legacy_pin:
+            if len(password) < 6 or not password.isdigit():
+                return self._send_json(400, {"ok": False, "error": "PIN debe ser de 6 a 8 dígitos numéricos"})
+        else:
+            if len(password) < 8:
+                return self._send_json(400, {"ok": False, "error": "La contraseña debe tener al menos 8 caracteres"})
 
         db = _get_db()
         now = time.time()
@@ -1840,32 +1873,41 @@ class SyncHandler(BaseHTTPRequestHandler):
         if inv["expires_at"] < now:
             return self._send_json(410, {"ok": False, "error": "La invitación expiró"})
 
-        # SEC: token single-use — aplicar ANTES del branch is_returning para
-        # que un link ya usado no permita iterar PINs en returning users.
+        # SEC: token single-use
         if inv["used_at"]:
             return self._send_json(409, {"ok": False, "error": "Esta invitación ya fue utilizada"})
 
-        # Determinar si el usuario ya tiene PIN configurado (returning user)
+        # Determinar si el usuario ya tiene credenciales configuradas (returning user)
         user_row = db.execute(
-            "SELECT pin_hash, is_provisional FROM users WHERE username=?", (inv["username"],)
+            "SELECT password_hash, pin_hash, is_provisional FROM users WHERE username=?",
+            (inv["username"],)
         ).fetchone()
-        is_returning = user_row and not user_row["is_provisional"] and user_row["pin_hash"]
+        is_returning = user_row and not user_row["is_provisional"] and (user_row["password_hash"] or user_row["pin_hash"])
 
         if is_returning:
-            # Returning user: verify existing PIN (don't overwrite)
-            if not _pbkdf2_verify(pin, user_row["pin_hash"]):
-                return self._send_json(401, {"ok": False, "error": "PIN incorrecto"})
+            # Returning user: verify existing password (or legacy PIN)
+            existing_hash = user_row["password_hash"] or user_row["pin_hash"]
+            if not _pbkdf2_verify(password, existing_hash):
+                return self._send_json(401, {"ok": False, "error": "Contraseña incorrecta"})
             db.execute("UPDATE invitations SET used_at=? WHERE token=?", (now, token))
             db.commit()
         else:
-            # New user: set PIN from this activation
-            pin_hash = _pbkdf2_hash(pin)
+            # New user: set password (or legacy PIN) from this activation
             final_display = display_name or inv["display_name"] or inv["username"]
-            db.execute(
-                "UPDATE users SET pin_hash=?, pin_set=1, is_provisional=0, display_name=?, updated_at=? "
-                "WHERE username=?",
-                (pin_hash, final_display, now, inv["username"])
-            )
+            if is_legacy_pin:
+                pw_hash = _pbkdf2_hash(password)
+                db.execute(
+                    "UPDATE users SET pin_hash=?, pin_set=1, is_provisional=0, display_name=?, updated_at=? "
+                    "WHERE username=?",
+                    (pw_hash, final_display, now, inv["username"])
+                )
+            else:
+                pw_hash = _pbkdf2_hash(password)
+                db.execute(
+                    "UPDATE users SET password_hash=?, must_change_password=0, is_provisional=0, "
+                    "display_name=?, updated_at=? WHERE username=?",
+                    (pw_hash, final_display, now, inv["username"])
+                )
             db.execute("UPDATE invitations SET used_at=? WHERE token=?", (now, token))
             db.commit()
 
@@ -1888,6 +1930,27 @@ class SyncHandler(BaseHTTPRequestHandler):
             self.send_header("Set-Cookie", session_data)
         self.end_headers()
         self.wfile.write(resp_body)
+
+    def _auth_set_signing_pin(self, user):
+        """POST /auth/set-signing-pin — configura el PIN de firma (separado del password de login).
+        P1: todos los roles pueden tener un PIN de firma independiente de su contraseña.
+        """
+        data = self._read_json_body()
+        if not isinstance(data, dict):
+            return self._send_json(400, {"ok": False, "error": "Body JSON requerido"})
+        pin = str(data.get("pin", "")).strip()
+        if len(pin) < 6 or len(pin) > 8 or not pin.isdigit():
+            return self._send_json(400, {"ok": False, "error": "El PIN debe tener entre 6 y 8 dígitos numéricos"})
+        db = _get_db()
+        row = db.execute("SELECT id FROM users WHERE username=? AND is_active=1", (user.get("u"),)).fetchone()
+        if not row:
+            return self._send_json(404, {"ok": False, "error": "Usuario no encontrado"})
+        db.execute(
+            "UPDATE users SET pin_hash=?, pin_set=1, updated_at=? WHERE id=?",
+            (_pbkdf2_hash(pin), time.time(), row["id"])
+        )
+        db.commit()
+        return self._send_json(200, {"ok": True})
 
     def _auth_change_credentials(self, user):
         """Cambio obligatorio de credenciales en primer acceso (o voluntario posterior).
@@ -3248,6 +3311,28 @@ class SyncHandler(BaseHTTPRequestHandler):
                 pass
             print(f"[DB] Error al guardar documento {doc_type}: {e}")
             return self._send_json(500, {"ok": False, "error": "Error interno al guardar documento."})
+
+        # P1 — Auto-snapshot: si había un documento anterior y hay ronda abierta,
+        # guardar el contenido ANTERIOR como versión histórica (audit trail antes/después)
+        if existing and existing["json_data"] and doc_action == "doc_update":
+            try:
+                open_round = db.execute(
+                    "SELECT id FROM signing_rounds WHERE project_id=? AND doc_type=? AND status='open' LIMIT 1",
+                    (proj_id, doc_type)
+                ).fetchone()
+                if open_round:
+                    ver_id = f"{proj_id}_{doc_type}_{int(now)}"
+                    prev_ver = existing["version"] or 1
+                    db.execute("""
+                        INSERT OR IGNORE INTO document_versions
+                          (id, project_id, doc_type, version_num, json_data, saved_by, saved_at, round_id)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (ver_id, proj_id, doc_type, prev_ver,
+                          existing["json_data"], user.get("u"), now, open_round["id"]))
+                    db.commit()
+            except Exception:
+                pass  # snapshot es opcional — no bloquear el guardado principal
+
         return self._send_json(200, {"ok": True, "id": f"{proj_id}_{doc_type}"})
 
     def _api_doc_delete(self, proj_id, doc_type, user):
@@ -4404,8 +4489,11 @@ class SyncHandler(BaseHTTPRequestHandler):
             (username,)
         ).fetchone()
         now = time.time()
-        if not cu or not cu["pin_hash"]:
+        if not cu:
             return self._send_json(401, {"ok": False, "error": "PIN incorrecto"})
+        if not cu["pin_hash"]:
+            # P1: usuario autenticado pero sin PIN de firma configurado
+            return self._send_json(401, {"ok": False, "error": "PIN de firma no configurado", "pin_not_set": True})
         if (cu["locked_until"] or 0) > now:
             mins_left = int((cu["locked_until"] - now) / 60) + 1
             return self._send_json(429, {"ok": False, "error": f"Cuenta bloqueada. Intentá en {mins_left} minuto{'s' if mins_left != 1 else ''}.", "locked_until": cu["locked_until"]})
@@ -4718,6 +4806,21 @@ class SyncHandler(BaseHTTPRequestHandler):
             db.execute("ROLLBACK")
             raise
         return self._send_json(200, {"ok": True, "seal_hash": seal_hash, "block_number": block_num})
+
+    def _api_doc_versions(self, proj_id, doc_type, user):
+        """GET /api/projects/{id}/documents/{type}/versions — historial de versiones (P1 audit trail)."""
+        if user.get("r") not in ("admin", "auditor", "client"):
+            return self._send_json(403, {"ok": False, "error": "No autorizado"})
+        db = _get_db()
+        if not self._assert_project_access(db, user, proj_id):
+            return
+        rows = db.execute("""
+            SELECT id, version_num, saved_by, saved_at, round_id, change_note
+            FROM document_versions
+            WHERE project_id=? AND doc_type=?
+            ORDER BY version_num DESC, saved_at DESC
+        """, (proj_id, doc_type)).fetchall()
+        return self._send_json(200, {"ok": True, "versions": [dict(r) for r in rows]})
 
     def _api_doc_revisions(self, proj_id, doc_type, user):
         """GET /api/projects/{id}/documents/{type}/revisions — revision requests for a doc."""
@@ -5049,6 +5152,9 @@ class SyncHandler(BaseHTTPRequestHandler):
             return
         body = str(data.get("body", "")).strip()[:2000]
         section_ref = str(data.get("section_ref", "")).strip()[:200]
+        comment_type = str(data.get("comment_type", "observation"))
+        if comment_type not in ("observation", "change_request"):
+            comment_type = "observation"
         if not body:
             return self._send_json(400, {"ok": False, "error": "body requerido"})
         rnd = db.execute(
@@ -5062,8 +5168,8 @@ class SyncHandler(BaseHTTPRequestHandler):
         display_name = u_row["display_name"] if u_row else username
         now = time.time()
         db.execute(
-            "INSERT INTO round_comments (round_id, project_id, username, display_name, section_ref, body, status, created_at) VALUES (?,?,?,?,?,?,?,?)",
-            (round_id, proj_id, username, display_name, section_ref or None, body, "open", now)
+            "INSERT INTO round_comments (round_id, project_id, username, display_name, section_ref, body, status, comment_type, created_at) VALUES (?,?,?,?,?,?,?,?,?)",
+            (round_id, proj_id, username, display_name, section_ref or None, body, "open", comment_type, now)
         )
         db.commit()
         return self._send_json(201, {"ok": True})
@@ -5543,6 +5649,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_DOC_REVISIONS.match(path)
         if m:
             return self._api_doc_revisions(m.group(1), m.group(2), user)
+        m = _RE_DOC_VERSIONS.match(path)
+        if m:
+            return self._api_doc_versions(m.group(1), m.group(2), user)
         if path == "/admin/review-activity":
             return self._admin_review_activity(user)
         m = re.match(r'^/api/projects/([^/]+)/validation-book$', path)
@@ -5683,6 +5792,11 @@ class SyncHandler(BaseHTTPRequestHandler):
             if not u:
                 return self._send_json(401, {"ok": False, "error": "No autenticado"})
             return self._auth_change_credentials(u)
+        if path == "/auth/set-signing-pin":
+            u = _check_auth(self)
+            if not u:
+                return self._send_json(401, {"ok": False, "error": "No autenticado"})
+            return self._auth_set_signing_pin(u)
 
         # Mobile sync - sin cookie (usan token propio)
         # C-4: en prod requiere SYNC_ENABLED=true + PUBLIC_URL en el entorno
