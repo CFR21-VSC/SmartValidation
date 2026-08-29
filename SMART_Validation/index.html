@@ -530,9 +530,9 @@
             <button class="sys-chip" onclick="openEditProject()" title="Editar datos del proyecto activo — GAMP, cliente, firmantes" style="background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.2);padding:4px 10px;">
                 <span style="font-size:13px;">⚙</span>
             </button>
-            <button class="sys-chip" onclick="window.open('/client/','_blank')" title="Abrir Portal Firmas (revisión y aprobación de documentos)" style="background:rgba(76,175,80,0.15);border-color:rgba(76,175,80,0.4);padding:4px 12px;gap:5px;">
+            <button class="sys-chip" onclick="window.open('/firmas/','_blank')" title="Abrir Suite de Revisión y Firma" style="background:rgba(76,175,80,0.15);border-color:rgba(76,175,80,0.4);padding:4px 12px;gap:5px;">
                 <span style="font-size:13px;">✍</span>
-                <span class="sys-chip-label" style="color:#A5D6A7;">Portal Firmas</span>
+                <span class="sys-chip-label" style="color:#A5D6A7;">Suite Firmas</span>
             </button>
             <button class="sys-chip" onclick="toggleSysPanel()" title="Empresa · Sistema · Ejecutor" style="gap:6px;">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.55;flex-shrink:0;"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
@@ -2090,7 +2090,7 @@
                         style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);color:#B0C8E0">Auditor</button>
                     <button class="um-filter-btn" data-role="client" onclick="umSetFilter('client')"
                         style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);color:#B0C8E0">Clientes</button>
-                    <span style="margin-left:auto;font-size:11px;color:#4A6A8A;align-self:center">Clientes y firmantes acceden al <a href="/client/" target="_blank" style="color:#5a9aee;">Portal Firmas</a> · Admin/Auditor con contraseña</span>
+                    <span style="margin-left:auto;font-size:11px;color:#4A6A8A;align-self:center">Clientes y firmantes acceden a la <a href="/firmas/" target="_blank" style="color:#5a9aee;">Suite de Firmas</a> · Admin/Auditor con contraseña</span>
                 </div>
 
                 <!-- Tabla -->
@@ -3927,12 +3927,12 @@
             <div id="vsSignDocBar" style="display:none; padding:6px 16px; background:#081526; border-bottom:1px solid rgba(200,146,26,0.2); align-items:center; gap:10px; flex-wrap:wrap; font-size:12px;">
                 <span style="font-size:13px;">🔏</span>
                 <span style="font-weight:700; color:#C8921A; font-size:11px;">Este documento tiene sección de firmas.</span>
-                <span style="color:#7A9AB8; font-size:11px;">Las firmas se gestionan desde Portal Firmas (rondas de revisión y aprobación).</span>
+                <span style="color:#7A9AB8; font-size:11px;">Las rondas se gestionan desde la Suite de Revisión y Firma.</span>
                 <span style="margin-left:auto; font-size:10px; color:#3A5A72; font-style:italic;">Compliance 21 CFR Part 11 · hash SHA-256</span>
                 <button type="button"
-                    onclick="window.open('/client/','_blank')"
+                    onclick="window.open('/firmas/','_blank')"
                     style="padding:4px 14px; font-size:11px; font-weight:700; background:#C8921A; color:#0B2341; border:none; border-radius:5px; cursor:pointer;">
-                    ✍ Portal Firmas →
+                    ✍ Suite Firmas →
                 </button>
             </div>
 
@@ -4613,9 +4613,7 @@
     }
 
     function openReviewDashboard() {
-      document.getElementById('rdModal').style.display = 'flex';
-      const _b = document.getElementById('rdRevBadge'); if (_b) _b.style.display = 'none';
-      loadReviewDashboard();
+      window.open('/firmas/', '_blank');
     }
     function closeReviewDashboard() {
       document.getElementById('rdModal').style.display = 'none';

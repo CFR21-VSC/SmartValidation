@@ -467,6 +467,89 @@
             color: var(--success);
             font-weight: 600;
         }
+
+        /* ── Admin round cards ── */
+        .admin-round {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 18px;
+            margin-bottom: 10px;
+        }
+        .admin-round.urgent { border-color: var(--gold); background: rgba(200,146,26,0.04); }
+        .admin-round-top { display:flex; align-items:flex-start; gap:14px; justify-content:space-between; }
+        .admin-round-info { flex:1; min-width:0; }
+        .admin-round-name { font-size:14px; font-weight:600; color:#eef3f8; }
+        .admin-round-meta { font-size:11.5px; color:var(--text-muted); margin-top:3px; }
+        .admin-round-actions { display:flex; gap:6px; flex-wrap:wrap; align-items:center; flex-shrink:0; }
+        .admin-btn {
+            padding:5px 12px; border-radius:6px; font-family:inherit;
+            font-size:11px; font-weight:600; cursor:pointer; border:none;
+            letter-spacing:.3px; white-space:nowrap;
+        }
+        .admin-btn-seal   { background:#C8921A; color:#0B2341; }
+        .admin-btn-cancel { background:#1a0d10; border:1px solid #5a2030!important; color:#e87a8a; }
+        .admin-btn-view   { background:#0B2341; border:1px solid rgba(200,146,26,.4)!important; color:#C8921A; }
+        .admin-btn-sealrdy { background:#C8921A; color:#0B2341; animation:_adm_pulse 1.8s ease-in-out infinite; }
+        @keyframes _adm_pulse { 0%,100%{box-shadow:0 0 0 0 rgba(200,146,26,.5)} 50%{box-shadow:0 0 0 6px rgba(200,146,26,.0)} }
+
+        .admin-signers-block {
+            margin-top:10px; padding-top:10px;
+            border-top:1px solid var(--border);
+        }
+        .admin-signer-row {
+            display:flex; align-items:center; gap:10px;
+            padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.04);
+            font-size:12px;
+        }
+        .admin-signer-row:last-child { border:none; }
+
+        /* Create round modal overrides */
+        #crOverlay .modal { max-width:520px; max-height:88vh; overflow-y:auto; }
+        .cr-field { margin-bottom:14px; }
+        .cr-label {
+            font-size:10.5px; font-weight:700; color:var(--gold);
+            letter-spacing:1.2px; text-transform:uppercase; margin-bottom:6px; display:block;
+        }
+        select {
+            width:100%; background:rgba(6,16,30,0.55); border:1.5px solid rgba(255,255,255,0.1);
+            border-radius:8px; padding:10px 12px; color:var(--text); font-family:inherit;
+            font-size:13px; outline:none; appearance:none;
+            background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M0 0l6 8 6-8z' fill='%23C8921A'/%3E%3C/svg%3E");
+            background-repeat:no-repeat; background-position:right 12px center;
+        }
+        select:focus { border-color:var(--gold-dim); box-shadow:0 0 0 3px var(--gold-glow); }
+        .signer-row-item {
+            display:flex; gap:8px; margin-bottom:8px; align-items:center;
+        }
+        .signer-row-item input { flex:1; margin:0; }
+        .btn-remove-signer {
+            background:none; border:1px solid rgba(231,76,60,0.3); color:#e87a8a;
+            border-radius:6px; padding:8px 10px; cursor:pointer; font-size:12px;
+            flex-shrink:0; transition:border-color .2s;
+        }
+        .btn-remove-signer:hover { border-color:var(--danger); }
+        .doc-checkbox-list {
+            max-height:170px; overflow-y:auto;
+            border:1px solid var(--border); border-radius:8px; padding:6px;
+        }
+        .doc-checkbox-item {
+            display:flex; align-items:center; gap:8px; padding:6px 8px;
+            border-radius:5px; cursor:pointer; font-size:12.5px; color:var(--text);
+        }
+        .doc-checkbox-item:hover { background:rgba(255,255,255,0.05); }
+
+        /* Admin header tabs */
+        .admin-tabs {
+            display:flex; gap:8px; margin-bottom:24px;
+        }
+        .admin-tab {
+            padding:8px 18px; border-radius:8px;
+            background:transparent; border:1px solid var(--border);
+            color:var(--text-muted); font-family:inherit; font-size:12px;
+            font-weight:600; cursor:pointer; transition:all .2s;
+        }
+        .admin-tab.active { border-color:var(--gold); color:var(--gold); background:var(--gold-glow); }
     </style>
 </head>
 <body>
@@ -629,6 +712,44 @@
                 <div class="spinner"></div>
                 <p>Cargando documentos…</p>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal: Nueva ronda de firma (admin) ──────────────────────────────── -->
+<div class="overlay" id="crOverlay">
+    <div class="modal" style="max-width:520px;max-height:88vh;overflow-y:auto;">
+        <h3>Nueva ronda de firma</h3>
+        <p class="subtitle">Seleccioná proyecto, documento, fase y firmantes en orden.</p>
+        <div id="crError" class="alert alert-error" style="display:none"></div>
+
+        <div class="cr-field">
+            <span class="cr-label">Fase</span>
+            <select id="crPhase">
+                <option value="review">Revisión</option>
+                <option value="approval">Aprobación</option>
+            </select>
+        </div>
+        <div class="cr-field">
+            <span class="cr-label">Proyecto</span>
+            <select id="crProj" onchange="crLoadDocs()">
+                <option value="">— Seleccioná un proyecto —</option>
+            </select>
+        </div>
+        <div class="cr-field">
+            <span class="cr-label">Documentos</span>
+            <div class="doc-checkbox-list" id="crDocList">
+                <div style="font-size:12px;color:var(--text-muted);padding:6px 8px;">— Seleccioná un proyecto primero —</div>
+            </div>
+        </div>
+        <div class="cr-field">
+            <span class="cr-label">Firmantes (en orden)</span>
+            <div id="crSignersList"></div>
+            <button class="btn btn-outline" style="margin-top:6px;width:auto;padding:7px 14px;font-size:12px;" onclick="crAddSigner()">+ Agregar firmante</button>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-outline" style="flex:1" onclick="crClose()">Cancelar</button>
+            <button class="btn btn-success" style="flex:2" id="crSubmit" onclick="crSubmit()">Crear ronda</button>
         </div>
     </div>
 </div>
@@ -932,16 +1053,21 @@ async function loadDash() {
     document.getElementById('greetName').textContent = name;
     show('screenDash');
 
+    const role = _session?.r || _session?.role;
+    if (role === 'admin' || role === 'auditor') {
+        document.getElementById('greetSub').textContent = 'Panel de administración · Rondas de Revisión y Firma';
+        await loadAdminDash();
+        return;
+    }
+    await loadClientDash();
+}
+
+async function loadClientDash() {
     const content = document.getElementById('dashContent');
     _signItems = [];
     content.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><p>Cargando documentos…</p></div>';
 
     const { status, data } = await apiFetch('/api/me/pending-signatures');
-    if (status === 403) {
-        // Admin/auditor arriving at this portal — redirect to main suite
-        window.location.href = '/';
-        return;
-    }
     if (status !== 200) {
         content.innerHTML = '<div class="alert alert-error">Error al cargar los documentos pendientes.</div>';
         return;
@@ -1257,6 +1383,400 @@ async function doSetupSigningPin() {
     }
 }
 
+// ── Admin Dashboard ────────────────────────────────────────────────────────
+
+let _adminIsAdmin = false;
+let _adminSignerRevs = [];
+
+async function loadAdminDash() {
+    _adminIsAdmin = (_session?.r || _session?.role) === 'admin';
+    const content = document.getElementById('dashContent');
+    content.innerHTML = `
+        <div class="admin-tabs">
+            <button class="admin-tab active" id="tabRounds" onclick="showAdminTab('rounds')">Rondas</button>
+            <button class="admin-tab" id="tabPeopleBook" onclick="showAdminTab('peoplebook')">People Book</button>
+        </div>
+        <div id="adminTabContent">
+            <div class="loading-wrap"><div class="spinner"></div><p>Cargando rondas…</p></div>
+        </div>
+        ${_adminIsAdmin ? `<div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:10px;">
+            <button class="btn btn-gold" style="width:auto;padding:10px 22px;" onclick="crOpen()">+ Nueva ronda</button>
+        </div>` : ''}`;
+    await renderAdminRounds();
+}
+
+function showAdminTab(tab) {
+    document.querySelectorAll('.admin-tab').forEach(b => b.classList.remove('active'));
+    if (tab === 'rounds') {
+        document.getElementById('tabRounds').classList.add('active');
+        renderAdminRounds();
+    } else if (tab === 'peoplebook') {
+        document.getElementById('tabPeopleBook').classList.add('active');
+        renderAdminPeopleBook();
+    }
+}
+
+async function renderAdminRounds() {
+    const wrap = document.getElementById('adminTabContent');
+    wrap.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><p>Cargando…</p></div>';
+
+    const { status, data } = await apiFetch('/admin/review-activity');
+    if (status !== 200 || !data.ok) {
+        wrap.innerHTML = '<div class="alert alert-error">Error al cargar rondas.</div>';
+        return;
+    }
+
+    _adminSignerRevs = data.signer_revisions || [];
+    const rounds = data.rounds || [];
+    const open    = rounds.filter(r => r.status === 'open');
+    const sealed  = rounds.filter(r => r.status === 'sealed');
+
+    let html = '';
+
+    // Solicitudes de revisión activas
+    const openRevs = _adminSignerRevs.filter(s => !s.revision_fulfilled_at);
+    if (openRevs.length) {
+        html += `<div class="section-group">
+            <div class="section-title" style="color:#e87a8a;">🔔 Solicitudes de cambio pendientes</div>`;
+        openRevs.forEach(rv => {
+            let reason = rv.revision_reason || '';
+            try { const p = JSON.parse(reason); if (Array.isArray(p)) reason = p.map(x=>x.point||x).join(' / '); } catch(_) {}
+            html += `<div class="admin-round">
+                <div class="admin-round-top">
+                    <div class="admin-round-info">
+                        <div class="admin-round-name" style="color:#e87a8a;">${escHtml(rv.doc_type)} — ${escHtml(rv.project_name||rv.project_id)}</div>
+                        <div class="admin-round-meta">${escHtml(rv.display_name||rv.username)} · ${fmtDate(rv.revision_requested_at)}</div>
+                        <div style="font-size:12px;color:var(--text);margin-top:6px;">${escHtml(reason)}</div>
+                    </div>
+                    ${_adminIsAdmin ? `<div class="admin-round-actions">
+                        <button class="admin-btn admin-btn-seal" onclick="adminDiscardRevision('${escHtml(rv.project_id)}','${escHtml(rv.round_id)}','${escHtml(rv.username)}')">✓ Cumplida</button>
+                    </div>` : ''}
+                </div>
+            </div>`;
+        });
+        html += '</div>';
+    }
+
+    // Rondas abiertas
+    if (open.length) {
+        const readyToSeal = open.filter(r => r.total_signers > 0 && (r.signed_count||0) >= r.total_signers);
+        const waiting     = open.filter(r => (r.signed_count||0) < r.total_signers);
+
+        if (readyToSeal.length) {
+            html += `<div class="section-group"><div class="section-title">⚡ Listas para sellar — todos firmaron</div>`;
+            readyToSeal.forEach(r => { html += renderAdminRoundCard(r, true); });
+            html += '</div>';
+        }
+        if (waiting.length) {
+            html += `<div class="section-group"><div class="section-title">⏳ Esperando firmas</div>`;
+            waiting.forEach(r => { html += renderAdminRoundCard(r, false); });
+            html += '</div>';
+        }
+    }
+
+    if (!open.length && !openRevs.length) {
+        html += `<div class="empty" style="padding:32px 0;">No hay rondas abiertas.<br><span style="font-size:12px;">Usá "+ Nueva ronda" para iniciar el circuito de un documento.</span></div>`;
+    }
+
+    // Rondas selladas (colapsadas)
+    if (sealed.length) {
+        html += `<div class="section-group">
+            <details>
+                <summary style="cursor:pointer;font-size:10px;font-weight:700;color:var(--gold);letter-spacing:2px;text-transform:uppercase;padding:8px 0;">
+                    Rondas selladas (${sealed.length})
+                </summary>
+                <div style="margin-top:10px;">
+                    ${sealed.slice(0, 10).map(r => renderAdminRoundCard(r, false)).join('')}
+                </div>
+            </details>
+        </div>`;
+    }
+
+    if (!html) html = '<div class="empty">Sin rondas registradas aún.</div>';
+    wrap.innerHTML = html;
+}
+
+function renderAdminRoundCard(rnd, allSigned) {
+    const phase = (rnd.phase||'review') === 'approval' ? 'Aprobación' : 'Revisión';
+    const phColor = (rnd.phase||'review') === 'approval' ? '#C8921A' : '#3a7aaa';
+    const progress = rnd.total_signers ? `${rnd.signed_count||0}/${rnd.total_signers} firmaron` : 'sin firmantes';
+    const revs = _adminSignerRevs.filter(s => s.round_id === rnd.id && !s.revision_fulfilled_at);
+
+    let actions = '';
+    if (_adminIsAdmin && rnd.status === 'open') {
+        if (allSigned) {
+            actions += `<button class="admin-btn admin-btn-sealrdy" onclick="adminSealRound('${escHtml(rnd.project_id)}','${escHtml(rnd.id)}')">✓ Sellar</button>`;
+        } else {
+            actions += `<button class="admin-btn admin-btn-seal" style="opacity:.7" onclick="adminSealRound('${escHtml(rnd.project_id)}','${escHtml(rnd.id)}')">Sellar ▶</button>`;
+        }
+        actions += `<button class="admin-btn admin-btn-cancel" onclick="adminCancelRound('${escHtml(rnd.project_id)}','${escHtml(rnd.id)}')">✕ Cancelar</button>`;
+    }
+
+    const revBlock = revs.length ? `<div style="margin-top:8px;padding:8px 10px;background:#1a0d10;border-left:3px solid #e87a8a;border-radius:0 6px 6px 0;font-size:12px;color:#e87a8a;">
+        ${revs.length} solicitud(es) de cambio pendiente(s)
+    </div>` : '';
+
+    const expandId = `adm_${rnd.id.replace(/-/g,'_')}`;
+
+    return `<div class="admin-round${allSigned ? ' urgent' : ''}">
+        <div class="admin-round-top">
+            <div class="admin-round-info">
+                <div class="admin-round-name">
+                    <span style="background:${phColor}22;border:1px solid ${phColor}55;color:${phColor};border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700;margin-right:6px;">${phase}</span>
+                    ${escHtml(rnd.doc_type)} <span style="font-size:11px;color:var(--text-muted);font-weight:400;">v${rnd.doc_version||1}</span>
+                </div>
+                <div class="admin-round-meta">${escHtml(rnd.project_name||rnd.project_id)} · Iniciada ${fmtDate(rnd.created_at)}</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${progress}</div>
+                ${revBlock}
+            </div>
+            <div class="admin-round-actions">
+                ${actions}
+                <button class="admin-btn admin-btn-view" onclick="toggleAdminSigners('${escHtml(rnd.project_id)}','${escHtml(rnd.id)}','${expandId}')">Firmantes ▾</button>
+            </div>
+        </div>
+        <div id="${expandId}" class="admin-signers-block" style="display:none;"></div>
+    </div>`;
+}
+
+async function toggleAdminSigners(projId, roundId, expandId) {
+    const el = document.getElementById(expandId);
+    if (!el) return;
+    if (el.style.display !== 'none') { el.style.display = 'none'; return; }
+    el.style.display = '';
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">Cargando firmantes…</div>';
+    const { status, data } = await apiFetch(`/api/projects/${projId}/signing-rounds/${roundId}`);
+    if (status !== 200 || !data.ok) { el.innerHTML = '<div style="color:#e87a8a;font-size:12px;">Error al cargar.</div>'; return; }
+    const signers = data.signers || [];
+    if (!signers.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text-muted);">Sin firmantes.</div>'; return; }
+    el.innerHTML = signers.map(s => `<div class="admin-signer-row">
+        <div style="flex:1">
+            <span style="font-weight:600;color:var(--text);">${escHtml(s.display_name||s.username)}</span>
+            <span style="color:var(--text-muted);margin-left:6px;font-size:11px;">${escHtml(s.role_label||'')}</span>
+            ${s.email ? `<span style="font-size:10px;color:#2a4a66;margin-left:4px;">&lt;${escHtml(s.email)}&gt;</span>` : ''}
+        </div>
+        <span style="font-size:11px;color:${s.signed_at ? 'var(--success)' : '#e87a8a'};">
+            ${s.signed_at ? '✓ ' + fmtDate(s.signed_at) : '✗ Pendiente'}
+        </span>
+        ${!s.signed_at && s.email ? `<button onclick="adminResend('${escHtml(projId)}','${escHtml(roundId)}','${escHtml(s.id)}')" style="background:transparent;border:1px solid rgba(90,170,222,0.4);color:#5aaade;border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;">✉ Reenviar</button>` : ''}
+    </div>`).join('');
+}
+
+async function adminSealRound(projId, roundId) {
+    const btn = event?.currentTarget;
+    if (btn && btn.dataset.confirming !== '1') {
+        btn.dataset.confirming = '1';
+        const orig = btn.textContent;
+        btn.textContent = '¿Confirmar?';
+        btn.style.background = '#7a5010';
+        setTimeout(() => { btn.dataset.confirming = ''; btn.textContent = orig; btn.style.background = ''; }, 4000);
+        return;
+    }
+    if (btn) { btn.disabled = true; btn.textContent = 'Sellando…'; }
+    const { status, data } = await apiFetch(`/api/projects/${projId}/signing-rounds/${roundId}/seal`, { method:'POST', body:'{}' });
+    if (!data.ok) { _toast(data.error || 'Error al sellar', '#e87a8a'); if (btn) { btn.disabled=false; } return; }
+    _toast(`✅ Sellado · Block #${data.block_number}`, '#2ecc71');
+    await renderAdminRounds();
+}
+
+async function adminCancelRound(projId, roundId) {
+    const reason = prompt('Motivo de cancelación (opcional):') ?? '';
+    if (reason === null) return;
+    if (!confirm('¿Cancelar la ronda?')) return;
+    const { data } = await apiFetch(`/api/projects/${projId}/signing-rounds/${roundId}/cancel`, {
+        method:'POST', body: JSON.stringify({ reason: reason || 'Cancelada por administrador' })
+    });
+    if (!data.ok) { _toast(data.error || 'Error al cancelar', '#e87a8a'); return; }
+    _toast('Ronda cancelada', '#C8921A');
+    await renderAdminRounds();
+}
+
+async function adminDiscardRevision(projId, roundId, username) {
+    if (!confirm('¿Marcar esta solicitud de cambio como cumplida?')) return;
+    const { data } = await apiFetch(`/api/projects/${projId}/signing-rounds/${roundId}/discard-revision/${encodeURIComponent(username)}`, { method:'POST', body:'{}' });
+    if (!data.ok) { _toast(data.error || 'Error', '#e87a8a'); return; }
+    _toast('Marcada como cumplida', '#2ecc71');
+    await renderAdminRounds();
+}
+
+async function adminResend(projId, roundId, signerId) {
+    const btn = event?.target;
+    if (btn) { btn.disabled = true; btn.textContent = '…'; }
+    const { data } = await apiFetch(`/api/projects/${projId}/signing-rounds/${roundId}/resend/${signerId}`, { method:'POST', body:'{}' });
+    if (data.ok) { _toast('Notificación enviada', '#2ecc71'); if (btn) btn.textContent = '✓'; }
+    else { _toast(data.error || 'Error', '#e87a8a'); if (btn) { btn.disabled=false; btn.textContent='✉ Reenviar'; } }
+}
+
+async function renderAdminPeopleBook() {
+    const wrap = document.getElementById('adminTabContent');
+    wrap.innerHTML = '<div class="loading-wrap"><div class="spinner"></div><p>Cargando…</p></div>';
+    // Need a project — show project selector
+    const { data: pdata } = await apiFetch('/api/projects');
+    const projects = (pdata?.projects || []).filter(p => !p.id.startsWith('__demo'));
+    if (!projects.length) { wrap.innerHTML = '<div class="empty">Sin proyectos.</div>'; return; }
+    wrap.innerHTML = `
+        <div class="cr-field">
+            <span class="cr-label">Proyecto</span>
+            <select id="pbProjSel" onchange="loadPBForProject(this.value)">
+                <option value="">— Seleccioná un proyecto —</option>
+                ${projects.map(p => `<option value="${escHtml(p.id)}">${escHtml(p.name||p.id)}</option>`).join('')}
+            </select>
+        </div>
+        <div id="pbContent"></div>`;
+}
+
+async function loadPBForProject(projId) {
+    if (!projId) return;
+    const wrap = document.getElementById('pbContent');
+    wrap.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:12px 0;">Cargando people book…</div>';
+    const { data } = await apiFetch(`/api/projects/${projId}/people-book`);
+    const entries = data?.entries || [];
+    if (!entries.length) { wrap.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Sin registros.</div>'; return; }
+
+    const rounds = {};
+    for (const e of entries) {
+        if (!rounds[e.round_id]) rounds[e.round_id] = { doc_type:e.doc_type, doc_version:e.doc_version, phase:e.phase||'review', status:e.round_status, signers:[] };
+        rounds[e.round_id].signers.push(e);
+    }
+
+    let html = '';
+    for (const [, rd] of Object.entries(rounds)) {
+        const phase = rd.phase === 'approval' ? 'Aprobación' : 'Revisión';
+        const phColor = rd.phase === 'approval' ? '#C8921A' : '#3a7aaa';
+        const statusLabel = { sealed:'SELLADA', cancelled:'CANCELADA', open:'ABIERTA' }[rd.status] || rd.status.toUpperCase();
+        const statusColor = { sealed:'#2ecc71', cancelled:'#e87a8a', open:'#5aaade' }[rd.status] || 'var(--text-muted)';
+        html += `<div class="admin-round" style="margin-bottom:14px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                <span style="font-weight:700;color:#eef3f8;">${escHtml(rd.doc_type)} v${rd.doc_version}</span>
+                <span style="background:${phColor}22;border:1px solid ${phColor}55;color:${phColor};border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700;">${phase}</span>
+                <span style="font-size:10px;font-weight:700;color:${statusColor};margin-left:auto;">${statusLabel}</span>
+            </div>
+            ${rd.signers.map(s => `<div class="admin-signer-row">
+                <div style="flex:1;font-size:12px;color:var(--text);">${escHtml(s.display_name||s.email||'—')} <span style="color:var(--text-muted);">${escHtml(s.role_label||'')}</span></div>
+                <span style="font-size:11px;color:${s.signed_at?'var(--success)':'#e87a8a'};">${s.signed_at ? '✓ ' + fmtDate(s.signed_at) : '✗ Pendiente'}</span>
+            </div>`).join('')}
+        </div>`;
+    }
+    wrap.innerHTML = html;
+}
+
+// ── Create Round (admin) ────────────────────────────────────────────────────
+
+let _crProjects = [];
+let _crKnownEmails = null;
+
+function crOpen() {
+    document.getElementById('crError').style.display = 'none';
+    document.getElementById('crSignersList').innerHTML = '';
+    document.getElementById('crDocList').innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:6px 8px;">— Seleccioná un proyecto primero —</div>';
+    crAddSigner();
+    document.getElementById('crOverlay').classList.add('open');
+    crLoadProjects();
+}
+function crClose() {
+    document.getElementById('crOverlay').classList.remove('open');
+    _crKnownEmails = null;
+}
+
+async function crLoadProjects() {
+    const sel = document.getElementById('crProj');
+    const { data } = await apiFetch('/api/projects');
+    _crProjects = (data?.projects || []).filter(p => !p.id.startsWith('__demo'));
+    sel.innerHTML = '<option value="">— Seleccioná un proyecto —</option>';
+    _crProjects.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = (p.name && p.name !== p.id) ? p.name : (p.system_name || p.id);
+        sel.appendChild(opt);
+    });
+    const saved = localStorage.getItem('vscActiveProjectId');
+    if (saved && _crProjects.find(p => p.id === saved)) { sel.value = saved; crLoadDocs(); }
+}
+
+async function crLoadDocs() {
+    const projId = document.getElementById('crProj').value;
+    const wrap = document.getElementById('crDocList');
+    if (!projId) { wrap.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:6px 8px;">— Seleccioná un proyecto primero —</div>'; return; }
+    wrap.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:6px 8px;">Cargando…</div>';
+    const { data } = await apiFetch(`/api/projects/${projId}/documents`);
+    const docs = data?.documents || [];
+    if (!docs.length) { wrap.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:6px 8px;">Sin documentos en este proyecto.</div>'; return; }
+    wrap.innerHTML = docs.map(d => `
+        <label class="doc-checkbox-item">
+            <input type="checkbox" value="${escHtml(d.doc_type)}" style="width:auto;margin:0;">
+            <span>${escHtml(d.doc_type)}${d.status === 'approved' ? ' <span style="color:#2ecc71;font-size:10px;">✓</span>' : ''}</span>
+        </label>`).join('');
+}
+
+function crAddSigner() {
+    const list = document.getElementById('crSignersList');
+    const idx = list.children.length;
+    const row = document.createElement('div');
+    row.className = 'signer-row-item';
+    row.innerHTML = `
+        <input type="text" placeholder="usuario o email" style="flex:2;" data-cr="username">
+        <input type="text" placeholder="Rol (p.ej. QA Manager)" style="flex:2;" data-cr="role">
+        <input type="number" placeholder="Orden" min="1" style="flex:.7;width:60px;" data-cr="order" value="${idx+1}">
+        <button class="btn-remove-signer" onclick="this.parentElement.remove()" title="Eliminar">✕</button>`;
+    list.appendChild(row);
+}
+
+async function crSubmit() {
+    const projId  = document.getElementById('crProj').value;
+    const phase   = document.getElementById('crPhase').value;
+    const errEl   = document.getElementById('crError');
+    errEl.style.display = 'none';
+
+    const selectedDocs = [...document.querySelectorAll('#crDocList input:checked')].map(c => c.value);
+    if (!projId) { errEl.textContent = 'Seleccioná un proyecto.'; errEl.style.display=''; return; }
+    if (!selectedDocs.length) { errEl.textContent = 'Seleccioná al menos un documento.'; errEl.style.display=''; return; }
+
+    const rows = document.querySelectorAll('#crSignersList .signer-row-item');
+    const signers = [];
+    for (const row of rows) {
+        const username = row.querySelector('[data-cr="username"]').value.trim();
+        const role_label = row.querySelector('[data-cr="role"]').value.trim();
+        const sign_order = parseInt(row.querySelector('[data-cr="order"]').value) || (signers.length + 1);
+        if (!username) continue;
+        signers.push({ username, role_label, sign_order });
+    }
+    if (!signers.length) { errEl.textContent = 'Agregá al menos un firmante.'; errEl.style.display=''; return; }
+
+    const btn = document.getElementById('crSubmit');
+    btn.disabled = true; btn.textContent = 'Creando…';
+
+    // Create one round per selected doc
+    let ok = true;
+    for (const docType of selectedDocs) {
+        const { status, data } = await apiFetch(`/api/projects/${projId}/signing-rounds`, {
+            method: 'POST',
+            body: JSON.stringify({ doc_type: docType, phase, signers }),
+        });
+        if (status !== 201 && status !== 200) {
+            errEl.textContent = data.error || `Error al crear ronda para ${docType}`;
+            errEl.style.display = '';
+            ok = false;
+            break;
+        }
+    }
+
+    btn.disabled = false; btn.textContent = 'Crear ronda';
+    if (ok) {
+        crClose();
+        _toast(`Ronda(s) creada(s) para ${selectedDocs.join(', ')}`, '#2ecc71');
+        await renderAdminRounds();
+    }
+}
+
+// ── Utilities ──────────────────────────────────────────────────────────────
+
+function _toast(msg, color) {
+    const t = document.createElement('div');
+    t.style.cssText = `position:fixed;top:68px;right:24px;background:#0B2341;border:2px solid ${color||'#2ecc71'};color:#eef3f8;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:340px;line-height:1.4;`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 4500);
+}
+
 // ── Logout ────────────────────────────────────────────────────────────────
 
 async function doLogout() {
@@ -1264,9 +1784,12 @@ async function doLogout() {
     location.href = '/login.html';
 }
 
-// Close modal on backdrop click
+// Close modals on backdrop click
 document.getElementById('modalSign').addEventListener('click', e => {
     if (e.target === e.currentTarget) closeModal();
+});
+document.getElementById('crOverlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) crClose();
 });
 </script>
 </body>
