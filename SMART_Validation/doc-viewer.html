@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visor GxP</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #06101e; color: #dde6f0; font-family: system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; }
+        #status {
+            padding: 20px 28px;
+            font-size: 13px;
+            color: rgba(200,146,26,.8);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #status.error { color: #e87a8a; }
+        .spinner {
+            width: 16px; height: 16px;
+            border: 2px solid rgba(200,146,26,.3);
+            border-top-color: #C8921A;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            flex-shrink: 0;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        iframe { flex: 1; border: none; display: none; }
+    </style>
+    <!-- pdfMake + fuentes (mismos que la suite de validación) -->
+    <script src="../lib/pdfmake.min.js"></script>
+    <script src="../lib/vfs_fonts.js"></script>
+    <!-- Renderer y templates (mismos que la suite de validación) -->
+    <script src="../js/validation-suite/core/template-base.js?v=20260813b"></script>
+    <script src="../js/validation-suite/core/shared-renderers.js?v=20260813b"></script>
+    <script src="../js/validation-suite/core/document-renderer.js?v=20260813b"></script>
+    <script src="../js/validation-suite/templates/_test.js"></script>
+    <script src="../js/validation-suite/templates/hlra.js"></script>
+    <script src="../js/validation-suite/templates/vp.js"></script>
+    <script src="../js/validation-suite/templates/urs.js"></script>
+    <script src="../js/validation-suite/templates/frs.js"></script>
+    <script src="../js/validation-suite/templates/ds.js"></script>
+    <script src="../js/validation-suite/templates/ra.js"></script>
+    <script src="../js/validation-suite/templates/ira.js"></script>
+    <script src="../js/validation-suite/templates/rrm.js"></script>
+    <script src="../js/validation-suite/templates/mtr.js"></script>
+    <script src="../js/validation-suite/templates/_iq-shared.js"></script>
+    <script src="../js/validation-suite/templates/piq.js"></script>
+    <script src="../js/validation-suite/templates/iiq.js"></script>
+    <script src="../js/validation-suite/templates/poq.js"></script>
+    <script src="../js/validation-suite/templates/ioq.js"></script>
+    <script src="../js/validation-suite/templates/ppq.js"></script>
+    <script src="../js/validation-suite/templates/ipq.js"></script>
+    <script src="../js/validation-suite/templates/ncr.js"></script>
+    <script src="../js/validation-suite/templates/vsr.js"></script>
+    <script src="../js/validation-suite/templates/aex.js"></script>
+    <script src="../js/validation-suite/templates/evra.js"></script>
+    <script src="../js/validation-suite/templates/evprot.js"></script>
+    <script src="../js/validation-suite/templates/evir.js"></script>
+</head>
+<body>
+    <div id="status">
+        <div class="spinner" id="spinner"></div>
+        <span id="statusMsg">Cargando documento…</span>
+    </div>
+    <iframe id="pdfFrame" title="Documento GxP"></iframe>
+
+    <script>
+    (async () => {
+        const params  = new URLSearchParams(window.location.search);
+        const projId  = params.get('project');
+        const docType = params.get('doc');
+
+        function setStatus(msg, isError) {
+            document.getElementById('statusMsg').textContent = msg;
+            document.getElementById('status').className = isError ? 'error' : '';
+            if (isError) document.getElementById('spinner').style.display = 'none';
+        }
+
+        if (!projId || !docType) {
+            setStatus('Faltan parámetros: ?project=X&doc=TYPE', true);
+            return;
+        }
+
+        // Fetch document from server
+        let docData;
+        try {
+            const res = await fetch(
+                `/api/projects/${encodeURIComponent(projId)}/documents/${encodeURIComponent(docType)}`,
+                { credentials: 'include' }
+            );
+            if (res.status === 401) {
+                setStatus('No autenticado — iniciá sesión en la suite primero.', true);
+                return;
+            }
+            if (res.status === 404) {
+                setStatus(`El documento ${docType} aún no tiene contenido en el sistema.`, true);
+                return;
+            }
+            const json = await res.json();
+            if (!json.ok) {
+                setStatus(json.error || 'Error al cargar el documento.', true);
+                return;
+            }
+            // content is the parsed JSON; fall back to json_data string
+            docData = json.document.content;
+            if (!docData || typeof docData !== 'object') {
+                try { docData = JSON.parse(json.document.json_data || '{}'); } catch(e) { docData = {}; }
+            }
+        } catch (e) {
+            setStatus('Error de red al cargar el documento.', true);
+            return;
+        }
+
+        // Render via ValidationSuite.renderDocument (same as the main suite)
+        const VS = window.ValidationSuite;
+        if (!VS || typeof VS.renderDocument !== 'function') {
+            setStatus('Error interno: renderer no disponible.', true);
+            return;
+        }
+
+        try {
+            setStatus('Generando PDF…');
+            const blobUrl = await VS.renderDocument(docData, { download: false });
+            document.getElementById('status').style.display = 'none';
+            const frame = document.getElementById('pdfFrame');
+            frame.src = blobUrl;
+            frame.style.display = 'block';
+        } catch (e) {
+            setStatus(`Error al renderizar: ${e.message || e}`, true);
+        }
+    })();
+    </script>
+</body>
+</html>
