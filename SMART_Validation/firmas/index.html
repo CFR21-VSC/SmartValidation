@@ -520,7 +520,7 @@
         }
         select:focus { border-color:var(--gold-dim); box-shadow:0 0 0 3px var(--gold-glow); }
         .signer-row-item {
-            display:flex; gap:8px; margin-bottom:8px; align-items:center;
+            display:flex; flex-direction:column; gap:6px; margin-bottom:10px;
         }
         .signer-row-item input { flex:1; margin:0; }
         .btn-remove-signer {
@@ -1712,11 +1712,15 @@ function crAddSigner() {
     const idx = list.children.length;
     const row = document.createElement('div');
     row.className = 'signer-row-item';
+    row.style.cssText = 'flex-wrap:wrap;gap:6px;';
     row.innerHTML = `
-        <input type="text" placeholder="usuario o email" style="flex:2;" data-cr="username">
-        <input type="text" placeholder="Rol (p.ej. QA Manager)" style="flex:2;" data-cr="role">
-        <input type="number" placeholder="Orden" min="1" style="flex:.7;width:60px;" data-cr="order" value="${idx+1}">
-        <button class="btn-remove-signer" onclick="this.parentElement.remove()" title="Eliminar">✕</button>`;
+        <div style="display:flex;gap:6px;flex:1;min-width:0;">
+            <input type="text" placeholder="username" style="flex:1;" data-cr="username">
+            <input type="text" placeholder="Rol (p.ej. QA Manager)" style="flex:1;" data-cr="role">
+            <input type="number" placeholder="#" min="1" style="width:52px;flex:none;" data-cr="order" value="${idx+1}">
+            <button class="btn-remove-signer" onclick="this.closest('.signer-row-item').remove()" title="Eliminar">✕</button>
+        </div>
+        <input type="email" placeholder="Email — solo si es usuario nuevo a invitar" style="flex:1 1 100%;font-size:11px;opacity:.85;" data-cr="email">`;
     list.appendChild(row);
 }
 
@@ -1736,8 +1740,11 @@ async function crSubmit() {
         const username = row.querySelector('[data-cr="username"]').value.trim();
         const role_label = row.querySelector('[data-cr="role"]').value.trim();
         const sign_order = parseInt(row.querySelector('[data-cr="order"]').value) || (signers.length + 1);
+        const email = row.querySelector('[data-cr="email"]').value.trim();
         if (!username) continue;
-        signers.push({ username, role_label, sign_order });
+        const entry = { username, role_label, sign_order };
+        if (email) entry.email = email;
+        signers.push(entry);
     }
     if (!signers.length) { errEl.textContent = 'Agregá al menos un firmante.'; errEl.style.display=''; return; }
 
