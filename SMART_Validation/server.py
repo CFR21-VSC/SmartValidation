@@ -201,6 +201,20 @@ def _db_init():
             created_at   REAL
         );
 
+        CREATE TABLE IF NOT EXISTS round_comments (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            round_id     TEXT NOT NULL REFERENCES signing_rounds(id) ON DELETE CASCADE,
+            project_id   TEXT NOT NULL,
+            username     TEXT NOT NULL,
+            display_name TEXT,
+            section_ref  TEXT,
+            body         TEXT NOT NULL,
+            status       TEXT DEFAULT 'open',
+            created_at   REAL,
+            resolved_at  REAL,
+            resolved_by  TEXT
+        );
+
         CREATE TABLE IF NOT EXISTS signing_rounds (
             id             TEXT PRIMARY KEY,
             project_id     TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -425,6 +439,8 @@ _RE_DOC_REVISIONS  = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/revis
 _RE_REV_FULFILL    = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/fulfill/([^/]+)$')
 _RE_REV_DISCARD    = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/discard-revision/([^/]+)$')
 _RE_ROUND_RESEND   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/resend/([^/]+)$')
+_RE_ROUND_COMMENTS = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/comments$')
+_RE_ROUND_COMMENT_RESOLVE = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/comments/([^/]+)/resolve$')
 _RE_USER_REVOKE    = re.compile(r'^/api/projects/([^/]+)/signers/([^/]+)/revoke$')
 _RE_MY_REVISIONS   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/my-revisions$')
 _RE_PROJ_PHOTOS   = re.compile(r'^/api/projects/([^/]+)/photos$')
@@ -5001,6 +5017,76 @@ class SyncHandler(BaseHTTPRequestHandler):
             raise
         return self._send_json(200, {"ok": True})
 
+    def _round_comments_list(self, proj_id, round_id, user):
+        """Lista comentarios de una ronda. Acceso: admin ve todos; client solo los suyos."""
+        if not _is_valid_proj_id(proj_id) or not _is_valid_uuid(round_id):
+            return self._send_json(404, {"ok": False, "error": "Ronda no encontrada"})
+        db = _get_db()
+        if not self._assert_project_access(db, user, proj_id):
+            return
+        role = user.get("r")
+        if role == "admin":
+            rows = db.execute(
+                "SELECT * FROM round_comments WHERE round_id=? ORDER BY created_at",
+                (round_id,)
+            ).fetchall()
+        else:
+            rows = db.execute(
+                "SELECT * FROM round_comments WHERE round_id=? AND username=? ORDER BY created_at",
+                (round_id, user.get("u"))
+            ).fetchall()
+        return self._send_json(200, {"ok": True, "comments": [dict(r) for r in rows]})
+
+    def _round_comments_create(self, proj_id, round_id, user):
+        """Agrega un comentario inline a una ronda. Acceso: admin, auditor, client."""
+        if not _is_valid_proj_id(proj_id) or not _is_valid_uuid(round_id):
+            return self._send_json(404, {"ok": False, "error": "Ronda no encontrada"})
+        db = _get_db()
+        if not self._assert_project_access(db, user, proj_id):
+            return
+        data = self._read_json_body()
+        if data is None:
+            return
+        body = str(data.get("body", "")).strip()[:2000]
+        section_ref = str(data.get("section_ref", "")).strip()[:200]
+        if not body:
+            return self._send_json(400, {"ok": False, "error": "body requerido"})
+        rnd = db.execute(
+            "SELECT id FROM signing_rounds WHERE id=? AND project_id=? AND status='open'",
+            (round_id, proj_id)
+        ).fetchone()
+        if not rnd:
+            return self._send_json(404, {"ok": False, "error": "Ronda no encontrada o no está abierta"})
+        username = user.get("u")
+        u_row = db.execute("SELECT display_name FROM users WHERE username=?", (username,)).fetchone()
+        display_name = u_row["display_name"] if u_row else username
+        now = time.time()
+        db.execute(
+            "INSERT INTO round_comments (round_id, project_id, username, display_name, section_ref, body, status, created_at) VALUES (?,?,?,?,?,?,?,?)",
+            (round_id, proj_id, username, display_name, section_ref or None, body, "open", now)
+        )
+        db.commit()
+        return self._send_json(201, {"ok": True})
+
+    def _round_comment_resolve(self, proj_id, round_id, comment_id, user):
+        """Admin marca un comentario como resuelto."""
+        if user.get("r") != "admin":
+            return self._send_json(403, {"ok": False, "error": "Solo admin puede resolver comentarios"})
+        try:
+            comment_id = int(comment_id)
+        except (ValueError, TypeError):
+            return self._send_json(400, {"ok": False, "error": "comment_id inválido"})
+        db = _get_db()
+        now = time.time()
+        result = db.execute(
+            "UPDATE round_comments SET status='resolved', resolved_at=?, resolved_by=? WHERE id=? AND round_id=? AND project_id=?",
+            (now, user.get("u"), comment_id, round_id, proj_id)
+        )
+        db.commit()
+        if result.rowcount == 0:
+            return self._send_json(404, {"ok": False, "error": "Comentario no encontrado"})
+        return self._send_json(200, {"ok": True})
+
     def _api_pending_signatures(self, user):
         """Retorna todas las rondas abiertas donde el revisor tiene firma pendiente."""
         if user.get("r") != "client":
@@ -5446,6 +5532,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_MY_REVISIONS.match(path)
         if m:
             return self._api_my_revisions(m.group(1), m.group(2), user)
+        m = _RE_ROUND_COMMENTS.match(path)
+        if m:
+            return self._round_comments_list(m.group(1), m.group(2), user)
         m = _RE_SIGNING_ROUND_ID.match(path)
         if m:
             return self._signing_round_get(m.group(1), m.group(2), user)
@@ -5682,6 +5771,12 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_ROUND_RESEND.match(path)
         if m:
             return self._api_round_resend(m.group(1), m.group(2), m.group(3), user)
+        m = _RE_ROUND_COMMENT_RESOLVE.match(path)
+        if m:
+            return self._round_comment_resolve(m.group(1), m.group(2), m.group(3), user)
+        m = _RE_ROUND_COMMENTS.match(path)
+        if m:
+            return self._round_comments_create(m.group(1), m.group(2), user)
         m = _RE_USER_REVOKE.match(path)
         if m:
             return self._api_signer_revoke(m.group(1), m.group(2), user)

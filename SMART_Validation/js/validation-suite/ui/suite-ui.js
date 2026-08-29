@@ -177,7 +177,15 @@
         const editor = document.getElementById('vsJsonEditor');
         const visualEditor = document.getElementById('vsVisualEditor');
         const VSref = global.ValidationSuite;
-        if (!editor || !visualEditor || !VSref || !VSref.visualEditor) return;
+        if (!editor || !visualEditor || !VSref || !VSref.visualEditor ||
+            typeof VSref.visualEditor.render !== 'function') {
+            // Fallback: si el visual editor no está listo, mostrar el JSON crudo
+            if (visualEditor && editor && editor.value.trim()) {
+                visualEditor.innerHTML = '<pre style="padding:16px;font-size:11px;white-space:pre-wrap;color:#393939;overflow:auto;height:100%;">' +
+                    editor.value.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</pre>';
+            }
+            return;
+        }
         const txt = editor.value || '';
         if (!txt.trim()) {
             VSref.visualEditor.render(null, visualEditor);
@@ -191,7 +199,17 @@
                 '<br><small style="display:block; margin-top:8px;">' + String(e.message || e) + '</small></div>';
             return;
         }
-        VSref.visualEditor.render(data, visualEditor);
+        try {
+            VSref.visualEditor.render(data, visualEditor);
+        } catch (renderErr) {
+            // Si el render falla (tipo de sección no soportado, etc.) mostrar fallback legible
+            visualEditor.innerHTML =
+                '<div class="ve-empty" style="color:#7A4500; padding:16px;">Error al renderizar la vista documento.<br>' +
+                '<small style="display:block; margin-top:6px;">' + String(renderErr.message || renderErr) + '</small>' +
+                '<br><button type="button" onclick="vsSwitchEditMode(\'json\')" ' +
+                'style="margin-top:10px;padding:4px 12px;background:#C8921A;color:#0B2341;border:none;border-radius:4px;cursor:pointer;font-weight:700;">' +
+                '⚙ Ver en modo Técnico</button></div>';
+        }
     }
 
     async function vsApplyVisualToJSON() {
@@ -269,7 +287,14 @@
                        '</option>';
             }).join('');
         // Restaurar selección si todavía es válida
-        if (prev && sel.querySelector('option[value="' + prev + '"]')) sel.value = prev;
+        if (prev && sel.querySelector('option[value="' + prev + '"]')) {
+            sel.value = prev;
+            // Si el editor está vacío (e.g. tras refresh de página) recargar el doc
+            const _ed = document.getElementById('vsJsonEditor');
+            if (_ed && !_ed.value.trim()) {
+                sel.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        }
         // Actualizar barra de progreso del ciclo (3.2)
         const activePid = (global.ValidationSuite && global.ValidationSuite.projects)
             ? global.ValidationSuite.projects.getActiveId() : null;

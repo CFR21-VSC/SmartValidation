@@ -774,9 +774,13 @@ async function submitComment() {
   errEl.style.display = 'none';
   if (!body) return;
   btn.disabled = true;
-  const r = await api('POST', `/api/projects/${S.projId}/documents/${S.docType}/comments`, {
-    body, section_ref: secEl?.value || null,
-  });
+  // Si hay ronda activa, guardar también en round_comments para trazabilidad
+  const roundId = S.activeRound?.id;
+  const commentPayload = { body, section_ref: secEl?.value || null };
+  if (roundId) {
+    api('POST', `/api/projects/${S.projId}/signing-rounds/${roundId}/comments`, commentPayload);
+  }
+  const r = await api('POST', `/api/projects/${S.projId}/documents/${S.docType}/comments`, commentPayload);
   btn.disabled = false;
   if (!r?.ok) { errEl.textContent = r?.error || 'Error.'; errEl.style.display='block'; return; }
   input.value = '';

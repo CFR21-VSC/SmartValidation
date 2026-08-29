@@ -3923,16 +3923,17 @@
                 <span class="vs-doc-field" style="margin-left: auto;"><strong id="vsDocSectionCount">0</strong> secciones</span>
             </div>
 
-            <!-- SIGN DOCUMENT BAR: visible cuando el doc tiene tabla-firmas-final.
-                 Firma electrónica genérica con PIN (21 CFR Part 11) que funciona
-                 para PIQ/POQ/PPQ/IIQ/IOQ/IPQ/RIQ/ROQ/RPQ/VSR/NCR. -->
-            <div id="vsSignDocBar" style="display:none; padding:7px 16px; background:#081526; border-bottom:1px solid rgba(200,146,26,0.2); align-items:center; gap:8px; flex-wrap:wrap; font-size:12px;">
-                <span style="font-weight:700; color:rgba(200,146,26,0.75); font-size:10px; text-transform:uppercase; letter-spacing:1px;">Firma electrónica:</span>
-                <span id="vsSignCounter" style="font-weight:700; color:#C8921A; font-size:12px;">0/0 firmadas</span>
-                <span style="margin:0 4px; color:rgba(255,255,255,0.1);">|</span>
-                <button class="vs-btn-action" style="padding:4px 14px; font-size:11px; font-weight:700; background:#C8921A; color:#0B2341; border:none; border-radius:5px; cursor:pointer;" onclick="ValidationSuite.signDocument.startSigningFlow()" title="Firmar todos los roles pendientes en secuencia.">Firmar documento</button>
-                <button class="vs-btn-secondary" style="padding:4px 10px; font-size:11px; background:rgba(255,255,255,0.06); color:#7A9AB8; border:1px solid rgba(255,255,255,0.1); border-radius:5px; cursor:pointer;" onclick="ValidationSuite.signDocument.clearSignatures()" title="Limpiar todas las firmas">Limpiar firmas</button>
-                <span style="margin-left:auto; font-size:10px; color:#3A5A72; font-style:italic;">Las firmas se almacenan con hash SHA-256 del PIN del firmante. Compliance 21 CFR Part 11.</span>
+            <!-- FIRMAS BAR: banner informativo — la firma ya no es por doc sino por rondas en Portal Firmas -->
+            <div id="vsSignDocBar" style="display:none; padding:6px 16px; background:#081526; border-bottom:1px solid rgba(200,146,26,0.2); align-items:center; gap:10px; flex-wrap:wrap; font-size:12px;">
+                <span style="font-size:13px;">🔏</span>
+                <span style="font-weight:700; color:#C8921A; font-size:11px;">Este documento tiene sección de firmas.</span>
+                <span style="color:#7A9AB8; font-size:11px;">Las firmas se gestionan desde Portal Firmas (rondas de revisión y aprobación).</span>
+                <span style="margin-left:auto; font-size:10px; color:#3A5A72; font-style:italic;">Compliance 21 CFR Part 11 · hash SHA-256</span>
+                <button type="button"
+                    onclick="window.open('/client/','_blank')"
+                    style="padding:4px 14px; font-size:11px; font-weight:700; background:#C8921A; color:#0B2341; border:none; border-radius:5px; cursor:pointer;">
+                    ✍ Portal Firmas →
+                </button>
             </div>
 
             <!-- NCR SNIPPETS BAR: solo visible cuando type=NCR. Botones que insertan
@@ -4483,6 +4484,43 @@
       </div>
     </div>
 
+    <!-- ── Suite Firmas — Panel completo (PDF + ronda) ──────────────────────── -->
+    <div id="sfPanel" style="display:none; position:fixed; inset:0; background:#08131F; z-index:9200; flex-direction:column; overflow:hidden;">
+      <!-- Header -->
+      <div style="height:50px; background:#0B2341; border-bottom:2px solid #C8921A; display:flex; align-items:center; padding:0 18px; gap:12px; flex-shrink:0;">
+        <span style="font-size:13px; font-weight:600; color:#C8D8E8; white-space:nowrap;">⚗️ Suite Firmas</span>
+        <span id="sfDocLabel" style="background:rgba(200,146,26,.15);border:1px solid rgba(200,146,26,.3);border-radius:20px;padding:3px 12px;color:#C8921A;font-size:11px;font-weight:500;white-space:nowrap;"></span>
+        <span id="sfDocStatus" style="font-size:11px;color:#4A6A86;"></span>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+          <button onclick="sfDownloadDoc()" id="sfBtnDownload" style="display:none;background:transparent;border:1px solid rgba(200,146,26,.35);color:#C8921A;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;">⬇ PDF</button>
+          <button onclick="sfOpenNewRound()" style="background:#C8921A;border:none;color:#0B2341;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">+ Nueva ronda</button>
+          <button onclick="sfClose()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:6px 12px;color:#8AACC0;font-size:12px;cursor:pointer;">✕ Cerrar</button>
+        </div>
+      </div>
+      <!-- Body: split -->
+      <div style="flex:1;display:flex;overflow:hidden;min-height:0;">
+        <!-- LEFT: PDF viewer -->
+        <div id="sfPdfSide" style="flex:1;min-width:0;display:flex;flex-direction:column;border-right:1px solid #1E3450;background:#060F1A;">
+          <div style="padding:6px 14px;border-bottom:1px solid #1E3450;flex-shrink:0;">
+            <span style="font-size:10px;font-weight:700;color:#2A4A6A;text-transform:uppercase;letter-spacing:.07em;">Vista del documento</span>
+          </div>
+          <div id="sfPdfWrap" style="flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+            <div style="color:#2A4A6A;font-size:13px;">Seleccioná un documento para previsualizar</div>
+          </div>
+        </div>
+        <!-- RIGHT: Rounds panel -->
+        <div style="width:390px;flex-shrink:0;display:flex;flex-direction:column;background:#0B1621;overflow:hidden;">
+          <div style="padding:8px 14px;border-bottom:1px solid #1E3450;display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            <span style="font-size:10px;font-weight:700;color:#2A4A6A;text-transform:uppercase;letter-spacing:.07em;">Rondas de Firma</span>
+            <span id="sfRoundsCount" style="background:rgba(200,146,26,.2);color:#C8921A;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none;"></span>
+          </div>
+          <div id="sfRoundWrap" style="flex:1;overflow-y:auto;padding:12px 14px;">
+            <div style="color:#2A4A6A;font-size:13px;">Seleccioná un documento</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Create Round Modal ─────────────────────────────────────────────── -->
     <div id="crModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:9100; align-items:center; justify-content:center;">
       <div style="background:#0f1e2e; border:1px solid #1e3550; border-radius:16px; width:min(520px,95vw); max-height:90vh; overflow-y:auto; padding:26px 24px;">
@@ -4794,6 +4832,171 @@
     }
 
     let _rdSignerRevisions = [];
+    // ── Suite Firmas full-panel ─────────────────────────────────────────────
+    const _sfState = { projId: null, docType: null, pdfBlobUrl: null };
+
+    async function sfOpenDocView(projId, docType) {
+      _sfState.projId = projId; _sfState.docType = docType;
+      if (_sfState.pdfBlobUrl) { URL.revokeObjectURL(_sfState.pdfBlobUrl); _sfState.pdfBlobUrl = null; }
+
+      document.getElementById('sfPanel').style.display = 'flex';
+      document.getElementById('sfDocLabel').textContent = docType;
+      document.getElementById('sfDocStatus').textContent = '';
+      document.getElementById('sfBtnDownload').style.display = 'none';
+      document.getElementById('sfPdfWrap').innerHTML = '<div style="color:#3A6A9A;font-size:13px;">Generando PDF…</div>';
+      document.getElementById('sfRoundWrap').innerHTML = '<div style="color:#3A6A9A;font-size:13px;">Cargando rondas…</div>';
+
+      const [docR, roundsR] = await Promise.all([
+        fetch(`/api/projects/${projId}/documents/${docType}`, {credentials:'include'}).then(r=>r.json()).catch(()=>null),
+        fetch(`/api/projects/${projId}/signing-rounds`, {credentials:'include'}).then(r=>r.json()).catch(()=>null),
+      ]);
+
+      // PDF preview
+      if (docR?.ok && docR.document?.json_data) {
+        const docStatus = docR.document.status || 'draft';
+        document.getElementById('sfDocStatus').textContent = ({draft:'Borrador',review:'En revisión',approved:'✓ Aprobado'}[docStatus] || docStatus);
+        try {
+          const data = JSON.parse(docR.document.json_data);
+          const blob = await ValidationSuite.renderDocument(data, { download: false });
+          _sfState.pdfBlobUrl = URL.createObjectURL(blob);
+          document.getElementById('sfPdfWrap').innerHTML =
+            `<iframe src="${_sfState.pdfBlobUrl}" style="width:100%;height:100%;border:none;display:block;" title="Vista documento ${esc(docType)}"></iframe>`;
+          document.getElementById('sfBtnDownload').style.display = '';
+        } catch(e) {
+          document.getElementById('sfPdfWrap').innerHTML =
+            `<div style="color:#e87a8a;font-size:13px;padding:24px;text-align:center;">Error al renderizar el PDF.<br><small style="color:#5a3a3a;">${esc(String(e.message||e))}</small></div>`;
+        }
+      } else {
+        document.getElementById('sfPdfWrap').innerHTML =
+          '<div style="color:#e87a8a;font-size:13px;padding:24px;text-align:center;">No se pudo cargar el documento.</div>';
+      }
+
+      // Rounds panel
+      const rounds = (roundsR?.rounds || []).filter(r => r.doc_type === docType);
+      const cnt = document.getElementById('sfRoundsCount');
+      if (rounds.length) { cnt.textContent = rounds.length; cnt.style.display = ''; }
+      else { cnt.style.display = 'none'; }
+      document.getElementById('sfRoundWrap').innerHTML = rounds.length
+        ? rounds.map(r => _sfRenderRoundCard(r)).join('')
+        : '<div style="color:#3A5A76;font-size:13px;padding:24px;text-align:center;">Sin rondas para este documento.<br><br>Usá <strong style="color:#C8921A;">+ Nueva ronda</strong> para iniciar el circuito de firma.</div>';
+    }
+
+    function _sfRenderRoundCard(r) {
+      const phLbl   = r.phase === 'approval' ? 'Aprobación' : 'Revisión';
+      const phColor = r.phase === 'approval' ? '#C8921A' : '#3a7aaa';
+      const allDone = r.total_signers > 0 && (r.signed_count||0) >= r.total_signers;
+      const stColor = {open:'#c4a427', sealed:'#27c459', cancelled:'#e87a8a'}[r.status] || '#4a6a86';
+
+      const sealBtn = r.status === 'open'
+        ? (allDone
+          ? `<button onclick="sfSealRound('${esc(r.project_id)}','${esc(r.id)}')" style="background:#C8921A;border:none;color:#0B2341;border-radius:5px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;animation:_rdPulse 1.8s ease-in-out infinite;">✓ Sellar</button>`
+          : `<button onclick="sfSealRound('${esc(r.project_id)}','${esc(r.id)}')" style="background:#0e2820;border:1px solid #1e4830;color:#27c459;border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;">Sellar ▶</button>`)
+        : '';
+      const cancelBtn = r.status === 'open'
+        ? `<button onclick="cancelRound('${esc(r.project_id)}','${esc(r.id)}').then?.(()=>sfOpenDocView('${esc(r.project_id)}','${esc(r.doc_type)}'))||sfOpenDocView('${esc(r.project_id)}','${esc(r.doc_type)}')" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;">✕ Cancelar</button>`
+        : '';
+
+      const signersHtml = (r.signers||[]).map(s => {
+        const signed = s.signed_at;
+        const init = (s.display_name||s.username||'?').replace(/\s+/g,'').slice(0,2).toUpperCase();
+        return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #0E1E2E;">
+          <div style="width:26px;height:26px;border-radius:50%;background:#0B2341;border:1px solid #1E3450;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#C8921A;flex-shrink:0;">${esc(init)}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:500;color:#DDE8F5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(s.display_name||s.username)}</div>
+            <div style="font-size:10px;color:#4a6a86;">${esc(s.role_label||'')}${s.sign_order?' · Orden '+s.sign_order:''}</div>
+            ${s.email?`<div style="font-size:10px;color:#2a4a66;">${esc(s.email)}</div>`:''}
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-size:10px;font-weight:600;color:${signed?'#27c459':'#c4a427'};">${signed?'✓ Firmado':'⏳ Pendiente'}</div>
+            ${signed?`<div style="font-size:9px;color:#2a4a36;">${fmtDTrd(s.signed_at)}</div>`:''}
+            ${s.revision_requested_at&&!s.signed_at?`<div style="font-size:9px;color:#e87a8a;">🔄 Solicita revisión</div>`:''}
+          </div>
+        </div>`;
+      }).join('');
+
+      const revWarning = r.revision_count > 0
+        ? `<div style="margin-top:8px;background:#1a0d10;border-left:3px solid #e87a8a;border-radius:0 4px 4px 0;padding:6px 10px;font-size:11px;color:#e87a8a;">${r.revision_count} solicitud(es) de revisión pendiente(s)</div>`
+        : '';
+      const sealNote = r.status === 'sealed'
+        ? `<div style="margin-top:6px;font-size:10px;color:#27c459;">🔒 Sellada ${fmtDTrd(r.sealed_at)}</div>`
+        : '';
+
+      return `<div style="background:#0D1A28;border:1px solid ${allDone&&r.status==='open'?'rgba(200,146,26,.5)':'#1E3450'};border-radius:8px;padding:12px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+          <div style="display:flex;gap:6px;align-items:center;">
+            <span style="background:${phColor}22;border:1px solid ${phColor}55;color:${phColor};border-radius:4px;padding:1px 7px;font-size:9px;font-weight:700;">${phLbl}</span>
+            <span style="font-size:10px;font-weight:700;color:${stColor};text-transform:uppercase;">${r.status}</span>
+          </div>
+          <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
+            <span style="font-size:11px;color:#4a6a86;">${r.signed_count||0}/${r.total_signers} firmaron</span>
+            ${sealBtn}${cancelBtn}
+          </div>
+        </div>
+        <div style="font-size:10px;color:#2A4A66;margin-bottom:8px;">Iniciada ${fmtDTrd(r.created_at)}</div>
+        <div style="border-top:1px solid #1a3050;padding-top:8px;">${signersHtml||'<div style="color:#3A5A76;font-size:11px;">Sin firmantes.</div>'}</div>
+        ${revWarning}${sealNote}
+      <div style="margin-top:8px;border-top:1px solid #1a3050;padding-top:8px;display:flex;justify-content:space-between;align-items:center;">
+        <button onclick="_sfToggleComments('${esc(r.project_id)}','${esc(r.id)}')" id="sfcc-btn-${r.id.replace(/-/g,'_')}" style="background:transparent;border:1px solid #1E3450;color:#5aaade;border-radius:5px;padding:3px 10px;font-size:10px;cursor:pointer;">💬 Comentarios</button>
+      </div>
+      <div id="sfcc-${r.id.replace(/-/g,'_')}" style="display:none;margin-top:8px;"></div>
+      </div>`;
+    }
+
+    async function _sfToggleComments(projId, roundId) {
+      const key = roundId.replace(/-/g,'_');
+      const el = document.getElementById('sfcc-'+key);
+      if (!el) return;
+      if (el.style.display !== 'none') { el.style.display = 'none'; return; }
+      el.style.display = '';
+      el.innerHTML = '<div style="color:#3A6A9A;font-size:11px;padding:6px 0;">Cargando comentarios...</div>';
+      const r = await fetch(`/api/projects/${projId}/signing-rounds/${roundId}/comments`, {credentials:'include'}).then(r=>r.json()).catch(()=>null);
+      const comments = r?.comments || [];
+      if (!comments.length) {
+        el.innerHTML = '<div style="color:#3A5A76;font-size:11px;padding:6px 0;">Sin comentarios en esta ronda.</div>';
+        return;
+      }
+      el.innerHTML = comments.map(c => `
+        <div style="background:#0D1A28;border-left:3px solid ${c.status==='resolved'?'#27c459':'#C8921A'};border-radius:0 4px 4px 0;padding:7px 10px;margin-bottom:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+            <div>
+              ${c.section_ref?`<span style="font-size:9px;font-weight:700;color:#C8921A;margin-right:4px;">[${esc(c.section_ref)}]</span>`:''}
+              <span style="font-size:12px;color:#DDE8F5;">${esc(c.body)}</span>
+            </div>
+            ${c.status==='open'?`<button onclick="_sfResolveComment('${esc(projId)}','${esc(roundId)}','${c.id}','${key}')" style="background:transparent;border:1px solid #1E4030;color:#27c459;border-radius:4px;padding:2px 7px;font-size:9px;cursor:pointer;flex-shrink:0;">✓ Resolver</button>`:'<span style="font-size:9px;color:#27c459;">✓ Resuelto</span>'}
+          </div>
+          <div style="font-size:10px;color:#3A5A76;margin-top:3px;">${esc(c.display_name||c.username)} · ${fmtDTrd(c.created_at)}</div>
+        </div>`).join('');
+    }
+
+    async function _sfResolveComment(projId, roundId, commentId, key) {
+      await fetch(`/api/projects/${projId}/signing-rounds/${roundId}/comments/${commentId}/resolve`, {method:'POST',credentials:'include'}).catch(()=>null);
+      _sfToggleComments(projId, roundId); // reload
+      const el = document.getElementById('sfcc-'+key); if (el) el.style.display = '';
+    }
+
+    async function sfSealRound(projId, roundId) {
+      await sealRound(projId, roundId);
+      if (_sfState.projId === projId && _sfState.docType) await sfOpenDocView(projId, _sfState.docType);
+    }
+
+    async function sfDownloadDoc() {
+      if (!_sfState.projId || !_sfState.docType) return;
+      const docR = await fetch(`/api/projects/${_sfState.projId}/documents/${_sfState.docType}`, {credentials:'include'}).then(r=>r.json()).catch(()=>null);
+      if (!docR?.ok || !docR.document?.json_data) return;
+      ValidationSuite.renderDocument(JSON.parse(docR.document.json_data), { download: true });
+    }
+
+    function sfClose() {
+      document.getElementById('sfPanel').style.display = 'none';
+      if (_sfState.pdfBlobUrl) { URL.revokeObjectURL(_sfState.pdfBlobUrl); _sfState.pdfBlobUrl = null; }
+    }
+
+    function sfOpenNewRound() {
+      sfClose();
+      openReviewDashboard();
+      setTimeout(() => { openCreateRoundModal(); }, 250);
+    }
+
     async function loadReviewDashboard() {
       const body = document.getElementById('rdBody');
       body.innerHTML = '<div style="color:#4a6a86;font-size:13px;">Cargando...</div>';
@@ -4933,6 +5136,7 @@
           </div>
           <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
             <span style="font-size:10px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px;">${rnd.status}</span>
+            <button onclick="sfOpenDocView('${esc(rnd.project_id)}','${esc(rnd.doc_type)}');closeReviewDashboard();" style="background:#0B2341;border:1px solid rgba(200,146,26,.35);color:#C8921A;border-radius:5px;padding:3px 10px;font-size:10px;cursor:pointer;" title="Ver documento completo + ronda en Suite Firmas">📄 Ver doc</button>
             ${sealBtn}${cancelBtn}${deleteBtn}${expandBtn}${approvalShortcut}
           </div>
         </div>
