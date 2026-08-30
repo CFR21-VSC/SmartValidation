@@ -211,13 +211,15 @@
     <div class="rf-modal rv-load-modal">
         <h3>Cargar / reemplazar documento</h3>
         <div class="rf-field">
-            <label class="rf-label" for="load-json-input">Contenido JSON</label>
-            <textarea class="rf-textarea" id="load-json-input" placeholder='{ "...": "..." }'></textarea>
+            <label class="rf-label">Archivo del documento (.json)</label>
+            <input type="file" id="load-file-input" accept=".json" style="display:none;">
+            <button type="button" class="rf-btn-secondary" id="load-file-pick-btn">📂 Elegir archivo .json</button>
+            <span id="load-file-name" style="margin-left:10px; font-size:12px; color:var(--text-muted);">Ningún archivo seleccionado</span>
         </div>
         <div class="rf-error" id="load-error"></div>
         <div style="margin-top:14px; display:flex; justify-content:flex-end; gap:10px;">
             <button class="rf-btn-secondary" id="load-cancel">Cancelar</button>
-            <button class="rf-btn" id="load-submit">Guardar</button>
+            <button class="rf-btn" id="load-submit" disabled>Guardar</button>
         </div>
     </div>
 </div>
@@ -366,6 +368,8 @@ async function init() {
 
     document.getElementById('load-cancel').addEventListener('click', closeLoadModal);
     document.getElementById('load-submit').addEventListener('click', submitLoad);
+    document.getElementById('load-file-pick-btn').addEventListener('click', () => document.getElementById('load-file-input').click());
+    document.getElementById('load-file-input').addEventListener('change', onLoadFileSelected);
     document.getElementById('load-backdrop').addEventListener('click', (e) => {
         if (e.target.id === 'load-backdrop') closeLoadModal();
     });
@@ -584,8 +588,12 @@ async function markResolved(sectionKey) {
 // ---------------------------------------------------------------------------
 // Cargar documento (DRP)
 // ---------------------------------------------------------------------------
+let loadedFileJson = null;
+
 function openLoadModal() {
-    document.getElementById('load-json-input').value = JSON.stringify(documentRow.json_data, null, 2);
+    loadedFileJson = null;
+    document.getElementById('load-file-name').textContent = 'Ningún archivo seleccionado';
+    document.getElementById('load-submit').disabled = true;
     const err = document.getElementById('load-error');
     err.textContent = ''; err.classList.remove('visible');
     document.getElementById('load-backdrop').style.display = 'flex';
@@ -593,15 +601,40 @@ function openLoadModal() {
 function closeLoadModal() {
     document.getElementById('load-backdrop').style.display = 'none';
 }
+function onLoadFileSelected(e) {
+    const file = e.target.files[0];
+    const nameEl = document.getElementById('load-file-name');
+    const btn = document.getElementById('load-submit');
+    const err = document.getElementById('load-error');
+    loadedFileJson = null;
+    btn.disabled = true;
+    err.textContent = ''; err.classList.remove('visible');
+    if (!file) { nameEl.textContent = 'Ningún archivo seleccionado'; return; }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            loadedFileJson = JSON.parse(reader.result);
+            nameEl.textContent = `${file.name} ✓`;
+            btn.disabled = false;
+        } catch (ex) {
+            nameEl.textContent = 'Ningún archivo seleccionado';
+            err.textContent = 'El archivo elegido no es un JSON válido.';
+            err.classList.add('visible');
+        }
+    };
+    reader.onerror = () => {
+        err.textContent = 'No se pudo leer el archivo.';
+        err.classList.add('visible');
+    };
+    reader.readAsText(file);
+}
 async function submitLoad() {
     const err = document.getElementById('load-error');
     err.textContent = ''; err.classList.remove('visible');
 
-    let parsed;
-    try {
-        parsed = JSON.parse(document.getElementById('load-json-input').value);
-    } catch (e) {
-        err.textContent = 'JSON inválido.';
+    if (!loadedFileJson) {
+        err.textContent = 'Elegí un archivo .json válido.';
         err.classList.add('visible');
         return;
     }
@@ -610,7 +643,7 @@ async function submitLoad() {
     btn.disabled = true;
     const { status, data } = await apiFetch(
         `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}`,
-        { method: 'PUT', body: { json_data: parsed } }
+        { method: 'PUT', body: { json_data: loadedFileJson } }
     );
     btn.disabled = false;
 

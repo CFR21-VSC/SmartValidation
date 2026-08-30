@@ -119,12 +119,17 @@ sencillo — esas herramientas de autoría simplemente no existen en esta vista.
 
 **Regla dura (confirmado 2026-08-29): el modo "Técnico" (JSON crudo, llaves y corchetes) NUNCA
 se muestra en la Suite de Revisión y Firmas — para nadie, ni DRP ni cliente.** Es exclusivo de la
-Suite de Validación interna. Bug real encontrado y corregido: `review.html` tenía un fallback que
-mostraba `JSON.stringify` crudo cuando un documento no tenía la estructura de secciones esperada
-— visible para cualquiera con acceso al documento. Se reemplazó por un renderer genérico
-(tabla/lista legible) que nunca emite sintaxis JSON. El textarea de "Cargar" (DRP-only, para
-pegar/editar el JSON antes de subirlo) es la única excepción — es una herramienta de edición, no
-una vista pasiva, y ya está restringida a DRP.
+Suite de Validación interna. Bugs reales encontrados y corregidos en dos rondas de QA:
+`review.html` tenía fallbacks (tabla de metadata, contenido de sección, y el propio "Cargar")
+que mostraban `JSON.stringify` crudo — visible para cualquiera con acceso al documento. Los de
+solo-lectura se reemplazaron por un renderer genérico (tabla/lista legible) que nunca emite
+sintaxis JSON.
+
+**Cargar documento = elegir archivo, no pegar texto (confirmado 2026-08-29):** ni el DRP debe ver
+ni tipear JSON crudo. El "Cargar" (en `dashboard.html` y en `review.html`) es un selector de
+archivo (`<input type="file" accept=".json">`), mismo patrón que `vsImportFileInput` en la Suite
+de Validación — se lee el archivo con `FileReader`, se valida que sea JSON parseable, y se sube
+sin mostrar el contenido en pantalla en ningún momento.
 
 ### Esquema de carga y edición (confirmado 2026-08-29)
 

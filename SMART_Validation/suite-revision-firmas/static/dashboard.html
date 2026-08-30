@@ -186,13 +186,23 @@ function renderMain() {
         const loadForm = document.getElementById('load-doc-form');
         if (loadForm) loadForm.addEventListener('submit', onLoadDocumentSubmit);
 
+        const filePickBtn = document.getElementById('doc-file-pick-btn');
+        const fileInput = document.getElementById('doc-file-input');
+        if (filePickBtn && fileInput) {
+            filePickBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', onDocFileSelected);
+        }
+
         mainEl.querySelectorAll('.pb-open-btn').forEach(btn => {
             btn.addEventListener('click', () => openPeopleBook(btn.dataset.doctype));
         });
     }
 }
 
+let loadedFileJson = null;
+
 function renderLoadForm() {
+    loadedFileJson = null;
     return `
     <div class="rf-card" style="margin-bottom:20px;">
         <div class="rf-label" style="font-size:13px; margin-bottom:14px; color:var(--text);">
@@ -204,11 +214,12 @@ function renderLoadForm() {
                 <input class="rf-input" id="doc-type-input" placeholder="Ej: HLRA, URS, FRS…" required>
             </div>
             <div class="rf-field">
-                <label class="rf-label" for="doc-json-input">Contenido JSON del documento</label>
-                <textarea class="rf-textarea" id="doc-json-input" style="min-height:180px; font-family:monospace;"
-                          placeholder='{ "...": "..." }' required></textarea>
+                <label class="rf-label">Archivo del documento (.json)</label>
+                <input type="file" id="doc-file-input" accept=".json" style="display:none;">
+                <button type="button" class="rf-btn-secondary" id="doc-file-pick-btn">📂 Elegir archivo .json</button>
+                <span id="doc-file-name" style="margin-left:10px; font-size:12px; color:var(--text-muted);">Ningún archivo seleccionado</span>
             </div>
-            <button type="submit" class="rf-btn" id="load-doc-submit">Guardar documento</button>
+            <button type="submit" class="rf-btn" id="load-doc-submit" disabled>Guardar documento</button>
             <div class="rf-error" id="load-doc-error"></div>
         </form>
     </div>`;
@@ -248,6 +259,35 @@ function renderDocumentsTable() {
     </table>`;
 }
 
+function onDocFileSelected(e) {
+    const file = e.target.files[0];
+    const nameEl = document.getElementById('doc-file-name');
+    const submitBtn = document.getElementById('load-doc-submit');
+    const errorBox = document.getElementById('load-doc-error');
+    loadedFileJson = null;
+    submitBtn.disabled = true;
+    errorBox.classList.remove('visible');
+    if (!file) { nameEl.textContent = 'Ningún archivo seleccionado'; return; }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            loadedFileJson = JSON.parse(reader.result);
+            nameEl.textContent = `${file.name} ✓`;
+            submitBtn.disabled = false;
+        } catch (err) {
+            nameEl.textContent = 'Ningún archivo seleccionado';
+            errorBox.textContent = 'El archivo elegido no es un JSON válido.';
+            errorBox.classList.add('visible');
+        }
+    };
+    reader.onerror = () => {
+        errorBox.textContent = 'No se pudo leer el archivo.';
+        errorBox.classList.add('visible');
+    };
+    reader.readAsText(file);
+}
+
 async function onLoadDocumentSubmit(e) {
     e.preventDefault();
     const errorBox = document.getElementById('load-doc-error');
@@ -255,19 +295,14 @@ async function onLoadDocumentSubmit(e) {
     errorBox.textContent = '';
 
     const docType = document.getElementById('doc-type-input').value.trim();
-    const rawJson = document.getElementById('doc-json-input').value;
 
     if (!docType) {
         errorBox.textContent = 'Ingresá un tipo de documento.';
         errorBox.classList.add('visible');
         return;
     }
-
-    let parsed;
-    try {
-        parsed = JSON.parse(rawJson);
-    } catch (err) {
-        errorBox.textContent = 'JSON inválido';
+    if (!loadedFileJson) {
+        errorBox.textContent = 'Elegí un archivo .json válido.';
         errorBox.classList.add('visible');
         return;
     }
@@ -277,7 +312,7 @@ async function onLoadDocumentSubmit(e) {
 
     const { status, data } = await apiFetch(
         `/projects/${encodeURIComponent(selectedProject)}/documents/${encodeURIComponent(docType)}`,
-        { method: 'PUT', body: { json_data: parsed } }
+        { method: 'PUT', body: { json_data: loadedFileJson } }
     );
 
     submitBtn.disabled = false;
