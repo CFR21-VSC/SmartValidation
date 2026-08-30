@@ -32,9 +32,19 @@ def ensure_project(db, project_id: str, username: str) -> None:
 
 def _get_project_or_404(db, project_id: str) -> dict:
     row = db.execute("SELECT * FROM rf_projects WHERE id=?", (project_id,)).fetchone()
-    if not row:
+    if row:
+        return dict(row)
+    # Migración: proyectos con documentos cargados ANTES de que existiera rf_projects
+    # (fase 5) no tienen fila propia todavía — sin este backfill, close/archive/delete
+    # les devuelven 404 aunque existan de verdad, y el bloqueo por sellado del DELETE
+    # nunca llega a evaluarse (encontrado en QA real 2026-08-30). Self-healing: si tiene
+    # al menos un documento, se lo trata como activo y se crea la fila recién ahora.
+    has_docs = db.execute("SELECT 1 FROM rf_documents WHERE project_id=? LIMIT 1", (project_id,)).fetchone()
+    if not has_docs:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Proyecto no encontrado")
-    return dict(row)
+    ensure_project(db, project_id, "sistema")
+    db.commit()
+    return dict(db.execute("SELECT * FROM rf_projects WHERE id=?", (project_id,)).fetchone())
 
 
 @router.get("")

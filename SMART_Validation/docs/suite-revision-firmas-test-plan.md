@@ -243,3 +243,26 @@ audit trail de sistema con los 3 eventos en orden correcto).
   KPI "Con hash 21 CFR") — no implementado, el libro se genera igual pero ese KPI queda en 0.
 - Tests de UI en navegador de los nuevos botones (mismo criterio que fases anteriores).
 - Renombrar un proyecto — no existe, `project_id` es una clave estable usada en grants/documentos.
+
+**Ronda de QA real #3 (2026-08-30, Claude en Chrome) — bugs encontrados y corregidos:**
+1. **[Media] `DELETE /projects/{id}` devolvía 404 en vez de 409 para proyectos "legacy".**
+   Proyectos con documentos cargados ANTES de que existiera `rf_projects` (esta misma fase) no
+   tenían fila propia — `_get_project_or_404` fallaba con 404 genuino antes de llegar siquiera a
+   evaluar el bloqueo por sellado. El control negativo de QA "protegía" el dato (no borraba
+   nada), pero con el código/mensaje equivocado — inaceptable para una herramienta GxP, donde el
+   motivo del rechazo tiene que ser explícito. Corregido con self-healing: si el proyecto tiene
+   documentos pero no fila, se la crea ahí mismo como `active` antes de continuar.
+2. **[Baja] El panel de detalle no se refrescaba al archivar.** `loadProjects()` pedía la lista
+   ya filtrada por el estado del checkbox "Mostrar archivados" — un proyecto recién archivado
+   desaparecía del array antes de poder leer su nuevo estado, y el panel seguía mostrando
+   "activo". Corregido: la lista completa (con archivados) siempre se trae del servidor: el
+   filtro del checkbox ahora es puramente de render en la sidebar.
+3. **[Baja] El botón "Eliminar documento" seguía visible en proyectos cerrados/archivados**
+   (de solo lectura). Ya se ocultaba correctamente para documentos sellados; ahora también se
+   oculta si el proyecto no está `active`.
+
+Todo verificado con un test que reproduce el escenario exacto reportado (documento cargado,
+fila `rf_projects` borrada a mano para simular el estado legacy, `DELETE` devuelve 409 con el
+tipo de documento sellado en el mensaje).
+
+**Última corrida:** 2026-08-30 — `68 passed, 1 warning in 9.94s`.

@@ -121,6 +121,37 @@ def test_delete_project_happy_path_removes_everything(drp_with_pin):
     assert gone.status_code == 404
 
 
+def test_lifecycle_self_heals_legacy_project_without_projects_row(drp_with_pin, cliente):
+    """Reproduce el bug real de QA 2026-08-30: un proyecto cargado ANTES de que
+    existiera rf_projects (fase 5) no tenía fila propia, y close/delete devolvían
+    404 en vez de evaluar el bloqueo por sellado."""
+    from app.db import get_db
+
+    _seal_document(drp_with_pin, cliente)  # sella HLRA en proj-1
+    get_db().execute("DELETE FROM rf_projects WHERE id='proj-1'")  # simula el estado legacy
+    get_db().commit()
+
+    # El bloqueo por sellado debe evaluarse igual (409, no 404) aunque no haya fila.
+    r = drp_with_pin.delete("/projects/proj-1")
+    assert r.status_code == 409
+    assert "HLRA" in r.text
+
+    # Y la fila queda creada (self-healing) para las próximas veces.
+    healed = drp_with_pin.get("/projects?include_archived=true").json()["projects"]
+    assert any(p["id"] == "proj-1" and p["status"] == "active" for p in healed)
+
+
+def test_close_self_heals_legacy_project(drp_with_pin):
+    from app.db import get_db
+
+    drp_with_pin.put("/projects/proj-legacy/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    get_db().execute("DELETE FROM rf_projects WHERE id='proj-legacy'")
+    get_db().commit()
+
+    r = drp_with_pin.patch("/projects/proj-legacy/close")
+    assert r.status_code == 200
+
+
 def test_delete_project_requires_drp(cliente):
     cli, _uid = cliente
     r = cli.delete("/projects/proj-1")

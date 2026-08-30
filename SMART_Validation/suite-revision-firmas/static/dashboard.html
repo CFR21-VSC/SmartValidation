@@ -144,7 +144,7 @@ document.getElementById('sys-backdrop').addEventListener('click', (e) => {
 
 const includeArchivedLabel = document.getElementById('include-archived-label');
 const includeArchivedToggle = document.getElementById('include-archived-toggle');
-includeArchivedToggle.addEventListener('change', loadProjects);
+includeArchivedToggle.addEventListener('change', renderProjectList);
 
 // ── Modal genérica de confirmación (para acciones destructivas/irreversibles) ──
 let _confirmAction = null;
@@ -191,8 +191,12 @@ async function init() {
 }
 
 async function loadProjects() {
-    const q = includeArchivedToggle.checked ? '?include_archived=true' : '';
-    const { status, data } = await apiFetch('/projects' + q);
+    // Siempre se trae la lista completa (incluidos archivados) — el checkbox "Mostrar
+    // archivados" filtra solo en el render de la sidebar. Si el filtro fuera del lado del
+    // servidor, un proyecto recién archivado desaparecía de `projects` antes de poder leer
+    // su nuevo estado, y el panel de detalle quedaba mostrando el estado viejo (bug real de
+    // QA 2026-08-30).
+    const { status, data } = await apiFetch('/projects?include_archived=true');
     if (status === 200 && data.ok) {
         projects = data.projects || [];
     } else {
@@ -207,12 +211,13 @@ function currentProjectStatus() {
 }
 
 function renderProjectList() {
-    if (projects.length === 0) {
+    const visible = includeArchivedToggle.checked ? projects : projects.filter(p => p.status !== 'archived');
+    if (visible.length === 0) {
         projectListEl.innerHTML = '<div class="rf-empty" style="padding:20px 4px;">No hay proyectos.</div>';
         return;
     }
     const statusLabel = { active: '', closed: ' · cerrado', archived: ' · archivado' };
-    projectListEl.innerHTML = projects.map(p => `
+    projectListEl.innerHTML = visible.map(p => `
         <div class="rf-project-item" data-project="${escHtml(p.id)}"
              style="padding:10px 12px; border-radius:6px; cursor:pointer; margin-bottom:4px;
                     ${p.id === selectedProject ? 'background:rgba(200,146,26,.15); color:var(--gold);' : 'color:var(--text);'}">
@@ -387,7 +392,7 @@ function renderDocumentsTable() {
         if (session.role === 'drp') {
             actions += ` <a href="approval.html?project=${encodeURIComponent(selectedProject)}&doc=${encodeURIComponent(doc.doc_type)}" class="rf-btn-secondary" style="text-decoration:none; display:inline-block;">Aprobación</a>`;
             actions += ` <button class="rf-btn-secondary pb-open-btn" data-doctype="${escHtml(doc.doc_type)}">People Book</button>`;
-            if (!sealed) {
+            if (!sealed && currentProjectStatus() === 'active') {
                 actions += ` <button class="rf-btn-danger delete-doc-btn" data-doctype="${escHtml(doc.doc_type)}">Eliminar</button>`;
             }
         }
