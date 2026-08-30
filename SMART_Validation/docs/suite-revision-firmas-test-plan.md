@@ -302,3 +302,33 @@ tipo de documento sellado en el mensaje).
      dejar constancia de que el backend siempre lo rechazó — el bug era 100% de UI.
 
 **Última corrida:** 2026-08-30 — `74 passed, 1 warning in 11.26s`.
+
+**Feedback directo del usuario (2026-08-30), ronda 3 — consistencia de la tabla de firmas del
+documento (no la del panel de la app, la que trae cada documento como parte de su propio
+template, al final):**
+
+Cada documento (HLRA, VP, etc.) trae de fábrica una sección `tabla-firmas-final` en su propio
+JSON — es la que ya usa el Libro compilado para armar el "Registro Maestro de Firmas". El
+problema: "Ver PDF" de un documento suelto (en `review.html` y en la vista previa de
+`approval.html`) renderizaba el JSON fuente crudo, así que esa misma tabla salía vacía o con lo
+que trajera el JSON original — inconsistente con lo que después muestra el Libro.
+
+**Implementado:**
+- `GET /projects/{p}/documents/{d}/signed-render` (nuevo, cualquiera con acceso al documento) —
+  devuelve el JSON del documento con `tabla-firmas-final` rellena con las firmas reales
+  (revisión + aprobación), inyectada al vuelo, sin persistirla.
+- `include_pending=true` — resuelve un detalle fino que señaló el usuario: la firma que sella
+  (la última, la de DRP) todavía no está grabada en el momento de generar el PDF que se va a
+  adjuntar al sellado. Si el usuario logueado es firmante de una ronda abierta y no firmó
+  todavía, se agrega igual con la fecha de hoy — así el documento que queda hasheado para
+  siempre en el sellado muestra el circuito completo, no le falta la firma que lo cierra.
+- `review.html` ("Ver PDF") y `approval.html` (vista previa usada para "Usar este PDF para
+  sellar") ahora usan este endpoint en vez del JSON fuente crudo.
+- Lógica de recolección de firmas extraída de `book.py` a funciones reusables
+  (`collect_signatures`, `inject_signatures_section`) — una sola fuente de verdad para el Libro
+  y para el render de un documento suelto.
+
+Verificado con servidor real: antes de firmar, `firmas: []`; después de la firma de revisión del
+cliente, aparece con rol/nombre/iniciales/fecha correctos, sin tocar el JSON fuente guardado.
+
+**Última corrida:** 2026-08-30 — `80 passed, 1 warning in 12.06s`.

@@ -23,18 +23,21 @@ from ..deps import require_drp
 router = APIRouter(prefix="/projects/{project_id}", tags=["book"])
 
 
-def _iniciales(display_name: str) -> str:
+def iniciales(display_name: str) -> str:
     words = [w for w in (display_name or "").split() if w]
     return "".join(w[0].upper() for w in words[:3]) or "—"
 
 
-def _fecha(epoch: float | None) -> str:
+def fecha(epoch: float | None) -> str:
     if not epoch:
         return ""
     return time.strftime("%d/%m/%Y", time.localtime(epoch))
 
 
-def _collect_signatures(db, document_id: str) -> list[dict]:
+def collect_signatures(db, document_id: str) -> list[dict]:
+    """Firmas YA registradas (revisión + aprobación) para un documento. Reusado por el
+    paquete del libro y por el render de un documento suelto (Ver PDF) — ambos necesitan
+    la misma sección tabla-firmas-final, con la misma forma exacta."""
     firmas = []
     rows = db.execute(
         "SELECT rs.role_label, rs.signed_at, u.display_name, u.username "
@@ -46,7 +49,7 @@ def _collect_signatures(db, document_id: str) -> list[dict]:
         nombre = r["display_name"] or r["username"]
         firmas.append({
             "rol": r["role_label"] or "Revisor", "nombre": nombre,
-            "iniciales": _iniciales(nombre), "fecha": _fecha(r["signed_at"]),
+            "iniciales": iniciales(nombre), "fecha": fecha(r["signed_at"]),
         })
 
     rows = db.execute(
@@ -61,9 +64,21 @@ def _collect_signatures(db, document_id: str) -> list[dict]:
         nombre = r["display_name"] or r["username"]
         firmas.append({
             "rol": r["role_label"] or "Aprobador", "nombre": nombre,
-            "iniciales": _iniciales(nombre), "fecha": _fecha(r["signed_at"]),
+            "iniciales": iniciales(nombre), "fecha": fecha(r["signed_at"]),
         })
     return firmas
+
+
+def inject_signatures_section(data: dict, firmas: list[dict]) -> dict:
+    """Inserta/reemplaza la sección tabla-firmas-final con `firmas`. Muta y devuelve `data`."""
+    secciones = data.get("secciones") if isinstance(data.get("secciones"), list) else []
+    existing = next((s for s in secciones if isinstance(s, dict) and s.get("tipo") == "tabla-firmas-final"), None)
+    if existing is not None:
+        existing["firmas"] = firmas
+    else:
+        secciones.append({"tipo": "tabla-firmas-final", "titulo": "Firmas", "firmas": firmas})
+    data["secciones"] = secciones
+    return data
 
 
 @router.get("/book-package")
@@ -84,14 +99,8 @@ def get_book_package(project_id: str, user: dict = Depends(require_drp)):
     package = []
     for doc in docs:
         data = json.loads(doc["json_data"])
-        firmas = _collect_signatures(db, doc["id"])
-        secciones = data.get("secciones") if isinstance(data.get("secciones"), list) else []
-        existing = next((s for s in secciones if isinstance(s, dict) and s.get("tipo") == "tabla-firmas-final"), None)
-        if existing is not None:
-            existing["firmas"] = firmas
-        else:
-            secciones.append({"tipo": "tabla-firmas-final", "titulo": "Firmas", "firmas": firmas})
-        data["secciones"] = secciones
+        firmas = collect_signatures(db, doc["id"])
+        data = inject_signatures_section(data, firmas)
         package.append({"type": doc["doc_type"], "data": data})
 
     return {"ok": True, "documents": package, "skipped_not_sealed": skipped}

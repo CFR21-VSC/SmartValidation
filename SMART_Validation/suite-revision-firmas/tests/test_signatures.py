@@ -244,3 +244,83 @@ def test_cannot_open_second_approval_round_while_one_is_open(drp_with_pin, clien
     drp_with_pin.post("/projects/proj-1/documents/HLRA/approval-round", json=body)
     r = drp_with_pin.post("/projects/proj-1/documents/HLRA/approval-round", json=body)
     assert r.status_code == 409
+
+
+# ─── Ver PDF con firmas reales inyectadas (no solo en el Libro) ────────────
+
+def test_signed_render_shows_no_signatures_before_anyone_signs(drp_with_pin):
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    r = drp_with_pin.get("/projects/proj-1/documents/HLRA/signed-render")
+    assert r.status_code == 200
+    tff = next(s for s in r.json()["data"]["secciones"] if s.get("tipo") == "tabla-firmas-final")
+    assert tff["firmas"] == []
+
+
+def test_signed_render_shows_review_signature_immediately(drp_with_pin, cliente):
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente
+    drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+    cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "1234", "role_label": "Revisor"})
+
+    r = cli.get("/projects/proj-1/documents/HLRA/signed-render")
+    tff = next(s for s in r.json()["data"]["secciones"] if s.get("tipo") == "tabla-firmas-final")
+    assert len(tff["firmas"]) == 1
+    assert tff["firmas"][0]["rol"] == "Revisor"
+
+
+def test_signed_render_does_not_persist_injection_into_source(drp_with_pin, cliente):
+    """La inyección es al vuelo — el JSON fuente guardado (panel izquierdo) no se toca."""
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente
+    drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+    cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "1234"})
+    drp_with_pin.get("/projects/proj-1/documents/HLRA/signed-render")
+
+    doc = drp_with_pin.get("/projects/proj-1/documents/HLRA").json()["document"]
+    assert doc["json_data"] == SAMPLE_JSON
+
+
+def test_signed_render_include_pending_adds_own_unsigned_signature(drp_with_pin, cliente):
+    """La firma que sella (la última) todavía no está grabada en el momento de generar el
+    PDF que se va a adjuntar — include_pending la suma igual, con la fecha de hoy, para que
+    el documento hasheado para siempre muestre el circuito completo."""
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente
+    drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+    drp_id = _superadmin_id(drp_with_pin)
+    drp_with_pin.post(
+        "/projects/proj-1/documents/HLRA/approval-round",
+        json={"signers": [
+            {"user_id": user_id, "role_label": "Revisor", "sign_order": 1},
+            {"user_id": drp_id, "role_label": "Aprobador CEO", "sign_order": 2},
+        ]},
+    )
+    cli.post(
+        "/projects/proj-1/documents/HLRA/approval-round/sign",
+        json={"pin": "1234", "justification_text": "ok"},
+    )
+
+    without_pending = drp_with_pin.get("/projects/proj-1/documents/HLRA/signed-render")
+    tff = next(s for s in without_pending.json()["data"]["secciones"] if s.get("tipo") == "tabla-firmas-final")
+    assert len(tff["firmas"]) == 1  # solo la del cliente, DRP todavía no firmó
+
+    with_pending = drp_with_pin.get("/projects/proj-1/documents/HLRA/signed-render?include_pending=true")
+    tff2 = next(s for s in with_pending.json()["data"]["secciones"] if s.get("tipo") == "tabla-firmas-final")
+    assert len(tff2["firmas"]) == 2
+    assert tff2["firmas"][1]["rol"] == "Aprobador CEO"
+    assert tff2["firmas"][1]["fecha"]  # tiene fecha de hoy aunque no esté grabada todavía
+
+
+def test_signed_render_include_pending_noop_if_not_a_pending_signer(drp_with_pin):
+    """DRP pide include_pending pero no es firmante de ninguna ronda abierta — no debe agregar
+    nada ni romper."""
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    r = drp_with_pin.get("/projects/proj-1/documents/HLRA/signed-render?include_pending=true")
+    tff = next(s for s in r.json()["data"]["secciones"] if s.get("tipo") == "tabla-firmas-final")
+    assert tff["firmas"] == []
+
+
+def test_signed_render_requires_document_access(cliente):
+    cli, _uid = cliente
+    r = cli.get("/projects/proj-1/documents/HLRA/signed-render")
+    assert r.status_code == 403

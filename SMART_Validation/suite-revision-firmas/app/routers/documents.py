@@ -17,6 +17,7 @@ from pydantic import BaseModel
 from ..audit import log_event, log_system_event
 from ..db import get_db
 from ..deps import check_document_access, ensure_project_active, get_current_user, require_drp
+from .book import collect_signatures, fecha as _fmt_fecha, iniciales as _fmt_iniciales, inject_signatures_section
 from .projects import ensure_project
 
 router = APIRouter(prefix="/projects/{project_id}/documents", tags=["documents"])
@@ -121,6 +122,42 @@ def get_document(project_id: str, doc_type: str, user: dict = Depends(get_curren
     ).fetchall()
     doc["json_data"] = json.loads(doc["json_data"])
     return {"ok": True, "document": doc, "corrections": [dict(c) for c in corrections]}
+
+
+@router.get("/{doc_type}/signed-render")
+def get_signed_render(
+    project_id: str, doc_type: str, include_pending: bool = False, user: dict = Depends(get_current_user),
+):
+    """JSON del documento con la sección tabla-firmas-final rellena con las firmas reales
+    (revisión + aprobación) — para que "Ver PDF" de un documento suelto muestre lo mismo que
+    va a mostrar el Libro compilado, en vez de una tabla vacía o desactualizada.
+
+    `include_pending=true` (usado al generar el PDF que se va a adjuntar en la firma que
+    sella) suma también la propia firma del usuario logueado si es firmante de una ronda de
+    aprobación abierta y todavía no firmó — esa firma se va a grabar un instante después, en
+    la misma acción de sellar, así que el documento hasheado para siempre tiene que mostrarla."""
+    check_document_access(user, project_id, doc_type)
+    db = get_db()
+    doc = _get_document_or_404(db, project_id, doc_type)
+    data = json.loads(doc["json_data"])
+    firmas = collect_signatures(db, doc["id"])
+
+    if include_pending:
+        pending = db.execute(
+            "SELECT sig.role_label FROM rf_approval_signers sig "
+            "JOIN rf_approval_rounds rnd ON rnd.id = sig.round_id "
+            "WHERE rnd.document_id=? AND rnd.status='open' AND sig.user_id=? AND sig.signed_at IS NULL",
+            (doc["id"], user["uid"]),
+        ).fetchone()
+        if pending:
+            nombre = user["d"] or user["u"]
+            firmas.append({
+                "rol": pending["role_label"] or "Aprobador", "nombre": nombre,
+                "iniciales": _fmt_iniciales(nombre), "fecha": _fmt_fecha(time.time()),
+            })
+
+    data = inject_signatures_section(data, firmas)
+    return {"ok": True, "data": data}
 
 
 @router.put("/{doc_type}/sections/{section_key}")

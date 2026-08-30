@@ -820,8 +820,15 @@ async function ensurePdfLibsLoaded() {
     return pdfLibsLoading;
 }
 
-function buildMergedJsonForPreview() {
-    const merged = JSON.parse(JSON.stringify(documentRow.json_data));
+async function buildMergedJsonForPreview() {
+    // Se parte del render con firmas reales inyectadas (no del JSON fuente crudo), para que
+    // la vista previa muestre la misma tabla de firmas que después va a mostrar el Libro
+    // compilado — no una tabla vacía o desactualizada.
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}/signed-render`
+    );
+    const base = (status === 200 && data.ok) ? data.data : documentRow.json_data;
+    const merged = JSON.parse(JSON.stringify(base));
     const arr = getSectionsArray(merged);
     if (arr) {
         sections.forEach(sec => {
@@ -848,7 +855,7 @@ async function openPdfModal() {
 
     try {
         await ensurePdfLibsLoaded();
-        const merged = buildMergedJsonForPreview();
+        const merged = await buildMergedJsonForPreview();
 
         if (!window.ValidationSuite || !window.ValidationSuite.renderers || !window.ValidationSuite.renderers[merged.type]) {
             throw new Error('sin renderer');

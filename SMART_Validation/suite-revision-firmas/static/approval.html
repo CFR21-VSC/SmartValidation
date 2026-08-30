@@ -423,13 +423,17 @@ async function onGeneratePreview() {
     area.innerHTML = '<div class="rf-empty">Generando vista previa…</div>';
     try {
         await ensureValidationSuiteLoaded();
+        // include_pending=true: esta vista previa es la que se usa para "Usar este PDF para
+        // sellar" — el documento que queda hasheado para siempre tiene que mostrar también la
+        // propia firma de quien está por sellar, aunque todavía no esté grabada (se graba un
+        // instante después, en la misma acción).
         const { status, data } = await apiFetch(
-            `/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(docType)}`
+            `/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(docType)}/signed-render?include_pending=true`
         );
         if (status !== 200 || !data.ok) {
             throw new Error(data.error || 'No se pudo obtener el documento fuente.');
         }
-        const jsonData = data.document.json_data;
+        const jsonData = data.data;
         const blob = await window.ValidationSuite.renderDocument(jsonData, { download: false });
         currentPdfBlob = blob;
         if (currentPdfUrl) URL.revokeObjectURL(currentPdfUrl);
