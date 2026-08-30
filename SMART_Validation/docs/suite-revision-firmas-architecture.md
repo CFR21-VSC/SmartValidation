@@ -24,6 +24,19 @@ Es la cara del sistema que ve el cliente.
   Revisión y Firmas los consume. Nada de lo que pasa en Revisión y Firmas (comentarios,
   aprobaciones) modifica el documento vivo en Validación.
 
+### Traspaso manual del documento (operativo)
+
+No hay integración entre las dos suites — el traspaso es copiar/pegar JSON a mano:
+1. En la Suite de Validación, abrir el documento → toggle **"Técnico"** → copiar el JSON crudo
+   completo del textarea.
+2. En la Suite de Revisión y Firmas, Dashboard → "+ Cargar documento" → mismo `project_id` que
+   usa la otra suite para ese proyecto (para no perder la referencia) → `doc_type` debe coincidir
+   con el `"type"` que trae el JSON (si no, "Ver PDF" no encuentra el renderer) → pegar el JSON →
+   Guardar.
+- No existe un "crear proyecto" separado: un proyecto es simplemente el `project_id` que aparece
+  la primera vez que se carga un documento bajo ese código — texto libre, sin entidad propia.
+- Recargar el mismo `project_id` + `doc_type` pisa la versión anterior (mientras no esté sellado).
+
 ### Limpieza previa (confirmado 2026-08-29)
 
 Se construye de cero en serio: se elimina todo lo que quedó del primer intento de `/firmas/`
@@ -103,6 +116,15 @@ exclusivo del rol autor/admin de la Suite Documental (no del revisor/firmante):
 
 **Resuelto 2026-08-29: no se reemplazan por nada.** La idea es que el lado del revisor sea
 sencillo — esas herramientas de autoría simplemente no existen en esta vista.
+
+**Regla dura (confirmado 2026-08-29): el modo "Técnico" (JSON crudo, llaves y corchetes) NUNCA
+se muestra en la Suite de Revisión y Firmas — para nadie, ni DRP ni cliente.** Es exclusivo de la
+Suite de Validación interna. Bug real encontrado y corregido: `review.html` tenía un fallback que
+mostraba `JSON.stringify` crudo cuando un documento no tenía la estructura de secciones esperada
+— visible para cualquiera con acceso al documento. Se reemplazó por un renderer genérico
+(tabla/lista legible) que nunca emite sintaxis JSON. El textarea de "Cargar" (DRP-only, para
+pegar/editar el JSON antes de subirlo) es la única excepción — es una herramienta de edición, no
+una vista pasiva, y ya está restringida a DRP.
 
 ### Esquema de carga y edición (confirmado 2026-08-29)
 

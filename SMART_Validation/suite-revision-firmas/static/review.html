@@ -305,6 +305,30 @@ function deriveSections(jsonData) {
     }));
 }
 
+// Nunca renderizamos JSON crudo (llaves/corchetes) en esta suite — el modo "Técnico" es
+// exclusivo de la Suite de Validación interna. Cualquier estructura no reconocida se
+// muestra como tabla/lista legible en su lugar.
+function renderPlainObject(obj) {
+    if (obj === null || obj === undefined || obj === '') return '<div class="rf-empty">Sin contenido.</div>';
+    if (typeof obj !== 'object') return escHtml(String(obj));
+    if (Array.isArray(obj)) {
+        if (!obj.length) return '<div class="rf-empty">Sin contenido.</div>';
+        return '<ul>' + obj.map(item =>
+            `<li>${(item && typeof item === 'object') ? renderPlainObject(item) : escHtml(String(item))}</li>`
+        ).join('') + '</ul>';
+    }
+    const keys = Object.keys(obj);
+    if (!keys.length) return '<div class="rf-empty">Sin contenido.</div>';
+    let html = '<table class="rf-table"><tbody>';
+    keys.forEach(k => {
+        const v = obj[k];
+        const cell = (v && typeof v === 'object') ? renderPlainObject(v) : escHtml(String(v ?? ''));
+        html += `<tr><th style="width:180px;">${escHtml(k)}</th><td>${cell}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    return html;
+}
+
 function getSectionContentText(sectionObj) {
     if (!sectionObj || typeof sectionObj !== 'object') return '';
     const val = sectionObj.contenido ?? sectionObj.content ?? sectionObj.texto;
@@ -423,12 +447,12 @@ function renderSource() {
             const content = getSectionContentText(raw);
             html += `<div class="rv-section" id="${escHtml(sec.key)}">
                 <h3>${escHtml(sec.label)}</h3>
-                <div class="rv-section-content">${content ? escHtml(content) : `<pre>${escHtml(JSON.stringify(raw, null, 2))}</pre>`}</div>
+                <div class="rv-section-content">${content ? escHtml(content) : renderPlainObject(raw)}</div>
             </div>`;
         });
     } else {
         html += `<div class="rv-section" id="sec-0">
-            <pre>${escHtml(JSON.stringify(jsonData, null, 2))}</pre>
+            ${renderPlainObject(jsonData)}
         </div>`;
     }
 

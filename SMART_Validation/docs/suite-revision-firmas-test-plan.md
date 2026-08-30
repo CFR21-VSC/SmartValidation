@@ -151,6 +151,12 @@ habría recibido un JSON en blanco en vez del formulario de activación. Corregi
 `app/routers/users.py`; los tests que parseaban la forma vieja de la URL (`rsplit("/",1)`) se
 actualizaron para leer el query param `token`.
 
+**Bug de exposición encontrado post-verificación (2026-08-29):** `review.html` mostraba JSON
+crudo (`<pre>JSON.stringify(...)</pre>`) en el panel de documento fuente cuando la estructura no
+tenía `secciones`/`sections` — visible para cualquiera con acceso, incluido cliente. El modo
+"Técnico" es exclusivo de la Suite de Validación por regla de diseño (sección 4). Corregido:
+reemplazado por un renderer genérico (tabla/lista) que nunca emite sintaxis JSON.
+
 **Pendiente (no cubierto en esta fase):**
 - Tests de UI automatizados (Playwright u otro) que efectivamente carguen las páginas en un
   navegador y validen el DOM/flujos de click — la verificación de esta fase fue: sintaxis JS +
