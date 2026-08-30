@@ -139,6 +139,23 @@ vendorizado (regla de "hereda tal cual"), así que se agregó un segundo mount d
 mismo path absoluto (además del `/app` donde vive el resto de la suite) y se vendorizó el archivo
 del logo.
 
+**Botón "Atrás" del navegador saca de la app (corregido 2026-08-30):** ambos launchers locales
+(`DEV.bat` de esta suite e `INICIAR.bat` de la Suite de Validación) abren Chrome en modo `--app=`
+con un perfil dedicado recién creado. Sin más historial detrás, "Atrás" cae en la página "Nueva
+pestaña" de Chrome (buscador de Google visible) — parece que el sistema expulsó al usuario, pero
+en realidad se quedó sin historial. Mitigado con un trap estándar de History API
+(`trapBackNavigation()` en `api.js`, activado en `requireSession()` — todas las páginas
+autenticadas): en vez de dejar avanzar el "Atrás" fuera de la app, se re-apila la URL actual. No
+se aplicó a `login.html`/`invite.html` (ahí "Atrás" hacia afuera de la app es comportamiento
+esperable). **Pendiente:** aplicar el mismo patrón en la Suite de Validación si el usuario lo pide
+— es otro codebase, no se tocó en esta pasada.
+
+**Ancho de columna "Fecha" en Control de Cambios (corregido 2026-08-30):** en `template-base.js`
+(motor compartido — se corrigió en el archivo ORIGINAL de la Suite de Validación y se re-copió a
+la copia vendorizada acá, para no desincronizar ambas), la columna Fecha tenía 68pt, insuficiente
+para `dd/mm/aaaa` — el último dígito partía a la línea siguiente. Ajustado a 78pt, descontando 10pt
+de Descripción (205→195) para mantener el ancho total de la tabla.
+
 **Cargar documento = elegir archivo, no pegar texto (confirmado 2026-08-29):** ni el DRP debe ver
 ni tipear JSON crudo. El "Cargar" (en `dashboard.html` y en `review.html`) es un selector de
 archivo (`<input type="file" accept=".json">`), mismo patrón que `vsImportFileInput` en la Suite

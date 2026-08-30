@@ -400,7 +400,9 @@
             });
         }
         content.push({
-            table: { widths: vsScaleWidths([68, 68, 114, 205]), body: cambiosBody, dontBreakRows: true, headerRows: 1 },
+            // Fecha (dd/mm/aaaa, 10 caracteres) partía el último dígito a la línea de abajo
+            // con 68pt — se le suman esos puntos a costa de Descripción, que tiene sobra.
+            table: { widths: vsScaleWidths([68, 78, 114, 195]), body: cambiosBody, dontBreakRows: true, headerRows: 1 },
             layout: vsTableLayout(),
             margin: [0, 0, 0, 0],
             pageBreak: 'after'

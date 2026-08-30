@@ -33,6 +33,24 @@ async function apiFetch(path, opts = {}) {
 }
 
 /**
+ * Evita que el botón/gesto "Atrás" del navegador saque al usuario de la app
+ * a mitad de un trámite (p. ej. quedar en la pestaña "Nueva pestaña" con el
+ * buscador de Google, típico cuando la app corre en modo --app= de Chrome con
+ * un perfil dedicado sin más historial detrás). No bloquea el gesto: cuando
+ * el navegador dispara popstate, se vuelve a apilar la URL actual, así que
+ * "Atrás" no tiene efecto visible en vez de sacar a la persona del sistema.
+ * Cada página con sesión ya tiene sus propios botones de navegación
+ * ("Volver al dashboard", "Cerrar sesión"), así que no se pierde ninguna
+ * forma real de moverse por la app.
+ */
+function trapBackNavigation() {
+    history.pushState(null, '', location.href);
+    window.addEventListener('popstate', () => {
+        history.pushState(null, '', location.href);
+    });
+}
+
+/**
  * Redirige a login si la sesión no es válida, o a pin-setup.html si el usuario
  * todavía no configuró su PIN de firma (requisito del primer login, sección 3
  * Capa 2). Pasar {allowNoPin:true} en páginas que no lo necesitan (p. ej. la
@@ -40,6 +58,7 @@ async function apiFetch(path, opts = {}) {
  * Devuelve la sesión ({ok, display_name, role, is_superadmin, pin_set}) si pasa.
  */
 async function requireSession(opts = {}) {
+    trapBackNavigation();
     const { status, data } = await apiFetch('/auth/session');
     if (status !== 200) {
         window.location.href = '/app/login.html';
