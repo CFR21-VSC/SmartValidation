@@ -89,6 +89,21 @@
 
     .rv-meta-table { margin-bottom: 20px; }
 
+    .rv-doc-table { font-size: 12px; margin: 4px 0 6px; }
+    .rv-doc-table th, .rv-doc-table td { padding: 6px 10px; }
+
+    .rv-inex-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        margin: 10px 0 4px;
+    }
+    .rv-inex-in { color: var(--success); }
+    .rv-inex-out { color: var(--danger); }
+    .rv-section-content ul { margin: 0 0 8px; padding-left: 20px; }
+    .rv-section-content li { margin-bottom: 4px; }
+
     .rv-corr-item {
         margin-bottom: 18px;
         padding-bottom: 16px;
@@ -331,13 +346,75 @@ function renderPlainObject(obj) {
     return html;
 }
 
+// Reconoce los patrones de sección más comunes en los documentos reales (mismos nombres de
+// campo que usan los templates de la Suite de Validación: tabla, tabla-info,
+// lista-incluido-excluido) y arma HTML legible. Devuelve null si no reconoce el patrón —
+// el llamador cae entonces a renderPlainObject como último recurso.
+function renderKnownSectionBody(sec) {
+    if (!sec || typeof sec !== 'object') return null;
+
+    if (Array.isArray(sec.columnas) && Array.isArray(sec.filas)) {
+        const cols = sec.columnas;
+        let html = '<table class="rf-table rv-doc-table"><thead><tr>' +
+            cols.map(c => `<th>${escHtml(c)}</th>`).join('') + '</tr></thead><tbody>';
+        sec.filas.forEach(fila => {
+            const cells = Array.isArray(fila) ? fila : cols.map(c => fila?.[c]);
+            html += '<tr>' + cells.map(c => {
+                const v = (c && typeof c === 'object') ? (c.text ?? '') : c;
+                return `<td>${escHtml(v ?? '—')}</td>`;
+            }).join('') + '</tr>';
+        });
+        return html + '</tbody></table>';
+    }
+
+    if (Array.isArray(sec.filas) && sec.filas.every(f => f && typeof f === 'object' && !Array.isArray(f))) {
+        let html = '<table class="rf-table rv-doc-table"><tbody>';
+        sec.filas.forEach(f => {
+            html += `<tr><th style="width:200px;">${escHtml(f.campo ?? f.label ?? '')}</th><td>${escHtml(f.valor ?? f.value ?? '')}</td></tr>`;
+        });
+        return html + '</tbody></table>';
+    }
+
+    if (Array.isArray(sec.incluido) || Array.isArray(sec.excluido)) {
+        let html = '';
+        if (Array.isArray(sec.incluido)) {
+            html += `<div class="rv-inex-label rv-inex-in">${escHtml(sec.subIncluido || 'Incluido')}</div>`;
+            html += '<ul>' + sec.incluido.map(t => `<li>${escHtml(t)}</li>`).join('') + '</ul>';
+        }
+        if (Array.isArray(sec.excluido)) {
+            html += `<div class="rv-inex-label rv-inex-out">${escHtml(sec.subExcluido || 'Excluido')}</div>`;
+            html += '<ul>' + sec.excluido.map(t => `<li>${escHtml(t)}</li>`).join('') + '</ul>';
+        }
+        return html;
+    }
+
+    return null;
+}
+
 function getSectionContentText(sectionObj) {
     if (!sectionObj || typeof sectionObj !== 'object') return '';
+
+    // Patrón "bloques" (texto/subtítulo/bullets) — el más común en los documentos reales
+    // (mismo esquema que usan los templates de la Suite de Validación, p. ej. hlra.js).
+    if (Array.isArray(sectionObj.bloques)) {
+        const parts = [];
+        sectionObj.bloques.forEach(b => {
+            if (!b || typeof b !== 'object') return;
+            if (b.subtitulo) parts.push(String(b.subtitulo).toUpperCase());
+            if (b.texto) parts.push(String(b.texto));
+            if (Array.isArray(b.bullets)) {
+                b.bullets.forEach(item => parts.push('•  ' + String(item)));
+            }
+        });
+        if (parts.length) return parts.join('\n\n');
+    }
+
     const val = sectionObj.contenido ?? sectionObj.content ?? sectionObj.texto;
-    if (val === undefined) return '';
-    // Nunca devolvemos JSON crudo acá — si el valor no es texto plano, el llamador
+    if (typeof val === 'string') return val;
+
+    // Nunca devolvemos JSON crudo acá — si nada de lo anterior aplica, el llamador
     // (renderSource) cae al renderer genérico renderPlainObject sobre la sección completa.
-    return typeof val === 'string' ? val : '';
+    return '';
 }
 
 function applyCorrectionToSection(sectionObj, correctionContent) {
@@ -452,9 +529,11 @@ function renderSource() {
         sections.forEach((sec, i) => {
             const raw = arr[i];
             const content = getSectionContentText(raw);
+            const known = content ? null : renderKnownSectionBody(raw);
+            const body = content ? escHtml(content) : (known !== null ? known : renderPlainObject(raw));
             html += `<div class="rv-section" id="${escHtml(sec.key)}">
                 <h3>${escHtml(sec.label)}</h3>
-                <div class="rv-section-content">${content ? escHtml(content) : renderPlainObject(raw)}</div>
+                <div class="rv-section-content">${body}</div>
             </div>`;
         });
     } else {
