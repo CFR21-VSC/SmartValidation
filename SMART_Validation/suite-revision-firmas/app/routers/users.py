@@ -75,7 +75,7 @@ def list_users(user: dict = Depends(require_drp)):
 @router.post("/{user_id}/grants")
 def grant_document_access(user_id: str, body: GrantBody, user: dict = Depends(require_drp)):
     db = get_db()
-    target = db.execute("SELECT id FROM rf_users WHERE id=?", (user_id,)).fetchone()
+    target = db.execute("SELECT display_name, email FROM rf_users WHERE id=?", (user_id,)).fetchone()
     if not target:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
 
@@ -86,8 +86,10 @@ def grant_document_access(user_id: str, body: GrantBody, user: dict = Depends(re
         (user_id, body.project_id, body.doc_type, user["u"], now),
     )
     db.commit()
+    target_label = target["display_name"] or target["email"]
     log_system_event(
-        user, "grant_created", f"{user['u']} otorgó acceso a usuario {user_id} sobre {body.doc_type}",
+        user, "grant_created",
+        f"{user['u']} otorgó a {target_label} acceso a {body.project_id}/{body.doc_type}",
         project_id=body.project_id, doc_type=body.doc_type,
     )
     return {"ok": True}
@@ -108,7 +110,8 @@ def list_grants(user_id: str, user: dict = Depends(require_drp)):
 def revoke_grant(user_id: str, grant_id: int, user: dict = Depends(require_drp)):
     db = get_db()
     grant = db.execute(
-        "SELECT project_id, doc_type FROM rf_document_access_grants WHERE id=? AND user_id=?",
+        "SELECT g.project_id, g.doc_type, u.display_name, u.email FROM rf_document_access_grants g "
+        "JOIN rf_users u ON u.id = g.user_id WHERE g.id=? AND g.user_id=?",
         (grant_id, user_id),
     ).fetchone()
     db.execute(
@@ -117,8 +120,10 @@ def revoke_grant(user_id: str, grant_id: int, user: dict = Depends(require_drp))
     )
     db.commit()
     if grant:
+        target_label = grant["display_name"] or grant["email"]
         log_system_event(
-            user, "grant_revoked", f"{user['u']} revocó acceso de usuario {user_id} sobre {grant['doc_type']}",
+            user, "grant_revoked",
+            f"{user['u']} revocó a {target_label} el acceso a {grant['project_id']}/{grant['doc_type']}",
             project_id=grant["project_id"], doc_type=grant["doc_type"],
         )
     return {"ok": True}

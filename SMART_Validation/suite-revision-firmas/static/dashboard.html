@@ -12,6 +12,7 @@
     <span class="rf-badge" id="user-badge">…</span>
     <div class="rf-spacer"></div>
     <button class="rf-btn-secondary" id="users-link" style="display:none;">Usuarios</button>
+    <button class="rf-btn-secondary" id="global-audit-link" style="display:none;">🛡 Auditoría del sistema</button>
     <button class="rf-btn-secondary" id="logout-btn">Cerrar sesión</button>
 </div>
 
@@ -69,7 +70,7 @@
         <div style="max-height:60vh; overflow-y:auto;">
             <table class="rf-table" id="sys-table">
                 <thead>
-                    <tr><th>Fecha</th><th>Usuario</th><th>Evento</th><th>Descripción</th></tr>
+                    <tr><th>Fecha</th><th>Usuario</th><th id="sys-col-project" style="display:none;">Proyecto</th><th>Evento</th><th>Descripción</th></tr>
                 </thead>
                 <tbody id="sys-tbody"></tbody>
             </table>
@@ -109,6 +110,7 @@ const userBadgeEl = document.getElementById('user-badge');
 
 document.getElementById('logout-btn').addEventListener('click', doLogout);
 usersLinkEl.addEventListener('click', () => { window.location.href = 'users.html'; });
+document.getElementById('global-audit-link').addEventListener('click', () => openSystemAudit(null));
 
 const newProjectBtn = document.getElementById('new-project-btn');
 const newProjectForm = document.getElementById('new-project-form');
@@ -183,6 +185,7 @@ async function init() {
     userBadgeEl.textContent = `${session.display_name} · ${session.role === 'drp' ? 'DRP' : 'Cliente'}`;
     if (session.role === 'drp') {
         usersLinkEl.style.display = '';
+        document.getElementById('global-audit-link').style.display = '';
         newProjectBtn.style.display = '';
         includeArchivedLabel.style.display = 'flex';
     }
@@ -347,7 +350,7 @@ function renderMain() {
         const book1Btn = document.getElementById('btn-book1');
         if (book1Btn) book1Btn.addEventListener('click', generateBook1);
         const sysAuditBtn = document.getElementById('btn-sys-audit');
-        if (sysAuditBtn) sysAuditBtn.addEventListener('click', openSystemAudit);
+        if (sysAuditBtn) sysAuditBtn.addEventListener('click', () => openSystemAudit(selectedProject));
     }
 }
 
@@ -536,13 +539,15 @@ async function confirmDeleteDocument(docType) {
     );
 }
 
-async function openSystemAudit() {
-    document.getElementById('sys-title').textContent = selectedProject;
+async function openSystemAudit(projectId) {
+    const isGlobal = !projectId;
+    document.getElementById('sys-title').textContent = isGlobal ? 'todos los proyectos' : projectId;
     document.getElementById('sys-tbody').innerHTML = '';
     document.getElementById('sys-empty').style.display = 'none';
     document.getElementById('sys-backdrop').style.display = 'flex';
 
-    const { status, data } = await apiFetch(`/projects/${encodeURIComponent(selectedProject)}/audit-log`);
+    const url = isGlobal ? '/audit-log' : `/projects/${encodeURIComponent(projectId)}/audit-log`;
+    const { status, data } = await apiFetch(url);
     if (status === 200 && data.ok) {
         const events = data.events || [];
         if (events.length === 0) {
@@ -552,6 +557,7 @@ async function openSystemAudit() {
                 <tr>
                     <td>${fmtDateTime(ev.created_at)}</td>
                     <td>${escHtml(ev.username)}</td>
+                    ${isGlobal ? `<td>${escHtml(ev.project_id || '—')}</td>` : ''}
                     <td>${escHtml(ev.event_type)}</td>
                     <td>${escHtml(ev.description)}</td>
                 </tr>
@@ -561,6 +567,7 @@ async function openSystemAudit() {
         document.getElementById('sys-empty').textContent = 'No se pudo cargar la auditoría.';
         document.getElementById('sys-empty').style.display = 'block';
     }
+    document.getElementById('sys-col-project').style.display = isGlobal ? '' : 'none';
 }
 
 // ---------------------------------------------------------------------------

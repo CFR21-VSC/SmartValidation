@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from . import config, security
 from .db import get_db, init_db
 from .routers import auth, book, documents, projects, signatures, users
+from .routers.projects import audit_router
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _STATIC_DIR = os.path.join(_HERE, "..", "static")
@@ -35,6 +36,7 @@ app.include_router(users.router)
 app.include_router(documents.router)
 app.include_router(signatures.router)
 app.include_router(projects.router)
+app.include_router(audit_router)
 app.include_router(book.router)
 
 app.mount("/app", StaticFiles(directory=_STATIC_DIR, html=True), name="app")

@@ -69,11 +69,15 @@
         <form id="add-grant-form" style="display:flex; gap:8px; align-items:flex-end; margin-bottom:18px;">
             <div class="rf-field" style="margin-bottom:0; flex:1;">
                 <label class="rf-label" for="grant-project">Proyecto</label>
-                <input class="rf-input" id="grant-project" placeholder="Ej: EMQC-001" required>
+                <select class="rf-select" id="grant-project" required>
+                    <option value="">Elegir…</option>
+                </select>
             </div>
             <div class="rf-field" style="margin-bottom:0; flex:1;">
-                <label class="rf-label" for="grant-doctype">Tipo de documento</label>
-                <input class="rf-input" id="grant-doctype" placeholder="Ej: URS" required>
+                <label class="rf-label" for="grant-doctype">Documento</label>
+                <select class="rf-select" id="grant-doctype" required disabled>
+                    <option value="">— elegí un proyecto primero —</option>
+                </select>
             </div>
             <button type="submit" class="rf-btn" style="white-space:nowrap;">Otorgar</button>
         </form>
@@ -206,8 +210,51 @@ async function openGrantsModal(userId, userName) {
     document.getElementById('add-grant-form').reset();
     document.getElementById('add-grant-error').classList.remove('visible');
     document.getElementById('grants-backdrop').style.display = 'flex';
+    await loadGrantProjectOptions();
     await loadGrants();
 }
+
+async function loadGrantProjectOptions() {
+    const projectSelect = document.getElementById('grant-project');
+    const docSelect = document.getElementById('grant-doctype');
+    projectSelect.innerHTML = '<option value="">Elegir…</option>';
+    docSelect.innerHTML = '<option value="">— elegí un proyecto primero —</option>';
+    docSelect.disabled = true;
+
+    const { status, data } = await apiFetch('/projects?include_archived=true');
+    if (status === 200 && data.ok) {
+        (data.projects || []).forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.status === 'active' ? p.id : `${p.id} (${p.status})`;
+            projectSelect.appendChild(opt);
+        });
+    }
+}
+
+async function onGrantProjectChange() {
+    const projectId = document.getElementById('grant-project').value;
+    const docSelect = document.getElementById('grant-doctype');
+    docSelect.innerHTML = '';
+    if (!projectId) {
+        docSelect.innerHTML = '<option value="">— elegí un proyecto primero —</option>';
+        docSelect.disabled = true;
+        return;
+    }
+
+    const { status, data } = await apiFetch(`/projects/${encodeURIComponent(projectId)}/documents`);
+    const docs = (status === 200 && data.ok) ? (data.documents || []) : [];
+    if (docs.length === 0) {
+        docSelect.innerHTML = '<option value="">— este proyecto no tiene documentos —</option>';
+        docSelect.disabled = true;
+        return;
+    }
+    docSelect.innerHTML = '<option value="">Elegir…</option>' + docs.map(d =>
+        `<option value="${escHtml(d.doc_type)}">${escHtml(d.doc_type)}${d.locked ? ' (sellado)' : ''}</option>`
+    ).join('');
+    docSelect.disabled = false;
+}
+document.getElementById('grant-project').addEventListener('change', onGrantProjectChange);
 
 function closeGrantsModal() {
     document.getElementById('grants-backdrop').style.display = 'none';

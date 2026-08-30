@@ -214,6 +214,46 @@ def test_system_audit_log_requires_drp(cliente):
     assert r.status_code == 403
 
 
+def test_grant_log_messages_are_human_readable_not_raw_uuid(drp_with_pin, cliente):
+    """Reportado por el usuario: 'otorgó acceso a usuario <uuid>' es intrazable —
+    tiene que mostrar el nombre/email de la persona, no su id interno."""
+    cli, user_id = cliente
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+    grant_id = drp_with_pin.get(f"/users/{user_id}/grants").json()["grants"][0]["id"]
+    drp_with_pin.delete(f"/users/{user_id}/grants/{grant_id}")
+
+    events = drp_with_pin.get("/projects/proj-1/audit-log").json()["events"]
+    created = next(e for e in events if e["event_type"] == "grant_created")
+    revoked = next(e for e in events if e["event_type"] == "grant_revoked")
+    assert user_id not in created["description"]
+    assert user_id not in revoked["description"]
+    assert "Cliente Proj" in created["description"]
+    assert "Cliente Proj" in revoked["description"]
+
+
+def test_global_audit_log_shows_events_across_all_projects(drp_with_pin, cliente):
+    cli, user_id = cliente
+    drp_with_pin.put("/projects/proj-a/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    drp_with_pin.put("/projects/proj-b/documents/URS", json={"json_data": {"type": "URS"}})
+    drp_with_pin.patch("/projects/proj-a/close")
+    drp_with_pin.patch("/projects/proj-b/archive")
+
+    events = drp_with_pin.get("/audit-log").json()["events"]
+    project_ids = {e["project_id"] for e in events}
+    assert "proj-a" in project_ids
+    assert "proj-b" in project_ids
+    event_types = [e["event_type"] for e in events]
+    assert "project_closed" in event_types
+    assert "project_archived" in event_types
+
+
+def test_global_audit_log_requires_drp(cliente):
+    cli, _uid = cliente
+    r = cli.get("/audit-log")
+    assert r.status_code == 403
+
+
 def test_document_deletion_does_not_pollute_people_book(drp_with_pin):
     """El borrado de un documento es una acción administrativa — va al audit trail
     de sistema, no al People Book (ese es del ciclo GxP del documento)."""

@@ -16,6 +16,12 @@ from ..deps import get_current_user, require_drp
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
+# Sin prefijo /projects — es el audit trail de sistema UNIFICADO, cruzando todos los
+# proyectos a la vez (confirmado por el usuario 2026-08-30: "no lo logro ver si no estoy
+# dentro de un proyecto"). El endpoint scoped por proyecto (/projects/{id}/audit-log) sigue
+# existiendo para cuando sí importa filtrar por uno solo.
+audit_router = APIRouter(tags=["audit"])
+
 
 def ensure_project(db, project_id: str, username: str) -> None:
     """Crea la fila rf_projects si no existe todavía. Idempotente."""
@@ -159,11 +165,23 @@ def delete_project(project_id: str, user: dict = Depends(require_drp)):
 
 @router.get("/{project_id}/audit-log")
 def get_system_audit_log(project_id: str, user: dict = Depends(require_drp)):
-    """Audit trail de sistema (DRP-only) — separado del Libro de Validación."""
+    """Audit trail de sistema de UN proyecto (DRP-only) — separado del Libro de Validación."""
     db = get_db()
     rows = db.execute(
-        "SELECT username, event_type, doc_type, description, created_at FROM rf_system_audit_log "
-        "WHERE project_id=? ORDER BY created_at",
+        "SELECT username, event_type, project_id, doc_type, description, created_at "
+        "FROM rf_system_audit_log WHERE project_id=? ORDER BY created_at",
         (project_id,),
+    ).fetchall()
+    return {"ok": True, "events": [dict(r) for r in rows]}
+
+
+@audit_router.get("/audit-log")
+def get_global_audit_log(user: dict = Depends(require_drp)):
+    """Audit trail de sistema UNIFICADO — todos los proyectos a la vez, más reciente primero.
+    No requiere estar parado dentro de un proyecto para trazar qué pasó en el sistema."""
+    db = get_db()
+    rows = db.execute(
+        "SELECT username, event_type, project_id, doc_type, description, created_at "
+        "FROM rf_system_audit_log ORDER BY created_at DESC LIMIT 500"
     ).fetchall()
     return {"ok": True, "events": [dict(r) for r in rows]}

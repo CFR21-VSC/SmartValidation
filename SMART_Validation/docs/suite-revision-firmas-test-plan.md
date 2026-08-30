@@ -265,4 +265,19 @@ Todo verificado con un test que reproduce el escenario exacto reportado (documen
 fila `rf_projects` borrada a mano para simular el estado legacy, `DELETE` devuelve 409 con el
 tipo de documento sellado en el mensaje).
 
-**Última corrida:** 2026-08-30 — `68 passed, 1 warning in 9.94s`.
+**Feedback directo del usuario (2026-08-30) — dos pedidos más, ambos implementados:**
+1. **Logs de auditoría intrazables**: `grant_created`/`grant_revoked` mostraban el `user_id` (un
+   UUID) en vez del nombre de la persona — "es imposible de trazar así". Corregido: ambos
+   endpoints ahora buscan `display_name`/`email` del usuario destino antes de armar el mensaje.
+2. **No había forma de ver el audit trail sin estar dentro de un proyecto** ("el audit trail
+   general del sistema no lo logro ver si no estoy dentro de un proyecto"). Se agregó
+   `GET /audit-log` (sin prefijo de proyecto, DRP-only) — trae los últimos 500 eventos de
+   **todos** los proyectos a la vez, con columna de proyecto visible. Botón "🛡 Auditoría del
+   sistema" en el topbar del dashboard, siempre disponible para DRP.
+3. **Otorgar acceso pedía escribir `project_id`/`doc_type` a mano** ("sería bueno poder asignar
+   desplegando los documentos y proyectos, ya que si es sujeto a mi memoria, estoy complicado").
+   La modal de accesos en `users.html` ahora tiene dos `<select>` en cascada: elegís el proyecto
+   de una lista real, y el segundo select se llena con los documentos de ese proyecto (marcando
+   los sellados).
+
+**Última corrida:** 2026-08-30 — `71 passed, 1 warning in 11.77s`.
