@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aprobación — Suite de Revisión y Firmas</title>
+<link rel="stylesheet" href="css/base.css">
+<style>
+    /* Estilos propios de esta página (no tocan base.css) */
+    .ap-page { height: calc(100vh - 56px); }
+    .ap-pdf-body { display: flex; flex-direction: column; padding: 0 !important; }
+    .ap-pdf-area { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .ap-pdf-actions { display: none; padding: 12px 16px; border-top: 1px solid var(--border); }
+    .ap-signer-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+    .ap-signer-row .row-user { flex: 2; }
+    .ap-signer-row .row-role { flex: 2; }
+    .ap-signer-row .row-order { width: 80px; }
+    .ap-banner-sealed {
+        background: rgba(46, 204, 113, .12);
+        border: 1px solid var(--success);
+        color: var(--success);
+        padding: 10px 14px;
+        border-radius: 8px;
+        margin-bottom: 14px;
+        font-weight: 700;
+        font-size: 13px;
+    }
+    .ap-help { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
+</style>
+</head>
+<body>
+<div class="rf-topbar">
+    <div class="rf-brand">Suite de Revisión y Firmas</div>
+    <span class="rf-badge" id="doc-badge">…</span>
+    <div class="rf-spacer"></div>
+    <a href="dashboard.html" class="rf-btn-secondary" style="text-decoration:none; display:inline-block;">Volver al dashboard</a>
+    <button class="rf-btn-secondary" id="logout-btn">Cerrar sesión</button>
+</div>
+
+<div class="ap-page">
+    <div class="rf-split">
+        <div class="rf-pane">
+            <div class="rf-pane-header">
+                <span>Documento</span>
+                <button class="rf-btn-secondary" id="preview-btn">Generar vista previa (PDF)</button>
+            </div>
+            <div class="rf-pane-body ap-pdf-body">
+                <div class="ap-pdf-area" id="pdf-preview-area">
+                    <div class="rf-empty">Generá la vista previa para ver el documento en PDF.</div>
+                </div>
+                <div class="ap-pdf-actions" id="pdf-preview-actions">
+                    <button class="rf-btn" id="use-pdf-btn" style="width:100%;">Usar este PDF para sellar</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="rf-pane" style="flex:1.15;">
+            <div class="rf-pane-header"><span>Ronda de aprobación</span></div>
+            <div class="rf-pane-body">
+                <div class="ap-banner-sealed" id="sealed-banner" style="display:none;"></div>
+                <div id="right-body"><div class="rf-empty">Cargando…</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: firmar aprobación -->
+<div class="rf-modal-backdrop" id="sign-backdrop" style="display:none;">
+    <div class="rf-modal">
+        <h3>Firmar aprobación</h3>
+
+        <div class="rf-field">
+            <label class="rf-label" for="sign-justification">Texto justificativo (obligatorio)</label>
+            <textarea class="rf-textarea" id="sign-justification" placeholder="Justificación de la firma…"></textarea>
+        </div>
+
+        <div class="rf-field">
+            <label class="rf-label" style="text-align:center; display:block;">PIN de firma</label>
+            <div class="rf-pin-grid" id="sign-pin-grid"></div>
+        </div>
+
+        <div class="rf-field">
+            <label class="rf-label" for="sign-pdf-file">Adjuntar PDF final (obligatorio solo para la firma que sella la ronda)</label>
+            <input type="file" accept="application/pdf" class="rf-input" id="sign-pdf-file" style="padding:6px;">
+            <div id="sign-pdf-note" style="font-size:12px; color:var(--text-muted); margin-top:6px; display:none;"></div>
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:6px;">
+            <button type="button" class="rf-btn-secondary" id="sign-cancel-btn">Cancelar</button>
+            <button type="button" class="rf-btn" id="sign-submit-btn">Firmar</button>
+        </div>
+
+        <div class="rf-error" id="sign-error"></div>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+let session = null;
+let projectId = '';
+let docType = '';
+
+let currentRound = null;
+let currentSigners = [];
+let usersList = [];
+let formRows = [];
+
+let currentPdfBlob = null;
+let currentPdfUrl = null;
+let modalPdfBase64 = null;
+let vsLoaded = false;
+
+const VS_SCRIPTS = [
+    'lib/pdfmake.min.js',
+    'lib/vfs_fonts.js',
+    'js/validation-suite/core/template-base.js',
+    'js/validation-suite/core/shared-renderers.js',
+    'js/validation-suite/core/document-renderer.js',
+    'js/validation-suite/templates/_test.js',
+    'js/validation-suite/templates/hlra.js',
+    'js/validation-suite/templates/vp.js',
+    'js/validation-suite/templates/urs.js',
+    'js/validation-suite/templates/frs.js',
+    'js/validation-suite/templates/ds.js',
+    'js/validation-suite/templates/ra.js',
+    'js/validation-suite/templates/ira.js',
+    'js/validation-suite/templates/rrm.js',
+    'js/validation-suite/templates/mtr.js',
+    'js/validation-suite/templates/_iq-shared.js',
+    'js/validation-suite/templates/piq.js',
+    'js/validation-suite/templates/iiq.js',
+    'js/validation-suite/templates/poq.js',
+    'js/validation-suite/templates/ioq.js',
+    'js/validation-suite/templates/ppq.js',
+    'js/validation-suite/templates/ipq.js',
+    'js/validation-suite/templates/ncr.js',
+    'js/validation-suite/templates/vsr.js',
+    'js/validation-suite/templates/aex.js',
+    'js/validation-suite/templates/evra.js',
+    'js/validation-suite/templates/evprot.js',
+    'js/validation-suite/templates/evir.js',
+];
+
+// ─── PIN grid (mismo patrón que pin-setup.html) ───────────────────────────
+function buildPinGrid(container) {
+    const inputs = [];
+    for (let i = 0; i < 6; i++) {
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.inputMode = 'numeric';
+        inp.maxLength = 1;
+        inp.autocomplete = 'off';
+        container.appendChild(inp);
+        inputs.push(inp);
+    }
+    inputs.forEach((inp, idx) => {
+        inp.addEventListener('input', () => {
+            inp.value = inp.value.replace(/[^0-9]/g, '').slice(0, 1);
+            if (inp.value && idx < inputs.length - 1) inputs[idx + 1].focus();
+        });
+        inp.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !inp.value && idx > 0) inputs[idx - 1].focus();
+        });
+    });
+    return inputs;
+}
+function readPin(inputs) { return inputs.map(i => i.value).join(''); }
+
+const signPinInputs = buildPinGrid(document.getElementById('sign-pin-grid'));
+
+// ─── Carga perezosa del motor de renderizado PDF (solo si se pide vista previa) ──
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error('No se pudo cargar ' + src));
+        document.head.appendChild(s);
+    });
+}
+async function ensureValidationSuiteLoaded() {
+    if (vsLoaded) return;
+    for (const src of VS_SCRIPTS) {
+        await loadScript(src);
+    }
+    vsLoaded = true;
+}
+
+function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = reader.result || '';
+            const idx = result.indexOf(',');
+            resolve(idx >= 0 ? result.slice(idx + 1) : result);
+        };
+        reader.onerror = () => reject(new Error('No se pudo leer el archivo.'));
+        reader.readAsDataURL(blob);
+    });
+}
+
+// ─── Init ──────────────────────────────────────────────────────────────────
+async function init() {
+    session = await requireSession();
+    if (!session) return;
+
+    const params = new URLSearchParams(location.search);
+    projectId = params.get('project') || '';
+    docType = params.get('doc') || '';
+
+    if (!projectId || !docType) {
+        document.getElementById('doc-badge').textContent = 'Faltan parámetros';
+        document.getElementById('right-body').innerHTML =
+            '<div class="rf-empty">Faltan los parámetros "project" y/o "doc" en la URL.</div>';
+        return;
+    }
+
+    document.getElementById('doc-badge').textContent = `${docType} · ${projectId}`;
+    document.getElementById('logout-btn').addEventListener('click', doLogout);
+    document.getElementById('preview-btn').addEventListener('click', onGeneratePreview);
+    document.getElementById('use-pdf-btn').addEventListener('click', onUsePdfForSeal);
+    bindSignModalStaticEvents();
+
+    if (session.role === 'drp') {
+        await loadUsers();
+    }
+    await loadRound();
+}
+
+async function loadUsers() {
+    const { status, data } = await apiFetch('/users');
+    if (status === 200 && data.ok) {
+        usersList = data.users || [];
+    } else {
+        usersList = [];
+    }
+}
+
+async function loadRound() {
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(docType)}/approval-round`
+    );
+    if (status === 200 && data.ok) {
+        currentRound = data.round;
+        currentSigners = data.signers || [];
+    } else {
+        currentRound = null;
+        currentSigners = [];
+        showToast(data.error || 'No se pudo cargar la ronda de aprobación.', true);
+    }
+
+    if (!currentRound && session.role === 'drp' && formRows.length === 0) {
+        formRows = [{ user_id: '', role_label: '', sign_order: 1 }];
+    }
+
+    renderRight();
+}
+
+// ─── Panel derecho: ronda / formulario de creación ─────────────────────────
+function renderRight() {
+    const banner = document.getElementById('sealed-banner');
+    if (currentRound && currentRound.status === 'sealed') {
+        banner.style.display = 'block';
+        banner.textContent = `🔒 Documento sellado el ${fmtDateTime(currentRound.sealed_at)} — inmutable`;
+    } else {
+        banner.style.display = 'none';
+    }
+
+    const container = document.getElementById('right-body');
+    let html = '';
+
+    if (!currentRound) {
+        html = (session.role === 'drp')
+            ? renderCreateForm()
+            : '<div class="rf-empty">Todavía no se abrió la ronda de aprobación</div>';
+    } else {
+        html += `<div class="ap-help">
+            Ronda abierta por <strong>${escHtml(currentRound.created_by)}</strong> el ${fmtDateTime(currentRound.created_at)}
+        </div>`;
+        html += renderSignersTable(currentSigners);
+        if (currentRound.status !== 'sealed') {
+            html += `<div style="margin-top:16px;"><button class="rf-btn" id="sign-open-btn">Firmar</button></div>`;
+        }
+        html += `<div class="rf-error" id="round-view-error"></div>`;
+    }
+
+    container.innerHTML = html;
+
+    if (!currentRound && session.role === 'drp') {
+        bindCreateFormEvents();
+    }
+    const signBtn = document.getElementById('sign-open-btn');
+    if (signBtn) signBtn.addEventListener('click', () => openSignModal(null));
+}
+
+function renderSignersTable(signers) {
+    const sorted = [...signers].sort((a, b) => a.sign_order - b.sign_order);
+    const rows = sorted.map(s => {
+        const signed = !!s.signed_at;
+        return `<tr>
+            <td>${escHtml(s.username || s.user_id)}</td>
+            <td>${escHtml(s.role_label || '—')}</td>
+            <td>${escHtml(s.sign_order)}</td>
+            <td><span class="rf-status-dot ${signed ? 'on' : 'off'}"></span>${signed ? 'Firmado · ' + fmtDateTime(s.signed_at) : 'Pendiente'}</td>
+        </tr>`;
+    }).join('');
+
+    return `<table class="rf-table">
+        <thead><tr><th>Firmante</th><th>Rol</th><th>Orden</th><th>Estado</th></tr></thead>
+        <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ─── Formulario de creación de ronda (solo DRP) ────────────────────────────
+function sortedUsersForSelect() {
+    return [...usersList].sort((a, b) => {
+        if (!!a.is_superadmin === !!b.is_superadmin) return 0;
+        return a.is_superadmin ? 1 : -1;
+    });
+}
+function userOptionLabel(u) {
+    const base = `${u.display_name} (${u.email})`;
+    return u.is_superadmin ? `★ ${base} — DRP, debe firmar último` : base;
+}
+
+function renderCreateForm() {
+    const options = sortedUsersForSelect();
+    const rowsHtml = formRows.map((row, idx) => `
+        <div class="ap-signer-row" data-row="${idx}">
+            <select class="rf-select row-user" data-idx="${idx}">
+                <option value="">— Elegir firmante —</option>
+                ${options.map(u => `<option value="${escHtml(u.id)}" ${u.id === row.user_id ? 'selected' : ''}>${escHtml(userOptionLabel(u))}</option>`).join('')}
+            </select>
+            <input class="rf-input row-role" data-idx="${idx}" placeholder="Rol (ej: Aprobador CEO)" value="${escHtml(row.role_label)}">
+            <input class="rf-input row-order" data-idx="${idx}" type="number" min="1" value="${escHtml(row.sign_order)}">
+            <button type="button" class="rf-btn-danger row-remove" data-idx="${idx}" ${formRows.length <= 1 ? 'disabled' : ''}>Quitar</button>
+        </div>
+    `).join('');
+
+    return `
+    <div class="rf-card">
+        <div class="rf-label" style="color:var(--text); font-size:13px; margin-bottom:12px;">Abrir ronda de aprobación</div>
+        <div class="ap-help">
+            El firmante con mayor orden (el último) debe ser un usuario DRP marcado con ★ — el backend lo exige para poder sellar el documento.
+            Cada firmante que no sea DRP debe tener acceso habilitado a este documento (si no, la creación de la ronda se rechaza).
+        </div>
+        <div id="signer-rows">${rowsHtml}</div>
+        <button type="button" class="rf-btn-secondary" id="add-row-btn" style="margin-bottom:16px;">+ Agregar firmante</button>
+        <div><button type="button" class="rf-btn" id="create-round-btn">Abrir ronda de aprobación</button></div>
+        <div class="rf-error" id="create-round-error"></div>
+    </div>`;
+}
+
+function bindCreateFormEvents() {
+    document.querySelectorAll('.row-user').forEach(el => el.addEventListener('change', e => {
+        formRows[+e.target.dataset.idx].user_id = e.target.value;
+    }));
+    document.querySelectorAll('.row-role').forEach(el => el.addEventListener('input', e => {
+        formRows[+e.target.dataset.idx].role_label = e.target.value;
+    }));
+    document.querySelectorAll('.row-order').forEach(el => el.addEventListener('input', e => {
+        formRows[+e.target.dataset.idx].sign_order = e.target.value;
+    }));
+    document.querySelectorAll('.row-remove').forEach(el => el.addEventListener('click', e => {
+        formRows.splice(+e.target.dataset.idx, 1);
+        renderRight();
+    }));
+    const addBtn = document.getElementById('add-row-btn');
+    if (addBtn) addBtn.addEventListener('click', () => {
+        formRows.push({ user_id: '', role_label: '', sign_order: formRows.length + 1 });
+        renderRight();
+    });
+    const submitBtn = document.getElementById('create-round-btn');
+    if (submitBtn) submitBtn.addEventListener('click', onCreateRoundSubmit);
+}
+
+async function onCreateRoundSubmit() {
+    const errorBox = document.getElementById('create-round-error');
+    errorBox.classList.remove('visible');
+    errorBox.textContent = '';
+
+    if (formRows.length === 0 || formRows.some(r => !r.user_id || r.sign_order === '' || r.sign_order === null || r.sign_order === undefined)) {
+        errorBox.textContent = 'Completá el firmante y el orden en todas las filas.';
+        errorBox.classList.add('visible');
+        return;
+    }
+
+    const signers = formRows.map(r => ({
+        user_id: r.user_id,
+        role_label: r.role_label || null,
+        sign_order: Number(r.sign_order),
+    }));
+
+    const btn = document.getElementById('create-round-btn');
+    btn.disabled = true;
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(docType)}/approval-round`,
+        { method: 'POST', body: { signers } }
+    );
+    btn.disabled = false;
+
+    if (status === 200 && data.ok) {
+        showToast('Ronda de aprobación creada');
+        formRows = [];
+        await loadRound();
+        return;
+    }
+
+    errorBox.textContent = data.error || 'No se pudo crear la ronda de aprobación.';
+    errorBox.classList.add('visible');
+}
+
+// ─── Vista previa PDF (opcional) ────────────────────────────────────────────
+async function onGeneratePreview() {
+    const btn = document.getElementById('preview-btn');
+    const area = document.getElementById('pdf-preview-area');
+    btn.disabled = true;
+    area.innerHTML = '<div class="rf-empty">Generando vista previa…</div>';
+    try {
+        await ensureValidationSuiteLoaded();
+        const { status, data } = await apiFetch(
+            `/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(docType)}`
+        );
+        if (status !== 200 || !data.ok) {
+            throw new Error(data.error || 'No se pudo obtener el documento fuente.');
+        }
+        const jsonData = data.document.json_data;
+        const blob = await window.ValidationSuite.renderDocument(jsonData, { download: false });
+        currentPdfBlob = blob;
+        if (currentPdfUrl) URL.revokeObjectURL(currentPdfUrl);
+        currentPdfUrl = URL.createObjectURL(blob);
+        area.innerHTML = `<iframe src="${currentPdfUrl}" style="width:100%; height:100%; border:none; background:#fff;"></iframe>`;
+        document.getElementById('pdf-preview-actions').style.display = 'block';
+    } catch (e) {
+        area.innerHTML = `<div class="rf-empty">${escHtml(e.message || 'No se pudo generar la vista previa.')}</div>`;
+        showToast(e.message || 'Error generando la vista previa.', true);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function onUsePdfForSeal() {
+    if (!currentPdfBlob) return;
+    const b64 = await blobToBase64(currentPdfBlob);
+    openSignModal(b64);
+}
+
+// ─── Modal de firma ─────────────────────────────────────────────────────────
+function updatePdfNote(text) {
+    const note = document.getElementById('sign-pdf-note');
+    if (text) {
+        note.textContent = text;
+        note.style.display = 'block';
+    } else {
+        note.textContent = '';
+        note.style.display = 'none';
+    }
+}
+
+function openSignModal(prefillBase64) {
+    document.getElementById('sign-justification').value = '';
+    signPinInputs.forEach(i => i.value = '');
+    document.getElementById('sign-pdf-file').value = '';
+    const errorBox = document.getElementById('sign-error');
+    errorBox.classList.remove('visible');
+    errorBox.textContent = '';
+
+    if (prefillBase64) {
+        modalPdfBase64 = prefillBase64;
+        updatePdfNote('PDF generado desde la vista previa — listo para adjuntar. Elegí un archivo para reemplazarlo.');
+    } else {
+        modalPdfBase64 = null;
+        updatePdfNote('');
+    }
+
+    document.getElementById('sign-backdrop').style.display = 'flex';
+    signPinInputs[0].focus();
+}
+
+function closeSignModal() {
+    document.getElementById('sign-backdrop').style.display = 'none';
+}
+
+function bindSignModalStaticEvents() {
+    document.getElementById('sign-cancel-btn').addEventListener('click', closeSignModal);
+    document.getElementById('sign-submit-btn').addEventListener('click', onSignSubmit);
+    document.getElementById('sign-backdrop').addEventListener('click', (e) => {
+        if (e.target.id === 'sign-backdrop') closeSignModal();
+    });
+    document.getElementById('sign-pdf-file').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+            modalPdfBase64 = await blobToBase64(file);
+            updatePdfNote(`Archivo adjunto: ${file.name}`);
+        } catch (err) {
+            showToast(err.message || 'No se pudo leer el archivo.', true);
+        }
+    });
+}
+
+async function onSignSubmit() {
+    const errorBox = document.getElementById('sign-error');
+    errorBox.classList.remove('visible');
+    errorBox.textContent = '';
+
+    const justification = document.getElementById('sign-justification').value.trim();
+    const pin = readPin(signPinInputs);
+
+    if (!justification) {
+        errorBox.textContent = 'El texto justificativo es obligatorio';
+        errorBox.classList.add('visible');
+        return;
+    }
+    if (pin.length !== 6) {
+        errorBox.textContent = 'Ingresá los 6 dígitos del PIN.';
+        errorBox.classList.add('visible');
+        return;
+    }
+
+    const body = { pin, justification_text: justification };
+    if (modalPdfBase64) body.pdf_base64 = modalPdfBase64;
+
+    const submitBtn = document.getElementById('sign-submit-btn');
+    submitBtn.disabled = true;
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(docType)}/approval-round/sign`,
+        { method: 'POST', body }
+    );
+    submitBtn.disabled = false;
+
+    if (status === 200 && data.ok) {
+        closeSignModal();
+        if (data.sealed === true) {
+            showToast('Documento sellado — quedó inmutable', false);
+        } else {
+            showToast('Firma registrada');
+        }
+        await loadRound();
+        return;
+    }
+
+    errorBox.textContent = data.error || 'No se pudo registrar la firma.';
+    errorBox.classList.add('visible');
+}
+
+init();
+</script>
+</body>
+</html>

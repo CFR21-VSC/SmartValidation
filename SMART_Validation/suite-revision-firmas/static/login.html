@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ingresar — Suite de Revisión y Firmas</title>
+<link rel="stylesheet" href="css/base.css">
+</head>
+<body>
+<div class="rf-center-screen">
+    <div class="rf-auth-box">
+        <div class="rf-card">
+            <h1>Suite de Revisión y Firmas</h1>
+            <div class="rf-subtitle">Ingresá con tu usuario y contraseña para revisar y firmar documentos GxP.</div>
+
+            <form id="login-form" novalidate>
+                <div class="rf-field">
+                    <label class="rf-label" for="username">Usuario</label>
+                    <input class="rf-input" type="text" id="username" name="username" autocomplete="username" required autofocus>
+                </div>
+                <div class="rf-field">
+                    <label class="rf-label" for="password">Contraseña</label>
+                    <input class="rf-input" type="password" id="password" name="password" autocomplete="current-password" required>
+                </div>
+
+                <button type="submit" class="rf-btn" id="submit-btn" style="width:100%;">Ingresar</button>
+
+                <div class="rf-error" id="login-error"></div>
+            </form>
+
+            <div class="rf-subtitle" style="margin-top:20px; margin-bottom:0;">
+                ¿Te invitaron por email? Usá el link que recibiste.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+const form = document.getElementById('login-form');
+const errorBox = document.getElementById('login-error');
+const submitBtn = document.getElementById('submit-btn');
+
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorBox.classList.remove('visible');
+    errorBox.textContent = '';
+
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    submitBtn.disabled = true;
+    const { status, data } = await apiFetch('/auth/login', {
+        method: 'POST',
+        body: { username, password },
+    });
+    submitBtn.disabled = false;
+
+    if (status === 200 && data.ok) {
+        if (data.pin_set === false) {
+            window.location.href = '/app/pin-setup.html';
+        } else {
+            window.location.href = '/app/dashboard.html';
+        }
+        return;
+    }
+
+    errorBox.textContent = data.error || 'Usuario o contraseña incorrectos';
+    errorBox.classList.add('visible');
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activar cuenta — Suite de Revisión y Firmas</title>
+<link rel="stylesheet" href="css/base.css">
+</head>
+<body>
+<div class="rf-center-screen">
+    <div class="rf-auth-box" style="max-width:420px;">
+
+        <div class="rf-card" id="invalid-box" style="display:none;">
+            <h1>Invitación no válida</h1>
+            <div class="rf-error visible" id="invalid-message">Esta invitación no es válida o ya expiró.</div>
+        </div>
+
+        <div class="rf-card" id="loading-box">
+            <h1>Suite de Revisión y Firmas</h1>
+            <div class="rf-subtitle">Verificando invitación…</div>
+        </div>
+
+        <div class="rf-card" id="invite-box" style="display:none;">
+            <h1>Activá tu cuenta</h1>
+            <div class="rf-subtitle" id="invite-greeting"></div>
+
+            <form id="invite-form" novalidate>
+                <div class="rf-field">
+                    <label class="rf-label" for="password">Contraseña</label>
+                    <input class="rf-input" type="password" id="password" name="password" autocomplete="new-password" required>
+                </div>
+                <div class="rf-field">
+                    <label class="rf-label" for="password-confirm">Confirmá la contraseña</label>
+                    <input class="rf-input" type="password" id="password-confirm" name="password-confirm" autocomplete="new-password" required>
+                </div>
+
+                <div class="rf-field">
+                    <label class="rf-label" style="text-align:center; display:block;">PIN de firma (6 dígitos)</label>
+                    <div class="rf-pin-grid" id="pin-grid"></div>
+                </div>
+                <div class="rf-field">
+                    <label class="rf-label" style="text-align:center; display:block;">Confirmá el PIN</label>
+                    <div class="rf-pin-grid" id="pin-confirm-grid"></div>
+                </div>
+
+                <button type="submit" class="rf-btn" id="submit-btn" style="width:100%;">Activar mi cuenta</button>
+
+                <div class="rf-error" id="form-error"></div>
+            </form>
+        </div>
+
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+const ROLE_LABELS = { drp: 'DRP', cliente: 'Cliente' };
+
+function buildPinGrid(container) {
+    const inputs = [];
+    for (let i = 0; i < 6; i++) {
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.inputMode = 'numeric';
+        inp.maxLength = 1;
+        inp.autocomplete = 'off';
+        container.appendChild(inp);
+        inputs.push(inp);
+    }
+    inputs.forEach((inp, idx) => {
+        inp.addEventListener('input', () => {
+            inp.value = inp.value.replace(/[^0-9]/g, '').slice(0, 1);
+            if (inp.value && idx < inputs.length - 1) {
+                inputs[idx + 1].focus();
+            }
+        });
+        inp.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !inp.value && idx > 0) {
+                inputs[idx - 1].focus();
+            }
+        });
+    });
+    return inputs;
+}
+
+function readPin(inputs) {
+    return inputs.map(i => i.value).join('');
+}
+
+function showInvalid(message) {
+    document.getElementById('loading-box').style.display = 'none';
+    document.getElementById('invite-box').style.display = 'none';
+    document.getElementById('invalid-message').textContent = message;
+    document.getElementById('invalid-box').style.display = '';
+}
+
+const params = new URLSearchParams(window.location.search);
+const token = params.get('token');
+
+const pinInputs = buildPinGrid(document.getElementById('pin-grid'));
+const confirmInputs = buildPinGrid(document.getElementById('pin-confirm-grid'));
+const form = document.getElementById('invite-form');
+const errorBox = document.getElementById('form-error');
+const submitBtn = document.getElementById('submit-btn');
+
+function showError(msg) {
+    errorBox.textContent = msg;
+    errorBox.classList.add('visible');
+}
+
+function clearError() {
+    errorBox.textContent = '';
+    errorBox.classList.remove('visible');
+}
+
+(async () => {
+    if (!token) {
+        showInvalid('Esta invitación no es válida o ya expiró.');
+        return;
+    }
+
+    const { status, data } = await apiFetch('/invite/' + encodeURIComponent(token));
+
+    if (status !== 200 || !data.ok) {
+        showInvalid(data.error || 'Esta invitación no es válida o ya expiró.');
+        return;
+    }
+
+    const roleLabel = ROLE_LABELS[data.role] || data.role;
+    document.getElementById('invite-greeting').textContent =
+        `Hola ${data.display_name} (${data.email}) — te invitaron como ${roleLabel}.`;
+
+    document.getElementById('loading-box').style.display = 'none';
+    document.getElementById('invite-box').style.display = '';
+    document.getElementById('password').focus();
+})();
+
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearError();
+
+    const password = document.getElementById('password').value;
+    const passwordConfirm = document.getElementById('password-confirm').value;
+    const pin = readPin(pinInputs);
+    const pinConfirm = readPin(confirmInputs);
+
+    if (password.length < 8) {
+        showError('La contraseña debe tener al menos 8 caracteres.');
+        return;
+    }
+    if (password !== passwordConfirm) {
+        showError('Las contraseñas ingresadas no coinciden.');
+        return;
+    }
+    if (pin.length !== 6 || pinConfirm.length !== 6) {
+        showError('Completá los 6 dígitos del PIN en ambos campos.');
+        return;
+    }
+    if (pin !== pinConfirm) {
+        showError('Los dos PIN ingresados no coinciden.');
+        return;
+    }
+
+    submitBtn.disabled = true;
+    const { status, data } = await apiFetch('/invite/' + encodeURIComponent(token) + '/accept', {
+        method: 'POST',
+        body: { password, pin },
+    });
+    submitBtn.disabled = false;
+
+    if (status === 200 && data.ok) {
+        window.location.href = '/app/dashboard.html';
+        return;
+    }
+
+    if (status === 404) {
+        showInvalid(data.error || 'Esta invitación no es válida o ya expiró.');
+        return;
+    }
+
+    showError(data.error || 'No se pudo activar la cuenta. Probá de nuevo.');
+});
+</script>
+</body>
+</html>

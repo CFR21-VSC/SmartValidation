@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configurar PIN — Suite de Revisión y Firmas</title>
+<link rel="stylesheet" href="css/base.css">
+</head>
+<body>
+<div class="rf-center-screen">
+    <div class="rf-auth-box" style="max-width:420px;">
+        <div class="rf-card">
+            <h1>Configurá tu PIN de firma</h1>
+            <div class="rf-subtitle">
+                Lo vas a usar para confirmar cada firma de documento. Elegí 6 dígitos y no los compartas con nadie.
+            </div>
+
+            <form id="pin-form" novalidate>
+                <div class="rf-field">
+                    <label class="rf-label" style="text-align:center; display:block;">PIN (6 dígitos)</label>
+                    <div class="rf-pin-grid" id="pin-grid" data-role="pin"></div>
+                </div>
+                <div class="rf-field">
+                    <label class="rf-label" style="text-align:center; display:block;">Confirmá el PIN</label>
+                    <div class="rf-pin-grid" id="pin-confirm-grid" data-role="confirm"></div>
+                </div>
+
+                <button type="submit" class="rf-btn" id="submit-btn" style="width:100%;">Guardar PIN</button>
+
+                <div class="rf-error" id="pin-error"></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+function buildPinGrid(container) {
+    const inputs = [];
+    for (let i = 0; i < 6; i++) {
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.inputMode = 'numeric';
+        inp.maxLength = 1;
+        inp.autocomplete = 'off';
+        container.appendChild(inp);
+        inputs.push(inp);
+    }
+    inputs.forEach((inp, idx) => {
+        inp.addEventListener('input', () => {
+            inp.value = inp.value.replace(/[^0-9]/g, '').slice(0, 1);
+            if (inp.value && idx < inputs.length - 1) {
+                inputs[idx + 1].focus();
+            }
+        });
+        inp.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !inp.value && idx > 0) {
+                inputs[idx - 1].focus();
+            }
+        });
+    });
+    return inputs;
+}
+
+function readPin(inputs) {
+    return inputs.map(i => i.value).join('');
+}
+
+const pinInputs = buildPinGrid(document.getElementById('pin-grid'));
+const confirmInputs = buildPinGrid(document.getElementById('pin-confirm-grid'));
+
+const form = document.getElementById('pin-form');
+const errorBox = document.getElementById('pin-error');
+const submitBtn = document.getElementById('submit-btn');
+
+function showError(msg) {
+    errorBox.textContent = msg;
+    errorBox.classList.add('visible');
+}
+
+function clearError() {
+    errorBox.textContent = '';
+    errorBox.classList.remove('visible');
+}
+
+(async () => {
+    const session = await requireSession({ allowNoPin: true });
+    if (!session) return;
+    if (session.pin_set === true) {
+        window.location.href = '/app/dashboard.html';
+        return;
+    }
+    pinInputs[0].focus();
+})();
+
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    clearError();
+
+    const pin = readPin(pinInputs);
+    const confirm = readPin(confirmInputs);
+
+    if (pin.length !== 6 || confirm.length !== 6) {
+        showError('Completá los 6 dígitos en ambos campos.');
+        return;
+    }
+    if (pin !== confirm) {
+        showError('Los dos PIN ingresados no coinciden.');
+        return;
+    }
+
+    submitBtn.disabled = true;
+    const { status, data } = await apiFetch('/auth/set-pin', {
+        method: 'POST',
+        body: { pin },
+    });
+    submitBtn.disabled = false;
+
+    if (status === 200 && data.ok) {
+        window.location.href = '/app/dashboard.html';
+        return;
+    }
+
+    showError(data.error || 'No se pudo guardar el PIN. Probá de nuevo.');
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suite de Revisión — Suite de Revisión y Firmas</title>
+<link rel="stylesheet" href="css/base.css">
+<style>
+    /* Estilos propios de esta página — todo lo compartido vive en base.css */
+    html, body { height: 100%; }
+
+    .rv-shell {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 56px);
+    }
+
+    .rv-toolbar {
+        padding: 10px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        flex-shrink: 0;
+        background: var(--bg-panel);
+    }
+
+    .rv-toolbar .rv-signers {
+        font-size: 12px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .rv-toolbar .rv-signers strong { color: var(--text); font-weight: 600; }
+
+    .rv-split-wrap {
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .rv-pane-narrow { flex: 0 0 240px !important; }
+    .rv-pane-mid { flex: 2 1 0 !important; }
+    .rv-pane-corr { flex: 1.4 1 0 !important; }
+
+    .rv-pane-header-actions { display: flex; gap: 8px; }
+    .rv-pane-header-actions .rf-btn-secondary,
+    .rv-pane-header-actions .rf-btn { padding: 5px 10px; font-size: 11px; }
+
+    .rv-outline-item {
+        padding: 8px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        color: var(--text-muted);
+        font-size: 12.5px;
+        margin-bottom: 2px;
+        line-height: 1.35;
+    }
+    .rv-outline-item:hover { background: rgba(200,146,26,.12); color: var(--text); }
+
+    .rv-section {
+        margin-bottom: 22px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid var(--border);
+        scroll-margin-top: 10px;
+    }
+    .rv-section:last-child { border-bottom: none; }
+    .rv-section h3 {
+        margin: 0 0 8px;
+        font-size: 13.5px;
+        color: var(--gold-light);
+    }
+    .rv-section-content {
+        white-space: pre-wrap;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--text);
+    }
+    .rv-section-content pre {
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 12px;
+        color: var(--text);
+        margin: 0;
+    }
+
+    .rv-meta-table { margin-bottom: 20px; }
+
+    .rv-corr-item {
+        margin-bottom: 18px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border);
+    }
+    .rv-corr-item:last-child { border-bottom: none; }
+    .rv-corr-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        gap: 8px;
+    }
+    .rv-corr-label { font-size: 12.5px; font-weight: 600; color: var(--text); }
+
+    .rv-badge {
+        border-radius: 20px;
+        padding: 2px 10px;
+        font-size: 10.5px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .rv-badge-resolved { background: rgba(46,204,113,.15); border: 1px solid rgba(46,204,113,.4); color: var(--success); }
+    .rv-badge-pending { background: rgba(196,164,39,.15); border: 1px solid rgba(196,164,39,.4); color: #c4a427; }
+
+    .rv-corr-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 6px;
+        min-height: 22px;
+    }
+    .rv-save-ind {
+        font-size: 11px;
+        transition: opacity .6s ease;
+    }
+    .rv-save-ind.rv-ok { color: var(--success); }
+    .rv-save-ind.rv-err { color: var(--danger); }
+    .rv-save-ind.rv-fade { opacity: 0; }
+
+    .rv-pdf-modal { width: min(920px, 95vw); }
+    .rv-pdf-modal iframe {
+        width: 100%;
+        height: 72vh;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: #fff;
+    }
+
+    .rv-signatures-list {
+        list-style: none;
+        margin: 10px 0 0;
+        padding: 0;
+        max-height: 160px;
+        overflow-y: auto;
+        font-size: 12px;
+        color: var(--text-muted);
+    }
+    .rv-signatures-list li { padding: 4px 0; border-bottom: 1px solid var(--border); }
+    .rv-signatures-list li:last-child { border-bottom: none; }
+
+    .rv-load-modal .rf-textarea { min-height: 260px; font-family: monospace; }
+</style>
+</head>
+<body>
+
+<div class="rf-topbar">
+    <div class="rf-brand">Suite de Revisión</div>
+    <span class="rf-badge" id="doc-badge">…</span>
+    <span class="rf-badge" id="lock-badge" style="display:none; border-color: rgba(232,122,138,.4); color: var(--danger); background: rgba(232,122,138,.12);">Sellado</span>
+    <div class="rf-spacer"></div>
+    <button class="rf-btn-secondary" id="btn-back">Volver al panel</button>
+    <button class="rf-btn-secondary" id="btn-logout">Cerrar sesión</button>
+</div>
+
+<div class="rv-shell">
+    <div class="rv-toolbar">
+        <button class="rf-btn-secondary" id="btn-view-pdf">Ver PDF</button>
+        <button class="rf-btn" id="btn-sign-review">Firmar revisión</button>
+        <div class="rv-signers" id="signers-summary">Cargando firmas…</div>
+    </div>
+
+    <div class="rv-split-wrap">
+        <div class="rf-split">
+            <!-- Columna 1: Estructura -->
+            <div class="rf-pane rv-pane-narrow">
+                <div class="rf-pane-header"><span>Estructura</span></div>
+                <div class="rf-pane-body" id="outline-body">
+                    <div class="rf-empty">Cargando…</div>
+                </div>
+            </div>
+
+            <!-- Columna 2: Documento fuente -->
+            <div class="rf-pane rv-pane-mid">
+                <div class="rf-pane-header">
+                    <span>Documento fuente</span>
+                    <div class="rv-pane-header-actions" id="source-actions" style="display:none;">
+                        <button class="rf-btn-secondary" id="btn-load-doc">Cargar</button>
+                        <button class="rf-btn-secondary" id="btn-download-doc">Descargar</button>
+                    </div>
+                </div>
+                <div class="rf-pane-body" id="source-body">
+                    <div class="rf-empty">Cargando…</div>
+                </div>
+            </div>
+
+            <!-- Columna 3: Correcciones -->
+            <div class="rf-pane rv-pane-corr">
+                <div class="rf-pane-header"><span>Correcciones</span></div>
+                <div class="rf-pane-body" id="corrections-body">
+                    <div class="rf-empty">Cargando…</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Cargar documento (DRP) -->
+<div class="rf-modal-backdrop" id="load-backdrop" style="display:none;">
+    <div class="rf-modal rv-load-modal">
+        <h3>Cargar / reemplazar documento</h3>
+        <div class="rf-field">
+            <label class="rf-label" for="load-json-input">Contenido JSON</label>
+            <textarea class="rf-textarea" id="load-json-input" placeholder='{ "...": "..." }'></textarea>
+        </div>
+        <div class="rf-error" id="load-error"></div>
+        <div style="margin-top:14px; display:flex; justify-content:flex-end; gap:10px;">
+            <button class="rf-btn-secondary" id="load-cancel">Cancelar</button>
+            <button class="rf-btn" id="load-submit">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Ver PDF -->
+<div class="rf-modal-backdrop" id="pdf-backdrop" style="display:none;">
+    <div class="rf-modal rv-pdf-modal">
+        <h3>Vista previa — documento con correcciones aplicadas</h3>
+        <div id="pdf-container">
+            <div class="rf-empty" id="pdf-loading">Generando vista previa…</div>
+            <iframe id="pdf-iframe" style="display:none;"></iframe>
+            <div class="rf-error" id="pdf-error"></div>
+        </div>
+        <div style="margin-top:14px; text-align:right;">
+            <button class="rf-btn-secondary" id="pdf-close">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Firmar revisión -->
+<div class="rf-modal-backdrop" id="sign-backdrop" style="display:none;">
+    <div class="rf-modal">
+        <h3>Firmar revisión</h3>
+        <p style="font-size:12.5px; color: var(--text-muted); margin: 0 0 6px;">
+            Confirmá que ya revisaste el documento. No hace falta que las correcciones estén
+            implementadas, pero si hay alguna sin marcar resuelta, no vas a poder firmar todavía.
+        </p>
+        <div class="rf-field" style="margin-top:14px;">
+            <label class="rf-label" style="text-align:center; display:block;">PIN (6 dígitos)</label>
+            <div class="rf-pin-grid" id="sign-pin-grid"></div>
+        </div>
+        <div class="rf-error" id="sign-error"></div>
+        <div style="margin-top:14px; display:flex; justify-content:flex-end; gap:10px;">
+            <button class="rf-btn-secondary" id="sign-cancel">Cancelar</button>
+            <button class="rf-btn" id="sign-submit">Firmar</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+'use strict';
+
+const params = new URLSearchParams(location.search);
+const PROJECT_ID = params.get('project') || '';
+const DOC_TYPE = params.get('doc') || '';
+
+let session = null;
+let documentRow = null;      // { id, doc_type, status, locked, json_data, ... }
+let correctionsMap = {};     // section_key -> { content, resolved, updated_by, updated_at }
+let sections = [];           // [{ key, label }]
+let saveTimers = {};         // section_key -> timeout id
+let pdfLibsLoaded = false;
+let pdfLibsLoading = null;
+let currentPdfObjectUrl = null;
+
+const doc_badge = document.getElementById('doc-badge');
+const lock_badge = document.getElementById('lock-badge');
+const outlineBody = document.getElementById('outline-body');
+const sourceBody = document.getElementById('source-body');
+const sourceActions = document.getElementById('source-actions');
+const correctionsBody = document.getElementById('corrections-body');
+const signersSummary = document.getElementById('signers-summary');
+
+document.getElementById('btn-back').addEventListener('click', () => { window.location.href = 'dashboard.html'; });
+document.getElementById('btn-logout').addEventListener('click', doLogout);
+
+// ---------------------------------------------------------------------------
+// Derivación de secciones — única función usada por outline, fuente y correcciones
+// ---------------------------------------------------------------------------
+function getSectionsArray(jsonData) {
+    if (jsonData && Array.isArray(jsonData.secciones)) return jsonData.secciones;
+    if (jsonData && Array.isArray(jsonData.sections)) return jsonData.sections;
+    return null;
+}
+
+function deriveSections(jsonData) {
+    const arr = getSectionsArray(jsonData);
+    if (!arr) {
+        return [{ key: 'sec-0', label: 'Documento completo' }];
+    }
+    return arr.map((s, i) => ({
+        key: `sec-${i}`,
+        label: (s && (s.titulo || s.title)) || `Sección ${i + 1}`,
+    }));
+}
+
+function getSectionContentText(sectionObj) {
+    if (!sectionObj || typeof sectionObj !== 'object') return '';
+    const val = sectionObj.contenido ?? sectionObj.content ?? sectionObj.texto;
+    if (val === undefined) return '';
+    return typeof val === 'string' ? val : JSON.stringify(val, null, 2);
+}
+
+function applyCorrectionToSection(sectionObj, correctionContent) {
+    if (!sectionObj || typeof sectionObj !== 'object') return;
+    if ('contenido' in sectionObj) sectionObj.contenido = correctionContent;
+    else if ('content' in sectionObj) sectionObj.content = correctionContent;
+    else if ('texto' in sectionObj) sectionObj.texto = correctionContent;
+    else sectionObj.contenido = correctionContent;
+}
+
+// ---------------------------------------------------------------------------
+// Init
+// ---------------------------------------------------------------------------
+async function init() {
+    session = await requireSession();
+    if (!session) return;
+
+    doc_badge.textContent = `${DOC_TYPE} · ${PROJECT_ID}`;
+
+    if (session.role === 'drp') {
+        sourceActions.style.display = '';
+    }
+
+    document.getElementById('btn-view-pdf').addEventListener('click', openPdfModal);
+    document.getElementById('btn-sign-review').addEventListener('click', openSignModal);
+    document.getElementById('btn-load-doc').addEventListener('click', openLoadModal);
+    document.getElementById('btn-download-doc').addEventListener('click', downloadJson);
+
+    document.getElementById('load-cancel').addEventListener('click', closeLoadModal);
+    document.getElementById('load-submit').addEventListener('click', submitLoad);
+    document.getElementById('load-backdrop').addEventListener('click', (e) => {
+        if (e.target.id === 'load-backdrop') closeLoadModal();
+    });
+
+    document.getElementById('pdf-close').addEventListener('click', closePdfModal);
+    document.getElementById('pdf-backdrop').addEventListener('click', (e) => {
+        if (e.target.id === 'pdf-backdrop') closePdfModal();
+    });
+
+    document.getElementById('sign-cancel').addEventListener('click', closeSignModal);
+    document.getElementById('sign-submit').addEventListener('click', submitSignReview);
+    document.getElementById('sign-backdrop').addEventListener('click', (e) => {
+        if (e.target.id === 'sign-backdrop') closeSignModal();
+    });
+
+    await loadDocument();
+    await loadSignatures();
+}
+
+// ---------------------------------------------------------------------------
+// Carga del documento + correcciones
+// ---------------------------------------------------------------------------
+async function loadDocument() {
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}`
+    );
+
+    if (status !== 200 || !data.ok) {
+        const msg = data.error || 'No se pudo cargar el documento.';
+        outlineBody.innerHTML = `<div class="rf-empty">${escHtml(msg)}</div>`;
+        sourceBody.innerHTML = `<div class="rf-empty">${escHtml(msg)}</div>`;
+        correctionsBody.innerHTML = `<div class="rf-empty">${escHtml(msg)}</div>`;
+        return;
+    }
+
+    documentRow = data.document;
+    correctionsMap = {};
+    (data.corrections || []).forEach(c => { correctionsMap[c.section_key] = c; });
+    sections = deriveSections(documentRow.json_data);
+
+    lock_badge.style.display = documentRow.locked ? '' : 'none';
+
+    renderOutline();
+    renderSource();
+    renderCorrections();
+}
+
+function renderOutline() {
+    if (sections.length === 0) {
+        outlineBody.innerHTML = '<div class="rf-empty">Sin secciones.</div>';
+        return;
+    }
+    outlineBody.innerHTML = sections.map(s => `
+        <div class="rv-outline-item" data-key="${escHtml(s.key)}">${escHtml(s.label)}</div>
+    `).join('');
+    outlineBody.querySelectorAll('.rv-outline-item').forEach(el => {
+        el.addEventListener('click', () => {
+            const target = document.getElementById(el.dataset.key);
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+}
+
+function renderSource() {
+    const jsonData = documentRow.json_data;
+    let html = '';
+
+    if (jsonData && jsonData.metadata && typeof jsonData.metadata === 'object' && !Array.isArray(jsonData.metadata)) {
+        html += '<table class="rf-table rv-meta-table"><tbody>';
+        Object.keys(jsonData.metadata).forEach(k => {
+            const v = jsonData.metadata[k];
+            html += `<tr><th style="width:180px;">${escHtml(k)}</th><td>${escHtml(typeof v === 'string' ? v : JSON.stringify(v))}</td></tr>`;
+        });
+        html += '</tbody></table>';
+    }
+
+    const arr = getSectionsArray(jsonData);
+    if (arr) {
+        sections.forEach((sec, i) => {
+            const raw = arr[i];
+            const content = getSectionContentText(raw);
+            html += `<div class="rv-section" id="${escHtml(sec.key)}">
+                <h3>${escHtml(sec.label)}</h3>
+                <div class="rv-section-content">${content ? escHtml(content) : `<pre>${escHtml(JSON.stringify(raw, null, 2))}</pre>`}</div>
+            </div>`;
+        });
+    } else {
+        html += `<div class="rv-section" id="sec-0">
+            <pre>${escHtml(JSON.stringify(jsonData, null, 2))}</pre>
+        </div>`;
+    }
+
+    sourceBody.innerHTML = html || '<div class="rf-empty">Documento vacío.</div>';
+}
+
+function renderCorrections() {
+    if (sections.length === 0) {
+        correctionsBody.innerHTML = '<div class="rf-empty">Sin secciones.</div>';
+        return;
+    }
+
+    correctionsBody.innerHTML = sections.map(sec => {
+        const existing = correctionsMap[sec.key];
+        const resolved = !!(existing && existing.resolved);
+        const badgeHtml = resolved
+            ? '<span class="rv-badge rv-badge-resolved">Resuelta</span>'
+            : '<span class="rv-badge rv-badge-pending">Pendiente</span>';
+        const showResolveBtn = session.role === 'drp' && existing && !resolved;
+
+        return `
+        <div class="rv-corr-item" data-key="${escHtml(sec.key)}">
+            <div class="rv-corr-head">
+                <span class="rv-corr-label">${escHtml(sec.label)}</span>
+                ${badgeHtml}
+            </div>
+            <textarea class="rf-textarea rv-corr-textarea" data-key="${escHtml(sec.key)}"
+                placeholder="Sugerí una corrección o mejora para esta sección…">${existing ? escHtml(existing.content) : ''}</textarea>
+            <div class="rv-corr-footer">
+                <span class="rv-save-ind" id="save-ind-${escHtml(sec.key)}"></span>
+                ${showResolveBtn ? `<button class="rf-btn-secondary rv-resolve-btn" data-key="${escHtml(sec.key)}">Marcar resuelta</button>` : ''}
+            </div>
+        </div>`;
+    }).join('');
+
+    correctionsBody.querySelectorAll('.rv-corr-textarea').forEach(ta => {
+        ta.addEventListener('input', () => scheduleAutosave(ta.dataset.key, ta.value));
+    });
+    correctionsBody.querySelectorAll('.rv-resolve-btn').forEach(btn => {
+        btn.addEventListener('click', () => markResolved(btn.dataset.key));
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Autoguardado de correcciones (debounce ~800ms)
+// ---------------------------------------------------------------------------
+function scheduleAutosave(sectionKey, content) {
+    if (saveTimers[sectionKey]) clearTimeout(saveTimers[sectionKey]);
+    saveTimers[sectionKey] = setTimeout(() => saveCorrection(sectionKey, content), 800);
+}
+
+async function saveCorrection(sectionKey, content) {
+    const ind = document.getElementById(`save-ind-${sectionKey}`);
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}/sections/${encodeURIComponent(sectionKey)}`,
+        { method: 'PUT', body: { content } }
+    );
+
+    if (status === 200 && data.ok) {
+        correctionsMap[sectionKey] = {
+            section_key: sectionKey, content, resolved: 0,
+            updated_by: session.display_name, updated_at: Date.now() / 1000,
+        };
+        // Refrescar solo la insignia/botón de esta sección sin perder el foco del textarea
+        refreshCorrectionRowChrome(sectionKey);
+        if (ind) {
+            ind.textContent = 'Guardado ✓';
+            ind.className = 'rv-save-ind rv-ok';
+            setTimeout(() => {
+                ind.classList.add('rv-fade');
+                setTimeout(() => { ind.textContent = ''; ind.className = 'rv-save-ind'; }, 600);
+            }, 2000);
+        }
+    } else {
+        const msg = status === 409 ? (data.error || 'El documento está sellado — no admite correcciones') : (data.error || 'No se pudo guardar');
+        if (ind) {
+            ind.textContent = msg;
+            ind.className = 'rv-save-ind rv-err';
+        }
+    }
+}
+
+function refreshCorrectionRowChrome(sectionKey) {
+    const item = correctionsBody.querySelector(`.rv-corr-item[data-key="${cssEscape(sectionKey)}"]`);
+    if (!item) return;
+    const existing = correctionsMap[sectionKey];
+    const resolved = !!(existing && existing.resolved);
+    const headBadge = item.querySelector('.rv-badge');
+    if (headBadge) {
+        headBadge.className = resolved ? 'rv-badge rv-badge-resolved' : 'rv-badge rv-badge-pending';
+        headBadge.textContent = resolved ? 'Resuelta' : 'Pendiente';
+    }
+    const footer = item.querySelector('.rv-corr-footer');
+    let resolveBtn = footer ? footer.querySelector('.rv-resolve-btn') : null;
+    const shouldShow = session.role === 'drp' && existing && !resolved;
+    if (shouldShow && !resolveBtn && footer) {
+        resolveBtn = document.createElement('button');
+        resolveBtn.className = 'rf-btn-secondary rv-resolve-btn';
+        resolveBtn.dataset.key = sectionKey;
+        resolveBtn.textContent = 'Marcar resuelta';
+        resolveBtn.addEventListener('click', () => markResolved(sectionKey));
+        footer.appendChild(resolveBtn);
+    } else if (!shouldShow && resolveBtn) {
+        resolveBtn.remove();
+    }
+}
+
+function cssEscape(s) {
+    return String(s).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
+}
+
+async function markResolved(sectionKey) {
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}/sections/${encodeURIComponent(sectionKey)}/resolve`,
+        { method: 'PATCH' }
+    );
+    if (status === 200 && data.ok) {
+        if (correctionsMap[sectionKey]) correctionsMap[sectionKey].resolved = 1;
+        refreshCorrectionRowChrome(sectionKey);
+        showToast('Corrección marcada como resuelta');
+    } else {
+        showToast(data.error || 'No se pudo marcar como resuelta', true);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Cargar documento (DRP)
+// ---------------------------------------------------------------------------
+function openLoadModal() {
+    document.getElementById('load-json-input').value = JSON.stringify(documentRow.json_data, null, 2);
+    const err = document.getElementById('load-error');
+    err.textContent = ''; err.classList.remove('visible');
+    document.getElementById('load-backdrop').style.display = 'flex';
+}
+function closeLoadModal() {
+    document.getElementById('load-backdrop').style.display = 'none';
+}
+async function submitLoad() {
+    const err = document.getElementById('load-error');
+    err.textContent = ''; err.classList.remove('visible');
+
+    let parsed;
+    try {
+        parsed = JSON.parse(document.getElementById('load-json-input').value);
+    } catch (e) {
+        err.textContent = 'JSON inválido.';
+        err.classList.add('visible');
+        return;
+    }
+
+    const btn = document.getElementById('load-submit');
+    btn.disabled = true;
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}`,
+        { method: 'PUT', body: { json_data: parsed } }
+    );
+    btn.disabled = false;
+
+    if (status === 200 && data.ok) {
+        closeLoadModal();
+        showToast('Documento actualizado');
+        await loadDocument();
+        return;
+    }
+    err.textContent = data.error || 'No se pudo guardar el documento.';
+    err.classList.add('visible');
+}
+
+function downloadJson() {
+    const blob = new Blob([JSON.stringify(documentRow.json_data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${DOC_TYPE}_${PROJECT_ID}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+// ---------------------------------------------------------------------------
+// Ver PDF — merge de correcciones + render con ValidationSuite
+// ---------------------------------------------------------------------------
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = () => resolve();
+        s.onerror = () => reject(new Error(`No se pudo cargar ${src}`));
+        document.body.appendChild(s);
+    });
+}
+
+async function ensurePdfLibsLoaded() {
+    if (pdfLibsLoaded) return;
+    if (pdfLibsLoading) return pdfLibsLoading;
+
+    const scripts = [
+        'lib/pdfmake.min.js',
+        'lib/vfs_fonts.js',
+        'js/validation-suite/core/template-base.js',
+        'js/validation-suite/core/shared-renderers.js',
+        'js/validation-suite/core/document-renderer.js',
+        'js/validation-suite/templates/_test.js',
+        'js/validation-suite/templates/hlra.js',
+        'js/validation-suite/templates/vp.js',
+        'js/validation-suite/templates/urs.js',
+        'js/validation-suite/templates/frs.js',
+        'js/validation-suite/templates/ds.js',
+        'js/validation-suite/templates/ra.js',
+        'js/validation-suite/templates/ira.js',
+        'js/validation-suite/templates/rrm.js',
+        'js/validation-suite/templates/mtr.js',
+        'js/validation-suite/templates/_iq-shared.js',
+        'js/validation-suite/templates/piq.js',
+        'js/validation-suite/templates/iiq.js',
+        'js/validation-suite/templates/poq.js',
+        'js/validation-suite/templates/ioq.js',
+        'js/validation-suite/templates/ppq.js',
+        'js/validation-suite/templates/ipq.js',
+        'js/validation-suite/templates/ncr.js',
+        'js/validation-suite/templates/vsr.js',
+        'js/validation-suite/templates/aex.js',
+        'js/validation-suite/templates/evra.js',
+        'js/validation-suite/templates/evprot.js',
+        'js/validation-suite/templates/evir.js',
+    ];
+
+    pdfLibsLoading = (async () => {
+        for (const src of scripts) {
+            await loadScript(src);
+        }
+        pdfLibsLoaded = true;
+    })();
+    return pdfLibsLoading;
+}
+
+function buildMergedJsonForPreview() {
+    const merged = JSON.parse(JSON.stringify(documentRow.json_data));
+    const arr = getSectionsArray(merged);
+    if (arr) {
+        sections.forEach(sec => {
+            const correction = correctionsMap[sec.key];
+            if (!correction) return;
+            const idx = Number(sec.key.replace('sec-', ''));
+            if (arr[idx]) applyCorrectionToSection(arr[idx], correction.content);
+        });
+    }
+    return merged;
+}
+
+async function openPdfModal() {
+    document.getElementById('pdf-backdrop').style.display = 'flex';
+    const loadingEl = document.getElementById('pdf-loading');
+    const iframeEl = document.getElementById('pdf-iframe');
+    const errorEl = document.getElementById('pdf-error');
+
+    loadingEl.style.display = 'block';
+    loadingEl.textContent = 'Generando vista previa…';
+    iframeEl.style.display = 'none';
+    errorEl.textContent = '';
+    errorEl.classList.remove('visible');
+
+    try {
+        await ensurePdfLibsLoaded();
+        const merged = buildMergedJsonForPreview();
+
+        if (!window.ValidationSuite || !window.ValidationSuite.renderers || !window.ValidationSuite.renderers[merged.type]) {
+            throw new Error('sin renderer');
+        }
+
+        const blob = await window.ValidationSuite.renderDocument(merged, { download: false });
+
+        if (currentPdfObjectUrl) URL.revokeObjectURL(currentPdfObjectUrl);
+        currentPdfObjectUrl = URL.createObjectURL(blob);
+        iframeEl.src = currentPdfObjectUrl;
+        iframeEl.style.display = 'block';
+        loadingEl.style.display = 'none';
+    } catch (e) {
+        loadingEl.style.display = 'none';
+        errorEl.textContent = 'No se pudo generar la vista previa del PDF para este tipo de documento.';
+        errorEl.classList.add('visible');
+    }
+}
+
+function closePdfModal() {
+    document.getElementById('pdf-backdrop').style.display = 'none';
+}
+
+// ---------------------------------------------------------------------------
+// Firmar revisión
+// ---------------------------------------------------------------------------
+function buildPinGrid(container) {
+    container.innerHTML = '';
+    const inputs = [];
+    for (let i = 0; i < 6; i++) {
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.inputMode = 'numeric';
+        inp.maxLength = 1;
+        inp.autocomplete = 'off';
+        container.appendChild(inp);
+        inputs.push(inp);
+    }
+    inputs.forEach((inp, idx) => {
+        inp.addEventListener('input', () => {
+            inp.value = inp.value.replace(/[^0-9]/g, '').slice(0, 1);
+            if (inp.value && idx < inputs.length - 1) inputs[idx + 1].focus();
+        });
+        inp.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !inp.value && idx > 0) inputs[idx - 1].focus();
+        });
+    });
+    return inputs;
+}
+
+let signPinInputs = [];
+
+function openSignModal() {
+    const err = document.getElementById('sign-error');
+    err.textContent = ''; err.classList.remove('visible');
+    signPinInputs = buildPinGrid(document.getElementById('sign-pin-grid'));
+    document.getElementById('sign-backdrop').style.display = 'flex';
+    signPinInputs[0].focus();
+}
+function closeSignModal() {
+    document.getElementById('sign-backdrop').style.display = 'none';
+}
+
+async function submitSignReview() {
+    const err = document.getElementById('sign-error');
+    err.textContent = ''; err.classList.remove('visible');
+
+    const pin = signPinInputs.map(i => i.value).join('');
+    if (pin.length !== 6) {
+        err.textContent = 'Completá los 6 dígitos del PIN.';
+        err.classList.add('visible');
+        return;
+    }
+
+    const btn = document.getElementById('sign-submit');
+    btn.disabled = true;
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}/review-signatures`,
+        { method: 'POST', body: { pin } }
+    );
+    btn.disabled = false;
+
+    if (status === 200 && data.ok) {
+        closeSignModal();
+        showToast('Firma de revisión registrada');
+        await loadSignatures();
+        return;
+    }
+    if (status === 401) {
+        err.textContent = 'PIN incorrecto.';
+    } else {
+        err.textContent = data.error || 'No se pudo registrar la firma.';
+    }
+    err.classList.add('visible');
+}
+
+async function loadSignatures() {
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}/review-signatures`
+    );
+    if (status !== 200 || !data.ok) {
+        signersSummary.textContent = 'No se pudieron cargar las firmas.';
+        return;
+    }
+    const sigs = data.signatures || [];
+    if (sigs.length === 0) {
+        signersSummary.innerHTML = '<span>Todavía nadie firmó la revisión.</span>';
+        return;
+    }
+    signersSummary.innerHTML = '<strong>Firmaron:</strong> ' + sigs.map(s =>
+        `${escHtml(s.username)} — ${fmtDateTime(s.signed_at)}`
+    ).join(' &nbsp;|&nbsp; ');
+}
+
+init();
+</script>
+</body>
+</html>

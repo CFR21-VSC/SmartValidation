@@ -1,0 +1,6 @@
+# Python 3.11+
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic[email]>=2.6
+# Solo se importa cuando DATABASE_URL apunta a Postgres (Railway). Dev local usa SQLite stdlib.
+psycopg2-binary>=2.9

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Usuarios — Suite de Revisión y Firmas</title>
+<link rel="stylesheet" href="css/base.css">
+</head>
+<body>
+<div class="rf-topbar">
+    <a href="dashboard.html" style="text-decoration:none;"><div class="rf-brand">Suite de Revisión y Firmas</div></a>
+    <span class="rf-badge" id="user-badge">…</span>
+    <div class="rf-spacer"></div>
+    <button class="rf-btn-secondary" id="back-btn">Volver al dashboard</button>
+    <button class="rf-btn-secondary" id="logout-btn">Cerrar sesión</button>
+</div>
+
+<div class="rf-main">
+    <div class="rf-card" style="max-width:560px; margin-bottom:28px;">
+        <h3 style="margin-top:0;">Crear usuario</h3>
+        <form id="create-user-form">
+            <div class="rf-field">
+                <label class="rf-label" for="new-email">Email</label>
+                <input class="rf-input" type="email" id="new-email" required>
+            </div>
+            <div class="rf-field">
+                <label class="rf-label" for="new-name">Nombre</label>
+                <input class="rf-input" type="text" id="new-name" required>
+            </div>
+            <div class="rf-field">
+                <label class="rf-label" for="new-role">Rol</label>
+                <select class="rf-select" id="new-role">
+                    <option value="drp">DRP</option>
+                    <option value="cliente">Cliente</option>
+                </select>
+            </div>
+            <button type="submit" class="rf-btn" id="create-user-submit">Crear usuario</button>
+            <div class="rf-error" id="create-user-error"></div>
+        </form>
+
+        <div id="invite-link-box" style="display:none; margin-top:16px;">
+            <label class="rf-label">Link de invitación (ya fue enviado por email, pero podés copiarlo/reenviarlo)</label>
+            <input class="rf-input" id="invite-link-input" readonly onclick="this.select();">
+        </div>
+    </div>
+
+    <h3>Usuarios</h3>
+    <table class="rf-table">
+        <thead>
+            <tr>
+                <th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th>
+                <th>PIN</th><th>Último login</th><th>Accesos</th>
+            </tr>
+        </thead>
+        <tbody id="users-tbody"></tbody>
+    </table>
+    <div class="rf-empty" id="users-empty" style="display:none;">No hay usuarios.</div>
+</div>
+
+<!-- Modal: gestionar accesos -->
+<div class="rf-modal-backdrop" id="grants-backdrop" style="display:none;">
+    <div class="rf-modal" style="width:min(640px, 92vw);">
+        <h3 id="grants-title">Gestionar accesos</h3>
+        <div class="rf-label" style="margin-bottom:12px;">
+            Otorgar acceso a un documento puntual (proyecto + tipo de documento específicos —
+            no acceso a todo el proyecto).
+        </div>
+
+        <form id="add-grant-form" style="display:flex; gap:8px; align-items:flex-end; margin-bottom:18px;">
+            <div class="rf-field" style="margin-bottom:0; flex:1;">
+                <label class="rf-label" for="grant-project">Proyecto</label>
+                <input class="rf-input" id="grant-project" placeholder="Ej: EMQC-001" required>
+            </div>
+            <div class="rf-field" style="margin-bottom:0; flex:1;">
+                <label class="rf-label" for="grant-doctype">Tipo de documento</label>
+                <input class="rf-input" id="grant-doctype" placeholder="Ej: URS" required>
+            </div>
+            <button type="submit" class="rf-btn" style="white-space:nowrap;">Otorgar</button>
+        </form>
+        <div class="rf-error" id="add-grant-error"></div>
+
+        <div style="max-height:40vh; overflow-y:auto;">
+            <table class="rf-table" id="grants-table">
+                <thead>
+                    <tr><th>Proyecto</th><th>Documento</th><th>Otorgado</th><th>Fecha</th><th></th></tr>
+                </thead>
+                <tbody id="grants-tbody"></tbody>
+            </table>
+            <div class="rf-empty" id="grants-empty" style="display:none;">Este usuario todavía no tiene accesos.</div>
+        </div>
+
+        <div style="margin-top:16px; text-align:right;">
+            <button class="rf-btn-secondary" id="grants-close">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+let session = null;
+let currentGrantUserId = null;
+
+document.getElementById('back-btn').addEventListener('click', () => window.location.href = 'dashboard.html');
+document.getElementById('logout-btn').addEventListener('click', doLogout);
+document.getElementById('create-user-form').addEventListener('submit', onCreateUserSubmit);
+document.getElementById('grants-close').addEventListener('click', closeGrantsModal);
+document.getElementById('grants-backdrop').addEventListener('click', (e) => {
+    if (e.target.id === 'grants-backdrop') closeGrantsModal();
+});
+document.getElementById('add-grant-form').addEventListener('submit', onAddGrantSubmit);
+
+async function init() {
+    session = await requireSession();
+    if (!session) return;
+
+    if (session.role !== 'drp') {
+        showToast('No tenés permiso', true);
+        window.location.href = 'dashboard.html';
+        return;
+    }
+
+    document.getElementById('user-badge').textContent = `${session.display_name} · DRP`;
+    await loadUsers();
+}
+
+async function loadUsers() {
+    const { status, data } = await apiFetch('/users');
+    const tbody = document.getElementById('users-tbody');
+    const empty = document.getElementById('users-empty');
+
+    if (status !== 200 || !data.ok) {
+        tbody.innerHTML = '';
+        empty.textContent = 'No se pudo cargar la lista de usuarios.';
+        empty.style.display = 'block';
+        return;
+    }
+
+    const users = data.users || [];
+    if (users.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+    }
+    empty.style.display = 'none';
+
+    tbody.innerHTML = users.map(u => `
+        <tr>
+            <td>${escHtml(u.display_name)}</td>
+            <td>${escHtml(u.email)}</td>
+            <td>${u.role === 'drp' ? 'DRP' : 'Cliente'}</td>
+            <td><span class="rf-status-dot ${u.is_active ? 'on' : 'off'}"></span>${u.is_active ? 'Activo' : 'Inactivo'}</td>
+            <td>${u.pin_set ? 'Sí' : 'No'}</td>
+            <td>${fmtDateTime(u.last_login)}</td>
+            <td><button class="rf-btn-secondary manage-grants-btn" data-id="${u.id}" data-name="${escHtml(u.display_name)}">Gestionar accesos</button></td>
+        </tr>
+    `).join('');
+
+    tbody.querySelectorAll('.manage-grants-btn').forEach(btn => {
+        btn.addEventListener('click', () => openGrantsModal(btn.dataset.id, btn.dataset.name));
+    });
+}
+
+async function onCreateUserSubmit(e) {
+    e.preventDefault();
+    const errorBox = document.getElementById('create-user-error');
+    errorBox.classList.remove('visible');
+    errorBox.textContent = '';
+    document.getElementById('invite-link-box').style.display = 'none';
+
+    const email = document.getElementById('new-email').value.trim();
+    const display_name = document.getElementById('new-name').value.trim();
+    const role = document.getElementById('new-role').value;
+
+    const submitBtn = document.getElementById('create-user-submit');
+    submitBtn.disabled = true;
+    const { status, data } = await apiFetch('/users', {
+        method: 'POST',
+        body: { email, display_name, role },
+    });
+    submitBtn.disabled = false;
+
+    if (status === 200 && data.ok) {
+        showToast('Usuario creado — invitación enviada');
+        document.getElementById('create-user-form').reset();
+        if (data.invite_link) {
+            document.getElementById('invite-link-input').value = data.invite_link;
+            document.getElementById('invite-link-box').style.display = 'block';
+        }
+        await loadUsers();
+        return;
+    }
+
+    if (status === 409) {
+        errorBox.textContent = 'Ya existe un usuario con ese email.';
+    } else if (status === 400) {
+        errorBox.textContent = data.error || 'Rol inválido.';
+    } else {
+        errorBox.textContent = data.error || 'No se pudo crear el usuario.';
+    }
+    errorBox.classList.add('visible');
+}
+
+async function openGrantsModal(userId, userName) {
+    currentGrantUserId = userId;
+    document.getElementById('grants-title').textContent = `Gestionar accesos — ${userName}`;
+    document.getElementById('add-grant-form').reset();
+    document.getElementById('add-grant-error').classList.remove('visible');
+    document.getElementById('grants-backdrop').style.display = 'flex';
+    await loadGrants();
+}
+
+function closeGrantsModal() {
+    document.getElementById('grants-backdrop').style.display = 'none';
+    currentGrantUserId = null;
+}
+
+async function loadGrants() {
+    if (!currentGrantUserId) return;
+    const { status, data } = await apiFetch(`/users/${currentGrantUserId}/grants`);
+    const tbody = document.getElementById('grants-tbody');
+    const empty = document.getElementById('grants-empty');
+
+    if (status !== 200 || !data.ok) {
+        tbody.innerHTML = '';
+        empty.textContent = 'No se pudieron cargar los accesos.';
+        empty.style.display = 'block';
+        return;
+    }
+
+    const grants = data.grants || [];
+    if (grants.length === 0) {
+        tbody.innerHTML = '';
+        empty.style.display = 'block';
+        return;
+    }
+    empty.style.display = 'none';
+
+    tbody.innerHTML = grants.map(g => `
+        <tr>
+            <td>${escHtml(g.project_id)}</td>
+            <td>${escHtml(g.doc_type)}</td>
+            <td>${escHtml(g.granted_by)}</td>
+            <td>${fmtDateTime(g.granted_at)}</td>
+            <td><button class="rf-btn-danger revoke-grant-btn" data-id="${g.id}">Revocar</button></td>
+        </tr>
+    `).join('');
+
+    tbody.querySelectorAll('.revoke-grant-btn').forEach(btn => {
+        btn.addEventListener('click', () => revokeGrant(btn.dataset.id));
+    });
+}
+
+async function onAddGrantSubmit(e) {
+    e.preventDefault();
+    const errorBox = document.getElementById('add-grant-error');
+    errorBox.classList.remove('visible');
+    errorBox.textContent = '';
+
+    const project_id = document.getElementById('grant-project').value.trim();
+    const doc_type = document.getElementById('grant-doctype').value.trim();
+
+    if (!currentGrantUserId) return;
+
+    const { status, data } = await apiFetch(`/users/${currentGrantUserId}/grants`, {
+        method: 'POST',
+        body: { project_id, doc_type },
+    });
+
+    if (status === 200 && data.ok) {
+        document.getElementById('add-grant-form').reset();
+        await loadGrants();
+        showToast('Acceso otorgado');
+        return;
+    }
+
+    errorBox.textContent = data.error || 'No se pudo otorgar el acceso.';
+    errorBox.classList.add('visible');
+}
+
+async function revokeGrant(grantId) {
+    if (!currentGrantUserId) return;
+    const { status, data } = await apiFetch(`/users/${currentGrantUserId}/grants/${grantId}`, {
+        method: 'DELETE',
+    });
+    if (status === 200 && data.ok) {
+        showToast('Acceso revocado');
+        await loadGrants();
+    } else {
+        showToast(data.error || 'No se pudo revocar el acceso.', true);
+    }
+}
+
+init();
+</script>
+</body>
+</html>

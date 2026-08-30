@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Suite de Revisión y Firmas</title>
+<link rel="stylesheet" href="css/base.css">
+</head>
+<body>
+<div class="rf-topbar">
+    <div class="rf-brand">Suite de Revisión y Firmas</div>
+    <span class="rf-badge" id="user-badge">…</span>
+    <div class="rf-spacer"></div>
+    <button class="rf-btn-secondary" id="users-link" style="display:none;">Usuarios</button>
+    <button class="rf-btn-secondary" id="logout-btn">Cerrar sesión</button>
+</div>
+
+<div class="rf-layout">
+    <div class="rf-sidebar">
+        <div class="rf-label" style="margin-bottom:10px;">Proyectos</div>
+        <div id="project-list"></div>
+    </div>
+
+    <div class="rf-main" id="main-content">
+        <div class="rf-empty">Seleccioná un proyecto de la izquierda.</div>
+    </div>
+</div>
+
+<!-- Modal: People Book -->
+<div class="rf-modal-backdrop" id="pb-backdrop" style="display:none;">
+    <div class="rf-modal" style="width:min(720px, 92vw);">
+        <h3 id="pb-title">People Book</h3>
+        <div style="max-height:60vh; overflow-y:auto;">
+            <table class="rf-table" id="pb-table">
+                <thead>
+                    <tr><th>Fecha</th><th>Usuario</th><th>Evento</th><th>Descripción</th></tr>
+                </thead>
+                <tbody id="pb-tbody"></tbody>
+            </table>
+            <div class="rf-empty" id="pb-empty" style="display:none;">Sin eventos registrados.</div>
+        </div>
+        <div style="margin-top:16px; text-align:right;">
+            <button class="rf-btn-secondary" id="pb-close">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+let session = null;
+let projects = [];
+let selectedProject = null;
+let currentDocuments = [];
+let showLoadForm = false;
+
+const projectListEl = document.getElementById('project-list');
+const mainEl = document.getElementById('main-content');
+const usersLinkEl = document.getElementById('users-link');
+const userBadgeEl = document.getElementById('user-badge');
+
+document.getElementById('logout-btn').addEventListener('click', doLogout);
+usersLinkEl.addEventListener('click', () => { window.location.href = 'users.html'; });
+document.getElementById('pb-close').addEventListener('click', closePeopleBook);
+document.getElementById('pb-backdrop').addEventListener('click', (e) => {
+    if (e.target.id === 'pb-backdrop') closePeopleBook();
+});
+
+async function init() {
+    session = await requireSession();
+    if (!session) return;
+
+    userBadgeEl.textContent = `${session.display_name} · ${session.role === 'drp' ? 'DRP' : 'Cliente'}`;
+    if (session.role === 'drp') {
+        usersLinkEl.style.display = '';
+    }
+
+    await loadProjects();
+}
+
+async function loadProjects() {
+    const { status, data } = await apiFetch('/projects');
+    if (status === 200 && data.ok) {
+        projects = data.projects || [];
+    } else {
+        projects = [];
+    }
+    renderProjectList();
+}
+
+function renderProjectList() {
+    if (projects.length === 0) {
+        projectListEl.innerHTML = '<div class="rf-empty" style="padding:20px 4px;">No hay proyectos.</div>';
+        return;
+    }
+    projectListEl.innerHTML = projects.map(p => `
+        <div class="rf-project-item" data-project="${escHtml(p)}"
+             style="padding:10px 12px; border-radius:6px; cursor:pointer; margin-bottom:4px;
+                    ${p === selectedProject ? 'background:rgba(200,146,26,.15); color:var(--gold);' : 'color:var(--text);'}">
+            ${escHtml(p)}
+        </div>
+    `).join('');
+
+    projectListEl.querySelectorAll('.rf-project-item').forEach(el => {
+        el.addEventListener('click', () => selectProject(el.dataset.project));
+    });
+}
+
+async function selectProject(projectId) {
+    selectedProject = projectId;
+    showLoadForm = false;
+    renderProjectList();
+    await loadDocuments();
+}
+
+async function loadDocuments() {
+    if (!selectedProject) return;
+    const { status, data } = await apiFetch(`/projects/${encodeURIComponent(selectedProject)}/documents`);
+    if (status === 200 && data.ok) {
+        currentDocuments = data.documents || [];
+    } else {
+        currentDocuments = [];
+    }
+    renderMain();
+}
+
+function renderMain() {
+    if (!selectedProject) {
+        mainEl.innerHTML = '<div class="rf-empty">Seleccioná un proyecto de la izquierda.</div>';
+        return;
+    }
+
+    let html = '';
+
+    html += `<div style="display:flex; align-items:center; margin-bottom:18px;">
+        <h2 style="margin:0; flex:1;">${escHtml(selectedProject)}</h2>`;
+    if (session.role === 'drp') {
+        html += `<button class="rf-btn" id="toggle-load-form">${showLoadForm ? 'Cerrar' : '+ Cargar documento'}</button>`;
+    }
+    html += `</div>`;
+
+    if (session.role === 'drp' && showLoadForm) {
+        html += renderLoadForm();
+    }
+
+    html += renderDocumentsTable();
+
+    mainEl.innerHTML = html;
+
+    if (session.role === 'drp') {
+        const toggleBtn = document.getElementById('toggle-load-form');
+        if (toggleBtn) toggleBtn.addEventListener('click', () => { showLoadForm = !showLoadForm; renderMain(); });
+
+        const loadForm = document.getElementById('load-doc-form');
+        if (loadForm) loadForm.addEventListener('submit', onLoadDocumentSubmit);
+
+        mainEl.querySelectorAll('.pb-open-btn').forEach(btn => {
+            btn.addEventListener('click', () => openPeopleBook(btn.dataset.doctype));
+        });
+    }
+}
+
+function renderLoadForm() {
+    return `
+    <div class="rf-card" style="margin-bottom:20px;">
+        <div class="rf-label" style="font-size:13px; margin-bottom:14px; color:var(--text);">
+            Cargar / reemplazar documento en <strong>${escHtml(selectedProject)}</strong>
+        </div>
+        <form id="load-doc-form">
+            <div class="rf-field">
+                <label class="rf-label" for="doc-type-input">Tipo de documento</label>
+                <input class="rf-input" id="doc-type-input" placeholder="Ej: HLRA, URS, FRS…" required>
+            </div>
+            <div class="rf-field">
+                <label class="rf-label" for="doc-json-input">Contenido JSON del documento</label>
+                <textarea class="rf-textarea" id="doc-json-input" style="min-height:180px; font-family:monospace;"
+                          placeholder='{ "...": "..." }' required></textarea>
+            </div>
+            <button type="submit" class="rf-btn" id="load-doc-submit">Guardar documento</button>
+            <div class="rf-error" id="load-doc-error"></div>
+        </form>
+    </div>`;
+}
+
+function renderDocumentsTable() {
+    if (currentDocuments.length === 0) {
+        return '<div class="rf-empty">Este proyecto todavía no tiene documentos.</div>';
+    }
+
+    const rows = currentDocuments.map(doc => {
+        const sealed = !!doc.locked;
+        const dotClass = sealed ? 'on' : 'off';
+        const statusLabel = sealed ? 'Sellado' : (doc.status || 'draft');
+
+        let actions = `<a href="review.html?project=${encodeURIComponent(selectedProject)}&doc=${encodeURIComponent(doc.doc_type)}" class="rf-btn-secondary" style="text-decoration:none; display:inline-block;">Revisar</a>`;
+
+        if (session.role === 'drp') {
+            actions += ` <a href="approval.html?project=${encodeURIComponent(selectedProject)}&doc=${encodeURIComponent(doc.doc_type)}" class="rf-btn-secondary" style="text-decoration:none; display:inline-block;">Aprobación</a>`;
+            actions += ` <button class="rf-btn-secondary pb-open-btn" data-doctype="${escHtml(doc.doc_type)}">People Book</button>`;
+        }
+
+        return `<tr>
+            <td>${escHtml(doc.doc_type)}</td>
+            <td><span class="rf-status-dot ${dotClass}"></span>${escHtml(statusLabel)}</td>
+            <td>${fmtDateTime(doc.updated_at)}</td>
+            <td style="white-space:nowrap;">${actions}</td>
+        </tr>`;
+    }).join('');
+
+    return `
+    <table class="rf-table">
+        <thead>
+            <tr><th>Documento</th><th>Estado</th><th>Actualizado</th><th>Acciones</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+    </table>`;
+}
+
+async function onLoadDocumentSubmit(e) {
+    e.preventDefault();
+    const errorBox = document.getElementById('load-doc-error');
+    errorBox.classList.remove('visible');
+    errorBox.textContent = '';
+
+    const docType = document.getElementById('doc-type-input').value.trim();
+    const rawJson = document.getElementById('doc-json-input').value;
+
+    if (!docType) {
+        errorBox.textContent = 'Ingresá un tipo de documento.';
+        errorBox.classList.add('visible');
+        return;
+    }
+
+    let parsed;
+    try {
+        parsed = JSON.parse(rawJson);
+    } catch (err) {
+        errorBox.textContent = 'JSON inválido';
+        errorBox.classList.add('visible');
+        return;
+    }
+
+    const submitBtn = document.getElementById('load-doc-submit');
+    submitBtn.disabled = true;
+
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(selectedProject)}/documents/${encodeURIComponent(docType)}`,
+        { method: 'PUT', body: { json_data: parsed } }
+    );
+
+    submitBtn.disabled = false;
+
+    if (status === 200 && data.ok) {
+        showToast('Documento guardado');
+        showLoadForm = false;
+        await loadProjects();
+        await loadDocuments();
+        return;
+    }
+
+    if (status === 409) {
+        errorBox.textContent = 'Este documento ya está sellado y no puede modificarse.';
+    } else {
+        errorBox.textContent = data.error || 'No se pudo guardar el documento.';
+    }
+    errorBox.classList.add('visible');
+}
+
+async function openPeopleBook(docType) {
+    document.getElementById('pb-title').textContent = `People Book — ${selectedProject} / ${docType}`;
+    document.getElementById('pb-tbody').innerHTML = '';
+    document.getElementById('pb-empty').style.display = 'none';
+    document.getElementById('pb-backdrop').style.display = 'flex';
+
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(selectedProject)}/documents/${encodeURIComponent(docType)}/people-book`
+    );
+
+    if (status === 200 && data.ok) {
+        const events = data.events || [];
+        if (events.length === 0) {
+            document.getElementById('pb-empty').style.display = 'block';
+        } else {
+            document.getElementById('pb-tbody').innerHTML = events.map(ev => `
+                <tr>
+                    <td>${fmtDateTime(ev.created_at)}</td>
+                    <td>${escHtml(ev.username)}</td>
+                    <td>${escHtml(ev.event_type)}</td>
+                    <td>${escHtml(ev.description)}</td>
+                </tr>
+            `).join('');
+        }
+    } else {
+        document.getElementById('pb-empty').textContent = 'No se pudo cargar el People Book.';
+        document.getElementById('pb-empty').style.display = 'block';
+    }
+}
+
+function closePeopleBook() {
+    document.getElementById('pb-backdrop').style.display = 'none';
+}
+
+init();
+</script>
+</body>
+</html>
