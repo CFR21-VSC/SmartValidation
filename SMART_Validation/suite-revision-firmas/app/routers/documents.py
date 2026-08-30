@@ -94,7 +94,7 @@ def get_document(project_id: str, doc_type: str, user: dict = Depends(get_curren
     db = get_db()
     doc = _get_document_or_404(db, project_id, doc_type)
     corrections = db.execute(
-        "SELECT section_key, content, updated_by, updated_at FROM rf_section_corrections "
+        "SELECT section_key, content, resolved, updated_by, updated_at FROM rf_section_corrections "
         "WHERE document_id=? ORDER BY section_key",
         (doc["id"],),
     ).fetchall()

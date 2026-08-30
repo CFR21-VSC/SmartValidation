@@ -142,9 +142,9 @@ def accept_invite(token: str, body: AcceptInviteBody, response: Response):
 
     now = time.time()
     db.execute(
-        "UPDATE rf_users SET password_hash=?, pin_hash=?, pin_set=1, is_active=1, updated_at=? "
-        "WHERE id=?",
-        (security.pbkdf2_hash(body.password), security.pbkdf2_hash(body.pin), now, u["id"]),
+        "UPDATE rf_users SET password_hash=?, pin_hash=?, pin_set=1, is_active=1, "
+        "last_login=?, updated_at=? WHERE id=?",
+        (security.pbkdf2_hash(body.password), security.pbkdf2_hash(body.pin), now, now, u["id"]),
     )
     db.execute("UPDATE rf_invites SET consumed_at=? WHERE token=?", (now, token))
     db.commit()

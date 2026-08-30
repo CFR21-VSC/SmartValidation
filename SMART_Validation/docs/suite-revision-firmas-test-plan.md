@@ -157,6 +157,30 @@ tenía `secciones`/`sections` — visible para cualquiera con acceso, incluido c
 "Técnico" es exclusivo de la Suite de Validación por regla de diseño (sección 4). Corregido:
 reemplazado por un renderer genérico (tabla/lista) que nunca emite sintaxis JSON.
 
+**Ronda de QA end-to-end #2 (2026-08-29, Claude en Chrome) — bugs reales encontrados y corregidos:**
+1. **Bloqueo crítico**: no había forma de crear el primer proyecto/documento desde la UI — el
+   formulario de carga solo aparecía con un proyecto ya seleccionado, y no existía un "crear
+   proyecto". Agregado botón "+ Nuevo" en la sidebar del dashboard.
+2. **Exposición de JSON crudo, dos focos más** (además del ya corregido en la ronda #1): la tabla
+   de metadata y `getSectionContentText` caían a `JSON.stringify(...)` cuando un valor no era
+   texto plano — visible para cliente. Ambos reemplazados por `renderPlainObject`.
+3. **Estado "resuelta" no llegaba al cliente**: `GET .../documents/{doc_type}` no incluía la
+   columna `resolved` en las correcciones (sí la incluía el endpoint separado `/corrections`, que
+   la UI no usa). El cliente veía "Pendiente" aunque DRP ya la había marcado resuelta — pudo
+   firmar igual porque el backend sí lo tenía correcto, pero la UI mentía. Corregido agregando la
+   columna al SELECT.
+4. **`last_login` quedaba `null`** después de activar una invitación (el auto-login del accept no
+   lo registraba, solo el login por formulario). Corregido: activar cuenta cuenta como primer
+   acceso.
+5. Un test propio (`test_invite_accept_full_flow`) tenía el mismo bug de cookie compartida ya
+   visto en la ronda #1 (reusaba `client`/`drp_client` como si fuera un tercer usuario anónimo) —
+   corregido con un `TestClient` independiente.
+
+**Circuito de firma/aprobación/sellado verificado de punta a punta manualmente** (revisión con dos
+firmantes → ronda de aprobación con orden → sellado con PDF adjunto → inmutabilidad confirmada
+con un PUT directo devolviendo 409). Validación de PIN contra el backend confirmada (rechazó un
+PIN incorrecto).
+
 **Pendiente (no cubierto en esta fase):**
 - Tests de UI automatizados (Playwright u otro) que efectivamente carguen las páginas en un
   navegador y validen el DOM/flujos de click — la verificación de esta fase fue: sintaxis JS +

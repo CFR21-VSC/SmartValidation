@@ -333,7 +333,9 @@ function getSectionContentText(sectionObj) {
     if (!sectionObj || typeof sectionObj !== 'object') return '';
     const val = sectionObj.contenido ?? sectionObj.content ?? sectionObj.texto;
     if (val === undefined) return '';
-    return typeof val === 'string' ? val : JSON.stringify(val, null, 2);
+    // Nunca devolvemos JSON crudo acá — si el valor no es texto plano, el llamador
+    // (renderSource) cae al renderer genérico renderPlainObject sobre la sección completa.
+    return typeof val === 'string' ? val : '';
 }
 
 function applyCorrectionToSection(sectionObj, correctionContent) {
@@ -435,7 +437,8 @@ function renderSource() {
         html += '<table class="rf-table rv-meta-table"><tbody>';
         Object.keys(jsonData.metadata).forEach(k => {
             const v = jsonData.metadata[k];
-            html += `<tr><th style="width:180px;">${escHtml(k)}</th><td>${escHtml(typeof v === 'string' ? v : JSON.stringify(v))}</td></tr>`;
+            const metaCell = (v && typeof v === 'object') ? renderPlainObject(v) : escHtml(String(v ?? ''));
+            html += `<tr><th style="width:180px;">${escHtml(k)}</th><td>${metaCell}</td></tr>`;
         });
         html += '</tbody></table>';
     }

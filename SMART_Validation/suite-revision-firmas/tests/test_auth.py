@@ -1,4 +1,7 @@
 """Tests de login, sesión, y aceptación de invitación (Capa 1)."""
+from fastapi.testclient import TestClient
+
+from app.main import app
 
 
 def test_login_ok(client, superadmin_creds):
@@ -57,7 +60,9 @@ def test_invite_accept_full_flow(client, drp_client):
     invite_link = created.json()["invite_link"]
     token = invite_link.split("token=")[-1]
 
-    anon = client  # mismo TestClient, pero sin cookie de sesión propia (usamos otro flujo)
+    # TestClient propio: si reusara drp_client/client, aceptar la invitación pisaría la
+    # cookie de sesión de DRP en el mismo objeto (mismo bug ya visto en test_documents.py).
+    anon = TestClient(app)
     info = anon.get(f"/invite/{token}")
     assert info.status_code == 200
     assert info.json()["email"] == "cliente1@example.com"
@@ -65,6 +70,11 @@ def test_invite_accept_full_flow(client, drp_client):
     accepted = anon.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "1234"})
     assert accepted.status_code == 200, accepted.text
     assert accepted.json()["role"] == "cliente"
+
+    # Activar la cuenta cuenta como el primer acceso real (evita last_login=null en auditoría).
+    listed = drp_client.get("/users").json()["users"]
+    activated = next(u for u in listed if u["email"] == "cliente1@example.com")
+    assert activated["last_login"] is not None
 
     # El token ya fue consumido — no se puede reusar
     reused = anon.post(f"/invite/{token}/accept", json={"password": "otraClave123", "pin": "5678"})

@@ -112,6 +112,17 @@ def test_correction_overwrite_same_section_does_not_duplicate(drp_client):
     assert corr[0]["content"] == "v2"
 
 
+def test_get_document_includes_resolved_flag_in_corrections(drp_client):
+    drp_client.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    drp_client.put("/projects/proj-1/documents/HLRA/sections/proposito", json={"content": "v1"})
+    doc = drp_client.get("/projects/proj-1/documents/HLRA").json()
+    assert doc["corrections"][0]["resolved"] == 0
+
+    drp_client.patch("/projects/proj-1/documents/HLRA/sections/proposito/resolve")
+    doc2 = drp_client.get("/projects/proj-1/documents/HLRA").json()
+    assert doc2["corrections"][0]["resolved"] == 1
+
+
 def test_correction_does_not_touch_source_json(drp_client):
     drp_client.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     drp_client.put("/projects/proj-1/documents/HLRA/sections/proposito", json={"content": "corrección"})
