@@ -14,8 +14,9 @@ import time
 from . import config
 
 
-def pbkdf2_hash(plain: str, iters: int = 600_000) -> str:
+def pbkdf2_hash(plain: str, iters: int | None = None) -> str:
     """Formato: pbkdf2_sha256$iters$salt_hex$hash_hex. Sirve tanto para password como PIN."""
+    iters = config.PBKDF2_ITERS if iters is None else iters
     salt = secrets.token_bytes(16)
     dk = hashlib.pbkdf2_hmac("sha256", plain.encode(), salt, iters)
     return f"pbkdf2_sha256${iters}${salt.hex()}${dk.hex()}"

@@ -149,7 +149,8 @@ def test_list_projects_scoped_by_role(drp_client, cliente_client):
     drp_client.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
 
     drp_projects = drp_client.get("/projects").json()["projects"]
-    assert set(drp_projects) == {"proj-1", "proj-2"}
+    assert {p["id"] for p in drp_projects} == {"proj-1", "proj-2"}
+    assert all(p["status"] == "active" for p in drp_projects)
 
     cli_projects = cli.get("/projects").json()["projects"]
-    assert cli_projects == ["proj-1"]
+    assert [p["id"] for p in cli_projects] == ["proj-1"]

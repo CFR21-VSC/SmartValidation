@@ -1,0 +1,12 @@
+{
+  "type": "HLRA",
+  "metadata": {
+    "title": "Demo carga por archivo"
+  },
+  "secciones": [
+    {
+      "titulo": "Propósito",
+      "contenido": "Documento cargado eligiendo un archivo .json, no pegando texto."
+    }
+  ]
+}

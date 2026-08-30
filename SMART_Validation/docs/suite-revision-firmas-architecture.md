@@ -234,6 +234,18 @@ Son dos momentos de firma distintos, con reglas de orden distintas:
 - **Por ahora es una capa de datos, sin interfaz visual todavía** — se diseña la visualización
   más adelante.
 
+**Ampliado 2026-08-30 — dos audit trails separados, no uno solo:**
+- Este (`rf_people_book_events`) es el que se integra al Libro de Validación compilado. Se
+  mantiene acotado a eventos GxP del documento: cargado, corrección guardada/resuelta, firma,
+  sellado. Nada administrativo entra acá.
+- Se creó un segundo trail, totalmente separado: **audit trail de SISTEMA**
+  (`rf_system_audit_log`) — alta de usuarios, accesos otorgados/revocados, ciclo de vida de
+  proyectos/documentos (cerrar/archivar/eliminar). No se integra a ningún documento ni al libro —
+  es de uso interno de DRP para trazabilidad operativa. `GET /projects/{id}/audit-log`, DRP-only.
+- Por qué separarlos: mezclar "DRP eliminó el proyecto X" con "el documento se cargó/firmó" en el
+  mismo libro que puede terminar ante una auditoría regulatoria ensucia el registro GxP con ruido
+  operativo. Cada uno vive en su propia tabla, sin overlap.
+
 ## 7. Libro de Validación — Generación del Tomo I / Libro 1 (confirmado 2026-08-29)
 
 - Concepto central del proyecto, ya construido en la Suite de Validación (`book-builder.js`):
@@ -256,6 +268,16 @@ Son dos momentos de firma distintos, con reglas de orden distintas:
   del motor existente — ya están ajustadas, cero reinvención. Esta suite debe mostrar
   visualmente lo mismo que la Suite de Validación, con la diferencia de que se llena con las
   firmas reales generadas acá.
+
+**Implementado 2026-08-30 — cómo se conectan realmente las firmas al libro:** investigando
+`book-builder.js` se encontró el contrato exacto: el "Registro Maestro de Firmas" del libro NO lee
+de ninguna tabla externa — busca, **dentro del propio JSON de cada documento**, una sección con
+`tipo: 'tabla-firmas-final'` y lee su array `firmas` (`{rol, nombre, iniciales, fecha}`). Como
+nuestras firmas viven en tablas SQL separadas (`rf_review_signatures`, `rf_approval_signers`), el
+backend arma esa sección **al vuelo** al pedir el paquete del libro
+(`GET /projects/{id}/book-package`) — nunca se persiste esa inyección en `rf_documents.json_data`
+(el panel izquierdo del documento sigue siendo el JSON fuente puro, sin tocar). Solo se incluyen
+documentos **sellados** — el libro es un entregable de contenido definitivo, no de borradores.
 
 ## 8. Decisiones técnicas / stack
 
@@ -335,8 +357,27 @@ implementar salvo objeción.)*
   la matriz del doc, justification_text, pin verificado).
 - `people_book_events` — audit trail: autorizados, solicitudes de cambio, revisiones, firmas —
   todo con fecha/hora/evento descriptivo.
+- `projects` — ciclo de vida (`active`/`closed`/`archived`), agregado en Fase 5 (sección 10).
+- `system_audit_log` — audit trail de sistema, separado del People Book, agregado en Fase 5.
 
-## 9. Historial de decisiones
+## 9. Gestión de proyectos y documentos (confirmado 2026-08-30)
+
+DRP puede administrar el ciclo de vida completo, no solo cargar contenido:
+
+- **Cerrar** un proyecto — congela toda actividad (cargar, corregir, firmar) hasta reabrirlo.
+  Reversible.
+- **Archivar** — se oculta del listado por default (los datos no se borran). Reversible
+  (reabrir vuelve a `active`).
+- **Eliminar** un proyecto — borra el proyecto y todo su contenido (documentos, correcciones,
+  firmas, accesos). **Bloqueado si algún documento del proyecto ya está sellado** — la
+  inmutabilidad de un documento firmado no se salta borrando el proyecto entero.
+- **Eliminar** un documento puntual (no todo el proyecto) — mismo bloqueo por sellado.
+- El People Book de un proyecto/documento eliminado **no se borra** — queda como registro
+  histórico de que existió y fue eliminado. No se destruyen audit trails.
+- Todas estas acciones son DRP-only y quedan en el audit trail de **sistema** (sección 6), nunca
+  en el People Book del documento.
+
+## 10. Historial de decisiones
 
 - 2026-08-29: Confirmado — se construye de cero, suite separada, mismo despliegue.
 - 2026-08-29: Confirmado — comparten código pero sin retroalimentación (por ahora).
@@ -363,3 +404,16 @@ implementar salvo objeción.)*
   invitación apuntaba al endpoint JSON crudo en vez de a la página de activación. Pendiente:
   tests de UI en navegador (Playwright), botón de generación del Libro 1/Tomo I, verificación de
   Resend contra una cuenta real. Detalle completo en el plan de testing.
+- 2026-08-29/30: Ronda de QA end-to-end manual (Claude en Chrome) — bloqueo crítico corregido
+  (no se podía crear el primer proyecto/documento desde la UI), exposición de JSON crudo al
+  cliente en dos focos más, estado "resuelta" que no llegaba al cliente, `last_login` no
+  registrado en invitaciones, "Cargar documento" cambiado de textarea a selector de archivo,
+  numeración incoherente de secciones sin título, logo DRP ausente en "Ver PDF", ancho de columna
+  Fecha en Control de Cambios, y botón "Atrás" del navegador sacando de la app (mitigado en
+  ambos proyectos). Detalle completo en el plan de testing.
+- 2026-08-30: **Fase 5 implementada** — ciclo de vida de proyectos (cerrar/archivar/eliminar/
+  reabrir), borrado de documentos puntuales, dos audit trails separados (People Book vs. sistema),
+  y generación del Libro 1/Tomo I con inyección de firmas reales en la sección
+  `tabla-firmas-final` que espera `book-builder.js`. 66/66 tests pasando (suite completa bajada de
+  minutos a 9s optimizando iteraciones PBKDF2 en tests). Verificado con servidor real de punta a
+  punta. Detalle completo en el plan de testing.

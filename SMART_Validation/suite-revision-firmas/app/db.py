@@ -229,6 +229,8 @@ def reset_db_for_tests() -> None:
     """Solo para tests: vacía todas las tablas rf_* sin borrar el esquema."""
     db = get_db()
     for table in (
+        "rf_system_audit_log",
+        "rf_projects",
         "rf_people_book_events",
         "rf_approval_signers",
         "rf_approval_rounds",

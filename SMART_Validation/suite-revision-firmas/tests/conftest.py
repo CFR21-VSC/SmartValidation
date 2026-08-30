@@ -13,6 +13,9 @@ _TMP_DB.close()
 
 os.environ["RF_DB_PATH"] = _TMP_DB.name
 os.environ["RF_AUTH_SECRET_KEY"] = "test-secret-key"
+# 600k iteraciones (el default de producción) hace que una corrida completa tarde minutos —
+# los tests no están probando la fuerza del hashing, así que se baja drásticamente acá.
+os.environ["RF_PBKDF2_ITERS"] = "1000"
 os.environ["RF_SUPERADMIN_USERNAME"] = "fbongiovanni"
 os.environ["RF_SUPERADMIN_PASSWORD"] = "test-superadmin-pw-123"
 os.environ["RF_SUPERADMIN_EMAIL"] = "fbongiovanni@test.local"

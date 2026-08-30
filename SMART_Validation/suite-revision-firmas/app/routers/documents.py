@@ -14,9 +14,10 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from ..audit import log_event
+from ..audit import log_event, log_system_event
 from ..db import get_db
-from ..deps import check_document_access, get_current_user, require_drp
+from ..deps import check_document_access, ensure_project_active, get_current_user, require_drp
+from .projects import ensure_project
 
 router = APIRouter(prefix="/projects/{project_id}/documents", tags=["documents"])
 
@@ -31,8 +32,10 @@ class CorrectionBody(BaseModel):
 
 @router.put("/{doc_type}")
 def load_document(project_id: str, doc_type: str, body: LoadDocumentBody, user: dict = Depends(require_drp)):
-    """DRP carga (o reemplaza) el JSON fuente. Rechaza si el documento ya está sellado/inmutable."""
+    """DRP carga (o reemplaza) el JSON fuente. Rechaza si el documento ya está sellado/inmutable
+    o si el proyecto está cerrado/archivado."""
     db = get_db()
+    ensure_project_active(db, project_id)
     existing = db.execute(
         "SELECT id, locked FROM rf_documents WHERE project_id=? AND doc_type=?", (project_id, doc_type)
     ).fetchone()
@@ -53,9 +56,27 @@ def load_document(project_id: str, doc_type: str, body: LoadDocumentBody, user: 
             "VALUES (?,?,?,?,?,?,?)",
             (doc_id, project_id, doc_type, json.dumps(body.json_data), user["u"], now, now),
         )
+    ensure_project(db, project_id, user["u"])
     db.commit()
     log_event(project_id, doc_type, user, "document_loaded", f"{user['u']} cargó {doc_type}")
     return {"ok": True, "document_id": doc_id}
+
+
+@router.delete("/{doc_type}")
+def delete_document(project_id: str, doc_type: str, user: dict = Depends(require_drp)):
+    """Elimina un documento puntual (no el proyecto entero). Bloqueado si está sellado —
+    la inmutabilidad de un documento firmado no se salta borrándolo. El evento queda en
+    el audit trail de sistema, no en el People Book (ese es del ciclo GxP del documento,
+    no de acciones administrativas — sección 5 de la arquitectura)."""
+    db = get_db()
+    doc = _get_document_or_404(db, project_id, doc_type)
+    if doc["locked"]:
+        raise HTTPException(status.HTTP_409_CONFLICT, "El documento está sellado — no puede eliminarse")
+
+    db.execute("DELETE FROM rf_documents WHERE id=?", (doc["id"],))  # cascada: corrections/firmas
+    db.commit()
+    log_system_event(user, "document_deleted", f"{user['u']} eliminó {doc_type}", project_id=project_id, doc_type=doc_type)
+    return {"ok": True}
 
 
 @router.get("")
@@ -110,6 +131,7 @@ def save_correction(
     """Autoguardado del panel derecho. Nunca toca rf_documents.json_data."""
     check_document_access(user, project_id, doc_type)
     db = get_db()
+    ensure_project_active(db, project_id)
     doc = _get_document_or_404(db, project_id, doc_type)
     if doc["locked"]:
         raise HTTPException(status.HTTP_409_CONFLICT, "El documento está sellado — no admite correcciones")

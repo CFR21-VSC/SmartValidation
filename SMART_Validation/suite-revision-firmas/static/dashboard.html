@@ -29,6 +29,9 @@
             </div>
         </div>
         <div id="project-list"></div>
+        <label id="include-archived-label" style="display:none; align-items:center; gap:6px; margin-top:12px; font-size:11px; color:var(--text-muted); cursor:pointer;">
+            <input type="checkbox" id="include-archived-toggle"> Mostrar archivados
+        </label>
     </div>
 
     <div class="rf-main" id="main-content">
@@ -51,6 +54,42 @@
         </div>
         <div style="margin-top:16px; text-align:right;">
             <button class="rf-btn-secondary" id="pb-close">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Auditoría de sistema (separada del People Book — sección 5 de la arquitectura) -->
+<div class="rf-modal-backdrop" id="sys-backdrop" style="display:none;">
+    <div class="rf-modal" style="width:min(720px, 92vw);">
+        <h3>Auditoría de sistema — <span id="sys-title"></span></h3>
+        <div class="rf-label" style="margin-bottom:12px;">
+            Acciones administrativas (usuarios, accesos, ciclo de vida). No se integra al Libro
+            de Validación — para eso está el People Book, por documento.
+        </div>
+        <div style="max-height:60vh; overflow-y:auto;">
+            <table class="rf-table" id="sys-table">
+                <thead>
+                    <tr><th>Fecha</th><th>Usuario</th><th>Evento</th><th>Descripción</th></tr>
+                </thead>
+                <tbody id="sys-tbody"></tbody>
+            </table>
+            <div class="rf-empty" id="sys-empty" style="display:none;">Sin eventos registrados.</div>
+        </div>
+        <div style="margin-top:16px; text-align:right;">
+            <button class="rf-btn-secondary" id="sys-close">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: confirmación de acciones destructivas -->
+<div class="rf-modal-backdrop" id="confirm-backdrop" style="display:none;">
+    <div class="rf-modal" style="width:min(440px, 92vw);">
+        <h3 id="confirm-title">Confirmar</h3>
+        <p id="confirm-text" style="color:var(--text-muted); font-size:13px;"></p>
+        <div class="rf-error" id="confirm-error"></div>
+        <div style="margin-top:16px; display:flex; justify-content:flex-end; gap:10px;">
+            <button class="rf-btn-secondary" id="confirm-cancel">Cancelar</button>
+            <button class="rf-btn-danger" id="confirm-ok">Confirmar</button>
         </div>
     </div>
 </div>
@@ -96,6 +135,46 @@ document.getElementById('pb-close').addEventListener('click', closePeopleBook);
 document.getElementById('pb-backdrop').addEventListener('click', (e) => {
     if (e.target.id === 'pb-backdrop') closePeopleBook();
 });
+document.getElementById('sys-close').addEventListener('click', () => {
+    document.getElementById('sys-backdrop').style.display = 'none';
+});
+document.getElementById('sys-backdrop').addEventListener('click', (e) => {
+    if (e.target.id === 'sys-backdrop') document.getElementById('sys-backdrop').style.display = 'none';
+});
+
+const includeArchivedLabel = document.getElementById('include-archived-label');
+const includeArchivedToggle = document.getElementById('include-archived-toggle');
+includeArchivedToggle.addEventListener('change', loadProjects);
+
+// ── Modal genérica de confirmación (para acciones destructivas/irreversibles) ──
+let _confirmAction = null;
+function askConfirm(title, text, onConfirm) {
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-text').textContent = text;
+    document.getElementById('confirm-error').classList.remove('visible');
+    _confirmAction = onConfirm;
+    document.getElementById('confirm-backdrop').style.display = 'flex';
+}
+document.getElementById('confirm-cancel').addEventListener('click', () => {
+    document.getElementById('confirm-backdrop').style.display = 'none';
+});
+document.getElementById('confirm-backdrop').addEventListener('click', (e) => {
+    if (e.target.id === 'confirm-backdrop') document.getElementById('confirm-backdrop').style.display = 'none';
+});
+document.getElementById('confirm-ok').addEventListener('click', async () => {
+    if (!_confirmAction) return;
+    const btn = document.getElementById('confirm-ok');
+    btn.disabled = true;
+    const errorBox = document.getElementById('confirm-error');
+    const { status, data } = await _confirmAction();
+    btn.disabled = false;
+    if (status === 200 && data.ok) {
+        document.getElementById('confirm-backdrop').style.display = 'none';
+        return;
+    }
+    errorBox.textContent = data.error || 'No se pudo completar la acción.';
+    errorBox.classList.add('visible');
+});
 
 async function init() {
     session = await requireSession();
@@ -105,13 +184,15 @@ async function init() {
     if (session.role === 'drp') {
         usersLinkEl.style.display = '';
         newProjectBtn.style.display = '';
+        includeArchivedLabel.style.display = 'flex';
     }
 
     await loadProjects();
 }
 
 async function loadProjects() {
-    const { status, data } = await apiFetch('/projects');
+    const q = includeArchivedToggle.checked ? '?include_archived=true' : '';
+    const { status, data } = await apiFetch('/projects' + q);
     if (status === 200 && data.ok) {
         projects = data.projects || [];
     } else {
@@ -120,16 +201,22 @@ async function loadProjects() {
     renderProjectList();
 }
 
+function currentProjectStatus() {
+    const p = projects.find(p => p.id === selectedProject);
+    return p ? p.status : 'active';
+}
+
 function renderProjectList() {
     if (projects.length === 0) {
         projectListEl.innerHTML = '<div class="rf-empty" style="padding:20px 4px;">No hay proyectos.</div>';
         return;
     }
+    const statusLabel = { active: '', closed: ' · cerrado', archived: ' · archivado' };
     projectListEl.innerHTML = projects.map(p => `
-        <div class="rf-project-item" data-project="${escHtml(p)}"
+        <div class="rf-project-item" data-project="${escHtml(p.id)}"
              style="padding:10px 12px; border-radius:6px; cursor:pointer; margin-bottom:4px;
-                    ${p === selectedProject ? 'background:rgba(200,146,26,.15); color:var(--gold);' : 'color:var(--text);'}">
-            ${escHtml(p)}
+                    ${p.id === selectedProject ? 'background:rgba(200,146,26,.15); color:var(--gold);' : 'color:var(--text);'}">
+            ${escHtml(p.id)}<span style="color:var(--text-muted); font-size:11px;">${statusLabel[p.status] || ''}</span>
         </div>
     `).join('');
 
@@ -163,15 +250,30 @@ function renderMain() {
     }
 
     let html = '';
+    const pstatus = currentProjectStatus();
+    const isDrp = session.role === 'drp';
 
-    html += `<div style="display:flex; align-items:center; margin-bottom:18px;">
-        <h2 style="margin:0; flex:1;">${escHtml(selectedProject)}</h2>`;
-    if (session.role === 'drp') {
-        html += `<button class="rf-btn" id="toggle-load-form">${showLoadForm ? 'Cerrar' : '+ Cargar documento'}</button>`;
+    html += `<div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap;">
+        <h2 style="margin:0;">${escHtml(selectedProject)}</h2>
+        ${pstatus !== 'active' ? `<span class="rf-badge">${pstatus === 'closed' ? 'Cerrado' : 'Archivado'}</span>` : ''}
+        <div class="rf-spacer"></div>`;
+    if (isDrp) {
+        if (pstatus === 'active') {
+            html += `<button class="rf-btn-secondary" id="btn-close-project">Cerrar proyecto</button>`;
+            html += `<button class="rf-btn-secondary" id="btn-archive-project">Archivar</button>`;
+        } else {
+            html += `<button class="rf-btn-secondary" id="btn-reopen-project">Reabrir</button>`;
+        }
+        html += `<button class="rf-btn-secondary" id="btn-book1">📖 Generar Libro 1</button>`;
+        html += `<button class="rf-btn-secondary" id="btn-sys-audit">🛡 Auditoría</button>`;
+        html += `<button class="rf-btn-danger" id="btn-delete-project">Eliminar proyecto</button>`;
+        if (pstatus === 'active') {
+            html += `<button class="rf-btn" id="toggle-load-form">${showLoadForm ? 'Cerrar' : '+ Cargar documento'}</button>`;
+        }
     }
-    html += `</div>`;
+    html += `</div><div class="rf-error" id="project-action-error" style="margin-bottom:12px;"></div>`;
 
-    if (session.role === 'drp' && showLoadForm) {
+    if (isDrp && showLoadForm && pstatus === 'active') {
         html += renderLoadForm();
     }
 
@@ -179,7 +281,7 @@ function renderMain() {
 
     mainEl.innerHTML = html;
 
-    if (session.role === 'drp') {
+    if (isDrp) {
         const toggleBtn = document.getElementById('toggle-load-form');
         if (toggleBtn) toggleBtn.addEventListener('click', () => { showLoadForm = !showLoadForm; renderMain(); });
 
@@ -196,6 +298,51 @@ function renderMain() {
         mainEl.querySelectorAll('.pb-open-btn').forEach(btn => {
             btn.addEventListener('click', () => openPeopleBook(btn.dataset.doctype));
         });
+        mainEl.querySelectorAll('.delete-doc-btn').forEach(btn => {
+            btn.addEventListener('click', () => confirmDeleteDocument(btn.dataset.doctype));
+        });
+
+        const closeBtn = document.getElementById('btn-close-project');
+        if (closeBtn) closeBtn.addEventListener('click', () => askConfirm(
+            'Cerrar proyecto', `"${selectedProject}" quedará de solo lectura — nadie va a poder cargar, corregir ni firmar nada nuevo hasta que lo reabras.`,
+            async () => {
+                const r = await apiFetch(`/projects/${encodeURIComponent(selectedProject)}/close`, { method: 'PATCH' });
+                if (r.status === 200) { await loadProjects(); await loadDocuments(); }
+                return r;
+            }
+        ));
+        const archiveBtn = document.getElementById('btn-archive-project');
+        if (archiveBtn) archiveBtn.addEventListener('click', () => askConfirm(
+            'Archivar proyecto', `"${selectedProject}" se oculta de la lista por default (los datos no se borran, y podés reabrirlo cuando quieras).`,
+            async () => {
+                const r = await apiFetch(`/projects/${encodeURIComponent(selectedProject)}/archive`, { method: 'PATCH' });
+                if (r.status === 200) { await loadProjects(); await loadDocuments(); }
+                return r;
+            }
+        ));
+        const reopenBtn = document.getElementById('btn-reopen-project');
+        if (reopenBtn) reopenBtn.addEventListener('click', async () => {
+            const r = await apiFetch(`/projects/${encodeURIComponent(selectedProject)}/reopen`, { method: 'PATCH' });
+            if (r.status === 200 && r.data.ok) { showToast('Proyecto reabierto'); await loadProjects(); await loadDocuments(); }
+            else showToast(r.data.error || 'No se pudo reabrir', true);
+        });
+        const deleteProjectBtn = document.getElementById('btn-delete-project');
+        if (deleteProjectBtn) deleteProjectBtn.addEventListener('click', () => askConfirm(
+            'Eliminar proyecto', `Se borra "${selectedProject}" y TODO su contenido (documentos, correcciones, firmas, accesos). No se puede deshacer. Bloqueado si tiene algún documento sellado.`,
+            async () => {
+                const r = await apiFetch(`/projects/${encodeURIComponent(selectedProject)}`, { method: 'DELETE' });
+                if (r.status === 200) {
+                    selectedProject = null;
+                    await loadProjects();
+                    renderMain();
+                }
+                return r;
+            }
+        ));
+        const book1Btn = document.getElementById('btn-book1');
+        if (book1Btn) book1Btn.addEventListener('click', generateBook1);
+        const sysAuditBtn = document.getElementById('btn-sys-audit');
+        if (sysAuditBtn) sysAuditBtn.addEventListener('click', openSystemAudit);
     }
 }
 
@@ -240,6 +387,9 @@ function renderDocumentsTable() {
         if (session.role === 'drp') {
             actions += ` <a href="approval.html?project=${encodeURIComponent(selectedProject)}&doc=${encodeURIComponent(doc.doc_type)}" class="rf-btn-secondary" style="text-decoration:none; display:inline-block;">Aprobación</a>`;
             actions += ` <button class="rf-btn-secondary pb-open-btn" data-doctype="${escHtml(doc.doc_type)}">People Book</button>`;
+            if (!sealed) {
+                actions += ` <button class="rf-btn-danger delete-doc-btn" data-doctype="${escHtml(doc.doc_type)}">Eliminar</button>`;
+            }
         }
 
         return `<tr>
@@ -365,6 +515,127 @@ async function openPeopleBook(docType) {
 
 function closePeopleBook() {
     document.getElementById('pb-backdrop').style.display = 'none';
+}
+
+async function confirmDeleteDocument(docType) {
+    askConfirm(
+        'Eliminar documento', `Se borra ${docType} de "${selectedProject}" (JSON, correcciones, firmas). No se puede deshacer. Bloqueado si ya está sellado.`,
+        async () => {
+            const r = await apiFetch(
+                `/projects/${encodeURIComponent(selectedProject)}/documents/${encodeURIComponent(docType)}`,
+                { method: 'DELETE' }
+            );
+            if (r.status === 200) await loadDocuments();
+            return r;
+        }
+    );
+}
+
+async function openSystemAudit() {
+    document.getElementById('sys-title').textContent = selectedProject;
+    document.getElementById('sys-tbody').innerHTML = '';
+    document.getElementById('sys-empty').style.display = 'none';
+    document.getElementById('sys-backdrop').style.display = 'flex';
+
+    const { status, data } = await apiFetch(`/projects/${encodeURIComponent(selectedProject)}/audit-log`);
+    if (status === 200 && data.ok) {
+        const events = data.events || [];
+        if (events.length === 0) {
+            document.getElementById('sys-empty').style.display = 'block';
+        } else {
+            document.getElementById('sys-tbody').innerHTML = events.map(ev => `
+                <tr>
+                    <td>${fmtDateTime(ev.created_at)}</td>
+                    <td>${escHtml(ev.username)}</td>
+                    <td>${escHtml(ev.event_type)}</td>
+                    <td>${escHtml(ev.description)}</td>
+                </tr>
+            `).join('');
+        }
+    } else {
+        document.getElementById('sys-empty').textContent = 'No se pudo cargar la auditoría.';
+        document.getElementById('sys-empty').style.display = 'block';
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Generar Libro 1 / Tomo I — reusa el motor de render vendorizado tal cual
+// (mismo patrón que review.html / approval.html). Solo incluye documentos
+// sellados; el backend ya arma la sección de firmas en la forma que
+// book-builder.js espera (tabla-firmas-final).
+// ---------------------------------------------------------------------------
+let _engineScriptsLoaded = false;
+const ENGINE_SCRIPTS = [
+    'lib/pdfmake.min.js', 'lib/vfs_fonts.js',
+    'js/validation-suite/core/template-base.js',
+    'js/validation-suite/core/shared-renderers.js',
+    'js/validation-suite/core/document-renderer.js',
+    'js/validation-suite/core/book-builder.js',
+    'js/validation-suite/templates/_test.js',
+    'js/validation-suite/templates/hlra.js',
+    'js/validation-suite/templates/vp.js',
+    'js/validation-suite/templates/urs.js',
+    'js/validation-suite/templates/frs.js',
+    'js/validation-suite/templates/ds.js',
+    'js/validation-suite/templates/ra.js',
+    'js/validation-suite/templates/ira.js',
+    'js/validation-suite/templates/rrm.js',
+    'js/validation-suite/templates/mtr.js',
+    'js/validation-suite/templates/_iq-shared.js',
+    'js/validation-suite/templates/piq.js',
+    'js/validation-suite/templates/iiq.js',
+    'js/validation-suite/templates/poq.js',
+    'js/validation-suite/templates/ioq.js',
+    'js/validation-suite/templates/ppq.js',
+    'js/validation-suite/templates/ipq.js',
+    'js/validation-suite/templates/ncr.js',
+    'js/validation-suite/templates/vsr.js',
+    'js/validation-suite/templates/aex.js',
+    'js/validation-suite/templates/evra.js',
+    'js/validation-suite/templates/evprot.js',
+    'js/validation-suite/templates/evir.js',
+];
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('Error cargando ' + src));
+        document.head.appendChild(s);
+    });
+}
+async function ensureEngineLoaded() {
+    if (_engineScriptsLoaded) return;
+    for (const src of ENGINE_SCRIPTS) await loadScript(src);
+    _engineScriptsLoaded = true;
+}
+
+async function generateBook1() {
+    const btn = document.getElementById('btn-book1');
+    const errorBox = document.getElementById('project-action-error');
+    errorBox.classList.remove('visible');
+    btn.disabled = true;
+    btn.textContent = 'Generando…';
+    try {
+        const { status, data } = await apiFetch(`/projects/${encodeURIComponent(selectedProject)}/book-package`);
+        if (status !== 200 || !data.ok) throw new Error(data.error || 'No se pudo armar el paquete del libro.');
+        if (!data.documents.length) {
+            throw new Error('No hay documentos sellados en este proyecto todavía — el Libro de Validación solo incluye contenido definitivo y firmado.');
+        }
+        await ensureEngineLoaded();
+        await window.ValidationSuite.bookBuilder.generate(data.documents, { tomo: 1 });
+        if (data.skipped_not_sealed && data.skipped_not_sealed.length) {
+            showToast(`Libro generado. Quedaron afuera (sin sellar): ${data.skipped_not_sealed.join(', ')}`);
+        } else {
+            showToast('Libro de Validación generado');
+        }
+    } catch (e) {
+        errorBox.textContent = e.message || 'Error al generar el libro.';
+        errorBox.classList.add('visible');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '📖 Generar Libro 1';
+    }
 }
 
 init();

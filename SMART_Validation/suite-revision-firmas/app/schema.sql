@@ -133,3 +133,36 @@ CREATE TABLE IF NOT EXISTS rf_approval_signers (
 CREATE INDEX IF NOT EXISTS idx_rf_review_sig_doc ON rf_review_signatures(document_id);
 CREATE INDEX IF NOT EXISTS idx_rf_approval_rounds_doc ON rf_approval_rounds(document_id);
 CREATE INDEX IF NOT EXISTS idx_rf_approval_signers_round ON rf_approval_signers(round_id);
+
+-- Fase 5: proyectos (ciclo de vida) + dos audit trails separados.
+
+-- Un proyecto se crea implícitamente al cargar su primer documento (sigue sin existir un
+-- "crear proyecto" separado — sección 4), pero ahora necesita estado propio para poder
+-- cerrarse/archivarse/eliminarse como unidad.
+CREATE TABLE IF NOT EXISTS rf_projects (
+    id            TEXT PRIMARY KEY,
+    status        TEXT NOT NULL DEFAULT 'active',  -- 'active' | 'closed' | 'archived'
+    created_by    TEXT,
+    created_at    REAL,
+    updated_at    REAL,
+    closed_at     REAL,
+    archived_at   REAL
+);
+
+-- Audit trail de SISTEMA — acciones administrativas/operativas (alta de usuarios, accesos,
+-- ciclo de vida de proyectos/documentos). Deliberadamente separado del Libro de Validación
+-- (rf_people_book_events, sección 6): ese es el que se integra al libro compilado y solo
+-- contiene eventos GxP del documento (cargado, corrección, firma, sellado). Este de acá NO
+-- se integra a ningún documento — es de uso interno de DRP para trazabilidad operativa.
+CREATE TABLE IF NOT EXISTS rf_system_audit_log (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id       TEXT,
+    username      TEXT,
+    event_type    TEXT NOT NULL,
+    project_id    TEXT,
+    doc_type      TEXT,
+    description   TEXT,
+    created_at    REAL
+);
+
+CREATE INDEX IF NOT EXISTS idx_rf_system_log_project ON rf_system_audit_log(project_id);

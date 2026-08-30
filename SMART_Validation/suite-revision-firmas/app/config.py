@@ -30,3 +30,9 @@ FROM_EMAIL: str = os.environ.get("RF_FROM_EMAIL", "no-reply@drpassurance.com")
 APP_BASE_URL: str = os.environ.get("RF_APP_BASE_URL", "http://localhost:8090")
 
 INVITE_TTL_H: int = int(os.environ.get("RF_INVITE_TTL_H", "72"))
+
+# 600k es el estándar de seguridad para producción. Los tests lo bajan drásticamente
+# (ver tests/conftest.py) — no se está probando la fuerza del hashing ahí, y con 600k
+# cada verificación de PIN/password tarda ~300ms, que se multiplica por decenas de
+# llamadas en los tests de firma (una corrida completa pasó de segundos a minutos).
+PBKDF2_ITERS: int = int(os.environ.get("RF_PBKDF2_ITERS", "600000"))

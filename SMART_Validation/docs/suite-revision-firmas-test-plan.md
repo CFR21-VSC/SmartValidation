@@ -192,3 +192,54 @@ PIN incorrecto).
 
 **Última corrida del backend (sin cambios de lógica, solo el fix de invite_link):** 2026-08-29 —
 `46 passed, 1 warning in 51.27s`.
+
+## Fase 5 — Proyectos (ciclo de vida) + dos audit trails + Libro 1 (implementada)
+
+**Alcance cubierto:**
+- `rf_projects`: un proyecto sigue naciendo implícito al cargar su primer documento (no hay
+  "crear proyecto" separado), pero ahora tiene estado propio: `active` | `closed` | `archived`.
+- Ciclo de vida (DRP-only): `PATCH .../close`, `PATCH .../archive`, `PATCH .../reopen`,
+  `DELETE /projects/{id}` (bloqueado 409 si algún documento del proyecto está sellado).
+- `DELETE /projects/{id}/documents/{doc_type}` — borra un documento puntual (bloqueado si está
+  sellado). El evento va al audit trail de sistema, **no** al People Book.
+- Proyecto cerrado o archivado bloquea (409) cargar, corregir, firmar revisión, crear ronda de
+  aprobación y firmar aprobación — congela toda actividad hasta reabrir.
+- **Dos audit trails separados, confirmado por el usuario:**
+  - `rf_people_book_events` (ya existía, sección 6) — solo eventos GxP del documento, es el que
+    se integra al Libro de Validación.
+  - `rf_system_audit_log` (nuevo) — acciones administrativas: alta de usuarios, grants
+    otorgados/revocados, ciclo de vida de proyectos/documentos. `GET .../audit-log` (DRP-only).
+    Verificado que `document_deleted` NO aparece en el People Book del documento borrado (solo en
+    el de sistema) — la separación se sostiene incluso cuando ambos podrían solaparse.
+- `GET /projects/{id}/book-package` — arma el paquete para `book-builder.js`: solo documentos
+  **sellados**, inyectando en cada uno una sección `tipo: 'tabla-firmas-final'` con las firmas
+  reales (revisión + aprobación combinadas, `nombre`/`rol`/`iniciales`/`fecha`), sin persistir esa
+  inyección en `rf_documents.json_data` (el panel izquierdo sigue siendo el JSON fuente puro).
+  Devuelve `skipped_not_sealed` con los tipos excluidos por no estar sellados.
+- Frontend (`dashboard.html`): botones Cerrar/Archivar/Reabrir/Eliminar por proyecto (con modal de
+  confirmación genérica), Eliminar por documento, toggle "Mostrar archivados", modal de auditoría
+  de sistema, y "📖 Generar Libro 1" (reusa el mismo motor vendorizado que Ver PDF, vía
+  `VS.bookBuilder.generate(docs, {tomo:1})`).
+
+**Optimización de infraestructura de tests:** las 600.000 iteraciones PBKDF2 de producción hacían
+que la suite completa (con los nuevos tests de firma) tardara ~8 minutos. Se agregó
+`RF_PBKDF2_ITERS` (config), default 600k en producción, 1000 en tests — la fuerza del hash no es
+lo que se está probando ahí. Suite completa: de minutos a 9 segundos.
+
+**Verificado con servidor real:** flujo completo (cargar 2 docs → firmar → sellar HLRA →
+book-package con 4 firmas agregadas correctamente y URS excluido → intento de eliminar proyecto
+rechazado por sellado → eliminar URS sin sellar OK → cerrar proyecto → carga posterior rechazada
+→ archivar otro proyecto → listado por default lo oculta, `include_archived=true` lo muestra →
+audit trail de sistema con los 3 eventos en orden correcto).
+
+**Última corrida:** 2026-08-30 — `66 passed, 1 warning in 9.45s`.
+
+| Archivo | Casos | Resultado |
+|---|---|---|
+| `tests/test_projects.py` | 19 | ✅ 19/19 |
+
+**Pendiente / fuera de alcance de esta fase:**
+- Hash criptográfico por firma individual (`_signatureHashRef` que espera book-builder.js para el
+  KPI "Con hash 21 CFR") — no implementado, el libro se genera igual pero ese KPI queda en 0.
+- Tests de UI en navegador de los nuevos botones (mismo criterio que fases anteriores).
+- Renombrar un proyecto — no existe, `project_id` es una clave estable usada en grants/documentos.

@@ -30,3 +30,15 @@ def check_document_access(user: dict, project_id: str, doc_type: str) -> None:
     ).fetchone()
     if not row:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "No tenés acceso a este documento")
+
+
+def ensure_project_active(db, project_id: str) -> None:
+    """Bloquea escritura (cargar/corregir/firmar) en proyectos cerrados o archivados —
+    fase 5. Un proyecto sin fila propia todavía (nunca se creó) se trata como activo:
+    sigue sin existir un endpoint de "crear proyecto" separado (sección 4)."""
+    row = db.execute("SELECT status FROM rf_projects WHERE id=?", (project_id,)).fetchone()
+    if row and row["status"] != "active":
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"El proyecto está {row['status']} — no admite cambios",
+        )

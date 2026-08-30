@@ -15,7 +15,7 @@ from pydantic import BaseModel
 
 from ..audit import log_event
 from ..db import get_db
-from ..deps import check_document_access, get_current_user, require_drp
+from ..deps import check_document_access, ensure_project_active, get_current_user, require_drp
 from ..email_resend import send_email
 from ..security import pbkdf2_verify
 
@@ -60,6 +60,7 @@ def sign_review(
 ):
     check_document_access(user, project_id, doc_type)
     db = get_db()
+    ensure_project_active(db, project_id)
     doc = _get_document_or_404(db, project_id, doc_type)
     if doc["locked"]:
         raise HTTPException(status.HTTP_409_CONFLICT, "El documento está sellado")
@@ -108,6 +109,7 @@ def create_approval_round(
     project_id: str, doc_type: str, body: CreateRoundBody, user: dict = Depends(require_drp)
 ):
     db = get_db()
+    ensure_project_active(db, project_id)
     doc = _get_document_or_404(db, project_id, doc_type)
     if doc["locked"]:
         raise HTTPException(status.HTTP_409_CONFLICT, "El documento ya está sellado")
@@ -195,6 +197,7 @@ def sign_approval(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "El texto justificativo es obligatorio")
 
     db = get_db()
+    ensure_project_active(db, project_id)
     doc = _get_document_or_404(db, project_id, doc_type)
     rnd = db.execute(
         "SELECT * FROM rf_approval_rounds WHERE document_id=? AND status='open'", (doc["id"],)

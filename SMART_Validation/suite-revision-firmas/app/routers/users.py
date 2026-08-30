@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
 
 from .. import config, email_resend, security
+from ..audit import log_system_event
 from ..db import get_db
 from ..deps import require_drp
 
@@ -57,6 +58,7 @@ def create_user(body: CreateUserBody, user: dict = Depends(require_drp)):
     invite_link = f"{config.APP_BASE_URL}/app/invite.html?token={token}"
     email_resend.send_invite_email(body.email, body.display_name, invite_link)
 
+    log_system_event(user, "user_created", f"{user['u']} creó el usuario {body.email} ({body.role})")
     return {"ok": True, "user_id": user_id, "invite_link": invite_link}
 
 
@@ -84,6 +86,10 @@ def grant_document_access(user_id: str, body: GrantBody, user: dict = Depends(re
         (user_id, body.project_id, body.doc_type, user["u"], now),
     )
     db.commit()
+    log_system_event(
+        user, "grant_created", f"{user['u']} otorgó acceso a usuario {user_id} sobre {body.doc_type}",
+        project_id=body.project_id, doc_type=body.doc_type,
+    )
     return {"ok": True}
 
 
@@ -101,9 +107,18 @@ def list_grants(user_id: str, user: dict = Depends(require_drp)):
 @router.delete("/{user_id}/grants/{grant_id}")
 def revoke_grant(user_id: str, grant_id: int, user: dict = Depends(require_drp)):
     db = get_db()
+    grant = db.execute(
+        "SELECT project_id, doc_type FROM rf_document_access_grants WHERE id=? AND user_id=?",
+        (grant_id, user_id),
+    ).fetchone()
     db.execute(
         "DELETE FROM rf_document_access_grants WHERE id=? AND user_id=?",
         (grant_id, user_id),
     )
     db.commit()
+    if grant:
+        log_system_event(
+            user, "grant_revoked", f"{user['u']} revocó acceso de usuario {user_id} sobre {grant['doc_type']}",
+            project_id=grant["project_id"], doc_type=grant["doc_type"],
+        )
     return {"ok": True}
