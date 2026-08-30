@@ -117,4 +117,22 @@
         syncServerSession();
     }
 
+    /* ====================================================================
+       Evita que el botón/gesto "Atrás" saque de la app a mitad de un
+       trámite. Típico en INICIAR.bat: Chrome se abre en modo --app= con
+       un perfil dedicado recién creado, y sin más historial detrás
+       "Atrás" cae en la página "Nueva pestaña" de Chrome (buscador de
+       Google) — parece que el sistema expulsó al usuario, pero solo se
+       quedó sin historial. No bloquea el gesto: cuando el navegador
+       dispara popstate, se re-apila la URL actual, así que "Atrás" no
+       tiene efecto visible en vez de sacar a la persona del sistema.
+       Solo corre en index.html (único que carga este script) — login.html
+       queda afuera a propósito, ahí "Atrás" hacia otra pestaña es
+       comportamiento esperable.
+       ==================================================================== */
+    history.pushState(null, '', location.href);
+    window.addEventListener('popstate', () => {
+        history.pushState(null, '', location.href);
+    });
+
 })(window);

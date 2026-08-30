@@ -147,8 +147,9 @@ en realidad se quedó sin historial. Mitigado con un trap estándar de History A
 (`trapBackNavigation()` en `api.js`, activado en `requireSession()` — todas las páginas
 autenticadas): en vez de dejar avanzar el "Atrás" fuera de la app, se re-apila la URL actual. No
 se aplicó a `login.html`/`invite.html` (ahí "Atrás" hacia afuera de la app es comportamiento
-esperable). **Pendiente:** aplicar el mismo patrón en la Suite de Validación si el usuario lo pide
-— es otro codebase, no se tocó en esta pasada.
+esperable). **Aplicado también en la Suite de Validación** (2026-08-30): mismo patrón en
+`js/auth-sync.js`, que solo carga `index.html` — `login.html` de esa suite tampoco lo incluye, por
+la misma razón.
 
 **Ancho de columna "Fecha" en Control de Cambios (corregido 2026-08-30):** en `template-base.js`
 (motor compartido — se corrigió en el archivo ORIGINAL de la Suite de Validación y se re-copió a
