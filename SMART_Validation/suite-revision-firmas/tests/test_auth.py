@@ -54,7 +54,8 @@ def test_logout_revokes_session(client, superadmin_creds):
 
 def test_invite_accept_full_flow(client, drp_client):
     created = drp_client.post(
-        "/users", json={"email": "cliente1@example.com", "display_name": "Cliente Uno", "role": "cliente"}
+        "/users",
+        json={"username": "cliente1", "email": "cliente1@example.com", "display_name": "Cliente Uno", "role": "cliente"},
     )
     assert created.status_code == 200, created.text
     invite_link = created.json()["invite_link"]
@@ -83,7 +84,8 @@ def test_invite_accept_full_flow(client, drp_client):
 
 def test_accept_invite_rejects_short_pin(client, drp_client):
     created = drp_client.post(
-        "/users", json={"email": "cliente2@example.com", "display_name": "Cliente Dos", "role": "cliente"}
+        "/users",
+        json={"username": "cliente2", "email": "cliente2@example.com", "display_name": "Cliente Dos", "role": "cliente"},
     )
     token = created.json()["invite_link"].split("token=")[-1]
     r = client.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "12"})

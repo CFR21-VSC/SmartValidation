@@ -11,7 +11,8 @@ SAMPLE_JSON = {"type": "HLRA", "metadata": {"title": "Análisis"}, "secciones": 
 def cliente(drp_client):
     """Cliente invitado, con grant, con PIN configurado, en su propio TestClient."""
     created = drp_client.post(
-        "/users", json={"email": "firmante@example.com", "display_name": "Firmante", "role": "cliente"}
+        "/users",
+        json={"username": "firmante", "email": "firmante@example.com", "display_name": "Firmante", "role": "cliente"},
     )
     user_id = created.json()["user_id"]
     token = created.json()["invite_link"].split("token=")[-1]
@@ -182,6 +183,32 @@ def test_approval_sign_out_of_turn_rejected(drp_with_pin, cliente):
         json={"pin": "9999", "justification_text": "x", "pdf_base64": "eA=="},
     )
     assert r.status_code == 409
+
+
+def test_approval_sign_twice_rejected(drp_with_pin, cliente):
+    """Reportado por el usuario: 'hoy puedo seguir firmando después de haber firmado'."""
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente
+    drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+    drp_id = _superadmin_id(drp_with_pin)
+    drp_with_pin.post(
+        "/projects/proj-1/documents/HLRA/approval-round",
+        json={"signers": [
+            {"user_id": user_id, "role_label": "Revisor", "sign_order": 1},
+            {"user_id": drp_id, "role_label": "Aprobador", "sign_order": 2},
+        ]},
+    )
+    first = cli.post(
+        "/projects/proj-1/documents/HLRA/approval-round/sign",
+        json={"pin": "1234", "justification_text": "De acuerdo"},
+    )
+    assert first.status_code == 200
+    second = cli.post(
+        "/projects/proj-1/documents/HLRA/approval-round/sign",
+        json={"pin": "1234", "justification_text": "De nuevo"},
+    )
+    assert second.status_code == 409
+    assert "Ya firmaste" in second.text
 
 
 def test_people_book_records_full_trail(drp_with_pin, cliente):

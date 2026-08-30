@@ -278,7 +278,12 @@ function renderRight() {
             Ronda abierta por <strong>${escHtml(currentRound.created_by)}</strong> el ${fmtDateTime(currentRound.created_at)}
         </div>`;
         html += renderSignersTable(currentSigners);
-        if (currentRound.status !== 'sealed') {
+        // Ya firmé (comparo por username, la sesión no expone mi propio user_id) — no tiene
+        // sentido mostrar "Firmar" de nuevo y dejar que el usuario se lleve un 409 cada vez.
+        const alreadySigned = session && currentSigners.some(s => s.username === session.username && s.signed_at);
+        if (alreadySigned) {
+            html += `<div style="margin-top:16px; color:var(--success); font-weight:600;">✓ Ya firmaste esta ronda</div>`;
+        } else if (currentRound.status !== 'sealed') {
             html += `<div style="margin-top:16px;"><button class="rf-btn" id="sign-open-btn">Firmar</button></div>`;
         }
         html += `<div class="rf-error" id="round-view-error"></div>`;

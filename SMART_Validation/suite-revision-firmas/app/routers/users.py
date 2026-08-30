@@ -4,6 +4,7 @@ routers/users.py — Alta de usuarios, invitaciones y accesos a documentos.
 Todo este router es exclusivo de DRP (require_drp): capa 2 del diseño —
 "solo DRP invita, solo DRP decide qué documento ve cada invitado".
 """
+import re
 import time
 import uuid
 
@@ -17,8 +18,11 @@ from ..deps import require_drp
 
 router = APIRouter(prefix="/users", tags=["users"])
 
+_USERNAME_RE = re.compile(r"^[a-zA-Z0-9_.-]{3,40}$")
+
 
 class CreateUserBody(BaseModel):
+    username: str
     email: EmailStr
     display_name: str
     role: str  # 'drp' | 'cliente'
@@ -33,15 +37,23 @@ class GrantBody(BaseModel):
 def create_user(body: CreateUserBody, user: dict = Depends(require_drp)):
     if body.role not in ("drp", "cliente"):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "role debe ser 'drp' o 'cliente'")
+    username = body.username.strip()
+    if not _USERNAME_RE.match(username):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "El usuario debe tener 3-40 caracteres: letras, números, punto, guión o guión bajo",
+        )
 
     db = get_db()
-    existing = db.execute("SELECT id FROM rf_users WHERE email=?", (body.email,)).fetchone()
-    if existing:
+    existing_email = db.execute("SELECT id FROM rf_users WHERE email=?", (body.email,)).fetchone()
+    if existing_email:
         raise HTTPException(status.HTTP_409_CONFLICT, "Ya existe un usuario con ese email")
+    existing_username = db.execute("SELECT id FROM rf_users WHERE username=?", (username,)).fetchone()
+    if existing_username:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Ya existe un usuario con ese nombre de usuario")
 
     now = time.time()
     user_id = str(uuid.uuid4())
-    username = body.email.split("@")[0] + "-" + user_id[:6]
     db.execute(
         "INSERT INTO rf_users (id, username, email, display_name, role, is_active, "
         "created_by, created_at, updated_at) VALUES (?,?,?,?,?,0,?,?,?)",

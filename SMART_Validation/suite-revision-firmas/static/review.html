@@ -949,6 +949,7 @@ async function loadSignatures() {
     const { status, data } = await apiFetch(
         `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}/review-signatures`
     );
+    const signBtn = document.getElementById('btn-sign-review');
     if (status !== 200 || !data.ok) {
         signersSummary.textContent = 'No se pudieron cargar las firmas.';
         return;
@@ -956,11 +957,22 @@ async function loadSignatures() {
     const sigs = data.signatures || [];
     if (sigs.length === 0) {
         signersSummary.innerHTML = '<span>Todavía nadie firmó la revisión.</span>';
-        return;
+    } else {
+        signersSummary.innerHTML = '<strong>Firmaron:</strong> ' + sigs.map(s =>
+            `${escHtml(s.username)} — ${fmtDateTime(s.signed_at)}`
+        ).join(' &nbsp;|&nbsp; ');
     }
-    signersSummary.innerHTML = '<strong>Firmaron:</strong> ' + sigs.map(s =>
-        `${escHtml(s.username)} — ${fmtDateTime(s.signed_at)}`
-    ).join(' &nbsp;|&nbsp; ');
+
+    // Ya firmé (comparo por username, la sesión no expone mi propio user_id) — bloqueo el
+    // botón acá mismo en vez de dejar que el usuario reintente y se lleve un 409 cada vez.
+    const alreadySigned = session && sigs.some(s => s.username === session.username);
+    if (alreadySigned) {
+        signBtn.disabled = true;
+        signBtn.textContent = '✓ Ya firmaste la revisión';
+    } else {
+        signBtn.disabled = false;
+        signBtn.textContent = 'Firmar revisión';
+    }
 }
 
 init();

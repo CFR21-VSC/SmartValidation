@@ -281,3 +281,24 @@ tipo de documento sellado en el mensaje).
    los sellados).
 
 **Última corrida:** 2026-08-30 — `71 passed, 1 warning in 11.77s`.
+
+**Feedback directo del usuario (2026-08-30), ronda 2:**
+1. **Username asignable al crear usuario.** Antes se autogeneraba
+   (`email.split('@')[0] + '-' + uuid[:6]`), sin control de DRP. Ahora `POST /users` exige
+   `username` explícito (3-40 caracteres: letras, números, `.`/`-`/`_`), validado por unicidad
+   igual que el email. Campo agregado al formulario de `users.html`, y columna "Usuario" en la
+   tabla. **Rompe compatibilidad**: todos los call sites de test que creaban usuarios necesitaron
+   agregar el campo (11 sitios en 5 archivos).
+2. **"Puedo seguir firmando después de haber firmado."** El backend en realidad SIEMPRE lo
+   bloqueó (409, tanto en revisión como en aprobación — constraints `UNIQUE` de por medio) — el
+   problema era puramente de UI: no había manera de saber "¿ya firmé yo?" así que el botón
+   seguía habilitado y el usuario podía reintentar (y fallar) sin entender por qué. Corregido:
+   - `GET /auth/session` ahora expone `username` (no lo hacía).
+   - `review.html`: compara la lista de firmantes contra `session.username`; si ya firmé, el
+     botón se deshabilita y cambia a "✓ Ya firmaste la revisión".
+   - `approval.html`: mismo criterio — si ya firmé esta ronda, se reemplaza el botón "Firmar"
+     por un mensaje "✓ Ya firmaste esta ronda".
+   - Agregado test explícito `test_approval_sign_twice_rejected` (ya existía el de revisión) para
+     dejar constancia de que el backend siempre lo rechazó — el bug era 100% de UI.
+
+**Última corrida:** 2026-08-30 — `74 passed, 1 warning in 11.26s`.

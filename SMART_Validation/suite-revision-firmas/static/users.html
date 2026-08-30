@@ -20,6 +20,10 @@
         <h3 style="margin-top:0;">Crear usuario</h3>
         <form id="create-user-form">
             <div class="rf-field">
+                <label class="rf-label" for="new-username">Usuario</label>
+                <input class="rf-input" type="text" id="new-username" placeholder="Ej: mvera, jperez" required>
+            </div>
+            <div class="rf-field">
                 <label class="rf-label" for="new-email">Email</label>
                 <input class="rf-input" type="email" id="new-email" required>
             </div>
@@ -48,7 +52,7 @@
     <table class="rf-table">
         <thead>
             <tr>
-                <th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th>
+                <th>Usuario</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th>
                 <th>PIN</th><th>Último login</th><th>Accesos</th>
             </tr>
         </thead>
@@ -149,6 +153,7 @@ async function loadUsers() {
 
     tbody.innerHTML = users.map(u => `
         <tr>
+            <td>${escHtml(u.username)}</td>
             <td>${escHtml(u.display_name)}</td>
             <td>${escHtml(u.email)}</td>
             <td>${u.role === 'drp' ? 'DRP' : 'Cliente'}</td>
@@ -171,6 +176,7 @@ async function onCreateUserSubmit(e) {
     errorBox.textContent = '';
     document.getElementById('invite-link-box').style.display = 'none';
 
+    const username = document.getElementById('new-username').value.trim();
     const email = document.getElementById('new-email').value.trim();
     const display_name = document.getElementById('new-name').value.trim();
     const role = document.getElementById('new-role').value;
@@ -179,7 +185,7 @@ async function onCreateUserSubmit(e) {
     submitBtn.disabled = true;
     const { status, data } = await apiFetch('/users', {
         method: 'POST',
-        body: { email, display_name, role },
+        body: { username, email, display_name, role },
     });
     submitBtn.disabled = false;
 
@@ -195,9 +201,9 @@ async function onCreateUserSubmit(e) {
     }
 
     if (status === 409) {
-        errorBox.textContent = 'Ya existe un usuario con ese email.';
+        errorBox.textContent = data.error || 'Ya existe un usuario con ese email o nombre de usuario.';
     } else if (status === 400) {
-        errorBox.textContent = data.error || 'Rol inválido.';
+        errorBox.textContent = data.error || 'Datos inválidos.';
     } else {
         errorBox.textContent = data.error || 'No se pudo crear el usuario.';
     }

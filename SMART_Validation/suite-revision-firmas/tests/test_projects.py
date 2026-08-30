@@ -13,7 +13,11 @@ SAMPLE_JSON = {"type": "HLRA", "metadata": {"title": "Demo"}, "secciones": [
 @pytest.fixture
 def cliente(drp_client):
     created = drp_client.post(
-        "/users", json={"email": "cliente-proj@example.com", "display_name": "Cliente Proj", "role": "cliente"}
+        "/users",
+        json={
+            "username": "cliente-proj", "email": "cliente-proj@example.com",
+            "display_name": "Cliente Proj", "role": "cliente",
+        },
     )
     user_id = created.json()["user_id"]
     token = created.json()["invite_link"].split("token=")[-1]

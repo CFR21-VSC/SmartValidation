@@ -89,6 +89,7 @@ def session(user: dict = Depends(get_current_user)):
     row = db.execute("SELECT pin_set FROM rf_users WHERE id=?", (user["uid"],)).fetchone()
     return {
         "ok": True,
+        "username": user["u"],
         "display_name": user["d"],
         "role": user["r"],
         "is_superadmin": user.get("sa", False),

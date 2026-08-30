@@ -12,7 +12,8 @@ def cliente_client(drp_client):
     drp_client: si reusaran el mismo, loguear al cliente pisaría la cookie de sesión
     de DRP en el mismo objeto."""
     created = drp_client.post(
-        "/users", json={"email": "revisor@example.com", "display_name": "Revisor", "role": "cliente"}
+        "/users",
+        json={"username": "revisor", "email": "revisor@example.com", "display_name": "Revisor", "role": "cliente"},
     )
     token = created.json()["invite_link"].split("token=")[-1]
     cli = TestClient(app)
