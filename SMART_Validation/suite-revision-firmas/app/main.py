@@ -38,6 +38,11 @@ app.include_router(projects.router)
 
 app.mount("/app", StaticFiles(directory=_STATIC_DIR, html=True), name="app")
 
+# document-renderer.js pide el logo con una ruta absoluta hardcodeada
+# ("/js/validation-suite/assets/logo-drp.png") — no se toca el motor vendorizado
+# (se hereda tal cual), así que se monta ese mismo path absoluto acá también.
+app.mount("/js", StaticFiles(directory=os.path.join(_STATIC_DIR, "js")), name="engine-js")
+
 
 @app.get("/")
 def root():

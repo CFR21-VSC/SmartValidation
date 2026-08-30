@@ -88,6 +88,7 @@
     }
 
     .rv-meta-table { margin-bottom: 20px; }
+    .rv-untitled-continuation { margin: -8px 0 22px; }
 
     .rv-doc-table { font-size: 12px; margin: 4px 0 6px; }
     .rv-doc-table th, .rv-doc-table td { padding: 6px 10px; }
@@ -311,15 +312,20 @@ function getSectionsArray(jsonData) {
     return null;
 }
 
+// Solo entran al índice/correcciones las secciones con título propio en el documento.
+// El motor real (shared-renderers.js → createSectionNumberer) tampoco les asigna número
+// a las que no lo tienen — son contenido de continuación, no secciones aparte. Inventarles
+// una etiqueta genérica ("Sección 9") es lo que generaba números incoherentes con el
+// documento real; en cambio se muestran igual en el panel central, sin encabezado propio.
 function deriveSections(jsonData) {
     const arr = getSectionsArray(jsonData);
     if (!arr) {
         return [{ key: 'sec-0', label: 'Documento completo' }];
     }
-    return arr.map((s, i) => ({
-        key: `sec-${i}`,
-        label: (s && (s.titulo || s.title)) || `Sección ${i + 1}`,
-    }));
+    return arr
+        .map((s, i) => ({ s, i }))
+        .filter(({ s }) => s && (s.titulo || s.title))
+        .map(({ s, i }) => ({ key: `sec-${i}`, label: s.titulo || s.title }));
 }
 
 // Nunca renderizamos JSON crudo (llaves/corchetes) en esta suite — el modo "Técnico" es
@@ -526,15 +532,24 @@ function renderSource() {
 
     const arr = getSectionsArray(jsonData);
     if (arr) {
-        sections.forEach((sec, i) => {
-            const raw = arr[i];
+        const sectionByKey = {};
+        sections.forEach(s => { sectionByKey[s.key] = s; });
+
+        arr.forEach((raw, i) => {
+            const sec = sectionByKey[`sec-${i}`];
             const content = getSectionContentText(raw);
             const known = content ? null : renderKnownSectionBody(raw);
             const body = content ? escHtml(content) : (known !== null ? known : renderPlainObject(raw));
-            html += `<div class="rv-section" id="${escHtml(sec.key)}">
-                <h3>${escHtml(sec.label)}</h3>
-                <div class="rv-section-content">${body}</div>
-            </div>`;
+            if (sec) {
+                html += `<div class="rv-section" id="${escHtml(sec.key)}">
+                    <h3>${escHtml(sec.label)}</h3>
+                    <div class="rv-section-content">${body}</div>
+                </div>`;
+            } else {
+                // Sin título propio en el documento — se muestra igual, pero como
+                // continuación del bloque anterior, sin encabezado ni número inventado.
+                html += `<div class="rv-section-content rv-untitled-continuation">${body}</div>`;
+            }
         });
     } else {
         html += `<div class="rv-section" id="sec-0">

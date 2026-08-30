@@ -125,6 +125,20 @@ que mostraban `JSON.stringify` crudo — visible para cualquiera con acceso al d
 solo-lectura se reemplazaron por un renderer genérico (tabla/lista legible) que nunca emite
 sintaxis JSON.
 
+**Numeración de secciones sin título propio (corregido 2026-08-29):** el motor real
+(`shared-renderers.js` → `createSectionNumberer`) no numera ni titula las secciones del JSON que
+no traen `titulo` — son contenido de continuación, no secciones aparte. El outline de
+`review.html` les inventaba una etiqueta genérica ("Sección 9", "Sección 12"...), incoherente con
+la numeración real del documento. Corregido: solo entran al índice/outline/correcciones las
+secciones con título propio; las demás igual muestran su contenido en el panel central, pero
+fusionado como continuación, sin encabezado ni número inventado.
+
+**Logo DRP en "Ver PDF" (corregido 2026-08-29):** `document-renderer.js` pide el logo con una
+ruta absoluta hardcodeada (`/js/validation-suite/assets/logo-drp.png`) — no se toca el motor
+vendorizado (regla de "hereda tal cual"), así que se agregó un segundo mount de FastAPI en ese
+mismo path absoluto (además del `/app` donde vive el resto de la suite) y se vendorizó el archivo
+del logo.
+
 **Cargar documento = elegir archivo, no pegar texto (confirmado 2026-08-29):** ni el DRP debe ver
 ni tipear JSON crudo. El "Cargar" (en `dashboard.html` y en `review.html`) es un selector de
 archivo (`<input type="file" accept=".json">`), mismo patrón que `vsImportFileInput` en la Suite
