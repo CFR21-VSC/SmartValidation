@@ -17,7 +17,17 @@
 
 <div class="rf-layout">
     <div class="rf-sidebar">
-        <div class="rf-label" style="margin-bottom:10px;">Proyectos</div>
+        <div style="display:flex; align-items:center; margin-bottom:10px;">
+            <div class="rf-label" style="margin:0; flex:1;">Proyectos</div>
+            <button class="rf-btn-secondary" id="new-project-btn" style="display:none; padding:4px 10px; font-size:11px;">+ Nuevo</button>
+        </div>
+        <div class="rf-field" id="new-project-form" style="display:none;">
+            <input class="rf-input" id="new-project-input" placeholder="Código de proyecto (ej: EMQC-001)" style="font-size:12px; padding:7px 10px;">
+            <div style="display:flex; gap:6px; margin-top:6px;">
+                <button class="rf-btn" id="new-project-confirm" style="flex:1; padding:6px; font-size:12px;">Crear</button>
+                <button class="rf-btn-secondary" id="new-project-cancel" style="padding:6px 10px; font-size:12px;">Cancelar</button>
+            </div>
+        </div>
         <div id="project-list"></div>
     </div>
 
@@ -60,6 +70,28 @@ const userBadgeEl = document.getElementById('user-badge');
 
 document.getElementById('logout-btn').addEventListener('click', doLogout);
 usersLinkEl.addEventListener('click', () => { window.location.href = 'users.html'; });
+
+const newProjectBtn = document.getElementById('new-project-btn');
+const newProjectForm = document.getElementById('new-project-form');
+const newProjectInput = document.getElementById('new-project-input');
+
+newProjectBtn.addEventListener('click', () => {
+    newProjectForm.style.display = newProjectForm.style.display === 'none' ? '' : 'none';
+    if (newProjectForm.style.display !== 'none') { newProjectInput.value = ''; newProjectInput.focus(); }
+});
+document.getElementById('new-project-cancel').addEventListener('click', () => {
+    newProjectForm.style.display = 'none';
+});
+document.getElementById('new-project-confirm').addEventListener('click', confirmNewProject);
+newProjectInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); confirmNewProject(); } });
+
+function confirmNewProject() {
+    const projectId = newProjectInput.value.trim();
+    if (!projectId) { newProjectInput.focus(); return; }
+    newProjectForm.style.display = 'none';
+    showLoadForm = true;
+    selectProject(projectId, true);
+}
 document.getElementById('pb-close').addEventListener('click', closePeopleBook);
 document.getElementById('pb-backdrop').addEventListener('click', (e) => {
     if (e.target.id === 'pb-backdrop') closePeopleBook();
@@ -72,6 +104,7 @@ async function init() {
     userBadgeEl.textContent = `${session.display_name} · ${session.role === 'drp' ? 'DRP' : 'Cliente'}`;
     if (session.role === 'drp') {
         usersLinkEl.style.display = '';
+        newProjectBtn.style.display = '';
     }
 
     await loadProjects();
@@ -105,9 +138,9 @@ function renderProjectList() {
     });
 }
 
-async function selectProject(projectId) {
+async function selectProject(projectId, keepLoadForm) {
     selectedProject = projectId;
-    showLoadForm = false;
+    if (!keepLoadForm) showLoadForm = false;
     renderProjectList();
     await loadDocuments();
 }
