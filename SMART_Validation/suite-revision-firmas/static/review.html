@@ -263,6 +263,11 @@
             Confirmá que ya revisaste el documento. No hace falta que las correcciones estén
             implementadas, pero si hay alguna sin marcar resuelta, no vas a poder firmar todavía.
         </p>
+        <div class="rf-field">
+            <label class="rf-label" for="sign-role-input">Tu rol en este documento</label>
+            <input class="rf-input" id="sign-role-input" placeholder="Ej: Revisor (Key User)">
+            <div id="sign-role-hint" style="font-size:11px; color:var(--text-muted); margin-top:4px; display:none;"></div>
+        </div>
         <div class="rf-field" style="margin-top:14px;">
             <label class="rf-label" style="text-align:center; display:block;">PIN (6 dígitos)</label>
             <div class="rf-pin-grid" id="sign-pin-grid"></div>
@@ -310,6 +315,44 @@ function getSectionsArray(jsonData) {
     if (jsonData && Array.isArray(jsonData.secciones)) return jsonData.secciones;
     if (jsonData && Array.isArray(jsonData.sections)) return jsonData.sections;
     return null;
+}
+
+// ---------------------------------------------------------------------------
+// Matriz de Aprobaciones del documento — es la misma sección tabla-firmas-final
+// que arma el motor (shared-renderers.js → renderTablaFirmasFinalSmart). Antes de
+// que nadie firme en esta suite, trae los roles esperados (`firmas` con nombres ya
+// cargados desde la Suite de Validación, o `rolesPlaceholder` si todavía no tiene
+// nombres). Se usa solo para SUGERIR un rol — el firmante siempre lo confirma o
+// corrige a mano antes de firmar (nunca se asigna un rol sin que la persona lo vea).
+// ---------------------------------------------------------------------------
+function getApprovalMatrix(jsonData) {
+    const arr = getSectionsArray(jsonData);
+    if (!arr) return [];
+    const tff = arr.find(s => s && s.tipo === 'tabla-firmas-final');
+    if (!tff) return [];
+    if (Array.isArray(tff.firmas) && tff.firmas.length) {
+        return tff.firmas.map(f => ({ rol: f.rol || '', nombre: f.nombre || '' }));
+    }
+    if (Array.isArray(tff.rolesPlaceholder)) {
+        return tff.rolesPlaceholder.map(rol => ({ rol, nombre: '' }));
+    }
+    return [];
+}
+
+function suggestRoleForName(matrix, fullName) {
+    if (!fullName) return '';
+    const norm = s => String(s || '').trim().toLowerCase();
+    const target = norm(fullName);
+    if (!target) return '';
+    const exact = matrix.find(m => norm(m.nombre) === target);
+    if (exact) return exact.rol;
+    // Match parcial: todas las palabras del nombre del usuario aparecen en el nombre de la matriz.
+    const targetWords = target.split(/\s+/).filter(Boolean);
+    const partial = matrix.find(m => {
+        const mNorm = norm(m.nombre);
+        return mNorm && targetWords.every(w => mNorm.includes(w));
+    });
+    return partial ? partial.rol : '';
 }
 
 // Solo entran al índice/correcciones las secciones con título propio en el documento.
@@ -912,6 +955,19 @@ function openSignModal() {
     const err = document.getElementById('sign-error');
     err.textContent = ''; err.classList.remove('visible');
     signPinInputs = buildPinGrid(document.getElementById('sign-pin-grid'));
+
+    const roleInput = document.getElementById('sign-role-input');
+    const roleHint = document.getElementById('sign-role-hint');
+    const matrix = getApprovalMatrix(documentRow.json_data);
+    const suggested = suggestRoleForName(matrix, session && session.display_name);
+    roleInput.value = suggested;
+    if (suggested) {
+        roleHint.textContent = 'Sugerido desde la Matriz de Aprobaciones del documento — corregilo si no es tu rol.';
+        roleHint.style.display = 'block';
+    } else {
+        roleHint.style.display = 'none';
+    }
+
     document.getElementById('sign-backdrop').style.display = 'flex';
     signPinInputs[0].focus();
 }
@@ -930,11 +986,13 @@ async function submitSignReview() {
         return;
     }
 
+    const role_label = document.getElementById('sign-role-input').value.trim() || null;
+
     const btn = document.getElementById('sign-submit');
     btn.disabled = true;
     const { status, data } = await apiFetch(
         `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}/review-signatures`,
-        { method: 'POST', body: { pin } }
+        { method: 'POST', body: { pin, role_label } }
     );
     btn.disabled = false;
 
@@ -966,7 +1024,7 @@ async function loadSignatures() {
         signersSummary.innerHTML = '<span>Todavía nadie firmó la revisión.</span>';
     } else {
         signersSummary.innerHTML = '<strong>Firmaron:</strong> ' + sigs.map(s =>
-            `${escHtml(s.username)} — ${fmtDateTime(s.signed_at)}`
+            `${escHtml(s.username)}${s.role_label ? ' (' + escHtml(s.role_label) + ')' : ''} — ${fmtDateTime(s.signed_at)}`
         ).join(' &nbsp;|&nbsp; ');
     }
 

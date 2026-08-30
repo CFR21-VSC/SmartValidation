@@ -332,3 +332,33 @@ Verificado con servidor real: antes de firmar, `firmas: []`; después de la firm
 cliente, aparece con rol/nombre/iniciales/fecha correctos, sin tocar el JSON fuente guardado.
 
 **Última corrida:** 2026-08-30 — `80 passed, 1 warning in 12.06s`.
+
+**Feedback directo del usuario (2026-08-30), ronda 4 — de dónde sale el rol del firmante:**
+Pregunta real: si el cliente entra con rol de sistema "cliente", ¿cómo sabe el sistema si en el
+documento es Redactor/Ejecutor/Revisor/Aprobador? Respuesta honesta antes de este fix: **no lo
+sabía** — en revisión no se capturaba ningún rol, y en aprobación DRP lo tipeaba a mano cada vez,
+sin relación con el documento. Esto no coincidía con la sección 3 del diseño ("se toman de la
+Matriz de Aprobaciones"), que nunca se había implementado.
+
+**Implementado (opción elegida por el usuario: sugerir desde la matriz, con confirmación
+manual, nunca automático sin ver):**
+- La "Matriz de Aprobaciones" resultó ser la misma sección `tabla-firmas-final` que ya usa el
+  motor (`shared-renderers.js` → `renderTablaFirmasFinalSmart`) — antes de firmar trae los roles
+  esperados con nombres ya cargados desde la Suite de Validación (`firmas`), o una lista de roles
+  sin nombre si el documento es nuevo (`rolesPlaceholder`).
+- `getApprovalMatrix()` + `suggestRoleForName()` (duplicadas en `review.html` y `approval.html`
+  — son puramente de presentación, no justificaba un módulo compartido nuevo): matchean por
+  nombre completo (exacto o por palabras) contra la matriz del documento.
+- **Revisión**: el modal de firma ahora pide "Tu rol en este documento", pre-completado por
+  matching contra `session.display_name`, siempre editable — se manda como `role_label` (antes
+  nunca se enviaba nada).
+- **Aprobación**: al elegir un firmante en una fila, se sugiere el rol automáticamente (solo si
+  esa fila todavía no tiene uno escrito a mano — nunca pisa una corrección de DRP). Se muestra
+  además la matriz completa como referencia visual arriba del formulario.
+- Limitación conocida y aceptada: si una misma persona aparece dos veces en la matriz con roles
+  distintos (pasa en el HLRA real: Luciana Muñoz es Process Owner Y Directora de Calidad), se
+  sugiere el primero — DRP corrige a mano si corresponde el otro. Nunca se asigna un rol sin que
+  la persona lo confirme antes de firmar/guardar.
+
+**Última corrida:** 2026-08-30 — `80 passed, 1 warning in 12.14s` (backend sin cambios, cambio
+100% de presentación en el frontend).

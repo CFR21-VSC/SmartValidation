@@ -104,6 +104,38 @@ let currentRound = null;
 let currentSigners = [];
 let usersList = [];
 let formRows = [];
+let approvalMatrix = [];  // Matriz de Aprobaciones del documento — ver getApprovalMatrix()
+
+// Misma sección tabla-firmas-final que arma el motor (shared-renderers.js) — antes de que
+// nadie firme en esta suite, trae los roles esperados (con nombres ya cargados desde la
+// Suite de Validación, o rolesPlaceholder si todavía no tiene nombres). Se usa solo para
+// SUGERIR un rol — DRP siempre confirma o corrige antes de guardar la ronda.
+function getApprovalMatrix(jsonData) {
+    const arr = jsonData && Array.isArray(jsonData.secciones) ? jsonData.secciones : [];
+    const tff = arr.find(s => s && s.tipo === 'tabla-firmas-final');
+    if (!tff) return [];
+    if (Array.isArray(tff.firmas) && tff.firmas.length) {
+        return tff.firmas.map(f => ({ rol: f.rol || '', nombre: f.nombre || '' }));
+    }
+    if (Array.isArray(tff.rolesPlaceholder)) {
+        return tff.rolesPlaceholder.map(rol => ({ rol, nombre: '' }));
+    }
+    return [];
+}
+function suggestRoleForName(matrix, fullName) {
+    if (!fullName) return '';
+    const norm = s => String(s || '').trim().toLowerCase();
+    const target = norm(fullName);
+    if (!target) return '';
+    const exact = matrix.find(m => norm(m.nombre) === target);
+    if (exact) return exact.rol;
+    const targetWords = target.split(/\s+/).filter(Boolean);
+    const partial = matrix.find(m => {
+        const mNorm = norm(m.nombre);
+        return mNorm && targetWords.every(w => mNorm.includes(w));
+    });
+    return partial ? partial.rol : '';
+}
 
 let currentPdfBlob = null;
 let currentPdfUrl = null;
@@ -223,6 +255,7 @@ async function init() {
 
     if (session.role === 'drp') {
         await loadUsers();
+        await loadApprovalMatrix();
     }
     await loadRound();
 }
@@ -234,6 +267,13 @@ async function loadUsers() {
     } else {
         usersList = [];
     }
+}
+
+async function loadApprovalMatrix() {
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(docType)}`
+    );
+    approvalMatrix = (status === 200 && data.ok) ? getApprovalMatrix(data.document.json_data) : [];
 }
 
 async function loadRound() {
@@ -342,6 +382,12 @@ function renderCreateForm() {
         </div>
     `).join('');
 
+    const matrixHtml = approvalMatrix.length ? `
+        <div class="ap-help" style="background:rgba(255,255,255,.03); border-radius:6px; padding:8px 10px;">
+            <strong>Matriz de Aprobaciones del documento</strong> (para orientar el rol de cada firmante):<br>
+            ${approvalMatrix.map(m => `${escHtml(m.rol)}${m.nombre ? ' — ' + escHtml(m.nombre) : ''}`).join('<br>')}
+        </div>` : '';
+
     return `
     <div class="rf-card">
         <div class="rf-label" style="color:var(--text); font-size:13px; margin-bottom:12px;">Abrir ronda de aprobación</div>
@@ -349,6 +395,7 @@ function renderCreateForm() {
             El firmante con mayor orden (el último) debe ser un usuario DRP marcado con ★ — el backend lo exige para poder sellar el documento.
             Cada firmante que no sea DRP debe tener acceso habilitado a este documento (si no, la creación de la ronda se rechaza).
         </div>
+        ${matrixHtml}
         <div id="signer-rows">${rowsHtml}</div>
         <button type="button" class="rf-btn-secondary" id="add-row-btn" style="margin-bottom:16px;">+ Agregar firmante</button>
         <div><button type="button" class="rf-btn" id="create-round-btn">Abrir ronda de aprobación</button></div>
@@ -358,7 +405,19 @@ function renderCreateForm() {
 
 function bindCreateFormEvents() {
     document.querySelectorAll('.row-user').forEach(el => el.addEventListener('change', e => {
-        formRows[+e.target.dataset.idx].user_id = e.target.value;
+        const idx = +e.target.dataset.idx;
+        formRows[idx].user_id = e.target.value;
+        // Sugiere el rol desde la Matriz de Aprobaciones solo si la fila todavía no tiene uno
+        // escrito a mano — nunca pisa algo que DRP ya haya confirmado/corregido.
+        if (!formRows[idx].role_label) {
+            const picked = usersList.find(u => u.id === e.target.value);
+            const suggested = picked ? suggestRoleForName(approvalMatrix, picked.display_name) : '';
+            if (suggested) {
+                formRows[idx].role_label = suggested;
+                renderRight();
+                return;
+            }
+        }
     }));
     document.querySelectorAll('.row-role').forEach(el => el.addEventListener('input', e => {
         formRows[+e.target.dataset.idx].role_label = e.target.value;
