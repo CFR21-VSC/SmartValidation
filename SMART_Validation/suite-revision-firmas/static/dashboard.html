@@ -13,7 +13,34 @@
     <div class="rf-spacer"></div>
     <button class="rf-btn-secondary" id="users-link" style="display:none;">Usuarios</button>
     <button class="rf-btn-secondary" id="global-audit-link" style="display:none;">🛡 Auditoría del sistema</button>
+    <button class="rf-btn-secondary" id="change-password-link">Cambiar contraseña</button>
     <button class="rf-btn-secondary" id="logout-btn">Cerrar sesión</button>
+</div>
+
+<!-- Modal: cambiar contraseña (cualquier usuario logueado, DRP o cliente) -->
+<div class="rf-modal-backdrop" id="pwd-backdrop" style="display:none;">
+    <div class="rf-modal" style="width:min(420px, 92vw);">
+        <h3>Cambiar contraseña</h3>
+        <form id="pwd-form">
+            <div class="rf-field">
+                <label class="rf-label" for="pwd-current">Contraseña actual</label>
+                <input class="rf-input" type="password" id="pwd-current" required>
+            </div>
+            <div class="rf-field">
+                <label class="rf-label" for="pwd-new">Contraseña nueva (mínimo 8 caracteres)</label>
+                <input class="rf-input" type="password" id="pwd-new" minlength="8" required>
+            </div>
+            <div class="rf-field">
+                <label class="rf-label" for="pwd-new2">Repetir contraseña nueva</label>
+                <input class="rf-input" type="password" id="pwd-new2" minlength="8" required>
+            </div>
+            <div class="rf-error" id="pwd-error"></div>
+            <div style="margin-top:14px; display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" class="rf-btn-secondary" id="pwd-cancel">Cancelar</button>
+                <button type="submit" class="rf-btn" id="pwd-submit">Guardar</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <div class="rf-layout">
@@ -111,6 +138,51 @@ const userBadgeEl = document.getElementById('user-badge');
 document.getElementById('logout-btn').addEventListener('click', doLogout);
 usersLinkEl.addEventListener('click', () => { window.location.href = 'users.html'; });
 document.getElementById('global-audit-link').addEventListener('click', () => openSystemAudit(null));
+
+// ── Cambiar contraseña (cualquier usuario logueado) ─────────────────────────
+document.getElementById('change-password-link').addEventListener('click', () => {
+    document.getElementById('pwd-form').reset();
+    document.getElementById('pwd-error').classList.remove('visible');
+    document.getElementById('pwd-backdrop').style.display = 'flex';
+});
+document.getElementById('pwd-cancel').addEventListener('click', () => {
+    document.getElementById('pwd-backdrop').style.display = 'none';
+});
+document.getElementById('pwd-backdrop').addEventListener('click', (e) => {
+    if (e.target.id === 'pwd-backdrop') document.getElementById('pwd-backdrop').style.display = 'none';
+});
+document.getElementById('pwd-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorBox = document.getElementById('pwd-error');
+    errorBox.classList.remove('visible');
+    errorBox.textContent = '';
+
+    const current_password = document.getElementById('pwd-current').value;
+    const new_password = document.getElementById('pwd-new').value;
+    const new_password2 = document.getElementById('pwd-new2').value;
+
+    if (new_password !== new_password2) {
+        errorBox.textContent = 'Las dos contraseñas nuevas no coinciden.';
+        errorBox.classList.add('visible');
+        return;
+    }
+
+    const btn = document.getElementById('pwd-submit');
+    btn.disabled = true;
+    const { status, data } = await apiFetch('/auth/change-password', {
+        method: 'POST',
+        body: { current_password, new_password },
+    });
+    btn.disabled = false;
+
+    if (status === 200 && data.ok) {
+        document.getElementById('pwd-backdrop').style.display = 'none';
+        showToast('Contraseña actualizada');
+        return;
+    }
+    errorBox.textContent = data.error || 'No se pudo cambiar la contraseña.';
+    errorBox.classList.add('visible');
+});
 
 const newProjectBtn = document.getElementById('new-project-btn');
 const newProjectForm = document.getElementById('new-project-form');

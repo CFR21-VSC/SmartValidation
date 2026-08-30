@@ -117,3 +117,49 @@ def test_set_pin_rejects_short_pin(client, superadmin_creds):
     client.post("/auth/login", json=superadmin_creds)
     r = client.post("/auth/set-pin", json={"pin": "12"})
     assert r.status_code == 400
+
+
+def test_change_password_requires_auth(client):
+    r = client.post("/auth/change-password", json={"current_password": "x", "new_password": "newpass123"})
+    assert r.status_code == 401
+
+
+def test_change_password_happy_path_and_relogin(client, superadmin_creds):
+    client.post("/auth/login", json=superadmin_creds)
+    r = client.post(
+        "/auth/change-password",
+        json={"current_password": superadmin_creds["password"], "new_password": "nuevaClaveSegura123"},
+    )
+    assert r.status_code == 200, r.text
+
+    # La contraseña vieja ya no sirve.
+    old_login = client.post("/auth/login", json=superadmin_creds)
+    assert old_login.status_code == 401
+
+    # La nueva sí.
+    new_login = client.post(
+        "/auth/login", json={"username": superadmin_creds["username"], "password": "nuevaClaveSegura123"}
+    )
+    assert new_login.status_code == 200
+
+
+def test_change_password_rejects_wrong_current_password(client, superadmin_creds):
+    client.post("/auth/login", json=superadmin_creds)
+    r = client.post(
+        "/auth/change-password",
+        json={"current_password": "esto-esta-mal", "new_password": "nuevaClaveSegura123"},
+    )
+    assert r.status_code == 401
+
+    # La contraseña original sigue funcionando — el intento fallido no la tocó.
+    still_works = client.post("/auth/login", json=superadmin_creds)
+    assert still_works.status_code == 200
+
+
+def test_change_password_rejects_short_new_password(client, superadmin_creds):
+    client.post("/auth/login", json=superadmin_creds)
+    r = client.post(
+        "/auth/change-password",
+        json={"current_password": superadmin_creds["password"], "new_password": "short"},
+    )
+    assert r.status_code == 400

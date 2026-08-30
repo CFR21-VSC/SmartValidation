@@ -362,3 +362,20 @@ manual, nunca automático sin ver):**
 
 **Última corrida:** 2026-08-30 — `80 passed, 1 warning in 12.14s` (backend sin cambios, cambio
 100% de presentación en el frontend).
+
+**Cambio de contraseña (2026-08-30) — cerrando el hueco identificado antes del primer deploy a
+producción:** no existía forma de rotar la contraseña de una cuenta ya activa (ni la del
+superadmin bootstrapeado, ni la de nadie). Agregado `POST /auth/change-password` (cualquier
+usuario logueado, DRP o cliente) — exige la contraseña actual para confirmar identidad, valida
+mínimo 8 caracteres para la nueva. Botón "Cambiar contraseña" en el topbar de `dashboard.html`,
+visible para todos los roles. Tests: cambio exitoso + relogin con la nueva funciona y con la
+vieja no, contraseña actual incorrecta rechazada sin tocar la contraseña real, contraseña nueva
+corta rechazada.
+
+**Nota de seguridad operativa:** durante esta sesión se encontró un archivo suelto
+(`ENV=production.txt`) en la raíz del repo con `RF_AUTH_SECRET_KEY` y `RF_SUPERADMIN_PASSWORD`
+en texto plano — probablemente un volcado accidental al configurar las variables de Railway.
+Nunca llegó a git (estaba sin trackear), pero se borró apenas se detectó. Recordatorio: no
+pegar secretos de producción en archivos sueltos del repo, ni siquiera temporalmente.
+
+**Última corrida:** 2026-08-30 — `84 passed, 1 warning in 17.75s`.

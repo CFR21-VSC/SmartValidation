@@ -31,6 +31,11 @@ class SetPinBody(BaseModel):
     pin: str
 
 
+class ChangePasswordBody(BaseModel):
+    current_password: str
+    new_password: str
+
+
 def _issue_session(response: Response, row: dict) -> None:
     token, nonce = security.create_token(
         row["id"], row["username"], row["display_name"] or row["username"],
@@ -108,6 +113,27 @@ def set_pin(body: SetPinBody, user: dict = Depends(get_current_user)):
     db.execute(
         "UPDATE rf_users SET pin_hash=?, pin_set=1, updated_at=? WHERE id=?",
         (security.pbkdf2_hash(body.pin), time.time(), user["uid"]),
+    )
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/auth/change-password")
+def change_password(body: ChangePasswordBody, user: dict = Depends(get_current_user)):
+    """Autoservicio para CUALQUIER cuenta ya activa (DRP o cliente) — cubre el hueco real
+    de no poder rotar la contraseña del superadmin bootstrapeado (o la de cualquier otro
+    usuario) después del primer login. Exige la contraseña actual para confirmar identidad."""
+    if len(body.new_password) < 8:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "La contraseña nueva debe tener al menos 8 caracteres")
+
+    db = get_db()
+    row = db.execute("SELECT password_hash FROM rf_users WHERE id=?", (user["uid"],)).fetchone()
+    if not row or not security.pbkdf2_verify(body.current_password, row["password_hash"]):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "La contraseña actual es incorrecta")
+
+    db.execute(
+        "UPDATE rf_users SET password_hash=?, updated_at=? WHERE id=?",
+        (security.pbkdf2_hash(body.new_password), time.time(), user["uid"]),
     )
     db.commit()
     return {"ok": True}
