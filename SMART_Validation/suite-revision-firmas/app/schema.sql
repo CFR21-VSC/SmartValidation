@@ -49,6 +49,17 @@ CREATE TABLE IF NOT EXISTS rf_sessions (
 CREATE INDEX IF NOT EXISTS idx_rf_grants_user ON rf_document_access_grants(user_id);
 CREATE INDEX IF NOT EXISTS idx_rf_grants_proj ON rf_document_access_grants(project_id, doc_type);
 
+-- Fuerza bruta: intentos fallidos de login por username (sección pedida por el usuario
+-- 2026-08-31). Se trackea por el string tal cual se mandó, exista o no la cuenta -- así un
+-- atacante no puede distinguir "usuario inexistente" de "contraseña incorrecta" por si el
+-- bloqueo se comporta distinto en un caso u otro.
+CREATE TABLE IF NOT EXISTS rf_login_attempts (
+    username      TEXT PRIMARY KEY,
+    fail_count    INTEGER NOT NULL DEFAULT 0,
+    first_fail_at REAL,
+    locked_until  REAL
+);
+
 -- Fase 2: Capa 3 — documentos cargados a mano por DRP + correcciones de revisión.
 
 CREATE TABLE IF NOT EXISTS rf_documents (

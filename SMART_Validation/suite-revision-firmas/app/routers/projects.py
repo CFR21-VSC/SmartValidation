@@ -85,19 +85,39 @@ def get_dossier(project_id: str, user: dict = Depends(get_current_user)):
 
     now = time.time()
     stale_cutoff = now - STALE_COMMENT_DAYS * 86400
+
+    # Un SELECT por sub-métrica para TODOS los documentos a la vez (agrupado por
+    # document_id), en vez de 3 queries por documento en un loop -- con un proyecto de
+    # 20-30 documentos eso son ~60-90 queries evitadas por cada apertura del panel.
+    doc_ids = [d["id"] for d in docs]
+    first_review_by_doc: dict = {}
+    open_round_docs: set = set()
+    pending_by_doc: dict = {}
+    if doc_ids:
+        placeholders = ",".join("?" for _ in doc_ids)
+        for r in db.execute(
+            f"SELECT document_id, MIN(signed_at) AS t FROM rf_review_signatures "
+            f"WHERE document_id IN ({placeholders}) GROUP BY document_id",
+            tuple(doc_ids),
+        ):
+            first_review_by_doc[r["document_id"]] = r["t"]
+        for r in db.execute(
+            f"SELECT DISTINCT document_id FROM rf_approval_rounds "
+            f"WHERE document_id IN ({placeholders}) AND status='open'",
+            tuple(doc_ids),
+        ):
+            open_round_docs.add(r["document_id"])
+        for r in db.execute(
+            f"SELECT document_id, COUNT(*) AS n, MIN(created_at) AS oldest FROM rf_section_comments "
+            f"WHERE document_id IN ({placeholders}) AND resolved=0 GROUP BY document_id",
+            tuple(doc_ids),
+        ):
+            pending_by_doc[r["document_id"]] = {"n": r["n"], "oldest": r["oldest"]}
+
     result = []
     for d in docs:
-        first_review = db.execute(
-            "SELECT MIN(signed_at) AS t FROM rf_review_signatures WHERE document_id=?", (d["id"],)
-        ).fetchone()["t"]
-        open_round = db.execute(
-            "SELECT id FROM rf_approval_rounds WHERE document_id=? AND status='open' LIMIT 1", (d["id"],)
-        ).fetchone()
-        pending = db.execute(
-            "SELECT COUNT(*) AS n, MIN(created_at) AS oldest FROM rf_section_comments "
-            "WHERE document_id=? AND resolved=0",
-            (d["id"],),
-        ).fetchone()
+        first_review = first_review_by_doc.get(d["id"])
+        pending = pending_by_doc.get(d["id"], {"n": 0, "oldest": None})
 
         sealed_at = d["locked_at"] if d["locked"] else None
         result.append({
@@ -106,7 +126,7 @@ def get_dossier(project_id: str, user: dict = Depends(get_current_user)):
             "locked": bool(d["locked"]),
             "created_at": d["created_at"],
             "first_review_signed_at": first_review,
-            "has_open_approval_round": bool(open_round),
+            "has_open_approval_round": d["id"] in open_round_docs,
             "sealed_at": sealed_at,
             "kpi_load_to_review_s": (first_review - d["created_at"]) if first_review else None,
             "kpi_review_to_seal_s": (sealed_at - first_review) if (sealed_at and first_review) else None,

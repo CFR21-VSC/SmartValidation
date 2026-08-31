@@ -15,6 +15,13 @@
             <div class="rf-subtitle">Ingresá con tu usuario y contraseña para revisar y firmar documentos GxP.</div>
 
             <form id="login-form" novalidate>
+                <!-- Honeypot: invisible para una persona, pero un bot que autocompleta todo
+                     el <form> sí lo llena. Fuera de pantalla (no display:none, que algunos
+                     bots ya saben ignorar) y fuera del tab order / lectores de pantalla. -->
+                <div style="position:absolute; left:-9999px; top:-9999px;" aria-hidden="true">
+                    <label for="website">Sitio web</label>
+                    <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+                </div>
                 <div class="rf-field">
                     <label class="rf-label" for="username">Usuario</label>
                     <input class="rf-input" type="text" id="username" name="username" autocomplete="username" required autofocus>
@@ -54,11 +61,12 @@ form.addEventListener('submit', async (e) => {
 
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
+    const website = document.getElementById('website').value;
 
     submitBtn.disabled = true;
     const { status, data } = await apiFetch('/auth/login', {
         method: 'POST',
-        body: { username, password },
+        body: { username, password, website },
     });
     submitBtn.disabled = false;
 

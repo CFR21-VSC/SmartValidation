@@ -69,6 +69,44 @@ def collect_signatures(db, document_id: str) -> list[dict]:
     return firmas
 
 
+def collect_signatures_bulk(db, document_ids: list[str]) -> dict[str, list[dict]]:
+    """Igual que collect_signatures() pero para varios documentos a la vez: 2 queries
+    agrupadas por document_id en vez de 2*N -- usado por el paquete del Libro, que puede
+    incluir todos los documentos sellados del proyecto de una sola apertura (N+1 real que
+    tenía get_book_package antes, un SELECT x2 por documento en un loop)."""
+    result: dict[str, list[dict]] = {doc_id: [] for doc_id in document_ids}
+    if not document_ids:
+        return result
+    placeholders = ",".join("?" for _ in document_ids)
+
+    for r in db.execute(
+        f"SELECT rs.document_id, rs.role_label, rs.signed_at, u.display_name, u.username "
+        f"FROM rf_review_signatures rs JOIN rf_users u ON u.id = rs.user_id "
+        f"WHERE rs.document_id IN ({placeholders}) ORDER BY rs.signed_at",
+        tuple(document_ids),
+    ):
+        nombre = r["display_name"] or r["username"]
+        result[r["document_id"]].append({
+            "rol": r["role_label"] or "Revisor", "nombre": nombre,
+            "iniciales": iniciales(nombre), "fecha": fecha(r["signed_at"]),
+        })
+
+    for r in db.execute(
+        f"SELECT rnd.document_id, sig.role_label, sig.signed_at, u.display_name, u.username "
+        f"FROM rf_approval_signers sig "
+        f"JOIN rf_approval_rounds rnd ON rnd.id = sig.round_id "
+        f"JOIN rf_users u ON u.id = sig.user_id "
+        f"WHERE rnd.document_id IN ({placeholders}) AND sig.signed_at IS NOT NULL ORDER BY sig.sign_order",
+        tuple(document_ids),
+    ):
+        nombre = r["display_name"] or r["username"]
+        result[r["document_id"]].append({
+            "rol": r["role_label"] or "Aprobador", "nombre": nombre,
+            "iniciales": iniciales(nombre), "fecha": fecha(r["signed_at"]),
+        })
+    return result
+
+
 def inject_signatures_section(data: dict, firmas: list[dict]) -> dict:
     """Inserta/reemplaza la sección tabla-firmas-final con `firmas`. Muta y devuelve `data`."""
     secciones = data.get("secciones") if isinstance(data.get("secciones"), list) else []
@@ -96,11 +134,11 @@ def get_book_package(project_id: str, user: dict = Depends(require_drp)):
     ).fetchall()
     skipped = [r["doc_type"] for r in all_types if not r["locked"]]
 
+    firmas_by_doc = collect_signatures_bulk(db, [doc["id"] for doc in docs])
     package = []
     for doc in docs:
         data = json.loads(doc["json_data"])
-        firmas = collect_signatures(db, doc["id"])
-        data = inject_signatures_section(data, firmas)
+        data = inject_signatures_section(data, firmas_by_doc[doc["id"]])
         package.append({"type": doc["doc_type"], "data": data})
 
     return {"ok": True, "documents": package, "skipped_not_sealed": skipped}

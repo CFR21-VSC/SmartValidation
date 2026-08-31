@@ -129,22 +129,37 @@ def create_approval_round(
 
     # Todo firmante debe ya tener acceso habilitado a este documento (sección 3, Capa 2) —
     # ser designado firmante de aprobación no es una puerta trasera para saltarse esa regla.
+    # Un SELECT agrupado para todos los firmantes (no uno por firmante en un loop) — de paso
+    # evita traer la misma fila de rf_users dos veces (antes se volvía a pedir el username
+    # en el loop de INSERT de más abajo).
+    signer_ids = [s["user_id"] for s in body.signers]
+    placeholders = ",".join("?" for _ in signer_ids)
+    users_by_id = {
+        r["id"]: r for r in db.execute(
+            f"SELECT id, username, is_superadmin FROM rf_users WHERE id IN ({placeholders})",
+            tuple(signer_ids),
+        )
+    }
+    grants_by_id: dict[str, bool] = {}
+    if signer_ids:
+        for r in db.execute(
+            f"SELECT DISTINCT user_id FROM rf_document_access_grants "
+            f"WHERE project_id=? AND doc_type=? AND user_id IN ({placeholders})",
+            (project_id, doc_type, *signer_ids),
+        ):
+            grants_by_id[r["user_id"]] = True
+
     is_superadmin_by_id: dict[str, bool] = {}
     for s in body.signers:
-        urow = db.execute("SELECT is_superadmin FROM rf_users WHERE id=?", (s["user_id"],)).fetchone()
+        urow = users_by_id.get(s["user_id"])
         if not urow:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Usuario {s['user_id']} no encontrado")
         is_superadmin_by_id[s["user_id"]] = bool(urow["is_superadmin"])
-        if not urow["is_superadmin"]:
-            grant = db.execute(
-                "SELECT id FROM rf_document_access_grants WHERE user_id=? AND project_id=? AND doc_type=?",
-                (s["user_id"], project_id, doc_type),
-            ).fetchone()
-            if not grant:
-                raise HTTPException(
-                    status.HTTP_400_BAD_REQUEST,
-                    f"El firmante {s['user_id']} no tiene acceso habilitado a este documento",
-                )
+        if not urow["is_superadmin"] and not grants_by_id.get(s["user_id"]):
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                f"El firmante {s['user_id']} no tiene acceso habilitado a este documento",
+            )
 
     last_signer = max(body.signers, key=lambda s: s["sign_order"])
     if not is_superadmin_by_id[last_signer["user_id"]]:
@@ -160,7 +175,7 @@ def create_approval_round(
         (round_id, doc["id"], user["u"], now),
     )
     for s in body.signers:
-        urow = db.execute("SELECT username FROM rf_users WHERE id=?", (s["user_id"],)).fetchone()
+        urow = users_by_id.get(s["user_id"])
         db.execute(
             "INSERT INTO rf_approval_signers (round_id, user_id, username, role_label, sign_order) "
             "VALUES (?,?,?,?,?)",
@@ -252,12 +267,19 @@ def sign_approval(
 
     db.commit()
 
+    signer_ids = [s["user_id"] for s in signers]
+    placeholders = ",".join("?" for _ in signer_ids)
+    emails_by_id = {
+        r["id"]: r["email"] for r in db.execute(
+            f"SELECT id, email FROM rf_users WHERE id IN ({placeholders})", tuple(signer_ids)
+        )
+    } if signer_ids else {}
     for s in signers:
-        srow = db.execute("SELECT email FROM rf_users WHERE id=?", (s["user_id"],)).fetchone()
-        if srow and srow["email"]:
+        email = emails_by_id.get(s["user_id"])
+        if email:
             if sealed:
-                send_email(srow["email"], f"{doc_type} sellado", f"<p>{doc_type} quedó firmado y sellado.</p>")
+                send_email(email, f"{doc_type} sellado", f"<p>{doc_type} quedó firmado y sellado.</p>")
             else:
-                send_email(srow["email"], f"Firma registrada en {doc_type}", f"<p>{user['u']} firmó {doc_type}.</p>")
+                send_email(email, f"Firma registrada en {doc_type}", f"<p>{user['u']} firmó {doc_type}.</p>")
 
     return {"ok": True, "sealed": sealed}

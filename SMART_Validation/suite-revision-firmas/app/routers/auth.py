@@ -17,10 +17,56 @@ from ..deps import get_current_user
 
 router = APIRouter(tags=["auth"])
 
+# Fuerza bruta (sección pedida por el usuario 2026-08-31): 5 intentos fallidos en una
+# ventana de 15 minutos bloquean ese username por otros 15 minutos.
+MAX_LOGIN_ATTEMPTS = 5
+LOGIN_ATTEMPT_WINDOW_S = 15 * 60
+LOGIN_LOCKOUT_S = 15 * 60
+
 
 class LoginBody(BaseModel):
     username: str
     password: str
+    # Honeypot: campo oculto en el form real (login.html), invisible para una persona pero
+    # que un bot que autocompleta todos los campos del <form> sí llena. Si llega con algo
+    # adentro, se rechaza como si fuera credenciales inválidas sin tocar la DB de usuarios
+    # ni contar como intento fallido real (para no poder usarlo para bloquear a otra
+    # persona a propósito).
+    website: str = ""
+
+
+def _check_login_lockout(db, username: str) -> float | None:
+    """Devuelve segundos restantes de bloqueo, o None si puede intentar loguearse."""
+    row = db.execute("SELECT locked_until FROM rf_login_attempts WHERE username=?", (username,)).fetchone()
+    if row and row["locked_until"] and row["locked_until"] > time.time():
+        return row["locked_until"] - time.time()
+    return None
+
+
+def _register_failed_login(db, username: str) -> None:
+    now = time.time()
+    row = db.execute(
+        "SELECT fail_count, first_fail_at FROM rf_login_attempts WHERE username=?", (username,)
+    ).fetchone()
+    if row and row["first_fail_at"] and (now - row["first_fail_at"]) < LOGIN_ATTEMPT_WINDOW_S:
+        fail_count = row["fail_count"] + 1
+        first_fail_at = row["first_fail_at"]
+    else:
+        fail_count = 1
+        first_fail_at = now
+    locked_until = now + LOGIN_LOCKOUT_S if fail_count >= MAX_LOGIN_ATTEMPTS else None
+    db.execute(
+        "INSERT INTO rf_login_attempts (username, fail_count, first_fail_at, locked_until) VALUES (?,?,?,?) "
+        "ON CONFLICT(username) DO UPDATE SET fail_count=excluded.fail_count, "
+        "first_fail_at=excluded.first_fail_at, locked_until=excluded.locked_until",
+        (username, fail_count, first_fail_at, locked_until),
+    )
+    db.commit()
+
+
+def _clear_login_attempts(db, username: str) -> None:
+    db.execute("DELETE FROM rf_login_attempts WHERE username=?", (username,))
+    db.commit()
 
 
 class AcceptInviteBody(BaseModel):
@@ -55,15 +101,36 @@ def _issue_session(response: Response, row: dict) -> None:
 @router.post("/auth/login")
 def login(body: LoginBody, response: Response):
     db = get_db()
+
+    if body.website.strip():
+        # Honeypot lleno -> bot. Mismo error genérico que credenciales inválidas, pero sin
+        # tocar rf_users ni el contador de intentos fallidos (no debe poder usarse para
+        # bloquear la cuenta de otra persona a propósito).
+        log_system_event(
+            {"uid": None, "u": body.username or "?"}, "login_honeypot_triggered",
+            f"Intento de login con honeypot lleno (username enviado: {body.username!r})",
+        )
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Usuario o contraseña incorrectos")
+
+    remaining = _check_login_lockout(db, body.username)
+    if remaining is not None:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            f"Demasiados intentos fallidos. Probá de nuevo en {int(remaining // 60) + 1} minuto(s).",
+        )
+
     row = db.execute(
         "SELECT * FROM rf_users WHERE username=? AND is_active=1", (body.username,)
     ).fetchone()
     if not row or not row["password_hash"]:
         security.dummy_verify_delay()
+        _register_failed_login(db, body.username)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Usuario o contraseña incorrectos")
     if not security.pbkdf2_verify(body.password, row["password_hash"]):
+        _register_failed_login(db, body.username)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Usuario o contraseña incorrectos")
 
+    _clear_login_attempts(db, body.username)
     db.execute("UPDATE rf_users SET last_login=? WHERE id=?", (time.time(), row["id"]))
     db.commit()
     _issue_session(response, dict(row))

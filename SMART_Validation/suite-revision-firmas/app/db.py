@@ -272,6 +272,7 @@ def reset_db_for_tests() -> None:
         "rf_document_access_grants",
         "rf_invites",
         "rf_sessions",
+        "rf_login_attempts",
         "rf_users",
     ):
         db.execute(f"DELETE FROM {table}")
