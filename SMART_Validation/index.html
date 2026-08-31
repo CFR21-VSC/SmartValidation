@@ -682,17 +682,17 @@
 
         <!-- ═══════════════════════════════════════════════════════════════
              TOOLBAR DRP v4 — 4 suite tabs
-             Validación · Documental · Planillas · Admin
+             Documental · Evidencias · Planillas · Admin
              ═══════════════════════════════════════════════════════════════ -->
 
-        <!-- ── Suite 1 — Validación ── -->
+        <!-- ── Suite 1 — Documental ── -->
         <div class="tb-split">
-            <button class="tb-split-main suite-tab-btn" data-dropdown="dropSuiteVal" title="Suite Validación — proyectos, evidencias, tests, exportar, cierre">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="suite-tab-icon"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
-                Validación
+            <button class="tb-split-main suite-tab-btn" data-dropdown="dropSuiteDoc" title="Suite Documental — proyectos, editor GxP, dossier, libro de validación">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="suite-tab-icon"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+                Documental
                 <svg class="suite-tab-chevron" width="8" height="5" viewBox="0 0 8 5"><path d="M0 0l4 5 4-5z" fill="currentColor"/></svg>
             </button>
-            <div class="tb-dropdown tb-dropdown-wide" id="dropSuiteVal">
+            <div class="tb-dropdown tb-dropdown-wide" id="dropSuiteDoc">
                 <div class="sp-col">
                     <span class="sp-col-title">Proyectos</span>
                     <button id="btnSuiteProyectos" class="sp-item sp-item-primary" onclick="openProjectsModal()" title="Suite de Proyectos">
@@ -730,110 +730,6 @@
                     </button>
                 </div>
 
-                <div class="sp-col">
-                    <span class="sp-col-title">Evidencias</span>
-                    <button id="btnCapturarPantalla" class="sp-item sp-item-primary" title="Pegar imagen del portapapeles (Ctrl+V)">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                        Pegar portapapeles (Ctrl+V)
-                    </button>
-                    <button id="btnSubirImagen" class="sp-item" title="Subir imagen(es)">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-                        Subir imagen
-                    </button>
-                    <button id="btnSubirCarpeta" class="sp-item" title="Subir carpeta completa">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
-                        Subir carpeta
-                    </button>
-                    <button id="btnInsertarTabla" class="sp-item" title="Insertar tabla como evidencia">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
-                        Insertar tabla
-                    </button>
-                    <button id="btnEvidenciaVacia" class="sp-item" title="Crear evidencia vacía">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                        Evidencia vacía
-                    </button>
-                    <button class="sp-item" onclick="startMobileCapture()" title="Capturar fotos desde el celular">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>
-                        Captura desde móvil
-                    </button>
-                    <hr class="sp-sep">
-                    <label id="btnImportarFotos" class="sp-item-label" title="Importar evidencias reales desde JSON DRP" style="cursor:pointer;">
-                        <input type="file" accept=".json" style="display:none" onchange="(async(el)=>{if(el.files[0])await mergeEvidencePhotos(el.files[0]);el.value=''})(this)">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        Importar evidencias reales
-                    </label>
-                </div>
-
-                <div class="sp-col">
-                    <span class="sp-col-title">Sesión y exportar</span>
-                    <button id="btnCargarSesion" class="sp-item" title="Cargar sesión desde archivo">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        Cargar sesión
-                    </button>
-                    <button id="btnGuardarSesion" class="sp-item" title="Guardar sesión en archivo">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                        Guardar sesión
-                    </button>
-                    <hr class="sp-sep">
-                    <button id="btnExportarAex" class="sp-item sp-item-primary" title="Exportar AEX — Anexo de Ejecución (suite)">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="10" y1="14" x2="10" y2="18"/><line x1="14" y1="14" x2="14" y2="18"/></svg>
-                        Exportar AEX (suite)
-                    </button>
-                    <button id="btnExportarPDF" class="sp-item" title="Exportar a PDF (modo clásico)">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                        Exportar PDF (clásico)
-                    </button>
-                    <button id="btnExportarExcel" class="sp-item" title="Exportar a Excel">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
-                        Exportar Excel
-                    </button>
-                    <button id="btnExportarJSON" class="sp-item" title="Exportar datos del proyecto">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
-                        Exportar datos
-                    </button>
-                    <button class="sp-item" onclick="openZipExportModal()" title="Exportar imágenes como ZIP trazable">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        Raw Data (ZIP)
-                    </button>
-                    <hr class="sp-sep">
-                    <button id="btnFinalizarPrueba" class="sp-item" title="Finalizar prueba activa">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                        Finalizar prueba
-                    </button>
-                    <button id="btnFinalizarCarpeta" class="sp-item" title="Finalizar carpeta activa">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/><polyline points="16 11 10 17 8 15"/></svg>
-                        Finalizar carpeta
-                    </button>
-                    <button id="btnFinalizarProyecto" class="sp-item" title="Finalizar proyecto completo">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                        Finalizar proyecto
-                    </button>
-                    <button id="btnReabrirProyecto" class="sp-item" onclick="reopenProject()" title="Reabrir proyecto finalizado">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
-                        Reabrir proyecto
-                    </button>
-                    <hr class="sp-sep">
-                    <button id="btnLimpiarCache" class="sp-item sp-item-danger" title="Limpiar toda la cache (requiere confirmación)">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
-                        Limpiar cache
-                    </button>
-                    <button id="btnBorrarImagenesServidor" class="sp-item sp-item-danger" onclick="clearEvidenceImagesOnly()" title="Borra todas las imágenes del servidor">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><line x1="21" y1="3" x2="3" y2="21"/></svg>
-                        Borrar imágenes del servidor
-                    </button>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- ── Suite 2 — Documental ── -->
-        <div class="tb-split">
-            <button class="tb-split-main suite-tab-btn" data-dropdown="dropSuiteDoc" title="Suite Documental — editor GxP, dossier, libro de validación, comparación">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="suite-tab-icon"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
-                Documental
-                <svg class="suite-tab-chevron" width="8" height="5" viewBox="0 0 8 5"><path d="M0 0l4 5 4-5z" fill="currentColor"/></svg>
-            </button>
-            <div class="tb-dropdown tb-dropdown-wide" id="dropSuiteDoc">
                 <div class="sp-col" style="min-width:195px;">
                     <span class="sp-col-title">Editor GxP</span>
                     <button class="sp-item sp-item-primary" onclick="openValidationSuite()" title="Abrir el editor + preview de documentos GxP">
@@ -940,6 +836,101 @@
             </div>
         </div>
 
+        <!-- ── Suite 2 — Evidencias ── -->
+        <div class="tb-split">
+            <button class="tb-split-main suite-tab-btn" data-dropdown="dropSuiteVal" title="Suite Evidencias — captura, importar, exportar, cierre">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="suite-tab-icon"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                Evidencias
+                <svg class="suite-tab-chevron" width="8" height="5" viewBox="0 0 8 5"><path d="M0 0l4 5 4-5z" fill="currentColor"/></svg>
+            </button>
+            <div class="tb-dropdown tb-dropdown-wide" id="dropSuiteVal">
+                <div class="sp-col">
+                    <span class="sp-col-title">Evidencias</span>
+                    <button id="btnCapturarPantalla" class="sp-item sp-item-primary" title="Pegar imagen del portapapeles (Ctrl+V)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                        Pegar portapapeles (Ctrl+V)
+                    </button>
+                    <button id="btnSubirImagen" class="sp-item" title="Subir imagen(es)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                        Subir imagen
+                    </button>
+                    <button id="btnSubirCarpeta" class="sp-item" title="Subir carpeta completa">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                        Subir carpeta
+                    </button>
+                    <button id="btnInsertarTabla" class="sp-item" title="Insertar tabla como evidencia">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                        Insertar tabla
+                    </button>
+                    <button id="btnEvidenciaVacia" class="sp-item" title="Crear evidencia vacía">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                        Evidencia vacía
+                    </button>
+                    <button class="sp-item" onclick="startMobileCapture()" title="Capturar fotos desde el celular">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg>
+                        Captura desde móvil
+                    </button>
+                    <hr class="sp-sep">
+                    <label id="btnImportarFotos" class="sp-item-label" title="Importar evidencias reales desde JSON DRP" style="cursor:pointer;">
+                        <input type="file" accept=".json" style="display:none" onchange="(async(el)=>{if(el.files[0])await mergeEvidencePhotos(el.files[0]);el.value=''})(this)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Importar evidencias reales
+                    </label>
+                </div>
+
+                <div class="sp-col">
+                    <span class="sp-col-title">Sesión y exportar</span>
+                    <button id="btnCargarSesion" class="sp-item" title="Cargar sesión desde archivo">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        Cargar sesión
+                    </button>
+                    <button id="btnGuardarSesion" class="sp-item" title="Guardar sesión en archivo">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                        Guardar sesión
+                    </button>
+                    <hr class="sp-sep">
+                    <button id="btnExportarAex" class="sp-item sp-item-primary" title="Exportar AEX — Anexo de Ejecución (suite)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="10" y1="14" x2="10" y2="18"/><line x1="14" y1="14" x2="14" y2="18"/></svg>
+                        Exportar AEX (suite)
+                    </button>
+                    <button id="btnExportarPDF" class="sp-item" title="Exportar a PDF (modo clásico)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        Exportar PDF (clásico)
+                    </button>
+                    <button id="btnExportarExcel" class="sp-item" title="Exportar a Excel">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+                        Exportar Excel
+                    </button>
+                    <button id="btnExportarJSON" class="sp-item" title="Exportar datos del proyecto">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+                        Exportar datos
+                    </button>
+                    <button class="sp-item" onclick="openZipExportModal()" title="Exportar imágenes como ZIP trazable">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Raw Data (ZIP)
+                    </button>
+                    <hr class="sp-sep">
+                    <button id="btnFinalizarPrueba" class="sp-item" title="Finalizar prueba activa">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        Finalizar prueba
+                    </button>
+                    <button id="btnFinalizarCarpeta" class="sp-item" title="Finalizar carpeta activa">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/><polyline points="16 11 10 17 8 15"/></svg>
+                        Finalizar carpeta
+                    </button>
+                    <button id="btnFinalizarProyecto" class="sp-item" title="Finalizar proyecto completo">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        Finalizar proyecto
+                    </button>
+                    <button id="btnReabrirProyecto" class="sp-item" onclick="reopenProject()" title="Reabrir proyecto finalizado">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>
+                        Reabrir proyecto
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
         <!-- ── Suite 3 — Planillas ── -->
         <div class="tb-split">
             <button class="tb-split-main suite-tab-btn" data-dropdown="dropSuitePlan" title="Suite Planillas — validación de Excel GxP y MapeoGxP">
@@ -980,13 +971,6 @@
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                         Abrir MapeoGxP
                     </button>
-                    <hr class="sp-sep">
-                    <span class="sp-sub-label">Capas del mapa</span>
-                    <button class="sp-item sp-item-disabled">⬜ Proceso — Flujo y decisiones</button>
-                    <button class="sp-item sp-item-disabled">🟡 Perfil — Roles de usuario</button>
-                    <button class="sp-item sp-item-disabled">🔵 Sistema — Sistemas GxP</button>
-                    <button class="sp-item sp-item-disabled">🟢 Cálculo — Algoritmos</button>
-                    <button class="sp-item sp-item-disabled">⬜ Dato — Registros GxP</button>
                 </div>
 
             </div>
