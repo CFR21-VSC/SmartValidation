@@ -309,7 +309,7 @@ function renderProjectList() {
 
 async function selectProject(projectId, keepLoadForm) {
     selectedProject = projectId;
-    if (!keepLoadForm) showLoadForm = false;
+    if (!keepLoadForm) { showLoadForm = false; prefillDocType = null; }
     renderProjectList();
     await loadDocuments();
 }
@@ -365,7 +365,7 @@ function renderMain() {
 
     if (isDrp) {
         const toggleBtn = document.getElementById('toggle-load-form');
-        if (toggleBtn) toggleBtn.addEventListener('click', () => { showLoadForm = !showLoadForm; renderMain(); });
+        if (toggleBtn) toggleBtn.addEventListener('click', () => { showLoadForm = !showLoadForm; prefillDocType = null; renderMain(); });
 
         const loadForm = document.getElementById('load-doc-form');
         if (loadForm) loadForm.addEventListener('submit', onLoadDocumentSubmit);
@@ -382,6 +382,9 @@ function renderMain() {
         });
         mainEl.querySelectorAll('.delete-doc-btn').forEach(btn => {
             btn.addEventListener('click', () => confirmDeleteDocument(btn.dataset.doctype));
+        });
+        mainEl.querySelectorAll('.replace-doc-btn').forEach(btn => {
+            btn.addEventListener('click', () => openReplaceForm(btn.dataset.doctype));
         });
         mainEl.querySelectorAll('.access-toggle-btn').forEach(btn => {
             btn.addEventListener('click', () => toggleAccessPanel(btn.dataset.doctype));
@@ -433,18 +436,30 @@ function renderMain() {
 }
 
 let loadedFileJson = null;
+let prefillDocType = null;   // seteado por el botón "Reemplazar" de una fila puntual
+
+function openReplaceForm(docType) {
+    prefillDocType = docType;
+    showLoadForm = true;
+    renderMain();
+    document.getElementById('load-doc-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
 
 function renderLoadForm() {
     loadedFileJson = null;
+    const fixedType = !!prefillDocType;
     return `
     <div class="rf-card" style="margin-bottom:20px;">
         <div class="rf-label" style="font-size:13px; margin-bottom:14px; color:var(--text);">
-            Cargar / reemplazar documento en <strong>${escHtml(selectedProject)}</strong>
+            ${fixedType
+                ? `Reemplazar el archivo de <strong>${escHtml(prefillDocType)}</strong> en <strong>${escHtml(selectedProject)}</strong>`
+                : `Cargar / reemplazar documento en <strong>${escHtml(selectedProject)}</strong>`}
         </div>
         <form id="load-doc-form">
             <div class="rf-field">
                 <label class="rf-label" for="doc-type-input">Tipo de documento</label>
-                <input class="rf-input" id="doc-type-input" placeholder="Ej: HLRA, URS, FRS…" required>
+                <input class="rf-input" id="doc-type-input" placeholder="Ej: HLRA, URS, FRS…"
+                    value="${fixedType ? escHtml(prefillDocType) : ''}" ${fixedType ? 'readonly' : ''} required>
             </div>
             <div class="rf-field">
                 <label class="rf-label">Archivo del documento (.json)</label>
@@ -475,6 +490,7 @@ function renderDocumentsTable() {
             actions += ` <button class="rf-btn-secondary access-toggle-btn" data-doctype="${escHtml(doc.doc_type)}">${expandedAccessDoc === doc.doc_type ? 'Cerrar accesos' : '👥 Accesos'}</button>`;
             actions += ` <button class="rf-btn-secondary pb-open-btn" data-doctype="${escHtml(doc.doc_type)}">People Book</button>`;
             if (!sealed && currentProjectStatus() === 'active') {
+                actions += ` <button class="rf-btn-secondary replace-doc-btn" data-doctype="${escHtml(doc.doc_type)}">🔁 Reemplazar</button>`;
                 actions += ` <button class="rf-btn-danger delete-doc-btn" data-doctype="${escHtml(doc.doc_type)}">Eliminar</button>`;
             }
         }
@@ -750,6 +766,7 @@ async function onLoadDocumentSubmit(e) {
     if (status === 200 && data.ok) {
         showToast('Documento guardado');
         showLoadForm = false;
+        prefillDocType = null;
         await loadProjects();
         await loadDocuments();
         return;
