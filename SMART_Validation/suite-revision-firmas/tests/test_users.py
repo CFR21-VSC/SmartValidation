@@ -100,3 +100,25 @@ def test_grant_is_idempotent_per_user_project_doctype(drp_client):
     drp_client.post(f"/users/{user_id}/grants", json=body)  # segunda vez, no debe duplicar
     grants = drp_client.get(f"/users/{user_id}/grants").json()["grants"]
     assert len(grants) == 1
+
+
+def test_grant_notifies_by_email_only_once(drp_client, monkeypatch):
+    """Otorgar acceso a un documento debe avisarle al usuario por mail (si no, nunca se
+    entera que tiene algo para revisar/firmar) — pero solo la primera vez, no en cada
+    reintento del mismo grant ya existente."""
+    calls = []
+    monkeypatch.setattr(
+        "app.routers.users.email_resend.send_access_granted_email",
+        lambda to, display_name, project_id, doc_type, link: calls.append((to, project_id, doc_type)),
+    )
+    created = drp_client.post(
+        "/users", json={"username": "gr3", "email": "g3@example.com", "display_name": "G3", "role": "cliente"}
+    )
+    user_id = created.json()["user_id"]
+    body = {"project_id": "proj-9", "doc_type": "FRS"}
+
+    drp_client.post(f"/users/{user_id}/grants", json=body)
+    assert calls == [("g3@example.com", "proj-9", "FRS")]
+
+    drp_client.post(f"/users/{user_id}/grants", json=body)  # ya tenía acceso -> no renotificar
+    assert len(calls) == 1

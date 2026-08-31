@@ -677,7 +677,10 @@ async function inviteAndGrantAccess(docType) {
         errorBox.classList.add('visible');
     }
 
-    showToast('Usuario creado — invitación enviada');
+    showToast(
+        created.data.email_configured ? 'Usuario creado — invitación enviada por email' : 'Usuario creado — copiá el link, el envío automático por email no está configurado',
+        !created.data.email_configured
+    );
     if (created.data.invite_link) {
         document.getElementById(`access-invite-link-${safe}`).value = created.data.invite_link;
         document.getElementById(`access-invite-link-box-${safe}`).style.display = 'block';

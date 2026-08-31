@@ -42,6 +42,23 @@ def send_email(to: str, subject: str, html: str) -> None:
     threading.Thread(target=_worker, daemon=True).start()
 
 
+def send_access_granted_email(to: str, display_name: str, project_id: str, doc_type: str, link: str) -> None:
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;">
+      <h2 style="color:#0B2341;">Nuevo documento para revisar/firmar</h2>
+      <p>Hola {display_name or to},</p>
+      <p>Te dieron acceso a <strong>{doc_type}</strong> (proyecto <strong>{project_id}</strong>)
+         en la Suite de Revisión y Firmas.</p>
+      <p style="margin:24px 0;">
+        <a href="{link}" style="background:#C8921A;color:#0B2341;padding:10px 20px;
+           border-radius:6px;text-decoration:none;font-weight:700;">Ver documento</a>
+      </p>
+      <p style="font-size:12px;color:#666;">Si no esperabas este correo, podés ignorarlo.</p>
+    </div>
+    """
+    send_email(to, f"Acceso otorgado — {doc_type}", html)
+
+
 def send_invite_email(to: str, display_name: str, invite_link: str) -> None:
     html = f"""
     <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;">

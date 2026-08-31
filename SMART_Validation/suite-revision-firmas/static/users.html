@@ -190,7 +190,7 @@ async function onCreateUserSubmit(e) {
     submitBtn.disabled = false;
 
     if (status === 200 && data.ok) {
-        showToast('Usuario creado — invitación enviada');
+        showToast(data.email_configured ? 'Usuario creado — invitación enviada por email' : 'Usuario creado — copiá el link, el envío automático por email no está configurado', !data.email_configured);
         document.getElementById('create-user-form').reset();
         if (data.invite_link) {
             document.getElementById('invite-link-input').value = data.invite_link;

@@ -71,7 +71,14 @@ def create_user(body: CreateUserBody, user: dict = Depends(require_drp)):
     email_resend.send_invite_email(body.email, body.display_name, invite_link)
 
     log_system_event(user, "user_created", f"{user['u']} creó el usuario {body.email} ({body.role})")
-    return {"ok": True, "user_id": user_id, "invite_link": invite_link}
+    # send_invite_email es fire-and-forget (thread daemon) — no hay forma sincrónica de
+    # saber si Resend efectivamente lo entregó. Lo único que se puede confirmar acá es si
+    # el envío automático está configurado en este servicio; si no lo está, el frontend debe
+    # avisar que hay que mandar el link a mano en vez de decir "invitación enviada" en falso.
+    return {
+        "ok": True, "user_id": user_id, "invite_link": invite_link,
+        "email_configured": bool(config.RESEND_API_KEY),
+    }
 
 
 @router.get("")
@@ -92,12 +99,17 @@ def grant_document_access(user_id: str, body: GrantBody, user: dict = Depends(re
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
 
     now = time.time()
-    db.execute(
+    cur = db.execute(
         "INSERT OR IGNORE INTO rf_document_access_grants "
         "(user_id, project_id, doc_type, granted_by, granted_at) VALUES (?,?,?,?,?)",
         (user_id, body.project_id, body.doc_type, user["u"], now),
     )
     db.commit()
+    if cur.rowcount:  # ya tenía este acceso -> no volver a notificar
+        doc_link = f"{config.APP_BASE_URL}/app/review.html?project={body.project_id}&doc={body.doc_type}"
+        email_resend.send_access_granted_email(
+            target["email"], target["display_name"], body.project_id, body.doc_type, doc_link,
+        )
     target_label = target["display_name"] or target["email"]
     log_system_event(
         user, "grant_created",
