@@ -116,6 +116,12 @@ if USE_PG:
         def fetchall(self):
             return self._cur.fetchall()
 
+        def __iter__(self):
+            # sqlite3.Cursor es iterable directamente (for r in db.execute(...)) — sin esto,
+            # ese mismo patrón sobre _PGCursor rompe con "TypeError: '_PGCursor' object is
+            # not iterable" en modo Postgres (encontrado en list_projects, 2026-08-31).
+            return iter(self._cur)
+
         @property
         def rowcount(self) -> int:
             return self._cur.rowcount

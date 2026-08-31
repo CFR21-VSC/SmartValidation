@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel
 
 from .. import security
+from ..audit import log_system_event
 from ..db import get_db
 from ..deps import get_current_user
 
@@ -66,6 +67,7 @@ def login(body: LoginBody, response: Response):
     db.execute("UPDATE rf_users SET last_login=? WHERE id=?", (time.time(), row["id"]))
     db.commit()
     _issue_session(response, dict(row))
+    log_system_event({"uid": row["id"], "u": row["username"]}, "login", f"{row['username']} inició sesión")
     return {
         "ok": True,
         "display_name": row["display_name"],
@@ -83,6 +85,7 @@ def logout(response: Response, user: dict = Depends(get_current_user)):
     )
     db.commit()
     response.headers["Set-Cookie"] = security.build_clear_cookie()
+    log_system_event(user, "logout", f"{user['u']} cerró sesión")
     return {"ok": True}
 
 
@@ -178,4 +181,8 @@ def accept_invite(token: str, body: AcceptInviteBody, response: Response):
 
     fresh = db.execute("SELECT * FROM rf_users WHERE id=?", (u["id"],)).fetchone()
     _issue_session(response, dict(fresh))
+    log_system_event(
+        {"uid": fresh["id"], "u": fresh["username"]}, "user_activated",
+        f"{fresh['username']} activó su cuenta (aceptó la invitación)",
+    )
     return {"ok": True, "display_name": fresh["display_name"], "role": fresh["role"]}

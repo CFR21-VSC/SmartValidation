@@ -9,12 +9,12 @@ import time
 import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import config, security
-from .db import get_db, init_db
+from .db import get_db, init_db, release_db
 from .routers import auth, book, documents, projects, signatures, users
 from .routers.projects import audit_router
 
@@ -30,6 +30,20 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Suite de Revisión y Firmas", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def _release_db_connection(request: Request, call_next):
+    """En modo Postgres, get_db() ata una conexión del pool (máx 20) al thread que
+    la pidió — sin este middleware nunca se devolvía al pool (release_db() estaba
+    definida pero jamás invocada), así que el pool se iba agotando con el uso y las
+    escrituras empezaban a fallar de forma intermitente a medida que el proceso
+    acumulaba threads distintos. En SQLite release_db() es un no-op."""
+    try:
+        return await call_next(request)
+    finally:
+        release_db()
+
 
 app.include_router(auth.router)
 app.include_router(users.router)

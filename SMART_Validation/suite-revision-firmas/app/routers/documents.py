@@ -57,8 +57,10 @@ def load_document(project_id: str, doc_type: str, body: LoadDocumentBody, user: 
             "VALUES (?,?,?,?,?,?,?)",
             (doc_id, project_id, doc_type, json.dumps(body.json_data), user["u"], now, now),
         )
-    ensure_project(db, project_id, user["u"])
+    created_project = ensure_project(db, project_id, user["u"])
     db.commit()
+    if created_project:
+        log_system_event(user, "project_created", f"{user['u']} creó el proyecto", project_id=project_id)
     log_event(project_id, doc_type, user, "document_loaded", f"{user['u']} cargó {doc_type}")
     return {"ok": True, "document_id": doc_id}
 

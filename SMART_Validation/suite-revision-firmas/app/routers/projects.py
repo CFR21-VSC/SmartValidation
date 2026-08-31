@@ -23,17 +23,19 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 audit_router = APIRouter(tags=["audit"])
 
 
-def ensure_project(db, project_id: str, username: str) -> None:
-    """Crea la fila rf_projects si no existe todavía. Idempotente."""
+def ensure_project(db, project_id: str, username: str) -> bool:
+    """Crea la fila rf_projects si no existe todavía. Idempotente.
+    Devuelve True solo si la creó recién ahora (para loguear project_created una sola vez)."""
     existing = db.execute("SELECT id FROM rf_projects WHERE id=?", (project_id,)).fetchone()
     if existing:
-        return
+        return False
     now = time.time()
     db.execute(
         "INSERT INTO rf_projects (id, status, created_by, created_at, updated_at) "
         "VALUES (?,'active',?,?,?)",
         (project_id, username, now, now),
     )
+    return True
 
 
 def _get_project_or_404(db, project_id: str) -> dict:
