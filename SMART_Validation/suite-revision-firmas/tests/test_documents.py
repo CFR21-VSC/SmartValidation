@@ -67,6 +67,33 @@ def test_client_with_grant_can_see_document(drp_client, cliente_client):
     assert r.json()["document"]["json_data"]["type"] == "HLRA"
 
 
+def test_client_with_grant_in_one_project_cannot_see_a_different_project(drp_client, cliente_client):
+    """Confirma explícitamente lo que preguntó el usuario: un cliente con acceso a un
+    documento de un proyecto no puede ver NADA de otro proyecto -- ni adivinando la URL, ni
+    a través del listado -- aunque ambos proyectos existan y tengan el mismo doc_type."""
+    drp_client.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    drp_client.put("/projects/proj-2/documents/HLRA", json={"json_data": {**SAMPLE_JSON, "metadata": {"title": "Proyecto ajeno"}}})
+    cli, user_id = cliente_client
+    drp_client.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+
+    # Acceso directo a la URL del documento del otro proyecto -> bloqueado.
+    r = cli.get("/projects/proj-2/documents/HLRA")
+    assert r.status_code == 403
+
+    # Ni siquiera aparece listado.
+    r2 = cli.get("/projects/proj-2/documents")
+    assert r2.status_code == 200
+    assert r2.json()["documents"] == []
+
+    # Tampoco aparece en la lista de proyectos del cliente.
+    projects = cli.get("/projects").json()["projects"]
+    assert [p["id"] for p in projects] == ["proj-1"]
+
+    # Y no puede comentar ni firmar ahí.
+    assert cli.post("/projects/proj-2/documents/HLRA/sections/x/comments", json={"content": "no debería"}).status_code == 403
+    assert cli.post("/projects/proj-2/documents/HLRA/review-signatures", json={"pin": "1234"}).status_code == 403
+
+
 def test_client_cannot_load_document(cliente_client):
     cli, _user_id = cliente_client
     r = cli.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
