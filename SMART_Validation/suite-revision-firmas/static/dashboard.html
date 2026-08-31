@@ -129,6 +129,8 @@ let projects = [];
 let selectedProject = null;
 let currentDocuments = [];
 let showLoadForm = false;
+let expandedAccessDoc = null;
+let allUsersCache = null;
 
 const projectListEl = document.getElementById('project-list');
 const mainEl = document.getElementById('main-content');
@@ -381,6 +383,10 @@ function renderMain() {
         mainEl.querySelectorAll('.delete-doc-btn').forEach(btn => {
             btn.addEventListener('click', () => confirmDeleteDocument(btn.dataset.doctype));
         });
+        mainEl.querySelectorAll('.access-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', () => toggleAccessPanel(btn.dataset.doctype));
+        });
+        wireAccessPanel();
 
         const closeBtn = document.getElementById('btn-close-project');
         if (closeBtn) closeBtn.addEventListener('click', () => askConfirm(
@@ -466,18 +472,25 @@ function renderDocumentsTable() {
 
         if (session.role === 'drp') {
             actions += ` <a href="approval.html?project=${encodeURIComponent(selectedProject)}&doc=${encodeURIComponent(doc.doc_type)}" class="rf-btn-secondary" style="text-decoration:none; display:inline-block;">Aprobación</a>`;
+            actions += ` <button class="rf-btn-secondary access-toggle-btn" data-doctype="${escHtml(doc.doc_type)}">${expandedAccessDoc === doc.doc_type ? 'Cerrar accesos' : '👥 Accesos'}</button>`;
             actions += ` <button class="rf-btn-secondary pb-open-btn" data-doctype="${escHtml(doc.doc_type)}">People Book</button>`;
             if (!sealed && currentProjectStatus() === 'active') {
                 actions += ` <button class="rf-btn-danger delete-doc-btn" data-doctype="${escHtml(doc.doc_type)}">Eliminar</button>`;
             }
         }
 
-        return `<tr>
+        let row = `<tr>
             <td>${escHtml(doc.doc_type)}</td>
             <td><span class="rf-status-dot ${dotClass}"></span>${escHtml(statusLabel)}</td>
             <td>${fmtDateTime(doc.updated_at)}</td>
             <td style="white-space:nowrap;">${actions}</td>
         </tr>`;
+
+        if (session.role === 'drp' && expandedAccessDoc === doc.doc_type) {
+            row += `<tr><td colspan="4" style="padding:0;">${renderAccessPanel(doc.doc_type)}</td></tr>`;
+        }
+
+        return row;
     }).join('');
 
     return `
@@ -487,6 +500,190 @@ function renderDocumentsTable() {
         </thead>
         <tbody>${rows}</tbody>
     </table>`;
+}
+
+// ── Panel "Asignar acceso" inline por documento — evita tener que ir a Usuarios
+// para dar de alta o habilitar a quien tiene que revisar/firmar un documento recién cargado ──
+
+function toggleAccessPanel(docType) {
+    expandedAccessDoc = (expandedAccessDoc === docType) ? null : docType;
+    renderMain();
+    if (expandedAccessDoc) loadAccessPanel(expandedAccessDoc);
+}
+
+function renderAccessPanel(docType) {
+    const safe = escHtml(docType);
+    return `
+    <div class="rf-card" style="margin:2px 0 16px;">
+        <div class="rf-label" style="margin-bottom:10px; color:var(--text);">
+            Quién puede revisar/firmar <strong>${safe}</strong>
+        </div>
+        <div id="access-list-${safe}">Cargando…</div>
+
+        <div style="display:flex; gap:8px; align-items:flex-end; margin-top:14px; flex-wrap:wrap;">
+            <div class="rf-field" style="margin-bottom:0; flex:1; min-width:220px;">
+                <label class="rf-label">Dar acceso a un usuario existente</label>
+                <select class="rf-select" id="access-user-select-${safe}"><option value="">Cargando…</option></select>
+            </div>
+            <button class="rf-btn-secondary access-grant-btn" data-doctype="${safe}">+ Otorgar acceso</button>
+            <button class="rf-btn-secondary access-invite-toggle" data-doctype="${safe}">+ Invitar usuario nuevo</button>
+        </div>
+        <div class="rf-error" id="access-error-${safe}"></div>
+
+        <div id="access-invite-form-${safe}" style="display:none; margin-top:14px; border-top:1px solid rgba(255,255,255,.08); padding-top:14px;">
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <div class="rf-field" style="margin-bottom:0; flex:1; min-width:140px;">
+                    <label class="rf-label">Usuario</label>
+                    <input class="rf-input" id="access-inv-username-${safe}" placeholder="Ej: jperez">
+                </div>
+                <div class="rf-field" style="margin-bottom:0; flex:1; min-width:180px;">
+                    <label class="rf-label">Email</label>
+                    <input class="rf-input" type="email" id="access-inv-email-${safe}">
+                </div>
+                <div class="rf-field" style="margin-bottom:0; flex:1; min-width:160px;">
+                    <label class="rf-label">Nombre</label>
+                    <input class="rf-input" id="access-inv-name-${safe}">
+                </div>
+                <div class="rf-field" style="margin-bottom:0; min-width:110px;">
+                    <label class="rf-label">Rol</label>
+                    <select class="rf-select" id="access-inv-role-${safe}">
+                        <option value="cliente">Cliente</option>
+                        <option value="drp">DRP</option>
+                    </select>
+                </div>
+            </div>
+            <button class="rf-btn access-invite-submit" data-doctype="${safe}" style="margin-top:10px;">Crear usuario y otorgar acceso</button>
+            <div id="access-invite-link-box-${safe}" style="display:none; margin-top:10px;">
+                <label class="rf-label">Link de invitación (ya se envió por email, podés copiarlo igual)</label>
+                <input class="rf-input" id="access-invite-link-${safe}" readonly onclick="this.select();">
+            </div>
+        </div>
+    </div>`;
+}
+
+function wireAccessPanel() {
+    mainEl.querySelectorAll('.access-invite-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const box = document.getElementById(`access-invite-form-${btn.dataset.doctype}`);
+            if (box) box.style.display = box.style.display === 'none' ? 'block' : 'none';
+        });
+    });
+    mainEl.querySelectorAll('.access-grant-btn').forEach(btn => {
+        btn.addEventListener('click', () => grantExistingUserAccess(btn.dataset.doctype));
+    });
+    mainEl.querySelectorAll('.access-invite-submit').forEach(btn => {
+        btn.addEventListener('click', () => inviteAndGrantAccess(btn.dataset.doctype));
+    });
+}
+
+async function loadAccessPanel(docType) {
+    if (!allUsersCache) {
+        const u = await apiFetch('/users');
+        allUsersCache = (u.status === 200 && u.data.ok) ? (u.data.users || []) : [];
+    }
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(selectedProject)}/documents/${encodeURIComponent(docType)}/grants`
+    );
+    const grants = (status === 200 && data.ok) ? (data.grants || []) : [];
+    renderAccessListInto(docType, grants);
+}
+
+function renderAccessListInto(docType, grants) {
+    const safe = escHtml(docType);
+    const listEl = document.getElementById(`access-list-${safe}`);
+    const selectEl = document.getElementById(`access-user-select-${safe}`);
+    if (!listEl || !selectEl) return;
+
+    listEl.innerHTML = grants.length === 0
+        ? '<div class="rf-empty" style="padding:8px 0;">Todavía nadie tiene acceso a este documento.</div>'
+        : grants.map(g => `
+            <div style="display:flex; align-items:center; gap:8px; padding:4px 0; font-size:13px;">
+                <span>${escHtml(g.display_name || g.username)} · ${escHtml(g.email)} · ${g.role === 'drp' ? 'DRP' : 'Cliente'}</span>
+                <button class="rf-btn-danger access-revoke-btn" data-grant="${g.id}" data-user="${g.user_id}" data-doctype="${safe}" style="padding:2px 8px; font-size:11px;">Revocar</button>
+            </div>
+        `).join('');
+
+    listEl.querySelectorAll('.access-revoke-btn').forEach(btn => {
+        btn.addEventListener('click', () => revokeDocumentAccess(btn.dataset.user, btn.dataset.grant, btn.dataset.doctype));
+    });
+
+    const grantedIds = new Set(grants.map(g => g.user_id));
+    const assignable = allUsersCache.filter(u => !grantedIds.has(u.id));
+    selectEl.innerHTML = assignable.length === 0
+        ? '<option value="">— todos los usuarios ya tienen acceso —</option>'
+        : '<option value="">Elegir…</option>' + assignable.map(u =>
+            `<option value="${u.id}">${escHtml(u.display_name)} (${escHtml(u.email)})</option>`
+        ).join('');
+}
+
+async function grantExistingUserAccess(docType) {
+    const safe = escHtml(docType);
+    const userId = document.getElementById(`access-user-select-${safe}`).value;
+    const errorBox = document.getElementById(`access-error-${safe}`);
+    errorBox.classList.remove('visible');
+    if (!userId) { errorBox.textContent = 'Elegí un usuario primero.'; errorBox.classList.add('visible'); return; }
+
+    const { status, data } = await apiFetch(`/users/${userId}/grants`, {
+        method: 'POST', body: { project_id: selectedProject, doc_type: docType },
+    });
+    if (status === 200 && data.ok) {
+        showToast('Acceso otorgado');
+        await loadAccessPanel(docType);
+        return;
+    }
+    errorBox.textContent = data.error || 'No se pudo otorgar el acceso.';
+    errorBox.classList.add('visible');
+}
+
+async function revokeDocumentAccess(userId, grantId, docType) {
+    const { status, data } = await apiFetch(`/users/${userId}/grants/${grantId}`, { method: 'DELETE' });
+    if (status === 200 && data.ok) {
+        showToast('Acceso revocado');
+        await loadAccessPanel(docType);
+    } else {
+        showToast(data.error || 'No se pudo revocar el acceso.', true);
+    }
+}
+
+async function inviteAndGrantAccess(docType) {
+    const safe = escHtml(docType);
+    const errorBox = document.getElementById(`access-error-${safe}`);
+    errorBox.classList.remove('visible');
+
+    const username = document.getElementById(`access-inv-username-${safe}`).value.trim();
+    const email = document.getElementById(`access-inv-email-${safe}`).value.trim();
+    const display_name = document.getElementById(`access-inv-name-${safe}`).value.trim();
+    const role = document.getElementById(`access-inv-role-${safe}`).value;
+
+    if (!username || !email || !display_name) {
+        errorBox.textContent = 'Completá usuario, email y nombre.';
+        errorBox.classList.add('visible');
+        return;
+    }
+
+    const created = await apiFetch('/users', { method: 'POST', body: { username, email, display_name, role } });
+    if (!(created.status === 200 && created.data.ok)) {
+        errorBox.textContent = created.data.error || 'No se pudo crear el usuario.';
+        errorBox.classList.add('visible');
+        return;
+    }
+
+    allUsersCache = null; // se volvió a crear un usuario — refrescar cache en la próxima carga
+    const granted = await apiFetch(`/users/${created.data.user_id}/grants`, {
+        method: 'POST', body: { project_id: selectedProject, doc_type: docType },
+    });
+    if (!(granted.status === 200 && granted.data.ok)) {
+        errorBox.textContent = 'El usuario se creó, pero no se pudo otorgar el acceso automáticamente.';
+        errorBox.classList.add('visible');
+    }
+
+    showToast('Usuario creado — invitación enviada');
+    if (created.data.invite_link) {
+        document.getElementById(`access-invite-link-${safe}`).value = created.data.invite_link;
+        document.getElementById(`access-invite-link-box-${safe}`).style.display = 'block';
+    }
+    ['username', 'email', 'name'].forEach(f => { document.getElementById(`access-inv-${f}-${safe}`).value = ''; });
+    await loadAccessPanel(docType);
 }
 
 function onDocFileSelected(e) {

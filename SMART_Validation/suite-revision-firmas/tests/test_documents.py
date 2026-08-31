@@ -155,3 +155,29 @@ def test_list_projects_scoped_by_role(drp_client, cliente_client):
 
     cli_projects = cli.get("/projects").json()["projects"]
     assert [p["id"] for p in cli_projects] == ["proj-1"]
+
+
+def test_document_grants_lists_who_has_access(drp_client, cliente_client):
+    """GET /{doc_type}/grants — usado por el panel "Asignar acceso" del dashboard,
+    para poder invitar/otorgar accesos sin salir de la pantalla de carga de documentos."""
+    drp_client.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente_client
+
+    empty = drp_client.get("/projects/proj-1/documents/HLRA/grants")
+    assert empty.status_code == 200
+    assert empty.json()["grants"] == []
+
+    drp_client.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+    r = drp_client.get("/projects/proj-1/documents/HLRA/grants")
+    assert r.status_code == 200
+    grants = r.json()["grants"]
+    assert len(grants) == 1
+    assert grants[0]["user_id"] == user_id
+    assert grants[0]["email"] == "revisor@example.com"
+    assert grants[0]["role"] == "cliente"
+
+
+def test_document_grants_requires_drp(cliente_client):
+    cli, _user_id = cliente_client
+    r = cli.get("/projects/proj-1/documents/HLRA/grants")
+    assert r.status_code == 403

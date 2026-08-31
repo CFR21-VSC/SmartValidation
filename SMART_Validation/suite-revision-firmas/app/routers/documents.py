@@ -82,6 +82,22 @@ def delete_document(project_id: str, doc_type: str, user: dict = Depends(require
     return {"ok": True}
 
 
+@router.get("/{doc_type}/grants")
+def list_document_grants(project_id: str, doc_type: str, user: dict = Depends(require_drp)):
+    """Quién tiene acceso a ESTE documento puntual — usado por el panel "Asignar acceso"
+    del dashboard, para no tener que ir a la pantalla de Usuarios a ver/otorgar accesos
+    documento por documento."""
+    db = get_db()
+    rows = db.execute(
+        "SELECT g.id, g.user_id, u.username, u.display_name, u.email, u.role, "
+        "g.granted_by, g.granted_at "
+        "FROM rf_document_access_grants g JOIN rf_users u ON u.id = g.user_id "
+        "WHERE g.project_id=? AND g.doc_type=? ORDER BY g.granted_at",
+        (project_id, doc_type),
+    ).fetchall()
+    return {"ok": True, "grants": [dict(r) for r in rows]}
+
+
 @router.get("")
 def list_documents(project_id: str, user: dict = Depends(get_current_user)):
     """DRP ve todos los documentos del proyecto. Cliente solo los que tiene habilitados."""
