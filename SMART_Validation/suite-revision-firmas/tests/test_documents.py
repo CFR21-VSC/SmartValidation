@@ -154,7 +154,10 @@ def test_add_comment_on_missing_document_404(drp_client):
     assert r.status_code == 404
 
 
-def test_add_comment_notifies_active_drp_users_but_not_the_author(drp_client, cliente_client, monkeypatch):
+def test_add_comment_notifies_every_active_drp_user_including_the_author(drp_client, cliente_client, monkeypatch):
+    """Con un solo DRP en el sistema, excluir al autor significaba que ese DRP nunca se
+    enteraba de sus propios comentarios (reportado por el usuario 2026-08-31) — ahora
+    siempre se notifica a todo DRP activo, sin excepción por autoría."""
     calls = []
     monkeypatch.setattr(
         "app.routers.documents.email_resend.send_new_comment_email",
@@ -169,9 +172,10 @@ def test_add_comment_notifies_active_drp_users_but_not_the_author(drp_client, cl
     assert len(calls) == 1
     assert calls[0][1] == "revisor"
 
-    # DRP comenta -> no se autonotifica a sí mismo.
+    # DRP comenta -> también se notifica a sí mismo (único DRP activo).
     drp_client.post("/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "c2"})
-    assert len(calls) == 1
+    assert len(calls) == 2
+    assert calls[1][1] == "fbongiovanni"
 
 
 def test_list_projects_scoped_by_role(drp_client, cliente_client):

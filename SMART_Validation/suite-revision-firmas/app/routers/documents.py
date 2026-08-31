@@ -190,8 +190,9 @@ def add_comment(
     """Guardado explícito (no autosave) — el revisor escribe y toca "Guardar comentario".
     Cada comentario es una fila nueva, atribuida a su autor; no pisa comentarios de otros
     revisores en la misma sección. Nunca toca rf_documents.json_data. Dispara un mail a
-    todo DRP activo (salvo al propio autor, si es DRP) para que se entere sin tener que
-    estar mirando la pantalla."""
+    TODO DRP activo, sin excluir al autor — confirmado con el usuario (2026-08-31): con un
+    solo DRP en el sistema, excluir al autor significaba que nunca le llegaba nada a él
+    mismo cuando comentaba."""
     check_document_access(user, project_id, doc_type)
     db = get_db()
     ensure_project_active(db, project_id)
@@ -214,8 +215,7 @@ def add_comment(
 
     doc_link = f"{config.APP_BASE_URL}/app/review.html?project={project_id}&doc={doc_type}"
     drp_users = db.execute(
-        "SELECT email, display_name FROM rf_users WHERE role='drp' AND is_active=1 AND id!=?",
-        (user.get("uid") or "",),
+        "SELECT email, display_name FROM rf_users WHERE role='drp' AND is_active=1"
     ).fetchall()
     for drp in drp_users:
         email_resend.send_new_comment_email(
