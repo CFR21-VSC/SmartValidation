@@ -309,3 +309,110 @@ def test_book_package_requires_drp(cliente):
     cli, _uid = cliente
     r = cli.get("/projects/proj-1/book-package")
     assert r.status_code == 403
+
+
+# ─── Dossier en vivo (estado + KPIs de ciclo, sección pedida 2026-08-31) ────
+
+def test_dossier_kpis_after_full_seal_cycle(drp_with_pin, cliente):
+    _seal_document(drp_with_pin, cliente)
+    r = drp_with_pin.get("/projects/proj-1/dossier")
+    assert r.status_code == 200
+    doc = r.json()["documents"][0]
+
+    assert doc["doc_type"] == "HLRA"
+    assert doc["locked"] is True
+    assert doc["first_review_signed_at"] is not None
+    assert doc["sealed_at"] is not None
+    # Los tres KPIs se pueden calcular porque el circuito llegó hasta el sellado.
+    assert doc["kpi_load_to_review_s"] is not None and doc["kpi_load_to_review_s"] >= 0
+    assert doc["kpi_review_to_seal_s"] is not None and doc["kpi_review_to_seal_s"] >= 0
+    assert doc["kpi_total_s"] is not None and doc["kpi_total_s"] >= 0
+    # El total tiene que ser consistente con la suma de sus dos partes.
+    assert doc["kpi_total_s"] == pytest.approx(doc["kpi_load_to_review_s"] + doc["kpi_review_to_seal_s"], abs=1)
+
+
+def test_dossier_kpis_null_before_document_progresses(drp_with_pin):
+    """Un documento recién cargado, sin firmas ni sellado, no puede tener KPIs de tiempo
+    calculados sobre etapas que todavía no pasaron -- deben quedar en null, no en 0 ni error."""
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    doc = drp_with_pin.get("/projects/proj-1/dossier").json()["documents"][0]
+    assert doc["locked"] is False
+    assert doc["first_review_signed_at"] is None
+    assert doc["sealed_at"] is None
+    assert doc["kpi_load_to_review_s"] is None
+    assert doc["kpi_review_to_seal_s"] is None
+    assert doc["kpi_total_s"] is None
+    assert doc["pending_comments"] == 0
+
+
+def test_dossier_scoped_by_role_for_client(drp_with_pin, cliente):
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    drp_with_pin.put("/projects/proj-1/documents/URS", json={"json_data": {"type": "URS"}})
+    cli, user_id = cliente
+    drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+
+    drp_view = drp_with_pin.get("/projects/proj-1/dossier").json()["documents"]
+    assert {d["doc_type"] for d in drp_view} == {"HLRA", "URS"}
+
+    cli_view = cli.get("/projects/proj-1/dossier").json()["documents"]
+    assert {d["doc_type"] for d in cli_view} == {"HLRA"}
+
+
+def test_dossier_flags_stale_pending_comments(drp_with_pin):
+    from app.db import get_db
+
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    created = drp_with_pin.post(
+        "/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "viejo"}
+    )
+    comment_id = created.json()["comment"]["id"]
+
+    fresh = drp_with_pin.get("/projects/proj-1/dossier").json()["documents"][0]
+    assert fresh["pending_comments"] == 1
+    assert fresh["pending_comments_stale"] is False
+
+    # Simula que el comentario lleva varios días sin resolverse (no se puede esperar días
+    # reales en un test) -- se manipula directo en la base la única columna de tiempo.
+    import time
+    old_ts = time.time() - 10 * 86400
+    db = get_db()
+    db.execute("UPDATE rf_section_comments SET created_at=? WHERE id=?", (old_ts, comment_id))
+    db.commit()
+
+    stale = drp_with_pin.get("/projects/proj-1/dossier").json()["documents"][0]
+    assert stale["pending_comments"] == 1
+    assert stale["pending_comments_stale"] is True
+
+
+def test_dossier_requires_auth(client):
+    r = client.get("/projects/proj-1/dossier")
+    assert r.status_code == 401
+
+
+def test_dossier_flags_open_approval_round_until_sealed(drp_with_pin, cliente):
+    cli, user_id = cliente
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+    drp_id = [u["id"] for u in drp_with_pin.get("/users").json()["users"] if u["is_superadmin"]][0]
+
+    before = drp_with_pin.get("/projects/proj-1/dossier").json()["documents"][0]
+    assert before["has_open_approval_round"] is False
+
+    drp_with_pin.post(
+        "/projects/proj-1/documents/HLRA/approval-round",
+        json={"signers": [
+            {"user_id": user_id, "role_label": "Revisor", "sign_order": 1},
+            {"user_id": drp_id, "role_label": "Aprobador", "sign_order": 2},
+        ]},
+    )
+    mid = drp_with_pin.get("/projects/proj-1/dossier").json()["documents"][0]
+    assert mid["has_open_approval_round"] is True
+
+    cli.post("/projects/proj-1/documents/HLRA/approval-round/sign", json={"pin": "1234", "justification_text": "ok"})
+    drp_with_pin.post(
+        "/projects/proj-1/documents/HLRA/approval-round/sign",
+        json={"pin": "9999", "justification_text": "ok", "pdf_base64": "ZmFrZQ=="},
+    )
+    after = drp_with_pin.get("/projects/proj-1/dossier").json()["documents"][0]
+    assert after["has_open_approval_round"] is False
+    assert after["locked"] is True

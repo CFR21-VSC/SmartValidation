@@ -55,6 +55,70 @@ def _get_project_or_404(db, project_id: str) -> dict:
     return dict(db.execute("SELECT * FROM rf_projects WHERE id=?", (project_id,)).fetchone())
 
 
+# Un comentario sin resolver más viejo que esto se marca "atrasado" en el dossier — ayuda
+# a detectar cuellos de botella (sección pedida por el usuario 2026-08-31).
+STALE_COMMENT_DAYS = 3
+
+
+@router.get("/{project_id}/dossier")
+def get_dossier(project_id: str, user: dict = Depends(get_current_user)):
+    """Estado en vivo + KPIs de tiempo por documento (acompañamiento visual del proyecto,
+    sección pedida por el usuario 2026-08-31 — inspirado en el "Dossier en vivo" de la Suite
+    de Validación, pero con KPIs de ciclo propios: acá sí hay timestamps reales de cada
+    etapa). Mismo alcance de visibilidad que el resto de la suite: DRP ve todos los
+    documentos del proyecto, cliente solo los que tiene habilitados."""
+    db = get_db()
+    if user.get("r") == "drp":
+        docs = db.execute(
+            "SELECT id, doc_type, status, locked, created_at, locked_at "
+            "FROM rf_documents WHERE project_id=? ORDER BY doc_type",
+            (project_id,),
+        ).fetchall()
+    else:
+        docs = db.execute(
+            "SELECT d.id, d.doc_type, d.status, d.locked, d.created_at, d.locked_at "
+            "FROM rf_documents d "
+            "JOIN rf_document_access_grants g ON g.project_id=d.project_id AND g.doc_type=d.doc_type "
+            "WHERE d.project_id=? AND g.user_id=? ORDER BY d.doc_type",
+            (project_id, user.get("uid")),
+        ).fetchall()
+
+    now = time.time()
+    stale_cutoff = now - STALE_COMMENT_DAYS * 86400
+    result = []
+    for d in docs:
+        first_review = db.execute(
+            "SELECT MIN(signed_at) AS t FROM rf_review_signatures WHERE document_id=?", (d["id"],)
+        ).fetchone()["t"]
+        open_round = db.execute(
+            "SELECT id FROM rf_approval_rounds WHERE document_id=? AND status='open' LIMIT 1", (d["id"],)
+        ).fetchone()
+        pending = db.execute(
+            "SELECT COUNT(*) AS n, MIN(created_at) AS oldest FROM rf_section_comments "
+            "WHERE document_id=? AND resolved=0",
+            (d["id"],),
+        ).fetchone()
+
+        sealed_at = d["locked_at"] if d["locked"] else None
+        result.append({
+            "doc_type": d["doc_type"],
+            "status": d["status"],
+            "locked": bool(d["locked"]),
+            "created_at": d["created_at"],
+            "first_review_signed_at": first_review,
+            "has_open_approval_round": bool(open_round),
+            "sealed_at": sealed_at,
+            "kpi_load_to_review_s": (first_review - d["created_at"]) if first_review else None,
+            "kpi_review_to_seal_s": (sealed_at - first_review) if (sealed_at and first_review) else None,
+            "kpi_total_s": (sealed_at - d["created_at"]) if sealed_at else None,
+            "pending_comments": pending["n"],
+            "pending_comments_stale": pending["n"] > 0 and pending["oldest"] is not None and pending["oldest"] < stale_cutoff,
+            "oldest_pending_comment_at": pending["oldest"],
+        })
+
+    return {"ok": True, "stale_comment_days": STALE_COMMENT_DAYS, "documents": result}
+
+
 @router.get("")
 def list_projects(include_archived: bool = False, user: dict = Depends(get_current_user)):
     """DRP ve todos los proyectos con documentos cargados. Cliente solo los que
