@@ -59,6 +59,7 @@ function trapBackNavigation() {
  */
 async function requireSession(opts = {}) {
     trapBackNavigation();
+    startIdleLogoutTimer();
     const { status, data } = await apiFetch('/auth/session');
     if (status !== 200) {
         window.location.href = '/app/login.html';
@@ -69,6 +70,29 @@ async function requireSession(opts = {}) {
         return null;
     }
     return data;
+}
+
+/**
+ * Logout automático por inactividad (15 min sin interacción del usuario) — requisito
+ * típico GxP/21 CFR Part 11 para no dejar una sesión abierta con datos sensibles en
+ * pantalla si alguien se aleja. Se reinicia con cualquier interacción real; corre en
+ * TODAS las páginas con sesión porque requireSession() la arranca siempre.
+ */
+const IDLE_LOGOUT_MS = 15 * 60 * 1000;
+let _idleTimer = null;
+
+function startIdleLogoutTimer() {
+    if (_idleTimer !== null) return; // ya está corriendo en esta página, no duplicar listeners
+    const resetIdleTimer = () => {
+        if (_idleTimer) clearTimeout(_idleTimer);
+        _idleTimer = setTimeout(() => {
+            doLogout('idle');
+        }, IDLE_LOGOUT_MS);
+    };
+    ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'].forEach(evt =>
+        window.addEventListener(evt, resetIdleTimer, { passive: true })
+    );
+    resetIdleTimer();
 }
 
 function escHtml(s) {
@@ -90,7 +114,7 @@ function showToast(msg, isError) {
     setTimeout(() => t.remove(), 4500);
 }
 
-async function doLogout() {
+async function doLogout(reason) {
     await apiFetch('/auth/logout', { method: 'POST' });
-    window.location.href = '/app/login.html';
+    window.location.href = reason === 'idle' ? '/app/login.html?idle=1' : '/app/login.html';
 }

@@ -41,6 +41,11 @@ const form = document.getElementById('login-form');
 const errorBox = document.getElementById('login-error');
 const submitBtn = document.getElementById('submit-btn');
 
+if (new URLSearchParams(location.search).get('idle') === '1') {
+    errorBox.textContent = 'Se cerró tu sesión por inactividad. Volvé a ingresar.';
+    errorBox.classList.add('visible');
+}
+
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
     errorBox.classList.remove('visible');

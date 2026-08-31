@@ -52,6 +52,40 @@ def test_logout_revokes_session(client, superadmin_creds):
     assert r2.status_code == 401
 
 
+def test_logout_invalidates_token_server_side(client, superadmin_creds):
+    """El test anterior solo prueba que la cookie se borra del lado del cliente -- esto
+    prueba que el token queda inválido en el SERVIDOR: si alguien capturó el token viejo
+    (antes de que Max-Age=0 lo borre en el navegador), no debería poder seguir usándolo."""
+    client.post("/auth/login", json=superadmin_creds)
+    old_token = client.cookies.get("rf_session")
+    assert old_token
+    client.post("/auth/logout")
+
+    replay = TestClient(app)
+    replay.cookies.set("rf_session", old_token)
+    r = replay.get("/auth/session")
+    assert r.status_code == 401
+
+
+def test_second_login_invalidates_first_session(client, superadmin_creds):
+    """Reportado por el usuario: la suite permitía sesiones concurrentes del mismo usuario.
+    Un login nuevo debe invalidar el token de la sesión anterior, no solo coexistir con él."""
+    first = TestClient(app)
+    first.post("/auth/login", json=superadmin_creds)
+    old_token = first.cookies.get("rf_session")
+
+    second = TestClient(app)
+    second.post("/auth/login", json=superadmin_creds)
+
+    replay = TestClient(app)
+    replay.cookies.set("rf_session", old_token)
+    stale = replay.get("/auth/session")
+    assert stale.status_code == 401
+
+    still_alive = second.get("/auth/session")
+    assert still_alive.status_code == 200
+
+
 def test_invite_accept_full_flow(client, drp_client):
     created = drp_client.post(
         "/users",

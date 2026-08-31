@@ -9,6 +9,18 @@ def get_current_user(rf_session: str | None = Cookie(default=None)) -> dict:
     payload = security.decode_token(rf_session or "")
     if not payload:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "No autenticado")
+    # El token en sí es válido (firma + vencimiento) hasta acá, pero eso no basta: hay que
+    # confirmar que su nonce sigue vigente en rf_sessions. Sin este chequeo, logout() y el
+    # borrado de la sesión anterior en cada login (_issue_session, auth.py) no tenían ningún
+    # efecto real -- el token viejo seguía sirviendo hasta su vencimiento natural (12h) sin
+    # importar cuántas veces se cerrara sesión o se volviera a loguear desde otro dispositivo
+    # (reportado por el usuario 2026-08-31: "permite concurrencia de sesiones del mismo
+    # usuario"). Como _issue_session borra la fila de sesión anterior al crear una nueva, este
+    # chequeo también hace que solo quede una sesión activa por usuario a la vez.
+    db = get_db()
+    row = db.execute("SELECT revoked_at FROM rf_sessions WHERE nonce=?", (payload.get("n"),)).fetchone()
+    if not row or row["revoked_at"]:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "No autenticado")
     return payload
 
 
