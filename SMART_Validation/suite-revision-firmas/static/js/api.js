@@ -114,7 +114,40 @@ function showToast(msg, isError) {
     setTimeout(() => t.remove(), 4500);
 }
 
+/**
+ * Modo claro/oscuro — preferencia por navegador (localStorage), no por usuario del backend.
+ * El valor real ya se aplica antes de este script (ver el inline <script> en el <head> de
+ * cada página, que evita el flash de tema oscuro antes de que cargue api.js). Acá solo se
+ * conecta el botón de la topbar para poder cambiarlo.
+ */
+function initThemeToggle() {
+    const btn = document.getElementById('theme-toggle-btn');
+    if (!btn) return;
+    const paint = () => {
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        btn.textContent = isLight ? '🌙' : '☀️';
+        btn.title = isLight ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro';
+    };
+    btn.addEventListener('click', () => {
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        if (isLight) {
+            document.documentElement.removeAttribute('data-theme');
+            try { localStorage.setItem('rf_theme', 'dark'); } catch (e) { /* modo privado / storage bloqueado */ }
+        } else {
+            document.documentElement.setAttribute('data-theme', 'light');
+            try { localStorage.setItem('rf_theme', 'light'); } catch (e) { /* modo privado / storage bloqueado */ }
+        }
+        paint();
+    });
+    paint();
+}
+
 async function doLogout(reason) {
     await apiFetch('/auth/logout', { method: 'POST' });
     window.location.href = reason === 'idle' ? '/app/login.html?idle=1' : '/app/login.html';
 }
+
+// api.js se carga al final de <body>, así que el botón de la topbar (si esta página tiene
+// una) ya existe en el DOM acá — no hace falta esperar DOMContentLoaded. initThemeToggle()
+// no hace nada si la página no tiene #theme-toggle-btn.
+initThemeToggle();

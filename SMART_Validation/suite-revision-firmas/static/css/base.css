@@ -2,6 +2,9 @@
    Paleta: navy #0B2341 + gold #C8921A (misma identidad que la Suite de Validación),
    pero esta hoja de estilos es propia — sin dependencia del CSS del otro servicio. */
 
+/* navy/gold son la marca DRP y se mantienen IGUALES en los dos temas (confirmado con el
+   usuario 2026-08-31: la topbar es un acento de marca fijo, no parte del "tema"). Solo los
+   tokens neutros de superficie/texto cambian entre claro y oscuro. */
 :root {
     --navy: #0B2341;
     --navy-light: #123457;
@@ -18,6 +21,17 @@
     --bg-input: #0E1E2E;
 }
 
+:root[data-theme="light"] {
+    --text: #16232F;
+    --text-muted: #55708A;
+    --border: rgba(11, 35, 65, .14);
+    --danger: #C23B4C;
+    --success: #1E8449;
+    --bg: #F3F5F8;
+    --bg-panel: #FFFFFF;
+    --bg-input: #FFFFFF;
+}
+
 * { box-sizing: border-box; }
 
 body {
@@ -31,6 +45,14 @@ body {
 a { color: var(--gold-light); }
 
 .rf-topbar {
+    /* La topbar se queda navy en los dos temas (acento de marca fijo) -- por eso se le
+       fijan acá también los tokens de texto/borde a sus valores "oscuros": si no, en modo
+       claro --text/--text-muted/--border pasarían a valores pensados para fondos claros y
+       los botones de adentro (Volver, Cerrar sesión) quedarían con texto oscuro sobre navy,
+       ilegibles. */
+    --text: #EEF3F8;
+    --text-muted: #8AACC0;
+    --border: rgba(255, 255, 255, .10);
     height: 56px;
     background: var(--navy);
     border-bottom: 2px solid var(--gold);
@@ -48,6 +70,22 @@ a { color: var(--gold-light); }
 }
 
 .rf-topbar .rf-spacer { flex: 1; }
+
+.rf-theme-toggle {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    width: 34px;
+    height: 34px;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.rf-theme-toggle:hover { border-color: var(--gold); }
 
 .rf-badge {
     background: rgba(200, 146, 26, .15);
@@ -162,7 +200,7 @@ a { color: var(--gold-light); }
     position: fixed;
     top: 68px;
     right: 24px;
-    background: var(--navy);
+    background: var(--bg-panel);
     border: 2px solid var(--success);
     color: var(--text);
     padding: 12px 18px;
@@ -269,7 +307,7 @@ table.rf-table td {
     z-index: 9000;
 }
 .rf-modal {
-    background: var(--navy);
+    background: var(--bg-panel);
     border: 1px solid var(--border);
     border-radius: 12px;
     width: min(460px, 92vw);
