@@ -229,6 +229,31 @@ def init_db() -> None:
     db = get_db()
     db.executescript(schema)
     db.commit()
+    _migrate_legacy_corrections(db)
+
+
+def _migrate_legacy_corrections(db) -> None:
+    """Corre una sola vez (mientras rf_section_comments esté vacía): copia lo que hubiera
+    en la vieja rf_section_corrections (un comentario por sección, sección 2026-08-31) a la
+    nueva rf_section_comments (varios por sección) para no perder comentarios ya cargados
+    antes del cambio de modelo."""
+    already = db.execute("SELECT 1 FROM rf_section_comments LIMIT 1").fetchone()
+    if already:
+        return
+    legacy = db.execute(
+        "SELECT document_id, section_key, content, resolved, updated_by, updated_at "
+        "FROM rf_section_corrections"
+    ).fetchall()
+    for row in legacy:
+        db.execute(
+            "INSERT INTO rf_section_comments "
+            "(document_id, section_key, content, resolved, user_id, username, created_at) "
+            "VALUES (?,?,?,?,NULL,?,?)",
+            (row["document_id"], row["section_key"], row["content"], row["resolved"],
+             row["updated_by"], row["updated_at"]),
+        )
+    if legacy:
+        db.commit()
 
 
 def reset_db_for_tests() -> None:
@@ -241,6 +266,7 @@ def reset_db_for_tests() -> None:
         "rf_approval_signers",
         "rf_approval_rounds",
         "rf_review_signatures",
+        "rf_section_comments",
         "rf_section_corrections",
         "rf_documents",
         "rf_document_access_grants",

@@ -51,16 +51,17 @@ def test_review_sign_happy_path(drp_with_pin, cliente):
     assert listed[0]["role_label"] == "Revisor"
 
 
-def test_review_sign_blocked_by_unresolved_correction(drp_with_pin, cliente):
+def test_review_sign_blocked_by_unresolved_comment(drp_with_pin, cliente):
     drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     cli, user_id = cliente
     drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
-    cli.put("/projects/proj-1/documents/HLRA/sections/proposito", json={"content": "corregir esto"})
+    created = cli.post("/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "corregir esto"})
+    comment_id = created.json()["comment"]["id"]
 
     r = cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "1234"})
     assert r.status_code == 409
 
-    drp_with_pin.patch("/projects/proj-1/documents/HLRA/sections/proposito/resolve")
+    drp_with_pin.patch(f"/projects/proj-1/documents/HLRA/sections/proposito/comments/{comment_id}/resolve")
     r2 = cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "1234"})
     assert r2.status_code == 200
 
@@ -159,11 +160,11 @@ def test_full_approval_flow_seals_document(drp_with_pin, cliente):
     assert doc["pdf_hash"]
     assert doc["json_hash"]
 
-    # Documento sellado: ni cargar una nueva versión ni corregir están permitidos.
+    # Documento sellado: ni cargar una nueva versión ni comentar están permitidos.
     reload_attempt = drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     assert reload_attempt.status_code == 409
-    correction_attempt = cli.put("/projects/proj-1/documents/HLRA/sections/x", json={"content": "tarde"})
-    assert correction_attempt.status_code == 409
+    comment_attempt = cli.post("/projects/proj-1/documents/HLRA/sections/x/comments", json={"content": "tarde"})
+    assert comment_attempt.status_code == 409
 
 
 def test_approval_sign_out_of_turn_rejected(drp_with_pin, cliente):
@@ -215,14 +216,15 @@ def test_people_book_records_full_trail(drp_with_pin, cliente):
     drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     cli, user_id = cliente
     drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
-    cli.put("/projects/proj-1/documents/HLRA/sections/proposito", json={"content": "sugerencia"})
-    drp_with_pin.patch("/projects/proj-1/documents/HLRA/sections/proposito/resolve")
+    created = cli.post("/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "sugerencia"})
+    comment_id = created.json()["comment"]["id"]
+    drp_with_pin.patch(f"/projects/proj-1/documents/HLRA/sections/proposito/comments/{comment_id}/resolve")
     cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "1234"})
 
     events = drp_with_pin.get("/projects/proj-1/documents/HLRA/people-book").json()["events"]
     event_types = [e["event_type"] for e in events]
     assert event_types == [
-        "document_loaded", "correction_saved", "correction_resolved", "review_signed",
+        "document_loaded", "comment_added", "comment_resolved", "review_signed",
     ]
 
 

@@ -67,17 +67,36 @@ CREATE TABLE IF NOT EXISTS rf_documents (
     UNIQUE(project_id, doc_type)
 );
 
--- Panel derecho: documento corregido, autoguardado por sección. Nunca pisa rf_documents.json_data.
+-- DEPRECATED (2026-08-31) — reemplazada por rf_section_comments (un solo comentario vigente
+-- por sección, se pisaba si dos revisores comentaban la misma sección). Se deja la tabla para
+-- no perder historial viejo; init_db() migra sus filas una sola vez a rf_section_comments.
+-- No se le vuelve a escribir desde código nuevo.
 CREATE TABLE IF NOT EXISTS rf_section_corrections (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     document_id   TEXT NOT NULL REFERENCES rf_documents(id) ON DELETE CASCADE,
     section_key   TEXT NOT NULL,
     content       TEXT NOT NULL,
-    resolved      INTEGER DEFAULT 0,  -- DRP la marca resuelta cuando ya la aplicó/consideró
+    resolved      INTEGER DEFAULT 0,
     updated_by    TEXT,
     updated_at    REAL,
     UNIQUE(document_id, section_key)
 );
+
+-- Panel derecho: comentarios de revisión por sección — varios por sección, uno por revisor
+-- y por vez, cada uno atribuido a su autor (sección 3). Nunca pisa rf_documents.json_data,
+-- y nunca se mezcla con el contenido del documento en ninguna vista previa (2026-08-31,
+-- confirmado con el usuario: "Ver PDF" siempre muestra el original).
+CREATE TABLE IF NOT EXISTS rf_section_comments (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    document_id   TEXT NOT NULL REFERENCES rf_documents(id) ON DELETE CASCADE,
+    section_key   TEXT NOT NULL,
+    content       TEXT NOT NULL,
+    resolved      INTEGER DEFAULT 0,  -- DRP lo marca resuelto cuando ya lo consideró/aplicó
+    user_id       TEXT,
+    username      TEXT,
+    created_at    REAL
+);
+CREATE INDEX IF NOT EXISTS idx_rf_comments_doc ON rf_section_comments(document_id);
 
 -- Libro de Validación — People / audit trail (capa de datos, sin UI todavía — sección 6).
 CREATE TABLE IF NOT EXISTS rf_people_book_events (

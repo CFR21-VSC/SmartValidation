@@ -120,6 +120,29 @@
     }
     .rv-corr-label { font-size: 12.5px; font-weight: 600; color: var(--text); }
 
+    .rv-comment-entry {
+        background: rgba(255,255,255,.03);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 8px 10px;
+        margin-bottom: 8px;
+    }
+    .rv-comment-entry-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+        font-size: 12px;
+        color: var(--text);
+    }
+    .rv-comment-date { font-size: 11px; color: var(--text-muted); }
+    .rv-comment-entry-body {
+        font-size: 12.5px;
+        color: var(--text);
+        white-space: pre-wrap;
+        line-height: 1.4;
+    }
+
     .rv-badge {
         border-radius: 20px;
         padding: 2px 10px;
@@ -211,9 +234,9 @@
                 </div>
             </div>
 
-            <!-- Columna 3: Correcciones -->
+            <!-- Columna 3: Comentarios -->
             <div class="rf-pane rv-pane-corr">
-                <div class="rf-pane-header"><span>Correcciones</span></div>
+                <div class="rf-pane-header"><span>Comentarios</span></div>
                 <div class="rf-pane-body" id="corrections-body">
                     <div class="rf-empty">Cargando…</div>
                 </div>
@@ -243,8 +266,8 @@
 <!-- Modal: Ver PDF -->
 <div class="rf-modal-backdrop" id="pdf-backdrop" style="display:none;">
     <div class="rf-modal rv-pdf-modal">
-        <h3>Vista previa — documento con correcciones aplicadas</h3>
-        <div id="pdf-container">
+        <h3>Vista previa del documento</h3>
+        <div id="pdf-container" oncontextmenu="return false;">
             <div class="rf-empty" id="pdf-loading">Generando vista previa…</div>
             <iframe id="pdf-iframe" style="display:none;"></iframe>
             <div class="rf-error" id="pdf-error"></div>
@@ -290,9 +313,8 @@ const DOC_TYPE = params.get('doc') || '';
 
 let session = null;
 let documentRow = null;      // { id, doc_type, status, locked, json_data, ... }
-let correctionsMap = {};     // section_key -> { content, resolved, updated_by, updated_at }
+let commentsBySection = {};  // section_key -> [{ id, content, resolved, user_id, username, created_at }, …]
 let sections = [];           // [{ key, label }]
-let saveTimers = {};         // section_key -> timeout id
 let pdfLibsLoaded = false;
 let pdfLibsLoading = null;
 let currentPdfObjectUrl = null;
@@ -466,14 +488,6 @@ function getSectionContentText(sectionObj) {
     return '';
 }
 
-function applyCorrectionToSection(sectionObj, correctionContent) {
-    if (!sectionObj || typeof sectionObj !== 'object') return;
-    if ('contenido' in sectionObj) sectionObj.contenido = correctionContent;
-    else if ('content' in sectionObj) sectionObj.content = correctionContent;
-    else if ('texto' in sectionObj) sectionObj.texto = correctionContent;
-    else sectionObj.contenido = correctionContent;
-}
-
 // ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
@@ -532,15 +546,30 @@ async function loadDocument() {
     }
 
     documentRow = data.document;
-    correctionsMap = {};
-    (data.corrections || []).forEach(c => { correctionsMap[c.section_key] = c; });
+    commentsBySection = {};
+    (data.comments || []).forEach(c => {
+        (commentsBySection[c.section_key] || (commentsBySection[c.section_key] = [])).push(c);
+    });
     sections = deriveSections(documentRow.json_data);
 
     lock_badge.style.display = documentRow.locked ? '' : 'none';
 
     renderOutline();
     renderSource();
-    renderCorrections();
+    renderComments();
+}
+
+async function reloadComments() {
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}/comments`
+    );
+    commentsBySection = {};
+    if (status === 200 && data.ok) {
+        (data.comments || []).forEach(c => {
+            (commentsBySection[c.section_key] || (commentsBySection[c.section_key] = [])).push(c);
+        });
+    }
+    renderComments();
 }
 
 function renderOutline() {
@@ -603,19 +632,35 @@ function renderSource() {
     sourceBody.innerHTML = html || '<div class="rf-empty">Documento vacío.</div>';
 }
 
-function renderCorrections() {
+function renderComments() {
     if (sections.length === 0) {
         correctionsBody.innerHTML = '<div class="rf-empty">Sin secciones.</div>';
         return;
     }
 
     correctionsBody.innerHTML = sections.map(sec => {
-        const existing = correctionsMap[sec.key];
-        const resolved = !!(existing && existing.resolved);
-        const badgeHtml = resolved
-            ? '<span class="rv-badge rv-badge-resolved">Resuelta</span>'
-            : '<span class="rv-badge rv-badge-pending">Pendiente</span>';
-        const showResolveBtn = session.role === 'drp' && existing && !resolved;
+        const list = commentsBySection[sec.key] || [];
+        const pending = list.filter(c => !c.resolved).length;
+        const badgeHtml = list.length === 0
+            ? ''
+            : pending > 0
+                ? `<span class="rv-badge rv-badge-pending">${pending} pendiente${pending > 1 ? 's' : ''}</span>`
+                : '<span class="rv-badge rv-badge-resolved">Todo resuelto</span>';
+
+        const itemsHtml = list.map(c => {
+            const resolved = !!c.resolved;
+            const showResolveBtn = session.role === 'drp' && !resolved;
+            return `
+            <div class="rv-comment-entry">
+                <div class="rv-comment-entry-head">
+                    <strong>${escHtml(c.username || 'Alguien')}</strong>
+                    <span class="rv-comment-date">${fmtDateTime(c.created_at)}</span>
+                    ${resolved ? '<span class="rv-badge rv-badge-resolved">Resuelto</span>' : ''}
+                </div>
+                <div class="rv-comment-entry-body">${escHtml(c.content)}</div>
+                ${showResolveBtn ? `<button class="rf-btn-secondary rv-resolve-btn" data-key="${escHtml(sec.key)}" data-id="${c.id}" style="padding:2px 8px; font-size:11px; margin-top:6px;">Marcar resuelto</button>` : ''}
+            </div>`;
+        }).join('');
 
         return `
         <div class="rv-corr-item" data-key="${escHtml(sec.key)}">
@@ -623,55 +668,44 @@ function renderCorrections() {
                 <span class="rv-corr-label">${escHtml(sec.label)}</span>
                 ${badgeHtml}
             </div>
+            ${itemsHtml || '<div class="rf-empty" style="padding:4px 0;">Sin comentarios todavía.</div>'}
             <textarea class="rf-textarea rv-corr-textarea" data-key="${escHtml(sec.key)}"
-                placeholder="Sugerí una corrección o mejora para esta sección…">${existing ? escHtml(existing.content) : ''}</textarea>
+                placeholder="Escribí un comentario para esta sección…"></textarea>
             <div class="rv-corr-footer">
                 <span class="rv-save-ind" id="save-ind-${escHtml(sec.key)}"></span>
-                ${showResolveBtn ? `<button class="rf-btn-secondary rv-resolve-btn" data-key="${escHtml(sec.key)}">Marcar resuelta</button>` : ''}
+                <button class="rf-btn-secondary rv-submit-comment-btn" data-key="${escHtml(sec.key)}">Guardar comentario</button>
             </div>
         </div>`;
     }).join('');
 
-    correctionsBody.querySelectorAll('.rv-corr-textarea').forEach(ta => {
-        ta.addEventListener('input', () => scheduleAutosave(ta.dataset.key, ta.value));
+    correctionsBody.querySelectorAll('.rv-submit-comment-btn').forEach(btn => {
+        btn.addEventListener('click', () => submitComment(btn.dataset.key));
     });
     correctionsBody.querySelectorAll('.rv-resolve-btn').forEach(btn => {
-        btn.addEventListener('click', () => markResolved(btn.dataset.key));
+        btn.addEventListener('click', () => resolveComment(btn.dataset.key, btn.dataset.id));
     });
 }
 
 // ---------------------------------------------------------------------------
-// Autoguardado de correcciones (debounce ~800ms)
+// Comentarios — guardado explícito (no autosave): cada "Guardar comentario"
+// crea una fila nueva atribuida al autor y dispara un mail a DRP.
 // ---------------------------------------------------------------------------
-function scheduleAutosave(sectionKey, content) {
-    if (saveTimers[sectionKey]) clearTimeout(saveTimers[sectionKey]);
-    saveTimers[sectionKey] = setTimeout(() => saveCorrection(sectionKey, content), 800);
-}
-
-async function saveCorrection(sectionKey, content) {
+async function submitComment(sectionKey) {
+    const ta = correctionsBody.querySelector(`.rv-corr-textarea[data-key="${cssEscape(sectionKey)}"]`);
     const ind = document.getElementById(`save-ind-${sectionKey}`);
+    const content = ta ? ta.value.trim() : '';
+    if (!content) { if (ta) ta.focus(); return; }
+
     const { status, data } = await apiFetch(
-        `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}/sections/${encodeURIComponent(sectionKey)}`,
-        { method: 'PUT', body: { content } }
+        `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}/sections/${encodeURIComponent(sectionKey)}/comments`,
+        { method: 'POST', body: { content } }
     );
 
     if (status === 200 && data.ok) {
-        correctionsMap[sectionKey] = {
-            section_key: sectionKey, content, resolved: 0,
-            updated_by: session.display_name, updated_at: Date.now() / 1000,
-        };
-        // Refrescar solo la insignia/botón de esta sección sin perder el foco del textarea
-        refreshCorrectionRowChrome(sectionKey);
-        if (ind) {
-            ind.textContent = 'Guardado ✓';
-            ind.className = 'rv-save-ind rv-ok';
-            setTimeout(() => {
-                ind.classList.add('rv-fade');
-                setTimeout(() => { ind.textContent = ''; ind.className = 'rv-save-ind'; }, 600);
-            }, 2000);
-        }
+        await reloadComments();
+        showToast('Comentario guardado');
     } else {
-        const msg = status === 409 ? (data.error || 'El documento está sellado — no admite correcciones') : (data.error || 'No se pudo guardar');
+        const msg = status === 409 ? (data.error || 'El documento está sellado — no admite comentarios') : (data.error || 'No se pudo guardar');
         if (ind) {
             ind.textContent = msg;
             ind.className = 'rv-save-ind rv-err';
@@ -679,46 +713,20 @@ async function saveCorrection(sectionKey, content) {
     }
 }
 
-function refreshCorrectionRowChrome(sectionKey) {
-    const item = correctionsBody.querySelector(`.rv-corr-item[data-key="${cssEscape(sectionKey)}"]`);
-    if (!item) return;
-    const existing = correctionsMap[sectionKey];
-    const resolved = !!(existing && existing.resolved);
-    const headBadge = item.querySelector('.rv-badge');
-    if (headBadge) {
-        headBadge.className = resolved ? 'rv-badge rv-badge-resolved' : 'rv-badge rv-badge-pending';
-        headBadge.textContent = resolved ? 'Resuelta' : 'Pendiente';
-    }
-    const footer = item.querySelector('.rv-corr-footer');
-    let resolveBtn = footer ? footer.querySelector('.rv-resolve-btn') : null;
-    const shouldShow = session.role === 'drp' && existing && !resolved;
-    if (shouldShow && !resolveBtn && footer) {
-        resolveBtn = document.createElement('button');
-        resolveBtn.className = 'rf-btn-secondary rv-resolve-btn';
-        resolveBtn.dataset.key = sectionKey;
-        resolveBtn.textContent = 'Marcar resuelta';
-        resolveBtn.addEventListener('click', () => markResolved(sectionKey));
-        footer.appendChild(resolveBtn);
-    } else if (!shouldShow && resolveBtn) {
-        resolveBtn.remove();
-    }
-}
-
 function cssEscape(s) {
     return String(s).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
 }
 
-async function markResolved(sectionKey) {
+async function resolveComment(sectionKey, commentId) {
     const { status, data } = await apiFetch(
-        `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}/sections/${encodeURIComponent(sectionKey)}/resolve`,
+        `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}/sections/${encodeURIComponent(sectionKey)}/comments/${commentId}/resolve`,
         { method: 'PATCH' }
     );
     if (status === 200 && data.ok) {
-        if (correctionsMap[sectionKey]) correctionsMap[sectionKey].resolved = 1;
-        refreshCorrectionRowChrome(sectionKey);
-        showToast('Corrección marcada como resuelta');
+        await reloadComments();
+        showToast('Comentario marcado como resuelto');
     } else {
-        showToast(data.error || 'No se pudo marcar como resuelta', true);
+        showToast(data.error || 'No se pudo marcar como resuelto', true);
     }
 }
 
@@ -863,25 +871,16 @@ async function ensurePdfLibsLoaded() {
     return pdfLibsLoading;
 }
 
-async function buildMergedJsonForPreview() {
+async function getRenderableDocument() {
     // Se parte del render con firmas reales inyectadas (no del JSON fuente crudo), para que
     // la vista previa muestre la misma tabla de firmas que después va a mostrar el Libro
-    // compilado — no una tabla vacía o desactualizada.
+    // compilado — no una tabla vacía o desactualizada. Siempre el documento ORIGINAL: los
+    // comentarios de revisión son anotaciones aparte, nunca reemplazan contenido acá
+    // (confirmado con el usuario 2026-08-31).
     const { status, data } = await apiFetch(
         `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}/signed-render`
     );
-    const base = (status === 200 && data.ok) ? data.data : documentRow.json_data;
-    const merged = JSON.parse(JSON.stringify(base));
-    const arr = getSectionsArray(merged);
-    if (arr) {
-        sections.forEach(sec => {
-            const correction = correctionsMap[sec.key];
-            if (!correction) return;
-            const idx = Number(sec.key.replace('sec-', ''));
-            if (arr[idx]) applyCorrectionToSection(arr[idx], correction.content);
-        });
-    }
-    return merged;
+    return (status === 200 && data.ok) ? data.data : documentRow.json_data;
 }
 
 async function openPdfModal() {
@@ -898,7 +897,7 @@ async function openPdfModal() {
 
     try {
         await ensurePdfLibsLoaded();
-        const merged = await buildMergedJsonForPreview();
+        const merged = await getRenderableDocument();
 
         if (!window.ValidationSuite || !window.ValidationSuite.renderers || !window.ValidationSuite.renderers[merged.type]) {
             throw new Error('sin renderer');
@@ -908,7 +907,12 @@ async function openPdfModal() {
 
         if (currentPdfObjectUrl) URL.revokeObjectURL(currentPdfObjectUrl);
         currentPdfObjectUrl = URL.createObjectURL(blob);
-        iframeEl.src = currentPdfObjectUrl;
+        // #toolbar=0&navpanes=0 saca el botón de descarga/impresión del visor nativo del
+        // navegador (Chrome/Edge lo respetan sobre blob: URLs). No es a prueba de balas —
+        // nada en un navegador lo es (siempre queda captura de pantalla, imprimir con Ctrl+P
+        // en algunos casos, etc.) — pero saca la forma obvia de bajarlo con un clic, que es
+        // lo que pidió el usuario para que el cliente no descargue el documento en revisión.
+        iframeEl.src = currentPdfObjectUrl + '#toolbar=0&navpanes=0';
         iframeEl.style.display = 'block';
         loadingEl.style.display = 'none';
     } catch (e) {

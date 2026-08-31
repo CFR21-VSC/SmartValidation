@@ -66,11 +66,11 @@ def sign_review(
         raise HTTPException(status.HTTP_409_CONFLICT, "El documento está sellado")
 
     pending = db.execute(
-        "SELECT COUNT(*) AS n FROM rf_section_corrections WHERE document_id=? AND resolved=0",
+        "SELECT COUNT(*) AS n FROM rf_section_comments WHERE document_id=? AND resolved=0",
         (doc["id"],),
     ).fetchone()
     if pending["n"] > 0:
-        raise HTTPException(status.HTTP_409_CONFLICT, "Hay correcciones sin resolver")
+        raise HTTPException(status.HTTP_409_CONFLICT, "Hay comentarios sin resolver")
 
     _verify_pin(db, user["uid"], body.pin)
 

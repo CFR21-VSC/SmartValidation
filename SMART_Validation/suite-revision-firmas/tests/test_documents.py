@@ -86,61 +86,92 @@ def test_list_documents_scoped_by_role(drp_client, cliente_client):
     assert {d["doc_type"] for d in cli_list} == {"HLRA"}
 
 
-def test_save_and_list_corrections(drp_client, cliente_client):
+def test_add_and_list_comments(drp_client, cliente_client):
     drp_client.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     cli, user_id = cliente_client
     drp_client.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
 
-    save = cli.put(
-        "/projects/proj-1/documents/HLRA/sections/proposito",
+    save = cli.post(
+        "/projects/proj-1/documents/HLRA/sections/proposito/comments",
         json={"content": "Sugerencia: aclarar el alcance en el punto 3."},
     )
     assert save.status_code == 200, save.text
+    assert save.json()["comment"]["username"] == "revisor"
 
-    listed = cli.get("/projects/proj-1/documents/HLRA/corrections")
+    listed = cli.get("/projects/proj-1/documents/HLRA/comments")
     assert listed.status_code == 200
-    corr = listed.json()["corrections"]
-    assert len(corr) == 1
-    assert corr[0]["section_key"] == "proposito"
+    comments = listed.json()["comments"]
+    assert len(comments) == 1
+    assert comments[0]["section_key"] == "proposito"
+    assert comments[0]["username"] == "revisor"
 
 
-def test_correction_overwrite_same_section_does_not_duplicate(drp_client):
+def test_multiple_comments_on_same_section_do_not_overwrite(drp_client, cliente_client):
+    """Antes un segundo comentario en la misma sección pisaba al primero -- ahora cada
+    comentario es una fila propia, atribuida a quien lo escribió."""
     drp_client.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
-    drp_client.put("/projects/proj-1/documents/HLRA/sections/proposito", json={"content": "v1"})
-    drp_client.put("/projects/proj-1/documents/HLRA/sections/proposito", json={"content": "v2"})
-    corr = drp_client.get("/projects/proj-1/documents/HLRA/corrections").json()["corrections"]
-    assert len(corr) == 1
-    assert corr[0]["content"] == "v2"
+    cli, user_id = cliente_client
+    drp_client.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+
+    drp_client.post("/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "v1 (drp)"})
+    cli.post("/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "v2 (cliente)"})
+
+    comments = drp_client.get("/projects/proj-1/documents/HLRA/comments").json()["comments"]
+    assert len(comments) == 2
+    assert {c["content"] for c in comments} == {"v1 (drp)", "v2 (cliente)"}
+    assert {c["username"] for c in comments} == {"fbongiovanni", "revisor"}
 
 
-def test_get_document_includes_resolved_flag_in_corrections(drp_client):
+def test_get_document_includes_resolved_flag_in_comments(drp_client):
     drp_client.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
-    drp_client.put("/projects/proj-1/documents/HLRA/sections/proposito", json={"content": "v1"})
+    created = drp_client.post("/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "v1"})
+    comment_id = created.json()["comment"]["id"]
+
     doc = drp_client.get("/projects/proj-1/documents/HLRA").json()
-    assert doc["corrections"][0]["resolved"] == 0
+    assert doc["comments"][0]["resolved"] == 0
 
-    drp_client.patch("/projects/proj-1/documents/HLRA/sections/proposito/resolve")
+    drp_client.patch(f"/projects/proj-1/documents/HLRA/sections/proposito/comments/{comment_id}/resolve")
     doc2 = drp_client.get("/projects/proj-1/documents/HLRA").json()
-    assert doc2["corrections"][0]["resolved"] == 1
+    assert doc2["comments"][0]["resolved"] == 1
 
 
-def test_correction_does_not_touch_source_json(drp_client):
+def test_comment_does_not_touch_source_json(drp_client):
     drp_client.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
-    drp_client.put("/projects/proj-1/documents/HLRA/sections/proposito", json={"content": "corrección"})
+    drp_client.post("/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "comentario"})
     doc = drp_client.get("/projects/proj-1/documents/HLRA").json()["document"]
     assert doc["json_data"] == SAMPLE_JSON
 
 
-def test_client_without_grant_cannot_save_correction(cliente_client):
+def test_client_without_grant_cannot_add_comment(cliente_client):
     cli, _user_id = cliente_client
-    r = cli.put("/projects/proj-1/documents/HLRA/sections/x", json={"content": "no debería poder"})
+    r = cli.post("/projects/proj-1/documents/HLRA/sections/x/comments", json={"content": "no debería poder"})
     # El documento ni siquiera existe todavía en este test — igual debe bloquear por falta de grant.
     assert r.status_code == 403
 
 
-def test_save_correction_on_missing_document_404(drp_client):
-    r = drp_client.put("/projects/proj-1/documents/NOEXISTE/sections/x", json={"content": "x"})
+def test_add_comment_on_missing_document_404(drp_client):
+    r = drp_client.post("/projects/proj-1/documents/NOEXISTE/sections/x/comments", json={"content": "x"})
     assert r.status_code == 404
+
+
+def test_add_comment_notifies_active_drp_users_but_not_the_author(drp_client, cliente_client, monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        "app.routers.documents.email_resend.send_new_comment_email",
+        lambda to, display_name, project_id, doc_type, section_key, author, content, link: calls.append((to, author)),
+    )
+    drp_client.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente_client
+    drp_client.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+
+    # El cliente comenta -> se le avisa a DRP.
+    cli.post("/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "c1"})
+    assert len(calls) == 1
+    assert calls[0][1] == "revisor"
+
+    # DRP comenta -> no se autonotifica a sí mismo.
+    drp_client.post("/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "c2"})
+    assert len(calls) == 1
 
 
 def test_list_projects_scoped_by_role(drp_client, cliente_client):

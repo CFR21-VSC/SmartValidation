@@ -2,9 +2,12 @@
 routers/documents.py — Vista de revisión (Capa 3 / sección 4 del diseño).
 
 Panel izquierdo: JSON fuente cargado a mano por DRP, inmutable durante la
-revisión. Panel derecho: correcciones autoguardadas por sección — nunca pisan
-el JSON fuente. Ambos requieren habilitación granular por documento (excepto
-DRP, que ve todo).
+revisión. Panel derecho: comentarios de revisión por sección — varios por
+sección, cada uno atribuido a su autor, guardado explícito (no autosave) para
+poder avisar por mail sin saturar. Nunca pisan el JSON fuente ni se mezclan
+con el contenido en ninguna vista previa (confirmado con el usuario
+2026-08-31: "Ver PDF" siempre muestra el original). Ambos requieren
+habilitación granular por documento (excepto DRP, que ve todo).
 """
 import json
 import time
@@ -14,6 +17,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
+from .. import config, email_resend
 from ..audit import log_event, log_system_event
 from ..db import get_db
 from ..deps import check_document_access, ensure_project_active, get_current_user, require_drp
@@ -27,7 +31,7 @@ class LoadDocumentBody(BaseModel):
     json_data: dict[str, Any]
 
 
-class CorrectionBody(BaseModel):
+class CommentBody(BaseModel):
     content: str
 
 
@@ -133,13 +137,13 @@ def get_document(project_id: str, doc_type: str, user: dict = Depends(get_curren
     check_document_access(user, project_id, doc_type)
     db = get_db()
     doc = _get_document_or_404(db, project_id, doc_type)
-    corrections = db.execute(
-        "SELECT section_key, content, resolved, updated_by, updated_at FROM rf_section_corrections "
-        "WHERE document_id=? ORDER BY section_key",
+    comments = db.execute(
+        "SELECT id, section_key, content, resolved, user_id, username, created_at "
+        "FROM rf_section_comments WHERE document_id=? ORDER BY section_key, created_at",
         (doc["id"],),
     ).fetchall()
     doc["json_data"] = json.loads(doc["json_data"])
-    return {"ok": True, "document": doc, "corrections": [dict(c) for c in corrections]}
+    return {"ok": True, "document": doc, "comments": [dict(c) for c in comments]}
 
 
 @router.get("/{doc_type}/signed-render")
@@ -178,33 +182,53 @@ def get_signed_render(
     return {"ok": True, "data": data}
 
 
-@router.put("/{doc_type}/sections/{section_key}")
-def save_correction(
-    project_id: str, doc_type: str, section_key: str, body: CorrectionBody,
+@router.post("/{doc_type}/sections/{section_key}/comments")
+def add_comment(
+    project_id: str, doc_type: str, section_key: str, body: CommentBody,
     user: dict = Depends(get_current_user),
 ):
-    """Autoguardado del panel derecho. Nunca toca rf_documents.json_data."""
+    """Guardado explícito (no autosave) — el revisor escribe y toca "Guardar comentario".
+    Cada comentario es una fila nueva, atribuida a su autor; no pisa comentarios de otros
+    revisores en la misma sección. Nunca toca rf_documents.json_data. Dispara un mail a
+    todo DRP activo (salvo al propio autor, si es DRP) para que se entere sin tener que
+    estar mirando la pantalla."""
     check_document_access(user, project_id, doc_type)
     db = get_db()
     ensure_project_active(db, project_id)
     doc = _get_document_or_404(db, project_id, doc_type)
     if doc["locked"]:
-        raise HTTPException(status.HTTP_409_CONFLICT, "El documento está sellado — no admite correcciones")
+        raise HTTPException(status.HTTP_409_CONFLICT, "El documento está sellado — no admite comentarios")
 
     now = time.time()
-    db.execute(
-        "INSERT INTO rf_section_corrections (document_id, section_key, content, resolved, updated_by, updated_at) "
-        "VALUES (?,?,?,0,?,?) "
-        "ON CONFLICT(document_id, section_key) DO UPDATE SET content=excluded.content, "
-        "resolved=0, updated_by=excluded.updated_by, updated_at=excluded.updated_at",
-        (doc["id"], section_key, body.content, user["u"], now),
+    cur = db.execute(
+        "INSERT INTO rf_section_comments (document_id, section_key, content, resolved, user_id, username, created_at) "
+        "VALUES (?,?,?,0,?,?,?)",
+        (doc["id"], section_key, body.content, user["uid"], user["u"], now),
     )
+    comment_id = cur.lastrowid
     db.commit()
     log_event(
-        project_id, doc_type, user, "correction_saved",
-        f"{user['u']} guardó una corrección en la sección '{section_key}'",
+        project_id, doc_type, user, "comment_added",
+        f"{user['u']} comentó la sección '{section_key}'",
     )
-    return {"ok": True}
+
+    doc_link = f"{config.APP_BASE_URL}/app/review.html?project={project_id}&doc={doc_type}"
+    drp_users = db.execute(
+        "SELECT email, display_name FROM rf_users WHERE role='drp' AND is_active=1 AND id!=?",
+        (user.get("uid") or "",),
+    ).fetchall()
+    for drp in drp_users:
+        email_resend.send_new_comment_email(
+            drp["email"], drp["display_name"], project_id, doc_type, section_key, user["u"], body.content, doc_link,
+        )
+
+    return {
+        "ok": True,
+        "comment": {
+            "id": comment_id, "section_key": section_key, "content": body.content,
+            "resolved": 0, "user_id": user["uid"], "username": user["u"], "created_at": now,
+        },
+    }
 
 
 @router.get("/{doc_type}/people-book")
@@ -220,31 +244,33 @@ def get_people_book(project_id: str, doc_type: str, user: dict = Depends(require
     return {"ok": True, "events": [dict(r) for r in rows]}
 
 
-@router.get("/{doc_type}/corrections")
-def list_corrections(project_id: str, doc_type: str, user: dict = Depends(get_current_user)):
+@router.get("/{doc_type}/comments")
+def list_comments(project_id: str, doc_type: str, user: dict = Depends(get_current_user)):
     check_document_access(user, project_id, doc_type)
     db = get_db()
     doc = _get_document_or_404(db, project_id, doc_type)
     rows = db.execute(
-        "SELECT section_key, content, resolved, updated_by, updated_at FROM rf_section_corrections "
-        "WHERE document_id=? ORDER BY section_key",
+        "SELECT id, section_key, content, resolved, user_id, username, created_at "
+        "FROM rf_section_comments WHERE document_id=? ORDER BY section_key, created_at",
         (doc["id"],),
     ).fetchall()
-    return {"ok": True, "corrections": [dict(r) for r in rows]}
+    return {"ok": True, "comments": [dict(r) for r in rows]}
 
 
-@router.patch("/{doc_type}/sections/{section_key}/resolve")
-def resolve_correction(project_id: str, doc_type: str, section_key: str, user: dict = Depends(require_drp)):
-    """DRP confirma que ya consideró/aplicó la corrección — habilita la firma de revisión
-    cuando todas las correcciones del documento están resueltas (sección 5.1)."""
+@router.patch("/{doc_type}/sections/{section_key}/comments/{comment_id}/resolve")
+def resolve_comment(
+    project_id: str, doc_type: str, section_key: str, comment_id: int, user: dict = Depends(require_drp),
+):
+    """DRP confirma que ya consideró ese comentario puntual — habilita la firma de revisión
+    cuando todos los comentarios del documento están resueltos (sección 5.1)."""
     db = get_db()
     doc = _get_document_or_404(db, project_id, doc_type)
     result = db.execute(
-        "UPDATE rf_section_corrections SET resolved=1 WHERE document_id=? AND section_key=?",
-        (doc["id"], section_key),
+        "UPDATE rf_section_comments SET resolved=1 WHERE id=? AND document_id=? AND section_key=?",
+        (comment_id, doc["id"], section_key),
     )
     if result.rowcount == 0:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Corrección no encontrada")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Comentario no encontrado")
     db.commit()
-    log_event(project_id, doc_type, user, "correction_resolved", f"DRP resolvió la sección '{section_key}'")
+    log_event(project_id, doc_type, user, "comment_resolved", f"DRP resolvió un comentario en la sección '{section_key}'")
     return {"ok": True}
