@@ -188,8 +188,14 @@ CREATE INDEX IF NOT EXISTS idx_rf_approval_signers_round ON rf_approval_signers(
 -- Un proyecto se crea implícitamente al cargar su primer documento (sigue sin existir un
 -- "crear proyecto" separado — sección 4), pero ahora necesita estado propio para poder
 -- cerrarse/archivarse/eliminarse como unidad.
+-- display_name: nombre legible opcional, editable por DRP (sección 2026-09-01 -- el `id`
+-- real de un proyecto suele ser un identificador técnico feo, ilegible para el cliente).
+-- El `id` NUNCA cambia -- es la clave que usa el bridge con la Suite Documental para
+-- encontrar el mismo proyecto en cada push; display_name es puramente cosmético, solo
+-- para la UI.
 CREATE TABLE IF NOT EXISTS rf_projects (
     id            TEXT PRIMARY KEY,
+    display_name  TEXT,
     status        TEXT NOT NULL DEFAULT 'active',  -- 'active' | 'closed' | 'archived'
     created_by    TEXT,
     created_at    REAL,

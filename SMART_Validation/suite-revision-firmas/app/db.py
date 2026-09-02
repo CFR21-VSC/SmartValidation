@@ -235,6 +235,7 @@ def init_db() -> None:
     db.commit()
     _migrate_legacy_corrections(db)
     _migrate_add_comment_parent_id(db)
+    _migrate_add_project_display_name(db)
 
 
 def _migrate_add_comment_parent_id(db) -> None:
@@ -254,6 +255,22 @@ def _migrate_add_comment_parent_id(db) -> None:
             "ALTER TABLE rf_section_comments ADD COLUMN parent_id INTEGER "
             "REFERENCES rf_section_comments(id) ON DELETE CASCADE"
         )
+        db.commit()
+
+
+def _migrate_add_project_display_name(db) -> None:
+    """Agrega display_name a rf_projects (nombre legible, 2026-09-01) si el schema es de
+    antes de este cambio -- mismo motivo que _migrate_add_comment_parent_id."""
+    if USE_PG:
+        exists = db.execute(
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_name='rf_projects' AND column_name='display_name'"
+        ).fetchone()
+    else:
+        cols = db.execute("PRAGMA table_info(rf_projects)").fetchall()
+        exists = any(c["name"] == "display_name" for c in cols)
+    if not exists:
+        db.execute("ALTER TABLE rf_projects ADD COLUMN display_name TEXT")
         db.commit()
 
 

@@ -106,6 +106,54 @@ def test_reopen_project_allows_loads_again(drp_with_pin):
     assert r.status_code == 200
 
 
+# ─── Nombre legible del proyecto (display_name) ────────────────────────────
+
+def test_rename_project_sets_display_name(drp_with_pin):
+    drp_with_pin.put("/projects/proj_1787502900396_eo1jan/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    r = drp_with_pin.patch(
+        "/projects/proj_1787502900396_eo1jan/display-name", json={"display_name": "Testing formal"}
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["display_name"] == "Testing formal"
+
+    listed = drp_with_pin.get("/projects").json()["projects"]
+    proj = next(p for p in listed if p["id"] == "proj_1787502900396_eo1jan")
+    assert proj["display_name"] == "Testing formal"
+
+
+def test_rename_project_does_not_change_the_real_id(drp_with_pin):
+    """El id sigue siendo la clave que usaría el bridge para encontrar el proyecto --
+    renombrar es puramente cosmético."""
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    drp_with_pin.patch("/projects/proj-1/display-name", json={"display_name": "Nombre lindo"})
+
+    # El documento se sigue pudiendo pushear/leer con el MISMO id de siempre.
+    doc = drp_with_pin.get("/projects/proj-1/documents/HLRA")
+    assert doc.status_code == 200
+    assert doc.json()["document"]["project_id"] == "proj-1"
+
+
+def test_rename_project_empty_clears_display_name(drp_with_pin):
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    drp_with_pin.patch("/projects/proj-1/display-name", json={"display_name": "Nombre lindo"})
+    cleared = drp_with_pin.patch("/projects/proj-1/display-name", json={"display_name": "  "})
+    assert cleared.json()["display_name"] is None
+
+    proj = next(p for p in drp_with_pin.get("/projects").json()["projects"] if p["id"] == "proj-1")
+    assert proj["display_name"] is None
+
+
+def test_rename_project_requires_drp(cliente):
+    cli, _user_id = cliente
+    r = cli.patch("/projects/proj-1/display-name", json={"display_name": "no debería poder"})
+    assert r.status_code == 403
+
+
+def test_rename_missing_project_404(drp_with_pin):
+    r = drp_with_pin.patch("/projects/proj-x/display-name", json={"display_name": "x"})
+    assert r.status_code == 404
+
+
 def test_delete_project_blocked_if_sealed_document(drp_with_pin, cliente):
     _seal_document(drp_with_pin, cliente)
     r = drp_with_pin.delete("/projects/proj-1")

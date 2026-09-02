@@ -9,6 +9,7 @@ implícito ahora tiene estado propio: activo / cerrado / archivado / eliminado.
 import time
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 
 from ..audit import log_system_event
 from ..db import get_db
@@ -156,18 +157,20 @@ def list_projects(include_archived: bool = False, user: dict = Depends(get_curre
         ).fetchall()
     ids = [r["project_id"] for r in rows]
 
-    statuses = {}
+    meta = {}
     if ids:
         placeholders = ",".join("?" for _ in ids)
-        for r in db.execute(f"SELECT id, status FROM rf_projects WHERE id IN ({placeholders})", tuple(ids)):
-            statuses[r["id"]] = r["status"]
+        for r in db.execute(
+            f"SELECT id, status, display_name FROM rf_projects WHERE id IN ({placeholders})", tuple(ids)
+        ):
+            meta[r["id"]] = {"status": r["status"], "display_name": r["display_name"]}
 
     result = []
     for pid in ids:
-        st = statuses.get(pid, "active")
-        if st == "archived" and not include_archived:
+        m = meta.get(pid, {"status": "active", "display_name": None})
+        if m["status"] == "archived" and not include_archived:
             continue
-        result.append({"id": pid, "status": st})
+        result.append({"id": pid, "status": m["status"], "display_name": m["display_name"]})
 
     return {"ok": True, "projects": result}
 
@@ -212,6 +215,33 @@ def reopen_project(project_id: str, user: dict = Depends(require_drp)):
     db.commit()
     log_system_event(user, "project_reopened", f"{user['u']} reabrió el proyecto", project_id=project_id)
     return {"ok": True}
+
+
+class RenameProjectBody(BaseModel):
+    display_name: str = ""
+
+
+@router.patch("/{project_id}/display-name")
+def rename_project(project_id: str, body: RenameProjectBody, user: dict = Depends(require_drp)):
+    """Nombre legible opcional, puramente cosmético (sección 2026-09-01) -- el `id` real
+    NUNCA cambia acá, sigue siendo la clave que usa el bridge con la Suite Documental para
+    encontrar este mismo proyecto en cada push. Mandar display_name vacío borra el nombre
+    (vuelve a mostrarse el id crudo)."""
+    db = get_db()
+    _get_project_or_404(db, project_id)
+    name = body.display_name.strip() or None
+    now = time.time()
+    db.execute(
+        "UPDATE rf_projects SET display_name=?, updated_at=? WHERE id=?",
+        (name, now, project_id),
+    )
+    db.commit()
+    log_system_event(
+        user, "project_renamed",
+        f"{user['u']} renombró el proyecto a '{name}'" if name else f"{user['u']} quitó el nombre del proyecto",
+        project_id=project_id,
+    )
+    return {"ok": True, "display_name": name}
 
 
 @router.delete("/{project_id}")
