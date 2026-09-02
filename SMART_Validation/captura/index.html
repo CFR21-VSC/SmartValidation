@@ -197,6 +197,12 @@ function _hash(session) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 
+// Delegated click handler — evita onclick inline con IDs que contienen comillas
+document.getElementById('mvRoot').addEventListener('click', function(e) {
+    const card = e.target.closest('[data-testid]');
+    if (card) openTest(card.dataset.testid);
+});
+
 (function init() {
     const params = new URLSearchParams(window.location.search);
     _token = params.get('mobile') || params.get('token') || '';
@@ -345,7 +351,7 @@ function renderTestList() {
 function _testCard(t) {
     const empty = (t.emptyEvidences || []).length;
     return `
-        <div class="mvCard ${t.finalized ? 'finalized' : ''}" onclick="openTest(${JSON.stringify(t.id)})">
+        <div class="mvCard ${t.finalized ? 'finalized' : ''}" data-testid="${_esc(String(t.id))}">
             <h3>${_esc(t.name)}</h3>
             <div class="mvMeta">
                 <span class="mvBadge ${t.finalized ? 'gray' : 'green'}">${t.finalized ? 'Finalizada' : 'Activa'}</span>
@@ -374,7 +380,8 @@ async function refreshSession() {
 // ── Vista de captura ──────────────────────────────────────────────────────────
 
 function openTest(testId) {
-    const test = (_session.tests || []).find(t => t.id === testId);
+    const sid = String(testId);
+    const test = (_session.tests || []).find(t => String(t.id) === sid);
     if (!test) return;
     _selectedTest = test;
     _queue = [];
