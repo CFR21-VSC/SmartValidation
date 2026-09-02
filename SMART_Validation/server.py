@@ -44,12 +44,6 @@ MAX_PHOTO_BYTES = 15 * 1024 * 1024     # 15 MB por foto
 MAX_PHOTOS_PER_SESSION = 200           # SEC-FIX-SYNC04: límite de cantidad de fotos por sesión
 MAX_SESSIONS = 200                     # SEC-FIX-DOS005: cota dura del dict SESSIONS
 
-# Sync de firmas manuscritas movil → PC (modal de registro de firmante).
-# Cada entry: { firmaImage: data:image/png;base64,..., uploaded_at: ts }
-# TTL corto: 10 minutos. La PC polea cada 2s; al recibir, limpia el token.
-SIGNATURES = {}
-SIGNATURE_TTL = 600  # 10 min
-MAX_SIGNATURE_BYTES = 2 * 1024 * 1024  # 2 MB
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -177,87 +171,6 @@ def _db_init():
             UNIQUE(user_id, project_id)
         );
 
-        CREATE TABLE IF NOT EXISTS document_signatures (
-            id           INTEGER PRIMARY KEY AUTOINCREMENT,
-            project_id   TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-            doc_type     TEXT NOT NULL,
-            username     TEXT NOT NULL,
-            display_name TEXT,
-            role_label   TEXT DEFAULT 'Firmante',
-            audit_hash   TEXT,
-            ip           TEXT,
-            signed_at    REAL,
-            created_at   REAL
-        );
-
-        CREATE TABLE IF NOT EXISTS doc_comments (
-            id           INTEGER PRIMARY KEY AUTOINCREMENT,
-            project_id   TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-            doc_type     TEXT NOT NULL,
-            username     TEXT NOT NULL,
-            display_name TEXT,
-            body         TEXT NOT NULL,
-            section_ref  TEXT,
-            created_at   REAL
-        );
-
-        CREATE TABLE IF NOT EXISTS round_comments (
-            id           INTEGER PRIMARY KEY AUTOINCREMENT,
-            round_id     TEXT NOT NULL REFERENCES signing_rounds(id) ON DELETE CASCADE,
-            project_id   TEXT NOT NULL,
-            username     TEXT NOT NULL,
-            display_name TEXT,
-            section_ref  TEXT,
-            body         TEXT NOT NULL,
-            status       TEXT DEFAULT 'open',
-            created_at   REAL,
-            resolved_at  REAL,
-            resolved_by  TEXT
-        );
-
-        CREATE TABLE IF NOT EXISTS signing_rounds (
-            id             TEXT PRIMARY KEY,
-            project_id     TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-            doc_type       TEXT NOT NULL,
-            doc_version    INTEGER NOT NULL DEFAULT 1,
-            doc_hash       TEXT NOT NULL,
-            status         TEXT DEFAULT 'open',
-            created_by     TEXT,
-            created_at     REAL,
-            sealed_at      REAL,
-            cancelled_at   REAL,
-            cancel_reason  TEXT,
-            seal_hash      TEXT,
-            prev_block_hash TEXT
-        );
-
-        CREATE TABLE IF NOT EXISTS signing_round_signers (
-            id                    INTEGER PRIMARY KEY AUTOINCREMENT,
-            round_id              TEXT NOT NULL REFERENCES signing_rounds(id) ON DELETE CASCADE,
-            username              TEXT NOT NULL,
-            display_name          TEXT,
-            role_label            TEXT NOT NULL DEFAULT 'Revisor',
-            signed_at             REAL,
-            audit_hash            TEXT,
-            revision_requested_at REAL,
-            revision_reason       TEXT,
-            ip                    TEXT
-        );
-
-        CREATE TABLE IF NOT EXISTS validation_book_blocks (
-            id              INTEGER PRIMARY KEY AUTOINCREMENT,
-            project_id      TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-            round_id        TEXT NOT NULL,
-            block_number    INTEGER NOT NULL,
-            doc_type        TEXT NOT NULL,
-            doc_version     INTEGER NOT NULL,
-            doc_hash        TEXT NOT NULL,
-            block_hash      TEXT NOT NULL,
-            prev_block_hash TEXT,
-            block_json      TEXT NOT NULL,
-            sealed_at       REAL
-        );
-
         CREATE TABLE IF NOT EXISTS revoked_tokens (
             token_hash  TEXT PRIMARY KEY,
             expires_at  REAL NOT NULL
@@ -315,44 +228,34 @@ def _db_init():
             updated_at REAL NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_mapeo_owner ON mapeo_projects(owner, updated_at);
-
-        CREATE TABLE IF NOT EXISTS invitations (
-            id           TEXT PRIMARY KEY,
-            token        TEXT UNIQUE NOT NULL,
-            email        TEXT NOT NULL,
-            username     TEXT NOT NULL,
-            display_name TEXT,
-            round_id     TEXT,
-            proj_id      TEXT,
-            created_by   TEXT,
-            expires_at   REAL NOT NULL,
-            used_at      REAL,
-            created_at   REAL NOT NULL
-        );
-        CREATE INDEX IF NOT EXISTS idx_inv_token    ON invitations(token);
-        CREATE INDEX IF NOT EXISTS idx_inv_email    ON invitations(email);
-        CREATE INDEX IF NOT EXISTS idx_inv_round    ON invitations(round_id);
-
-        CREATE TABLE IF NOT EXISTS document_versions (
-            id          TEXT PRIMARY KEY,
-            project_id  TEXT NOT NULL,
-            doc_type    TEXT NOT NULL,
-            version_num INTEGER NOT NULL DEFAULT 1,
-            json_data   TEXT NOT NULL,
-            saved_by    TEXT NOT NULL,
-            saved_at    REAL NOT NULL,
-            round_id    TEXT,
-            change_note TEXT
-        );
-        CREATE INDEX IF NOT EXISTS idx_docver_proj ON document_versions(project_id, doc_type, version_num);
     """)
+    db.commit()
+
+    # Sistema viejo de firma/revisión interno (rondas, firma directa con PIN, Validation
+    # Book/People Book) eliminado 2026-09-02 -- todo el circuito de revisión y firma pasa
+    # ahora por la Suite de Revisión y Firmas (servicio separado). Se dropean las tablas
+    # (datos de prueba, confirmado con el usuario, nada oficial todavía) -- orden: hijos con
+    # FK hacia signing_rounds primero, para no chocar con la integridad referencial en
+    # Postgres (SQLite no la enforcea por default, pero el orden es inofensivo igual).
+    db.executescript("""
+        DROP TABLE IF EXISTS signing_round_signers;
+        DROP TABLE IF EXISTS round_comments;
+        DROP TABLE IF EXISTS validation_book_blocks;
+        DROP TABLE IF EXISTS signing_rounds;
+        DROP TABLE IF EXISTS document_versions;
+        DROP TABLE IF EXISTS invitations;
+        DROP TABLE IF EXISTS document_signatures;
+        DROP TABLE IF EXISTS doc_comments;
+    """)
+    db.commit()
+    # Documentos que hayan quedado bloqueados en 'for_review'/'approved' por el sistema
+    # viejo (ya no existe nada que revierta ese estado) vuelven a 'draft' -- desbloquea
+    # inmediatamente cualquier documento atascado.
+    db.execute("UPDATE documents SET status='draft' WHERE status IN ('for_review','approved')")
     db.commit()
     # Migraciones en caliente (idempotentes — ignorar si la columna ya existe)
     for _migration in [
-        "ALTER TABLE doc_comments ADD COLUMN section_ref TEXT",
         "ALTER TABLE users ADD COLUMN email TEXT",
-        # LO1-FIX: índice único previene firma duplicada a nivel DB (GxP — registro regulado único)
-        "CREATE UNIQUE INDEX IF NOT EXISTS idx_doc_sig_unique ON document_signatures(project_id, doc_type, username)",
         # Lockout por cuenta: contador de intentos fallidos y timestamp de bloqueo
         "ALTER TABLE users ADD COLUMN failed_attempts INTEGER DEFAULT 0",
         "ALTER TABLE users ADD COLUMN locked_until REAL",
@@ -369,26 +272,6 @@ def _db_init():
         # UNIQUE index en documents(project_id, doc_type) — puede faltar si la tabla
         # se creó antes de que el constraint apareciera en el DDL. Idempotente.
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_doc_proj_type ON documents(project_id, doc_type)",
-        "ALTER TABLE signing_round_signers ADD COLUMN revision_fulfilled_at REAL",
-        "ALTER TABLE signing_round_signers ADD COLUMN revision_fulfilled_by TEXT",
-        # F1 — Circuito de firmas unificado: email del firmante + flag de invitación enviada
-        "ALTER TABLE signing_round_signers ADD COLUMN email TEXT",
-        "ALTER TABLE signing_round_signers ADD COLUMN invite_sent_at REAL",
-        # F1 — Usuarios provisionales (creados por invitación, sin PIN todavía)
-        "ALTER TABLE users ADD COLUMN is_provisional INTEGER DEFAULT 0",
-        # F4 — Cancelación de rondas por admin (columnas para signing_rounds existentes)
-        "ALTER TABLE signing_rounds ADD COLUMN cancelled_at REAL",
-        "ALTER TABLE signing_rounds ADD COLUMN cancel_reason TEXT",
-        # F9 — Arquitectura Review/Approval: fase, orden de firma obligatorio, tipo de bloque
-        "ALTER TABLE signing_rounds ADD COLUMN phase TEXT DEFAULT 'review'",
-        "ALTER TABLE signing_round_signers ADD COLUMN sign_order INTEGER DEFAULT 0",
-        "ALTER TABLE validation_book_blocks ADD COLUMN block_type TEXT DEFAULT 'seal'",
-        # P1 — Suite de Revisión y Firma: tipos de comentario + texto sugerido
-        "ALTER TABLE round_comments ADD COLUMN comment_type TEXT DEFAULT 'observation'",
-        "ALTER TABLE round_comments ADD COLUMN suggested_text TEXT",
-        # P1 — Usuarios con password (todos los roles, no solo admin/auditor)
-        "ALTER TABLE users ADD COLUMN invite_token TEXT",
-        "ALTER TABLE users ADD COLUMN invite_expires_at REAL",
     ]:
         try:
             db.execute(_migration)
@@ -397,10 +280,6 @@ def _db_init():
 
     # Índices de rendimiento (CREATE INDEX IF NOT EXISTS es idempotente)
     db.executescript("""
-        CREATE INDEX IF NOT EXISTS idx_srs_round
-            ON signing_round_signers(round_id);
-        CREATE INDEX IF NOT EXISTS idx_vbb_project
-            ON validation_book_blocks(project_id);
         CREATE INDEX IF NOT EXISTS idx_audit_project
             ON audit_events(project_id);
         CREATE INDEX IF NOT EXISTS idx_proj_access_project
@@ -443,28 +322,8 @@ _RE_PROJ_FOLDER_IMPORT = re.compile(r'^/api/projects/([^/]+)/folder-import$')
 _RE_PROJ_DOCS     = re.compile(r'^/api/projects/([^/]+)/documents$')
 _RE_COHERENCE_PACK = re.compile(r'^/api/projects/([^/]+)/coherence-pack$')
 _RE_PROJ_DOC      = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)$')
-_RE_PROJ_DOC_SIGN     = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/sign$')
-_RE_PROJ_DOC_SIGS     = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/signatures$')
-_RE_PROJ_DOC_COMMENTS  = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/comments$')
 _RE_PROJ_DOC_SEND_FIRMAS     = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/send-to-firmas$')
 _RE_PROJ_DOC_FIRMAS_COMMENTS = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/firmas-comments$')
-_RE_SIGNING_ROUNDS     = re.compile(r'^/api/projects/([^/]+)/signing-rounds$')
-_RE_SIGNING_ROUND_ID   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)$')
-_RE_SIGNING_ROUND_SIGN = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/sign$')
-_RE_SIGNING_ROUND_REV  = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/request-revision$')
-_RE_INVITE_TOKEN    = re.compile(r'^/auth/invite/([A-Za-z0-9_-]{40,})$')
-_RE_INVITE_ACTIVATE = re.compile(r'^/auth/invite/([A-Za-z0-9_-]{40,})/activate$')
-_RE_SIGNING_ROUND_SEAL   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/seal$')
-_RE_SIGNING_ROUND_CANCEL = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/cancel$')
-_RE_DOC_REVISIONS  = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/revisions$')
-_RE_DOC_VERSIONS   = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/versions$')
-_RE_REV_FULFILL    = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/fulfill/([^/]+)$')
-_RE_REV_DISCARD    = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/discard-revision/([^/]+)$')
-_RE_ROUND_RESEND   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/resend/([^/]+)$')
-_RE_ROUND_COMMENTS = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/comments$')
-_RE_ROUND_COMMENT_RESOLVE = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/comments/([^/]+)/resolve$')
-_RE_USER_REVOKE    = re.compile(r'^/api/projects/([^/]+)/signers/([^/]+)/revoke$')
-_RE_MY_REVISIONS   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/my-revisions$')
 _RE_PROJ_PHOTOS   = re.compile(r'^/api/projects/([^/]+)/photos$')
 _RE_PROJ_PHOTO_ID = re.compile(r'^/api/projects/([^/]+)/photos/([^/]+)$')
 _RE_EVIDENCE_BULK = re.compile(r'^/api/projects/([^/]+)/evidence$')
@@ -1113,203 +972,6 @@ def _is_superadmin(user: dict) -> bool:
     return bool(user.get("sa"))
 
 
-def _notify_round_created(proj_id: str, doc_type: str, round_id: str, admin_display: str) -> None:
-    """Email a cada firmante cuando el admin crea una ronda de revisión."""
-    if not _RESEND_API_KEY:
-        return
-    db = _get_db()
-    proj = db.execute("SELECT name FROM projects WHERE id=?", (proj_id,)).fetchone()
-    proj_name = proj["name"] if proj else proj_id
-    signers = db.execute(
-        "SELECT srs.display_name, srs.role_label, u.email "
-        "FROM signing_round_signers srs "
-        "LEFT JOIN users u ON u.username = srs.username "
-        "WHERE srs.round_id=?", (round_id,)
-    ).fetchall()
-    suite_url = (_ALLOWED_ORIGIN.rstrip("/") + "/firmas/") if _ALLOWED_ORIGIN != "*" else "/firmas/"
-    for s in signers:
-        if not s["email"]:
-            continue
-        # M-3: HTML escape para prevenir inyección en emails
-        nombre = _html_mod.escape(s["display_name"] or "Revisor")
-        rol    = _html_mod.escape(s["role_label"] or "Revisor")
-        adm    = _html_mod.escape(admin_display)
-        dtype  = _html_mod.escape(doc_type)
-        pname  = _html_mod.escape(proj_name)
-        body = (
-            f"<p>Hola <strong>{nombre}</strong>,</p>"
-            f"<p><strong>{adm}</strong> ha creado una ronda de revisión para el "
-            f"documento <strong>{dtype}</strong> del proyecto <strong>{pname}</strong>.</p>"
-            f"<p>Tu rol asignado en esta ronda: <strong>{rol}</strong>.</p>"
-            "<p>Ingresá a la Suite de Revisión para leer el documento y registrar "
-            "tu firma o tus observaciones.</p>"
-        )
-        _send_email(
-            s["email"],
-            f"[SMART Validation] Revisión pendiente: {doc_type} — {proj_name}",
-            _email_html("Documento pendiente de revisión", body,
-                        "Ir a la Suite de Revisión", suite_url)
-        )
-
-
-def _notify_revision_requested(proj_id: str, doc_type: str,
-                                reviewer_display: str, reason: str) -> None:
-    """Email a todos los admins cuando un revisor solicita modificaciones."""
-    if not _RESEND_API_KEY:
-        return
-    db = _get_db()
-    proj = db.execute("SELECT name FROM projects WHERE id=?", (proj_id,)).fetchone()
-    proj_name = proj["name"] if proj else proj_id
-    admins = db.execute(
-        "SELECT email FROM users "
-        "WHERE role='admin' AND is_active=1 AND email IS NOT NULL AND email != ''"
-    ).fetchall()
-    dashboard_url = (_ALLOWED_ORIGIN.rstrip("/") + "/") if _ALLOWED_ORIGIN != "*" else "/"
-    # M-3: HTML escape para prevenir inyección en emails
-    rev   = _html_mod.escape(reviewer_display)
-    dtype = _html_mod.escape(doc_type)
-    pname = _html_mod.escape(proj_name)
-    rsn   = _html_mod.escape(reason)
-    body = (
-        f"<p><strong>{rev}</strong> solicitó modificaciones en el documento "
-        f"<strong>{dtype}</strong> del proyecto <strong>{pname}</strong>.</p>"
-        "<p><strong>Motivo indicado:</strong></p>"
-        '<blockquote style="border-left:3px solid #1F3C56;margin:12px 0;padding:8px 16px;'
-        f'background:#f4f6f8;color:#333;">{rsn}</blockquote>'
-        "<p>La ronda de firma fue cancelada automáticamente. Revisá las observaciones "
-        "en el dashboard de revisión.</p>"
-    )
-    subject = f"[SMART Validation] {reviewer_display} solicitó cambios en {doc_type}"
-    html = _email_html("Solicitud de modificaciones recibida", body,
-                       "Ver dashboard de revisión", dashboard_url)
-    for admin in admins:
-        _send_email(admin["email"], subject, html)
-
-
-def _create_invitation(email: str, display_name: str, round_id: str, proj_id: str,
-                       created_by: str, preferred_username: str = "") -> str:
-    """Crea (o reutiliza) una invitación para el email dado. Devuelve el token.
-    preferred_username: si se provee, se usa como username (definido por el admin).
-    """
-    import secrets as _sec
-    db = _get_db()
-    # Reutilizar invitación no usada si ya existe para este email+round
-    existing = db.execute(
-        "SELECT token FROM invitations WHERE email=? AND round_id=? AND used_at IS NULL AND expires_at > ?",
-        (email.lower(), round_id, time.time())
-    ).fetchone()
-    if existing:
-        return existing["token"]
-
-    token = _sec.token_urlsafe(32)
-    inv_id = str(uuid.uuid4())
-    now = time.time()
-
-    # Determinar username: preferir el definido por el admin, luego derivar del email
-    if preferred_username:
-        base_user = "".join(c for c in preferred_username.lower() if c.isalnum() or c in "-_.")[:30] or "signer"
-    else:
-        base_user = email.split("@")[0].lower()
-        base_user = "".join(c for c in base_user if c.isalnum() or c in "-_")[:30] or "signer"
-
-    # Asegurar unicidad del username (si ya existe, agregar sufijo)
-    username = base_user
-    suffix = 1
-    while db.execute("SELECT id FROM users WHERE username=?", (username,)).fetchone():
-        username = f"{base_user}{suffix}"; suffix += 1
-
-    # Crear usuario provisional si no existe ninguno con este email
-    existing_user = db.execute("SELECT username FROM users WHERE email=?", (email.lower(),)).fetchone()
-    if not existing_user:
-        uid = str(uuid.uuid4())
-        db.execute(
-            "INSERT INTO users (id, username, display_name, email, role, is_active, is_provisional, created_by, created_at, updated_at) "
-            "VALUES (?, ?, ?, ?, 'client', 1, 1, ?, ?, ?)",
-            (uid, username, display_name or base_user, email.lower(), created_by, now, now)
-        )
-    else:
-        username = existing_user["username"]
-
-    db.execute(
-        "INSERT INTO invitations (id, token, email, username, display_name, round_id, proj_id, created_by, expires_at, created_at) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (inv_id, token, email.lower(), username, display_name, round_id, proj_id, created_by, now + 72*3600, now)
-    )
-    db.commit()
-    return token
-
-
-def _notify_invitation(email: str, display_name: str, token: str,
-                       proj_name: str, doc_type: str, is_returning: bool) -> None:
-    """Email de invitación con magic link al portal de firmas."""
-    pub_url = _ALLOWED_ORIGIN.rstrip("/") if _ALLOWED_ORIGIN not in ("*", "null") else ""
-    firmas_url = f"{pub_url}/firmas/?token={token}"
-    nombre = _html_mod.escape(display_name or email)
-    dtype  = _html_mod.escape(doc_type)
-    pname  = _html_mod.escape(proj_name)
-
-    if is_returning:
-        subject = f"[SMART Validation] Firma pendiente: {doc_type} — {proj_name}"
-        body = (
-            f"<p>Hola {nombre},</p>"
-            f"<p>Tenés una firma pendiente en el documento <strong>{dtype}</strong> "
-            f"del proyecto <strong>{pname}</strong>.</p>"
-            f"<p>Ingresá con tu PIN habitual en el portal de firmas.</p>"
-        )
-    else:
-        subject = f"[SMART Validation] Invitación para firmar: {doc_type} — {proj_name}"
-        body = (
-            f"<p>Hola {nombre},</p>"
-            f"<p>Fuiste invitado a revisar y firmar el documento <strong>{dtype}</strong> "
-            f"del proyecto <strong>{pname}</strong>.</p>"
-            f"<p>Hacé clic en el botón para configurar tu PIN de firma y acceder al portal. "
-            f"Este enlace es válido por 72 horas.</p>"
-        )
-
-    if not _RESEND_API_KEY:
-        # Sin email configurado — loguear el link para compartir manualmente
-        sys.stderr.write(f"[invite] Magic link para {email}: {firmas_url}\n")
-        return
-
-    _send_email(
-        email,
-        subject,
-        _email_html("Firma de documento GxP — SMART Validation", body,
-                    "Ir al portal de firmas", firmas_url)
-    )
-
-
-def _notify_revision_fulfilled(proj_id: str, doc_type: str, reviewer_username: str, admin_display: str) -> None:
-    """Email al revisor cuando el admin cumplió todas sus correcciones — puede volver a firmar."""
-    if not _RESEND_API_KEY:
-        return
-    db = _get_db()
-    reviewer = db.execute(
-        "SELECT email, display_name FROM users WHERE username=?", (reviewer_username,)
-    ).fetchone()
-    if not reviewer or not reviewer["email"]:
-        return
-    proj = db.execute("SELECT name FROM projects WHERE id=?", (proj_id,)).fetchone()
-    proj_name = proj["name"] if proj else proj_id
-    suite_url = (_ALLOWED_ORIGIN.rstrip("/") + "/firmas/") if _ALLOWED_ORIGIN != "*" else "/firmas/"
-    nombre = _html_mod.escape(reviewer["display_name"] or reviewer_username)
-    adm    = _html_mod.escape(admin_display or "El administrador")
-    dtype  = _html_mod.escape(doc_type)
-    pname  = _html_mod.escape(proj_name)
-    body = (
-        f"<p>Hola {nombre},</p>"
-        f"<p>{adm} revisó tus observaciones sobre <strong>{dtype}</strong> del proyecto "
-        f"<strong>{pname}</strong> y completó todas las correcciones solicitadas.</p>"
-        f"<p>Ya podés ingresar a la Suite de Revisión, verificar los cambios y registrar tu firma.</p>"
-    )
-    _send_email(
-        reviewer["email"],
-        f"[SMART Validation] Correcciones listas — {doc_type} — {proj_name}",
-        _email_html("Correcciones completadas — podés firmar", body,
-                    "Ir a la Suite de Revisión", suite_url)
-    )
-
-
 # ── AI Proxy helpers ──────────────────────────────────────────────────────────
 
 def _load_dotenv():
@@ -1554,15 +1216,6 @@ def _save_photo_to_disk(project_id: str, photo: dict):
     except Exception as e:
         _safe_log_id = str(photo.get('id', '')).replace('\n', ' ').replace('\r', ' ')[:100]
         print(f"[Photo] Error al persistir foto {_safe_log_id}: {e}")
-
-
-def cleanup_expired_signatures():
-    """Eliminar tokens de firma vencidos. ADV-17: bajo lock para thread-safety."""
-    now = time.time()
-    with _RATE_LIMIT_LOCK:
-        expired = [t for t, s in list(SIGNATURES.items()) if now - s.get("created_at", 0) > SIGNATURE_TTL]
-        for t in expired:
-            SIGNATURES.pop(t, None)
 
 
 class SyncHandler(BaseHTTPRequestHandler):
@@ -1884,122 +1537,6 @@ class SyncHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _auth_invite_check(self, token: str):
-        """GET /auth/invite/{token} — valida el token de invitación. Público."""
-        db = _get_db()
-        now = time.time()
-        inv = db.execute(
-            "SELECT email, display_name, username, round_id, proj_id, expires_at, used_at "
-            "FROM invitations WHERE token=?", (token,)
-        ).fetchone()
-        if not inv:
-            return self._send_json(404, {"ok": False, "error": "Invitación no encontrada"})
-        if inv["used_at"]:
-            return self._send_json(409, {"ok": False, "error": "Esta invitación ya fue utilizada", "already_used": True})
-        if inv["expires_at"] < now:
-            return self._send_json(410, {"ok": False, "error": "La invitación expiró", "expired": True})
-        # P1: usuario ya activó si tiene password_hash (nuevo) o pin_hash (legado) y no es provisional
-        user_row = db.execute("SELECT is_provisional, pin_hash, password_hash FROM users WHERE username=?",
-                              (inv["username"],)).fetchone()
-        already_active = user_row and not user_row["is_provisional"] and (user_row["password_hash"] or user_row["pin_hash"])
-        return self._send_json(200, {
-            "ok": True,
-            "email": inv["email"],
-            "display_name": inv["display_name"],
-            "username": inv["username"],
-            "round_id": inv["round_id"],
-            "proj_id": inv["proj_id"],
-            "already_active": bool(already_active),
-        })
-
-    def _auth_invite_activate(self, token: str):
-        """POST /auth/invite/{token}/activate — redime el token y configura contraseña.
-        P1: los firmantes ahora crean una contraseña (no un PIN) para login.
-        El PIN de firma se configura por separado en /auth/set-signing-pin.
-        """
-        data = self._read_json_body()
-        if not isinstance(data, dict):
-            return self._send_json(400, {"ok": False, "error": "Body JSON requerido"})
-        # Acepta 'password' (nuevo flujo) o 'pin' (legado — compatibilidad)
-        password = str(data.get("password", data.get("pin", ""))).strip()
-        display_name = str(data.get("display_name", "")).strip()[:80]
-        is_legacy_pin = "pin" in data and "password" not in data
-        if is_legacy_pin:
-            if len(password) < 6 or not password.isdigit():
-                return self._send_json(400, {"ok": False, "error": "PIN debe ser de 6 a 8 dígitos numéricos"})
-        else:
-            if len(password) < 8:
-                return self._send_json(400, {"ok": False, "error": "La contraseña debe tener al menos 8 caracteres"})
-
-        db = _get_db()
-        now = time.time()
-        inv = db.execute(
-            "SELECT email, username, display_name, round_id, proj_id, expires_at, used_at "
-            "FROM invitations WHERE token=?", (token,)
-        ).fetchone()
-        if not inv:
-            return self._send_json(404, {"ok": False, "error": "Invitación no encontrada"})
-        if inv["expires_at"] < now:
-            return self._send_json(410, {"ok": False, "error": "La invitación expiró"})
-
-        # SEC: token single-use
-        if inv["used_at"]:
-            return self._send_json(409, {"ok": False, "error": "Esta invitación ya fue utilizada"})
-
-        # Determinar si el usuario ya tiene credenciales configuradas (returning user)
-        user_row = db.execute(
-            "SELECT password_hash, pin_hash, is_provisional FROM users WHERE username=?",
-            (inv["username"],)
-        ).fetchone()
-        is_returning = user_row and not user_row["is_provisional"] and (user_row["password_hash"] or user_row["pin_hash"])
-
-        if is_returning:
-            # Returning user: verify existing password (or legacy PIN)
-            existing_hash = user_row["password_hash"] or user_row["pin_hash"]
-            if not _pbkdf2_verify(password, existing_hash):
-                return self._send_json(401, {"ok": False, "error": "Contraseña incorrecta"})
-            db.execute("UPDATE invitations SET used_at=? WHERE token=?", (now, token))
-            db.commit()
-        else:
-            # New user: set password (or legacy PIN) from this activation
-            final_display = display_name or inv["display_name"] or inv["username"]
-            if is_legacy_pin:
-                pw_hash = _pbkdf2_hash(password)
-                db.execute(
-                    "UPDATE users SET pin_hash=?, pin_set=1, is_provisional=0, display_name=?, updated_at=? "
-                    "WHERE username=?",
-                    (pw_hash, final_display, now, inv["username"])
-                )
-            else:
-                pw_hash = _pbkdf2_hash(password)
-                db.execute(
-                    "UPDATE users SET password_hash=?, must_change_password=0, is_provisional=0, "
-                    "display_name=?, updated_at=? WHERE username=?",
-                    (pw_hash, final_display, now, inv["username"])
-                )
-            db.execute("UPDATE invitations SET used_at=? WHERE token=?", (now, token))
-            db.commit()
-
-        final_display = display_name or inv["display_name"] or inv["username"]
-        # Iniciar sesión automáticamente
-        session_data = _issue_session(inv["username"])
-        resp_body = json.dumps({
-            "ok": True,
-            "username": inv["username"],
-            "displayName": final_display,
-            "role": "client",
-            "round_id": inv["round_id"],
-            "proj_id": inv["proj_id"],
-        }).encode()
-        self.send_response(200)
-        self._set_cors_headers()
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(resp_body)))
-        if session_data:
-            self.send_header("Set-Cookie", session_data)
-        self.end_headers()
-        self.wfile.write(resp_body)
-
     def _auth_set_signing_pin(self, user):
         """POST /auth/set-signing-pin — configura el PIN de firma (separado del password de login).
         P1: todos los roles pueden tener un PIN de firma independiente de su contraseña.
@@ -2280,8 +1817,11 @@ class SyncHandler(BaseHTTPRequestHandler):
                 content_str = json.dumps(content, ensure_ascii=False)
                 if len(content_str) > 5 * 1024 * 1024:
                     continue
+                # 'for_review'/'approved' eran del sistema viejo de firma/revisión (eliminado
+                # 2026-09-02) -- un export viejo puede traerlos, se normalizan a 'draft' para
+                # no reintroducir documentos bloqueados sin forma de desbloquearlos.
                 doc_status = str(doc.get("status", "draft"))
-                if doc_status not in ("draft", "needs_revision", "for_review", "approved"):
+                if doc_status not in ("draft", "needs_revision"):
                     doc_status = "draft"
                 db.execute("""
                     INSERT INTO documents
@@ -2427,14 +1967,6 @@ class SyncHandler(BaseHTTPRequestHandler):
                 if not _is_valid_doc_type(doc_type):
                     results.append({"filename": fname, "ok": False, "error": "doc_type inválido"})
                     continue
-                # SEC-FIX-F02: no sobreescribir documentos aprobados (inmutabilidad GxP)
-                existing = db.execute(
-                    "SELECT status FROM documents WHERE project_id=? AND doc_type=?",
-                    (proj_id, doc_type)
-                ).fetchone()
-                if existing and existing["status"] in ("approved", "for_review"):
-                    results.append({"filename": fname, "ok": False, "error": f"Documento {doc_type} está {existing['status']} y no puede sobreescribirse"})
-                    continue
                 db.execute("""
                     INSERT INTO documents
                         (id, project_id, doc_type, version, status, json_data, created_by, created_at, updated_at)
@@ -2459,25 +1991,12 @@ class SyncHandler(BaseHTTPRequestHandler):
         if not _is_valid_proj_id(proj_id):
             return self._send_json(404, {"ok": False, "error": "Proyecto no encontrado"})
         db = _get_db()
-        # BEGIN IMMEDIATE: el check de documentos aprobados y el DELETE deben ser atómicos.
-        # Sin esto, un documento puede ser aprobado entre el SELECT y el DELETE (TOCTOU GxP).
         db.execute("BEGIN IMMEDIATE")
         try:
             proj = db.execute("SELECT name FROM projects WHERE id=?", (proj_id,)).fetchone()
             if not proj:
                 db.execute("ROLLBACK")
                 return self._send_json(404, {"ok": False, "error": "Proyecto no encontrado"})
-            # ADV-05: no eliminar proyectos con documentos aprobados — integridad regulatoria GxP
-            approved_count = db.execute(
-                "SELECT COUNT(*) AS n FROM documents WHERE project_id=? AND status='approved'",
-                (proj_id,)
-            ).fetchone()["n"]
-            if approved_count > 0:
-                db.execute("ROLLBACK")
-                return self._send_json(409, {
-                    "ok": False,
-                    "error": f"El proyecto tiene {approved_count} documento(s) aprobado(s). No se puede eliminar según regulación GxP."
-                })
             now = time.time()
             db.execute("DELETE FROM projects WHERE id=?", (proj_id,))
             # ADV-19: audit trail de eliminación de proyecto
@@ -2556,36 +2075,10 @@ class SyncHandler(BaseHTTPRequestHandler):
                 sys_info.get("client") or sys_info.get("cliente"),
                 "in_progress", snapshot_str, user.get("u"), now, now
             ))
-            # NEW-13: pre-cargar en un solo query los docs protegidos (aprobados/en revisión)
-            # para evitar N queries dentro del loop (1 query por cada doc del paquete).
-            _pkg_types = [
-                d.get("type") or d.get("docType")
-                for d in package_docs
-                if d.get("type") or d.get("docType")
-            ]
-            if _pkg_types:
-                # SECURITY REVIEW [2026-06-24]: _ph contains only '?' characters built from
-                # len(_pkg_types) — no user input interpolated. Reviewed and confirmed safe.
-                # Pattern is parameterized at execution.
-                _ph = ",".join("?" * len(_pkg_types))
-                _protected = {
-                    r["doc_type"]
-                    for r in db.execute(
-                        f"SELECT doc_type FROM documents "
-                        f"WHERE project_id=? AND status IN ('approved','for_review') "
-                        f"AND doc_type IN ({_ph})",
-                        (proj_id, *_pkg_types),
-                    ).fetchall()
-                }
-            else:
-                _protected = set()
-
             synced_types = []
             for doc in package_docs:
                 doc_type = doc.get("type") or doc.get("docType")
                 if not doc_type:
-                    continue
-                if doc_type in _protected:
                     continue
                 db.execute("""
                     INSERT INTO documents
@@ -3194,16 +2687,8 @@ class SyncHandler(BaseHTTPRequestHandler):
         """, (username, proj_id)).fetchone()
         if row:
             return True
-        # Acceso alternativo: fue firmante en cualquier ronda de este proyecto
-        signer_row = db.execute("""
-            SELECT 1 FROM signing_round_signers srs
-            INNER JOIN signing_rounds sr ON sr.id = srs.round_id
-            WHERE srs.username=? AND sr.project_id=?
-        """, (username, proj_id)).fetchone()
-        if not signer_row:
-            self._send_json(403, {"ok": False, "error": "Acceso denegado"})
-            return False
-        return True
+        self._send_json(403, {"ok": False, "error": "Acceso denegado"})
+        return False
 
     def _api_docs_list(self, proj_id, user):
         db = _get_db()
@@ -3323,17 +2808,11 @@ class SyncHandler(BaseHTTPRequestHandler):
         # ADV-01: BEGIN IMMEDIATE para hacer atómica la verificación de estado + escritura
         db.execute("BEGIN IMMEDIATE")
         try:
-            # NEW-03: no permitir sobreescribir documentos en revisión; los aprobados inician nuevo ciclo
+            # NEW-03: los documentos aprobados inician nuevo ciclo (incrementan versión)
             existing = db.execute(
                 "SELECT version, status, json_data FROM documents WHERE project_id=? AND doc_type=?",
                 (proj_id, doc_type)
             ).fetchone()
-            if existing and existing["status"] == "for_review":
-                db.execute("ROLLBACK")
-                return self._send_json(409, {
-                    "ok": False,
-                    "error": "El documento está en estado 'for_review' y no puede ser modificado."
-                })
             if existing and existing["status"] == "approved":
                 new_version = (existing["version"] or 1) + 1
                 requested_status = "draft"
@@ -3381,27 +2860,6 @@ class SyncHandler(BaseHTTPRequestHandler):
             print(f"[DB] Error al guardar documento {doc_type}: {e}")
             return self._send_json(500, {"ok": False, "error": "Error interno al guardar documento."})
 
-        # P1 — Auto-snapshot: si había un documento anterior y hay ronda abierta,
-        # guardar el contenido ANTERIOR como versión histórica (audit trail antes/después)
-        if existing and existing["json_data"] and doc_action == "doc_update":
-            try:
-                open_round = db.execute(
-                    "SELECT id FROM signing_rounds WHERE project_id=? AND doc_type=? AND status='open' LIMIT 1",
-                    (proj_id, doc_type)
-                ).fetchone()
-                if open_round:
-                    ver_id = f"{proj_id}_{doc_type}_{int(now)}"
-                    prev_ver = existing["version"] or 1
-                    db.execute("""
-                        INSERT OR IGNORE INTO document_versions
-                          (id, project_id, doc_type, version_num, json_data, saved_by, saved_at, round_id)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (ver_id, proj_id, doc_type, prev_ver,
-                          existing["json_data"], user.get("u"), now, open_round["id"]))
-                    db.commit()
-            except Exception:
-                pass  # snapshot es opcional — no bloquear el guardado principal
-
         return self._send_json(200, {"ok": True, "id": f"{proj_id}_{doc_type}"})
 
     def _api_doc_send_to_firmas(self, proj_id, doc_type, user):
@@ -3448,18 +2906,12 @@ class SyncHandler(BaseHTTPRequestHandler):
         db = _get_db()
         if not self._assert_project_access(db, user, proj_id):
             return
-        # ADV-04: no permitir eliminar documentos aprobados o en revisión (integridad GxP)
         doc = db.execute(
             "SELECT status FROM documents WHERE project_id=? AND doc_type=?",
             (proj_id, doc_type)
         ).fetchone()
         if not doc:
             return self._send_json(404, {"ok": False, "error": "Documento no encontrado"})
-        if doc["status"] in ("approved", "for_review"):
-            return self._send_json(409, {
-                "ok": False,
-                "error": f"No se puede eliminar un documento en estado '{doc['status']}'. Regulación GxP requiere retención de registros."
-            })
         # ADV-19: DELETE + audit en una sola transacción — si el proceso muere entre ambos el
         # audit no queda huérfano (ALCOA+ Contemporáneo + ANMAT 4159 integridad de registros)
         now = time.time()
@@ -3990,1416 +3442,6 @@ class SyncHandler(BaseHTTPRequestHandler):
 
     # ── Firma server-side con PIN ─────────────────────────────────────────────
 
-    def _api_doc_sign(self, proj_id, doc_type, user):
-        """Verifica PIN del cliente y registra firma con audit hash del contenido."""
-        if user.get("r") != "client":
-            return self._send_json(403, {"ok": False, "error": "Solo usuarios cliente pueden firmar con PIN"})
-
-        # A-2: rate limit — máx 5 intentos de firma por IP por minuto (protección PIN brute-force)
-        ip = self._get_client_ip()
-        if not _rate_limit(_SIGN_ATTEMPTS, f"sign:{ip}", 5):
-            return self._send_json(429, {"ok": False, "error": "Demasiados intentos. Esperá un minuto."})
-
-        data = self._read_json_body()
-        if data is None:
-            return
-        pin = str(data.get("pin", "")).strip()
-        role_label = str(data.get("role_label", "Firmante")).strip()[:200]
-        if not pin:
-            return self._send_json(400, {"ok": False, "error": "pin requerido"})
-
-        db = _get_db()
-        username = user.get("u", "")
-
-        # Verificar nivel de acceso "sign"
-        access = db.execute("""
-            SELECT pa.access_level FROM project_access pa
-            INNER JOIN users u ON u.id = pa.user_id
-            WHERE u.username=? AND pa.project_id=?
-        """, (username, proj_id)).fetchone()
-        if not access:
-            return self._send_json(403, {"ok": False, "error": "Sin acceso a este proyecto"})
-        if access["access_level"] != "sign":
-            return self._send_json(403, {"ok": False, "error": "Se requiere access_level='sign' para firmar"})
-
-        # Verificar PIN con lockout de cuenta (igual que login)
-        cu = db.execute(
-            "SELECT id, pin_hash, display_name, failed_attempts, locked_until FROM users WHERE username=?",
-            (username,)
-        ).fetchone()
-        now_pin = time.time()
-        if not cu or not cu["pin_hash"]:
-            return self._send_json(401, {"ok": False, "error": "PIN incorrecto"})
-        if (cu["locked_until"] or 0) > now_pin:
-            mins_left = int((cu["locked_until"] - now_pin) / 60) + 1
-            return self._send_json(429, {"ok": False, "error": f"Cuenta bloqueada. Intentá en {mins_left} minuto{'s' if mins_left != 1 else ''}.", "locked_until": cu["locked_until"]})
-        if not _pbkdf2_verify(pin, cu["pin_hash"]):
-            new_attempts = (cu["failed_attempts"] or 0) + 1
-            if new_attempts >= _MAX_FAILED_LOGINS:
-                new_locked = now_pin + _LOCKOUT_SECONDS
-                db.execute("UPDATE users SET failed_attempts=?, locked_until=? WHERE id=?", (new_attempts, new_locked, cu["id"]))
-                db.execute("INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at) VALUES (?, ?, ?, 'sign_lockout', ?, ?, ?)",
-                           (proj_id, doc_type, username, f"Cuenta bloqueada tras {new_attempts} intentos fallidos de PIN en firma", ip, now_pin))
-            else:
-                db.execute("UPDATE users SET failed_attempts=? WHERE id=?", (new_attempts, cu["id"]))
-                db.execute("INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at) VALUES (?, ?, ?, 'sign_pin_failed', ?, ?, ?)",
-                           (proj_id, doc_type, username, f"PIN incorrecto en firma, intento {new_attempts}/{_MAX_FAILED_LOGINS}", ip, now_pin))
-            return self._send_json(401, {"ok": False, "error": "PIN incorrecto"})
-        # PIN correcto — resetear contador
-        db.execute("UPDATE users SET failed_attempts=0, locked_until=NULL WHERE id=?", (cu["id"],))
-
-        # M-4: lectura del doc + insert de firma en transacción atómica (IMMEDIATE lock)
-        # evita TOCTOU: el documento no puede ser modificado entre la lectura del hash y la firma
-        db.execute("BEGIN IMMEDIATE")
-        try:
-            doc = db.execute(
-                "SELECT json_data, status FROM documents WHERE project_id=? AND doc_type=?",
-                (proj_id, doc_type)
-            ).fetchone()
-            if not doc:
-                db.execute("ROLLBACK")
-                return self._send_json(404, {"ok": False, "error": "Documento no encontrado"})
-            # NEW-12: solo se puede firmar un documento que esté en estado 'for_review'
-            if doc["status"] != "for_review":
-                db.execute("ROLLBACK")
-                return self._send_json(409, {
-                    "ok": False,
-                    "error": f"El documento está en estado '{doc['status']}'. Solo se puede firmar en estado 'for_review'."
-                })
-            # LO1-FIX: idempotencia — previene firma duplicada (21 CFR Part 11 — registro regulado único por firmante)
-            existing_sig = db.execute(
-                "SELECT id FROM document_signatures WHERE project_id=? AND doc_type=? AND username=?",
-                (proj_id, doc_type, username)
-            ).fetchone()
-            if existing_sig:
-                db.execute("ROLLBACK")
-                # ALCOA+: registrar intento rechazado fuera de la tx revertida (autocommit post-ROLLBACK)
-                db.execute(
-                    "INSERT INTO audit_events"
-                    " (project_id, doc_type, username, action, detail, ip, created_at)"
-                    " VALUES (?, ?, ?, 'doc_sign_pin_rejected_duplicate', ?, ?, ?)",
-                    (proj_id, doc_type, username,
-                     f"Intento de firma duplicada rechazado — '{doc_type}' ya firmado por este usuario",
-                     ip, time.time())
-                )
-                return self._send_json(409, {"ok": False, "error": "Ya firmaste este documento"})
-
-            ip = self._get_client_ip()
-            signed_at = time.time()
-            doc_hash = hashlib.sha256(doc["json_data"].encode("utf-8")).hexdigest()
-            # VULN-08: HMAC con clave — no recalculable sin _AUDIT_HMAC_KEY
-            audit_hash = _make_audit_hash(f"{doc_hash}|{username}|{signed_at}|{ip}")
-
-            db.execute("""
-                INSERT INTO document_signatures
-                  (project_id, doc_type, username, display_name, role_label,
-                   audit_hash, ip, signed_at, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                proj_id, doc_type, username,
-                cu["display_name"] or username, role_label,
-                audit_hash, ip, signed_at, signed_at
-            ))
-            # ALCOA+: firma con PIN en audit_events (21 CFR Part 11 §11.200 — firma electrónica)
-            db.execute("""
-                INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
-                VALUES (?, ?, ?, 'doc_sign_pin', ?, ?, ?)
-            """, (proj_id, doc_type, username,
-                  f"Firmó documento '{doc_type}' con PIN (rol: {role_label}, audit_hash: {audit_hash[:16]}...)",
-                  ip, signed_at))
-            db.execute("COMMIT")
-        except Exception:
-            db.execute("ROLLBACK")
-            raise
-        return self._send_json(200, {
-            "ok": True,
-            "audit_hash": audit_hash,
-            "signed_at": signed_at,
-            "username": username,
-            "display_name": cu["display_name"] or username,
-            "role_label": role_label,
-        })
-
-    def _api_doc_signatures_list(self, proj_id, doc_type, user):
-        """Lista las firmas de un documento. Requiere acceso (read o sign)."""
-        db = _get_db()
-        if not self._assert_project_access(db, user, proj_id):
-            return
-        rows = db.execute("""
-            SELECT id, username, display_name, role_label, audit_hash, ip, signed_at
-            FROM document_signatures
-            WHERE project_id=? AND doc_type=?
-            ORDER BY signed_at ASC
-        """, (proj_id, doc_type)).fetchall()
-        return self._send_json(200, {"ok": True, "signatures": [dict(r) for r in rows]})
-
-    def _api_doc_comments_list(self, proj_id, doc_type, user):
-        db = _get_db()
-        if not self._assert_project_access(db, user, proj_id):
-            return
-        role = user.get("r")
-        # Revisión individual: cada revisor ve solo sus propios comentarios.
-        # Admin y auditor ven todos.
-        if role in ("admin", "auditor"):
-            rows = db.execute("""
-                SELECT id, username, display_name, body, section_ref, created_at
-                FROM doc_comments WHERE project_id=? AND doc_type=?
-                ORDER BY created_at ASC
-            """, (proj_id, doc_type)).fetchall()
-        else:
-            rows = db.execute("""
-                SELECT id, username, display_name, body, section_ref, created_at
-                FROM doc_comments WHERE project_id=? AND doc_type=? AND username=?
-                ORDER BY created_at ASC
-            """, (proj_id, doc_type, user.get("u"))).fetchall()
-        return self._send_json(200, {"ok": True, "comments": [dict(r) for r in rows]})
-
-    def _api_doc_comment_add(self, proj_id, doc_type, user):
-        db = _get_db()
-        if not self._assert_project_access(db, user, proj_id):
-            return
-        data = self._read_json_body()
-        if data is None:
-            return
-        body = str(data.get("body", "")).strip()
-        if not body:
-            return self._send_json(400, {"ok": False, "error": "body requerido"})
-        if len(body) > 2000:
-            return self._send_json(400, {"ok": False, "error": "Comentario demasiado largo (máx 2000 caracteres)"})
-        section_ref = str(data.get("section_ref", "")).strip()[:200] or None
-        username = user.get("u", "")
-        display_name = user.get("d", username)
-        now = time.time()
-        cur = db.execute("""
-            INSERT INTO doc_comments (project_id, doc_type, username, display_name, body, section_ref, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (proj_id, doc_type, username, display_name, body, section_ref, now))
-        return self._send_json(200, {"ok": True, "comment": {
-            "id": cur.lastrowid,
-            "username": username,
-            "display_name": display_name,
-            "body": body,
-            "section_ref": section_ref,
-            "created_at": now,
-        }})
-
-    # ── Signing Rounds ────────────────────────────────────────────────────────
-
-    def _signing_rounds_list(self, proj_id, user):
-        """Lista rondas del proyecto. Admin ve todas; revisor ve solo las suyas."""
-        db = _get_db()
-        if not self._assert_project_access(db, user, proj_id):
-            return
-        role = user.get("r")
-        username = user.get("u")
-        if role in ("admin", "auditor"):
-            rounds = db.execute("""
-                SELECT sr.*, COUNT(srs.id) AS total_signers,
-                       SUM(CASE WHEN srs.signed_at IS NOT NULL THEN 1 ELSE 0 END) AS signed_count,
-                       SUM(CASE WHEN srs.revision_requested_at IS NOT NULL THEN 1 ELSE 0 END) AS revision_count
-                FROM signing_rounds sr
-                LEFT JOIN signing_round_signers srs ON srs.round_id = sr.id
-                WHERE sr.project_id=?
-                GROUP BY sr.id
-                ORDER BY sr.created_at DESC
-            """, (proj_id,)).fetchall()
-        else:
-            rounds = db.execute("""
-                SELECT sr.*,
-                       agg.total_signers, agg.signed_count, agg.revision_count,
-                       me.signed_at AS my_signed_at,
-                       me.revision_requested_at AS my_revision_at,
-                       me.revision_fulfilled_at AS my_fulfilled_at,
-                       me.role_label AS my_role
-                FROM signing_rounds sr
-                INNER JOIN signing_round_signers me ON me.round_id = sr.id AND me.username=?
-                LEFT JOIN (
-                    SELECT round_id,
-                           COUNT(id) AS total_signers,
-                           SUM(CASE WHEN signed_at IS NOT NULL THEN 1 ELSE 0 END) AS signed_count,
-                           SUM(CASE WHEN revision_requested_at IS NOT NULL THEN 1 ELSE 0 END) AS revision_count
-                    FROM signing_round_signers
-                    GROUP BY round_id
-                ) agg ON agg.round_id = sr.id
-                WHERE sr.project_id=? AND sr.status IN ('open','sealed')
-                ORDER BY sr.created_at DESC
-            """, (username, proj_id)).fetchall()
-        return self._send_json(200, {"ok": True, "rounds": [dict(r) for r in rounds]})
-
-    def _signing_round_get(self, proj_id, round_id, user):
-        """Detalle de una ronda. Revisores ven solo su propia fila de firmantes."""
-        db = _get_db()
-        if not self._assert_project_access(db, user, proj_id):
-            return
-        rnd = db.execute(
-            "SELECT * FROM signing_rounds WHERE id=? AND project_id=?",
-            (round_id, proj_id)
-        ).fetchone()
-        if not rnd:
-            return self._send_json(404, {"ok": False, "error": "Ronda no encontrada"})
-        role = user.get("r")
-        username = user.get("u")
-        if role in ("admin", "auditor"):
-            signers = db.execute(
-                "SELECT * FROM signing_round_signers WHERE round_id=? ORDER BY id",
-                (round_id,)
-            ).fetchall()
-        else:
-            signers = db.execute(
-                "SELECT * FROM signing_round_signers WHERE round_id=? AND username=?",
-                (round_id, username)
-            ).fetchall()
-        return self._send_json(200, {
-            "ok": True,
-            "round": dict(rnd),
-            "signers": [dict(s) for s in signers],
-        })
-
-    def _signing_round_create(self, proj_id, user):
-        """Crea una ronda de firma. Solo admin."""
-        if user.get("r") != "admin":
-            return self._send_json(403, {"ok": False, "error": "Requiere rol admin"})
-        db = _get_db()
-        data = self._read_json_body()
-        if data is None:
-            return
-        doc_type = str(data.get("doc_type", "")).strip().upper()
-        signers  = data.get("signers", [])
-        phase    = str(data.get("phase", "review")).strip().lower()
-        if phase not in ("review", "approval"):
-            phase = "review"
-        if not doc_type:
-            return self._send_json(400, {"ok": False, "error": "doc_type requerido"})
-        if not signers or not isinstance(signers, list):
-            return self._send_json(400, {"ok": False, "error": "signers requerido (array)"})
-
-        # Verificar que el documento existe
-        doc = db.execute(
-            "SELECT json_data, version, status FROM documents WHERE project_id=? AND doc_type=?",
-            (proj_id, doc_type)
-        ).fetchone()
-        if not doc:
-            return self._send_json(404, {"ok": False, "error": "Documento no encontrado"})
-        # ADV-15: verificar/resolver firmantes. Acepta username (existente) o email (invitación).
-        _signer_names = [
-            str(s.get("username", "")).strip()
-            for s in signers[:50]
-            if str(s.get("username", "")).strip()
-        ]
-        if _signer_names:
-            # SECURITY REVIEW [2026-06-24]: _ph contains only '?' characters built from
-            # len(_signer_names) — no user input interpolated. Reviewed and confirmed safe.
-            # Pattern is parameterized at execution.
-            _ph = ",".join("?" * len(_signer_names))
-            _user_map = {
-                r["username"]: r
-                for r in db.execute(
-                    f"SELECT username, id, display_name, email FROM users "
-                    f"WHERE username IN ({_ph}) AND is_active=1",
-                    _signer_names,
-                ).fetchall()
-            }
-        else:
-            _user_map = {}
-
-        # Preload email→user map for email-only signers
-        _signer_emails = [
-            str(s.get("email", "")).strip().lower()
-            for s in signers[:50]
-            if str(s.get("email", "")).strip() and not str(s.get("username", "")).strip()
-        ]
-        _email_map = {}
-        if _signer_emails:
-            _eph = ",".join("?" * len(_signer_emails))
-            _email_map = {
-                r["email"]: r
-                for r in db.execute(
-                    f"SELECT username, id, display_name, email FROM users "
-                    f"WHERE email IN ({_eph}) AND is_active=1",
-                    _signer_emails,
-                ).fetchall()
-            }
-
-        valid_signers = []
-        _seen_signers = set()  # tracks username or email to avoid duplicates
-        for s in signers[:50]:
-            s_username = str(s.get("username", "")).strip()
-            s_email    = str(s.get("email", "")).strip().lower()
-            s_name     = str(s.get("display_name", "")).strip()[:200]
-            s_role     = str(s.get("role_label", "Revisor")).strip()[:200]
-            try:
-                s_order = max(0, int(s.get("sign_order", 0)))
-            except (ValueError, TypeError):
-                s_order = 0
-
-            dedup_key = s_username or s_email
-            if not dedup_key or dedup_key in _seen_signers:
-                continue
-            _seen_signers.add(dedup_key)
-
-            if s_username and s_email:
-                # Modo "Invitar con usuario definido por el admin":
-                # username + email juntos = crear usuario nuevo con ese username exacto
-                # Si ya existe ese username o email, reutilizamos; si no, creamos.
-                u_by_name  = _user_map.get(s_username)
-                u_by_email = _email_map.get(s_email)
-                if u_by_name:
-                    # Ya existe ese username — verificar que el email coincida o agregar email
-                    valid_signers.append({
-                        "username": u_by_name["username"],
-                        "display": s_name or u_by_name["display_name"] or s_username,
-                        "role": s_role,
-                        "email": u_by_name["email"] or s_email,
-                        "invite_token": None,
-                        "sign_order": s_order,
-                    })
-                elif u_by_email:
-                    # Ya existe ese email — reutilizar usuario existente
-                    valid_signers.append({
-                        "username": u_by_email["username"],
-                        "display": s_name or u_by_email["display_name"] or s_email,
-                        "role": s_role,
-                        "email": s_email,
-                        "invite_token": None,
-                        "sign_order": s_order,
-                    })
-                else:
-                    # Nuevo — invitar con el username preferido definido por el admin
-                    valid_signers.append({
-                        "username": None,
-                        "display": s_name or s_username,
-                        "role": s_role,
-                        "email": s_email,
-                        "invite_token": "__pending__",
-                        "preferred_username": s_username,
-                        "sign_order": s_order,
-                    })
-            elif s_username:
-                # Solo username: tiene que existir en el sistema
-                u_row = _user_map.get(s_username)
-                if not u_row:
-                    return self._send_json(400, {
-                        "ok": False,
-                        "error": f"El usuario '{s_username}' no existe. Para invitar a alguien nuevo, completá también el email."
-                    })
-                valid_signers.append({
-                    "username": s_username,
-                    "display": u_row["display_name"] or s_username,
-                    "role": s_role,
-                    "email": u_row["email"] or "",
-                    "invite_token": None,
-                    "sign_order": s_order,
-                })
-            elif s_email:
-                # Solo email: usar usuario existente o crear provisional con username auto
-                u_row = _email_map.get(s_email)
-                if u_row:
-                    valid_signers.append({
-                        "username": u_row["username"],
-                        "display": s_name or u_row["display_name"] or s_email,
-                        "role": s_role,
-                        "email": s_email,
-                        "invite_token": None,
-                        "sign_order": s_order,
-                    })
-                else:
-                    valid_signers.append({
-                        "username": None,
-                        "display": s_name or s_email.split("@")[0],
-                        "role": s_role,
-                        "email": s_email,
-                        "invite_token": "__pending__",
-                        "sign_order": s_order,
-                    })
-            else:
-                continue  # skip malformed entry
-
-        if not valid_signers:
-            return self._send_json(400, {"ok": False, "error": "signers requerido (array con al menos un firmante válido)"})
-
-        doc_hash = hashlib.sha256(doc["json_data"].encode("utf-8")).hexdigest()
-        now = time.time()
-        round_id = str(uuid.uuid4())
-        proj_row = db.execute("SELECT name FROM projects WHERE id=?", (proj_id,)).fetchone()
-        proj_name = proj_row["name"] if proj_row else proj_id
-
-        # Resolve pending invitations BEFORE the IMMEDIATE transaction.
-        # _create_invitation calls db.commit() internally, which would commit the
-        # outer BEGIN IMMEDIATE early. Safe here because round_id was already generated.
-        for s in valid_signers:
-            if s["invite_token"] == "__pending__":
-                token = _create_invitation(
-                    s["email"], s["display"], round_id, proj_id, user.get("u"),
-                    preferred_username=s.get("preferred_username", "")
-                )
-                s["invite_token"] = token
-                inv_user = db.execute(
-                    "SELECT username FROM invitations WHERE token=?", (token,)
-                ).fetchone()
-                s["username"] = inv_user["username"] if inv_user else s["email"].split("@")[0]
-
-        # ADV-07: BEGIN IMMEDIATE para hacer atómica la verificación de ronda + creación
-        db.execute("BEGIN IMMEDIATE")
-        try:
-            existing = db.execute(
-                "SELECT id FROM signing_rounds WHERE project_id=? AND doc_type=? AND status='open'",
-                (proj_id, doc_type)
-            ).fetchone()
-            if existing:
-                db.execute("ROLLBACK")
-                return self._send_json(409, {"ok": False, "error": "Ya existe una ronda abierta para este documento"})
-
-            # F9: bloquear si el documento ya está aprobado (sellado) para esta combinación
-            doc_status_row = db.execute(
-                "SELECT status FROM documents WHERE project_id=? AND doc_type=?",
-                (proj_id, doc_type)
-            ).fetchone()
-            if doc_status_row and doc_status_row["status"] == "approved":
-                db.execute("ROLLBACK")
-                return self._send_json(409, {
-                    "ok": False,
-                    "error": "El documento ya está aprobado. Revertí su estado a Borrador antes de crear una nueva ronda."
-                })
-
-            doc_version = doc["version"] or 1
-
-            db.execute("""
-                INSERT INTO signing_rounds
-                  (id, project_id, doc_type, doc_version, doc_hash, status, phase, created_by, created_at)
-                VALUES (?, ?, ?, ?, ?, 'open', ?, ?, ?)
-            """, (round_id, proj_id, doc_type, doc_version, doc_hash, phase, user.get("u"), now))
-
-            # Bloquear documento → for_review
-            db.execute(
-                "UPDATE documents SET status='for_review', updated_at=? WHERE project_id=? AND doc_type=?",
-                (now, proj_id, doc_type)
-            )
-
-            for s in valid_signers:
-                db.execute("""
-                    INSERT INTO signing_round_signers (round_id, username, display_name, role_label, email, sign_order)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (round_id, s["username"], s["display"], s["role"], s["email"] or None, s.get("sign_order", 0)))
-                # Garantizar acceso al proyecto para que el firmante pueda ver la firma pendiente
-                db.execute("""
-                    INSERT OR IGNORE INTO project_access (user_id, project_id, access_level, granted_by, granted_at)
-                    SELECT id, ?, 'read', ?, ? FROM users WHERE username=?
-                """, (proj_id, user.get("u"), now, s["username"]))
-
-            # F9: bloque de DESIGNACIÓN en el Validation Book (etapa 1 de 3)
-            last_blk = db.execute(
-                "SELECT block_hash FROM validation_book_blocks WHERE project_id=? ORDER BY block_number DESC LIMIT 1",
-                (proj_id,)
-            ).fetchone()
-            prev_hash_d = last_blk["block_hash"] if last_blk else "0" * 64
-            desig_payload = {
-                "block_type": "designation",
-                "project_id": proj_id,
-                "round_id": round_id,
-                "doc_type": doc_type,
-                "doc_version": doc_version,
-                "phase": phase,
-                "created_at": now,
-                "created_by": user.get("u"),
-                "prev_block_hash": prev_hash_d,
-                "signers": [
-                    {"display": s["display"], "role": s["role"], "sign_order": s.get("sign_order", 0)}
-                    for s in valid_signers
-                ],
-            }
-            desig_json = json.dumps(desig_payload, sort_keys=True)
-            desig_hash = _make_audit_hash(f"{prev_hash_d}|{desig_json}")
-            max_blk = db.execute(
-                "SELECT COALESCE(MAX(block_number), 0) AS m FROM validation_book_blocks WHERE project_id=?",
-                (proj_id,)
-            ).fetchone()
-            db.execute("""
-                INSERT INTO validation_book_blocks
-                  (project_id, round_id, block_number, doc_type, doc_version,
-                   doc_hash, block_hash, prev_block_hash, block_json, sealed_at, block_type)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'designation')
-            """, (proj_id, round_id, max_blk["m"] + 1, doc_type, doc_version,
-                  doc_hash, desig_hash, prev_hash_d, desig_json, now))
-
-            # ADV-19: audit trail de creación de ronda de firma
-            db.execute("""
-                INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
-                VALUES (?, ?, ?, 'signing_round_create', ?, ?, ?)
-            """, (proj_id, doc_type, user.get("u"),
-                  f"Ronda {round_id} ({phase}) creada con {len(valid_signers)} firmante(s) — bloque #{max_blk['m'] + 1} en People Book",
-                  self._get_client_ip(), now))
-
-            db.execute("COMMIT")
-        except Exception:
-            try:
-                db.execute("ROLLBACK")
-            except Exception:
-                pass
-            raise
-
-        # Notificar firmantes por email
-        # — invitados por primera vez: magic link
-        # — usuarios ya registrados: notificación estándar
-        for s in valid_signers:
-            if s.get("invite_token") and s["invite_token"] != "__pending__":
-                # Check if they already had a PIN (returning user)
-                has_pin = bool(db.execute(
-                    "SELECT pin_hash FROM users WHERE username=? AND pin_hash IS NOT NULL",
-                    (s["username"],)
-                ).fetchone())
-                _notify_invitation(
-                    s["email"], s["display"], s["invite_token"],
-                    proj_name, doc_type, is_returning=has_pin
-                )
-            elif s.get("email"):
-                _notify_round_created(proj_id, doc_type, round_id, user.get("d") or user.get("u"))
-        return self._send_json(200, {"ok": True, "round_id": round_id, "round": {"id": round_id}})
-
-    def _signing_round_sign(self, proj_id, round_id, user):
-        """Firma un revisor con su PIN."""
-        if not _is_valid_proj_id(proj_id) or not _is_valid_uuid(round_id):
-            return self._send_json(404, {"ok": False, "error": "Ronda no encontrada"})
-        if user.get("r") not in ("client", "admin", "auditor", "superadmin"):
-            return self._send_json(403, {"ok": False, "error": "Rol no autorizado para firmar"})
-
-        # A-2: rate limit — máx 5 intentos de firma por IP por minuto
-        ip = self._get_client_ip()
-        if not _rate_limit(_SIGN_ATTEMPTS, f"sign:{ip}", 5):
-            return self._send_json(429, {"ok": False, "error": "Demasiados intentos. Esperá un minuto."})
-
-        db = _get_db()
-        # Verificar acceso al proyecto antes de revelar si la ronda existe (previene IDOR informativo)
-        if not self._assert_project_access(db, user, proj_id):
-            return
-        data = self._read_json_body()
-        if data is None:
-            return
-        pin = str(data.get("pin", "")).strip()
-        if not pin:
-            return self._send_json(400, {"ok": False, "error": "pin requerido"})
-
-        username = user.get("u")
-
-        # Pre-check de acceso antes del lock (falla rápido sin cargar la DB bajo lock)
-        rnd_pre = db.execute(
-            "SELECT id FROM signing_rounds WHERE id=? AND project_id=? AND status='open'",
-            (round_id, proj_id)
-        ).fetchone()
-        if not rnd_pre:
-            return self._send_json(404, {"ok": False, "error": "Ronda no encontrada o ya cerrada"})
-
-        # Verificar PIN ANTES del lock (operación lenta ~300ms — no mantener lock durante PBKDF2)
-        cu = db.execute(
-            "SELECT id, pin_hash, failed_attempts, locked_until FROM users WHERE username=?",
-            (username,)
-        ).fetchone()
-        now = time.time()
-        if not cu:
-            return self._send_json(401, {"ok": False, "error": "PIN incorrecto"})
-        if not cu["pin_hash"]:
-            # P1: usuario autenticado pero sin PIN de firma configurado
-            return self._send_json(401, {"ok": False, "error": "PIN de firma no configurado", "pin_not_set": True})
-        if (cu["locked_until"] or 0) > now:
-            mins_left = int((cu["locked_until"] - now) / 60) + 1
-            return self._send_json(429, {"ok": False, "error": f"Cuenta bloqueada. Intentá en {mins_left} minuto{'s' if mins_left != 1 else ''}.", "locked_until": cu["locked_until"]})
-        if not _pbkdf2_verify(pin, cu["pin_hash"]):
-            new_attempts = (cu["failed_attempts"] or 0) + 1
-            if new_attempts >= _MAX_FAILED_LOGINS:
-                new_locked = now + _LOCKOUT_SECONDS
-                db.execute("UPDATE users SET failed_attempts=?, locked_until=? WHERE id=?", (new_attempts, new_locked, cu["id"]))
-                db.execute("INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at) VALUES (NULL, NULL, ?, 'sign_lockout', ?, ?, ?)",
-                           (username, f"Cuenta bloqueada tras {new_attempts} intentos fallidos de PIN en firma", ip, now))
-            else:
-                db.execute("UPDATE users SET failed_attempts=? WHERE id=?", (new_attempts, cu["id"]))
-                db.execute("INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at) VALUES (NULL, NULL, ?, 'sign_pin_failed', ?, ?, ?)",
-                           (username, f"PIN incorrecto en firma, intento {new_attempts}/{_MAX_FAILED_LOGINS}", ip, now))
-            return self._send_json(401, {"ok": False, "error": "PIN incorrecto"})
-        # PIN correcto — resetear contador de intentos
-        db.execute("UPDATE users SET failed_attempts=0, locked_until=NULL WHERE id=?", (cu["id"],))
-
-        # VULN-05: BEGIN IMMEDIATE — previene doble-firma por concurrencia (check + update atómico)
-        now = time.time()
-        db.execute("BEGIN IMMEDIATE")
-        try:
-            rnd = db.execute(
-                "SELECT * FROM signing_rounds WHERE id=? AND project_id=? AND status='open'",
-                (round_id, proj_id)
-            ).fetchone()
-            if not rnd:
-                db.execute("ROLLBACK")
-                return self._send_json(404, {"ok": False, "error": "Ronda no encontrada o ya cerrada"})
-
-            signer = db.execute(
-                "SELECT * FROM signing_round_signers WHERE round_id=? AND username=?",
-                (round_id, username)
-            ).fetchone()
-            if not signer:
-                db.execute("ROLLBACK")
-                return self._send_json(403, {"ok": False, "error": "No estás en la lista de firmantes de esta ronda"})
-            if signer["signed_at"]:
-                db.execute("ROLLBACK")
-                return self._send_json(409, {"ok": False, "error": "Ya firmaste este documento"})
-            if signer["revision_requested_at"]:
-                db.execute("ROLLBACK")
-                return self._send_json(409, {"ok": False, "error": "Ya solicitaste revisión — no podés firmar"})
-
-            # F9: respetar sign_order — signer N no puede firmar si alguien con orden menor no firmó todavía
-            my_order = signer["sign_order"] if signer["sign_order"] is not None else 0
-            if my_order > 0:
-                blockers = db.execute(
-                    """SELECT display_name FROM signing_round_signers
-                       WHERE round_id=? AND sign_order > 0 AND sign_order < ? AND signed_at IS NULL""",
-                    (round_id, my_order)
-                ).fetchall()
-                if blockers:
-                    db.execute("ROLLBACK")
-                    names = ", ".join(b["display_name"] or "firmante anterior" for b in blockers)
-                    return self._send_json(409, {
-                        "ok": False,
-                        "error": f"Debe firmar primero: {names}"
-                    })
-
-            audit_hash = _make_audit_hash(f"{rnd['doc_hash']}|{username}|{now}|{ip}")
-            db.execute("""
-                UPDATE signing_round_signers
-                SET signed_at=?, audit_hash=?, ip=?
-                WHERE round_id=? AND username=?
-            """, (now, audit_hash, ip, round_id, username))
-            # ALCOA+: acción de firma electrónica en audit_events (21 CFR Part 11 §11.10(e))
-            db.execute("""
-                INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
-                VALUES (?, ?, ?, 'signing_round_sign', ?, ?, ?)
-            """, (proj_id, rnd["doc_type"], username,
-                  f"Firmó documento '{rnd['doc_type']}' en ronda {round_id} (audit_hash: {audit_hash[:16]}...)",
-                  ip, now))
-            db.execute("COMMIT")
-        except Exception:
-            db.execute("ROLLBACK")
-            raise
-        return self._send_json(200, {"ok": True, "audit_hash": audit_hash, "signed_at": now})
-
-    def _signing_round_request_revision(self, proj_id, round_id, user):
-        """Revisor solicita cambios. Cancela la ronda y avisa al admin."""
-        if user.get("r") != "client":
-            return self._send_json(403, {"ok": False, "error": "Solo revisores pueden solicitar revisión"})
-        # NEW-02: rate limit en request-revision (igual que firma con PIN — protección brute-force)
-        ip = self._get_client_ip()
-        if not _rate_limit(_SIGN_ATTEMPTS, f"sign:{ip}", 5):
-            return self._send_json(429, {"ok": False, "error": "Demasiados intentos. Esperá un minuto."})
-        db = _get_db()
-        # Verificar acceso al proyecto antes de revelar si la ronda existe (previene IDOR informativo)
-        if not self._assert_project_access(db, user, proj_id):
-            return
-        data = self._read_json_body()
-        if data is None:
-            return
-        pin    = str(data.get("pin", "")).strip()
-        reason = str(data.get("reason", "")).strip()[:2000]
-        if not pin:
-            return self._send_json(400, {"ok": False, "error": "pin requerido"})
-        if not reason:
-            return self._send_json(400, {"ok": False, "error": "Debés indicar el motivo de la revisión"})
-
-        username = user.get("u")
-
-        # Pre-check sin lock (falla rápido)
-        rnd_pre = db.execute(
-            "SELECT id FROM signing_rounds WHERE id=? AND project_id=? AND status='open'",
-            (round_id, proj_id)
-        ).fetchone()
-        if not rnd_pre:
-            return self._send_json(404, {"ok": False, "error": "Ronda no encontrada o ya cerrada"})
-
-        signer_pre = db.execute(
-            "SELECT signed_at FROM signing_round_signers WHERE round_id=? AND username=?",
-            (round_id, username)
-        ).fetchone()
-        if not signer_pre:
-            return self._send_json(403, {"ok": False, "error": "No estás en la lista de firmantes"})
-        if signer_pre["signed_at"]:
-            return self._send_json(409, {"ok": False, "error": "Ya firmaste — no podés solicitar revisión"})
-
-        # Verificar PIN ANTES del lock (PBKDF2 ~300ms — no mantener lock durante esto)
-        cu = db.execute("SELECT pin_hash FROM users WHERE username=?", (username,)).fetchone()
-        if not cu or not cu["pin_hash"] or not _pbkdf2_verify(pin, cu["pin_hash"]):
-            return self._send_json(401, {"ok": False, "error": "PIN incorrecto"})
-
-        now = time.time()
-
-        # ADV-06: BEGIN IMMEDIATE para evitar race condition sign/request-revision concurrente
-        db.execute("BEGIN IMMEDIATE")
-        try:
-            rnd = db.execute(
-                "SELECT * FROM signing_rounds WHERE id=? AND project_id=? AND status='open'",
-                (round_id, proj_id)
-            ).fetchone()
-            if not rnd:
-                db.execute("ROLLBACK")
-                return self._send_json(404, {"ok": False, "error": "Ronda no encontrada o ya cerrada"})
-
-            signer = db.execute(
-                "SELECT * FROM signing_round_signers WHERE round_id=? AND username=?",
-                (round_id, username)
-            ).fetchone()
-            if not signer:
-                db.execute("ROLLBACK")
-                return self._send_json(403, {"ok": False, "error": "No estás en la lista de firmantes"})
-            if signer["signed_at"]:
-                db.execute("ROLLBACK")
-                return self._send_json(409, {"ok": False, "error": "Ya firmaste — no podés solicitar revisión"})
-            if signer["revision_requested_at"]:
-                db.execute("ROLLBACK")
-                return self._send_json(409, {"ok": False, "error": "Ya solicitaste revisión anteriormente"})
-
-            # VULN-07: si la mayoría ya firmó, no cancelar automáticamente.
-            all_signers = db.execute(
-                "SELECT * FROM signing_round_signers WHERE round_id=?", (round_id,)
-            ).fetchall()
-            total = len(all_signers)
-            signed_count = sum(1 for s in all_signers if s["signed_at"])
-            majority_signed = total > 1 and signed_count >= (total // 2 + 1)
-
-            db.execute("""
-                UPDATE signing_round_signers
-                SET revision_requested_at=?, revision_reason=?, ip=?
-                WHERE round_id=? AND username=?
-            """, (now, reason, ip, round_id, username))
-
-            if majority_signed:
-                action_label = "revision_requested_majority"
-                db.execute("""
-                    INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (proj_id, rnd["doc_type"], username, action_label,
-                      f"ALERTA: {signed_count}/{total} firmantes ya aprobaron. Revisión solicitada por {username}: {reason}",
-                      ip, now))
-                db.execute("COMMIT")
-                _notify_revision_requested(proj_id, rnd["doc_type"], user.get("d") or username,
-                                           f"[ALERTA: {signed_count}/{total} ya firmaron] {reason}")
-                return self._send_json(200, {
-                    "ok": True,
-                    "warning": "Tu solicitud fue registrada. Dado que la mayoría ya firmó, el admin decidirá si procede la revisión."
-                })
-
-            # Minoría firmó: cancelar la ronda
-            db.execute("""
-                UPDATE signing_rounds SET status='cancelled', cancelled_at=?, cancel_reason=?
-                WHERE id=?
-            """, (now, f"{username}: {reason}", round_id))
-            db.execute(
-                "UPDATE documents SET status='needs_revision', updated_at=? WHERE project_id=? AND doc_type=?",
-                (now, proj_id, rnd["doc_type"])
-            )
-            db.execute("""
-                INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
-                VALUES (?, ?, ?, 'revision_requested', ?, ?, ?)
-            """, (proj_id, rnd["doc_type"], username, reason, ip, now))
-            db.execute("COMMIT")
-        except Exception:
-            try:
-                db.execute("ROLLBACK")
-            except Exception:
-                pass
-            raise
-        _notify_revision_requested(proj_id, rnd["doc_type"], user.get("d") or username, reason)
-        return self._send_json(200, {"ok": True})
-
-    def _signing_round_seal(self, proj_id, round_id, user):
-        """Sella una ronda cuando todos firmaron. Solo admin."""
-        if user.get("r") != "admin":
-            return self._send_json(403, {"ok": False, "error": "Requiere rol admin"})
-        db = _get_db()
-
-        # M-4: toda la operación de sellado bajo una transacción IMMEDIATE
-        # — previene que dos admins conurrentes sellen la misma ronda dos veces
-        db.execute("BEGIN IMMEDIATE")
-        try:
-            rnd = db.execute(
-                "SELECT * FROM signing_rounds WHERE id=? AND project_id=? AND status='open'",
-                (round_id, proj_id)
-            ).fetchone()
-            if not rnd:
-                db.execute("ROLLBACK")
-                return self._send_json(404, {"ok": False, "error": "Ronda no encontrada o ya cerrada"})
-
-            signers = db.execute(
-                "SELECT * FROM signing_round_signers WHERE round_id=? ORDER BY id",
-                (round_id,)
-            ).fetchall()
-            # NEW-04: bloquear sellado si algún firmante tiene una objeción activa (revision_requested)
-            with_revision = [s for s in signers if s["revision_requested_at"]]
-            if with_revision:
-                db.execute("ROLLBACK")
-                return self._send_json(409, {
-                    "ok": False,
-                    "error": f"{len(with_revision)} firmante(s) solicitaron revisión: {', '.join(s['display_name'] or s['username'] for s in with_revision)}. Resolvé la objeción antes de sellar."
-                })
-            pending = [s for s in signers if not s["signed_at"]]
-            if pending:
-                db.execute("ROLLBACK")
-                return self._send_json(409, {
-                    "ok": False,
-                    "error": f"Faltan {len(pending)} firmante(s): {', '.join(s['display_name'] or s['username'] for s in pending)}"
-                })
-
-            now = time.time()
-            # F9: la fase de la ronda determina el tipo de bloque y si el doc queda aprobado
-            rnd_phase  = rnd["phase"] or "review"
-            block_type = "review_seal" if rnd_phase == "review" else "approval_seal"
-
-            last_block = db.execute(
-                "SELECT block_hash FROM validation_book_blocks WHERE project_id=? ORDER BY block_number DESC LIMIT 1",
-                (proj_id,)
-            ).fetchone()
-            prev_hash = last_block["block_hash"] if last_block else "0" * 64
-
-            block_payload = {
-                "block_type": block_type,
-                "phase": rnd_phase,
-                "project_id": proj_id,
-                "round_id": round_id,
-                "doc_type": rnd["doc_type"],
-                "doc_version": rnd["doc_version"],
-                "doc_hash": rnd["doc_hash"],
-                "sealed_at": now,
-                "sealed_by": user.get("u"),
-                "prev_block_hash": prev_hash,
-                "signers": [dict(s) for s in signers],
-            }
-            block_json = json.dumps(block_payload, sort_keys=True)
-            # VULN-08: HMAC con clave — el Validation Book no puede ser falsificado sin la clave
-            seal_hash = _make_audit_hash(f"{prev_hash}|{block_json}")
-
-            # VULN-16: usar MAX(block_number) en lugar de COUNT(*) para evitar colisión
-            # en sellados concurrentes de distintos documentos del mismo proyecto
-            max_row = db.execute(
-                "SELECT COALESCE(MAX(block_number), 0) AS m FROM validation_book_blocks WHERE project_id=?",
-                (proj_id,)
-            ).fetchone()
-            block_num = max_row["m"] + 1
-
-            db.execute("""
-                INSERT INTO validation_book_blocks
-                  (project_id, round_id, block_number, doc_type, doc_version,
-                   doc_hash, block_hash, prev_block_hash, block_json, sealed_at, block_type)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (proj_id, round_id, block_num, rnd["doc_type"], rnd["doc_version"],
-                  rnd["doc_hash"], seal_hash, prev_hash, block_json, now, block_type))
-
-            db.execute("""
-                UPDATE signing_rounds SET status='sealed', sealed_at=?, seal_hash=?, prev_block_hash=?
-                WHERE id=?
-            """, (now, seal_hash, prev_hash, round_id))
-
-            # F9: solo la fase de aprobación marca el documento como 'approved'
-            if rnd_phase == "approval":
-                db.execute(
-                    "UPDATE documents SET status='approved', updated_at=? WHERE project_id=? AND doc_type=?",
-                    (now, proj_id, rnd["doc_type"])
-                )
-            # Para fase review: el documento permanece 'for_review' hasta que se selle la aprobación
-
-            # ADV-19: audit trail de sellado de ronda (acción regulatoria crítica)
-            db.execute("""
-                INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
-                VALUES (?, ?, ?, 'signing_round_seal', ?, ?, ?)
-            """, (proj_id, rnd["doc_type"], user.get("u"),
-                  f"Ronda {round_id} ({rnd_phase}) sellada — v{rnd['doc_version']} — bloque #{block_num} ({block_type}) en Validation Book (hash: {seal_hash[:16]}...)",
-                  self._get_client_ip(), now))
-            db.execute("COMMIT")
-        except Exception:
-            db.execute("ROLLBACK")
-            raise
-        return self._send_json(200, {"ok": True, "seal_hash": seal_hash, "block_number": block_num})
-
-    def _api_doc_versions(self, proj_id, doc_type, user):
-        """GET /api/projects/{id}/documents/{type}/versions — historial de versiones (P1 audit trail)."""
-        if user.get("r") not in ("admin", "auditor", "client"):
-            return self._send_json(403, {"ok": False, "error": "No autorizado"})
-        db = _get_db()
-        if not self._assert_project_access(db, user, proj_id):
-            return
-        rows = db.execute("""
-            SELECT id, version_num, saved_by, saved_at, round_id, change_note
-            FROM document_versions
-            WHERE project_id=? AND doc_type=?
-            ORDER BY version_num DESC, saved_at DESC
-        """, (proj_id, doc_type)).fetchall()
-        return self._send_json(200, {"ok": True, "versions": [dict(r) for r in rows]})
-
-    def _api_doc_revisions(self, proj_id, doc_type, user):
-        """GET /api/projects/{id}/documents/{type}/revisions — revision requests for a doc."""
-        if user.get("r") not in ("admin", "auditor"):
-            return self._send_json(403, {"ok": False, "error": "Requiere admin o auditor"})
-        if not _is_valid_proj_id(proj_id):
-            return self._send_json(404, {"ok": False, "error": "Proyecto no encontrado"})
-        db = _get_db()
-        rows = db.execute("""
-            SELECT srs.round_id, srs.username, srs.display_name, srs.role_label,
-                   srs.revision_reason, srs.revision_requested_at,
-                   srs.revision_fulfilled_at, srs.revision_fulfilled_by,
-                   sr.status AS round_status, sr.doc_version
-            FROM signing_round_signers srs
-            INNER JOIN signing_rounds sr ON sr.id = srs.round_id
-            WHERE sr.project_id=? AND sr.doc_type=? AND srs.revision_requested_at IS NOT NULL
-            ORDER BY srs.revision_requested_at DESC
-        """, (proj_id, doc_type)).fetchall()
-        return self._send_json(200, {"ok": True, "revisions": [dict(r) for r in rows]})
-
-    def _api_rev_fulfill(self, proj_id, round_id, username, user):
-        """POST — admin marca una revision item como cumplida."""
-        if user.get("r") != "admin":
-            return self._send_json(403, {"ok": False, "error": "Solo admin"})
-        if not _is_valid_proj_id(proj_id) or not _is_valid_uuid(round_id):
-            return self._send_json(404, {"ok": False, "error": "No encontrado"})
-        db = _get_db()
-        now = time.time()
-        row = db.execute(
-            "SELECT id FROM signing_round_signers WHERE round_id=? AND username=? AND revision_requested_at IS NOT NULL",
-            (round_id, username)
-        ).fetchone()
-        if not row:
-            return self._send_json(404, {"ok": False, "error": "Revisión no encontrada"})
-        db.execute(
-            "UPDATE signing_round_signers SET revision_fulfilled_at=?, revision_fulfilled_by=? WHERE round_id=? AND username=?",
-            (now, user.get("u"), round_id, username)
-        )
-        # Notificar al revisor si todas sus revisiones de esta ronda están cumplidas
-        all_fulfilled = db.execute(
-            """SELECT COUNT(*) AS cnt FROM signing_round_signers
-               WHERE round_id=? AND username=? AND revision_requested_at IS NOT NULL AND revision_fulfilled_at IS NULL""",
-            (round_id, username)
-        ).fetchone()["cnt"] == 0
-        if all_fulfilled:
-            rnd_row = db.execute("SELECT project_id, doc_type FROM signing_rounds WHERE id=?", (round_id,)).fetchone()
-            if rnd_row:
-                db.execute("""
-                    INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
-                    VALUES (?, ?, ?, 'corrections_ready', ?, ?, ?)
-                """, (
-                    rnd_row["project_id"], rnd_row["doc_type"],
-                    username,
-                    "Correcciones completadas por el administrador — el revisor puede firmar o solicitar más cambios",
-                    "internal", now
-                ))
-                _notify_revision_fulfilled(
-                    rnd_row["project_id"], rnd_row["doc_type"],
-                    username, user.get("u", "Administrador")
-                )
-        return self._send_json(200, {"ok": True})
-
-    def _api_rev_discard(self, proj_id, round_id, username, user):
-        """POST — admin descarta una solicitud de revisión de un firmante."""
-        if user.get("r") != "admin":
-            return self._send_json(403, {"ok": False, "error": "Solo admin"})
-        if not _is_valid_proj_id(proj_id) or not _is_valid_uuid(round_id):
-            return self._send_json(404, {"ok": False, "error": "No encontrado"})
-        db = _get_db()
-        row = db.execute(
-            "SELECT id FROM signing_round_signers WHERE round_id=? AND username=? AND revision_requested_at IS NOT NULL",
-            (round_id, username)
-        ).fetchone()
-        if not row:
-            return self._send_json(404, {"ok": False, "error": "Revisión no encontrada"})
-        # Clear revision fields
-        db.execute(
-            """UPDATE signing_round_signers
-               SET revision_requested_at=NULL, revision_reason=NULL,
-                   revision_fulfilled_at=NULL, revision_fulfilled_by=NULL
-               WHERE round_id=? AND username=?""",
-            (round_id, username)
-        )
-        # If round was cancelled and no more pending revisions, reopen it
-        remaining_row = db.execute(
-            "SELECT COUNT(*) AS cnt FROM signing_round_signers WHERE round_id=? AND revision_requested_at IS NOT NULL",
-            (round_id,)
-        ).fetchone()
-        remaining = remaining_row["cnt"] if remaining_row else 0
-        rnd = db.execute("SELECT status, project_id, doc_type FROM signing_rounds WHERE id=?", (round_id,)).fetchone()
-        if rnd and rnd["status"] == "cancelled" and remaining == 0:
-            db.execute("UPDATE signing_rounds SET status='open' WHERE id=?", (round_id,))
-            # Also reset doc status if it was needs_revision
-            db.execute(
-                "UPDATE documents SET status='draft' WHERE project_id=? AND doc_type=? AND status='needs_revision'",
-                (rnd["project_id"], rnd["doc_type"])
-            )
-        return self._send_json(200, {"ok": True})
-
-    def _api_round_resend(self, proj_id, round_id, signer_row_id, user):
-        """POST /api/projects/{id}/signing-rounds/{round}/resend/{signer_id}
-        Reenvía la notificación por email a un firmante que aún no firmó.
-        Solo admin. El signer_row_id es el PK de signing_round_signers.
-        """
-        if user.get("r") != "admin":
-            return self._send_json(403, {"ok": False, "error": "Solo admin"})
-        if not _is_valid_proj_id(proj_id) or not _is_valid_uuid(round_id):
-            return self._send_json(404, {"ok": False, "error": "No encontrado"})
-        db = _get_db()
-        signer = db.execute(
-            """SELECT srs.id, srs.email, srs.display_name, srs.signed_at,
-                      sr.doc_type, sr.status AS round_status, sr.phase,
-                      u.invite_token
-               FROM signing_round_signers srs
-               INNER JOIN signing_rounds sr ON sr.id = srs.round_id
-               LEFT JOIN users u ON u.email = srs.email
-               WHERE srs.id=? AND srs.round_id=? AND sr.project_id=?""",
-            (signer_row_id, round_id, proj_id)
-        ).fetchone()
-        if not signer:
-            return self._send_json(404, {"ok": False, "error": "Firmante no encontrado"})
-        if signer["signed_at"]:
-            return self._send_json(409, {"ok": False, "error": "El firmante ya completó su firma"})
-        if signer["round_status"] != "open":
-            return self._send_json(409, {"ok": False, "error": "La ronda no está abierta"})
-        if not signer["email"]:
-            return self._send_json(422, {"ok": False, "error": "El firmante no tiene email registrado"})
-        if not _RESEND_API_KEY:
-            return self._send_json(200, {"ok": True, "warn": "RESEND_API_KEY no configurada — email no enviado"})
-
-        proj = db.execute("SELECT name FROM projects WHERE id=?", (proj_id,)).fetchone()
-        proj_name = proj["name"] if proj else proj_id
-        doc_type = signer["doc_type"]
-        display  = signer["display_name"] or signer["email"]
-        email    = signer["email"]
-
-        # Reutilizar token de invitación existente o crear uno nuevo
-        token = signer["invite_token"]
-        if not token:
-            token = secrets.token_urlsafe(32)
-            db.execute(
-                "UPDATE users SET invite_token=?, invite_expires_at=? WHERE email=?",
-                (token, int(time.time()) + 72*3600, email)
-            )
-
-        pub_url = _ALLOWED_ORIGIN.rstrip("/") if _ALLOWED_ORIGIN not in ("*", "null") else ""
-        firmas_url = f"{pub_url}/firmas/?token={token}" if token else f"{pub_url}/firmas/"
-        nombre = _html_mod.escape(display)
-        dtype  = _html_mod.escape(doc_type)
-        pname  = _html_mod.escape(proj_name)
-        phase_label = "Aprobación" if (signer["phase"] or "review") == "approval" else "Revisión"
-
-        body = (
-            f"<p>Hola <strong>{nombre}</strong>,</p>"
-            f"<p>Se te recuerda que tenés pendiente tu firma de <strong>{phase_label}</strong> "
-            f"para el documento <strong>{dtype}</strong> del proyecto <strong>{pname}</strong>.</p>"
-            f"<p><a href='{firmas_url}' style='background:#C8921A;color:#0B2341;padding:10px 22px;border-radius:6px;text-decoration:none;font-weight:700;display:inline-block;'>Ir al Portal de Firmas</a></p>"
-            f"<p style='font-size:12px;color:#777;'>Este recordatorio fue enviado por un administrador del sistema.</p>"
-        )
-        subject = f"[SMART Validation] Recordatorio de firma — {doc_type} / {proj_name}"
-        _send_email(email, subject, _email_html(f"Firma pendiente — {doc_type}", body))
-        return self._send_json(200, {"ok": True})
-
-    def _api_signer_revoke(self, proj_id, username_target, admin_user):
-        """POST /api/projects/{id}/signers/{username}/revoke
-        Revoca (is_active=0) o reactiva (is_active=1) a un firmante provisional
-        que participó en este proyecto. Solo admin. No puede afectar a otros admins/auditores.
-        Body: {action: "revoke"|"reactivate"}
-        """
-        if admin_user.get("r") != "admin":
-            return self._send_json(403, {"ok": False, "error": "Solo admin"})
-        if not _is_valid_proj_id(proj_id):
-            return self._send_json(404, {"ok": False, "error": "Proyecto no encontrado"})
-        data = self._read_json_body()
-        action = str(data.get("action", "revoke")).strip().lower()
-        if action not in ("revoke", "reactivate"):
-            return self._send_json(400, {"ok": False, "error": "action debe ser 'revoke' o 'reactivate'"})
-
-        db = _get_db()
-        # El usuario tiene que ser firmante de este proyecto
-        signer_row = db.execute("""
-            SELECT u.id, u.username, u.display_name, u.role, u.is_active, u.is_provisional
-            FROM users u
-            INNER JOIN signing_round_signers srs ON srs.username = u.username
-            INNER JOIN signing_rounds sr ON sr.id = srs.round_id
-            WHERE u.username=? AND sr.project_id=?
-            LIMIT 1
-        """, (username_target, proj_id)).fetchone()
-        if not signer_row:
-            return self._send_json(404, {"ok": False, "error": "Firmante no encontrado en este proyecto"})
-        if signer_row["role"] in ("admin", "auditor"):
-            return self._send_json(403, {"ok": False, "error": "No se puede revocar a un administrador o auditor"})
-
-        new_active = 0 if action == "revoke" else 1
-        db.execute(
-            "UPDATE users SET is_active=?, updated_at=? WHERE username=?",
-            (new_active, time.time(), username_target)
-        )
-        # Invalidar sesión activa del usuario
-        db.execute("DELETE FROM auth_sessions WHERE username=?", (username_target,))
-        action_label = "revocado" if action == "revoke" else "reactivado"
-        sys.stderr.write(f"[access] Firmante '{username_target}' {action_label} por admin '{admin_user.get('u')}' en proyecto {proj_id}\n")
-        return self._send_json(200, {"ok": True, "username": username_target, "is_active": new_active})
-
-    def _api_my_revisions(self, proj_id, round_id, user):
-        """GET — revisor consulta el estado de sus revisiones en esta ronda."""
-        db = _get_db()
-        if not self._assert_project_access(db, user, proj_id):
-            return
-        username = user.get("u", "")
-        row = db.execute(
-            """SELECT revision_reason, revision_requested_at, revision_fulfilled_at, revision_fulfilled_by
-               FROM signing_round_signers
-               WHERE round_id=? AND username=?""",
-            (round_id, username)
-        ).fetchone()
-        if not row or not row["revision_requested_at"]:
-            return self._send_json(200, {"ok": True, "has_revision": False})
-        return self._send_json(200, {
-            "ok": True,
-            "has_revision": True,
-            "revision_reason": row["revision_reason"],
-            "revision_requested_at": row["revision_requested_at"],
-            "revision_fulfilled_at": row["revision_fulfilled_at"],
-            "revision_fulfilled_by": row["revision_fulfilled_by"],
-            "all_fulfilled": bool(row["revision_fulfilled_at"]),
-        })
-
-    def _signing_round_delete(self, proj_id, round_id, user):
-        """DELETE — Admin elimina una ronda no-sellada (reset de circuito de firmas)."""
-        if user.get("r") != "admin":
-            return self._send_json(403, {"ok": False, "error": "Solo admin"})
-        if not _is_valid_proj_id(proj_id) or not _is_valid_uuid(round_id):
-            return self._send_json(404, {"ok": False, "error": "No encontrado"})
-        db = _get_db()
-        rnd = db.execute(
-            "SELECT status, doc_type FROM signing_rounds WHERE id=? AND project_id=?",
-            (round_id, proj_id)
-        ).fetchone()
-        if not rnd:
-            return self._send_json(404, {"ok": False, "error": "Ronda no encontrada"})
-        if rnd["status"] == "sealed":
-            return self._send_json(409, {"ok": False, "error": "No se puede eliminar una ronda sellada — es un registro GxP permanente"})
-        db.execute("DELETE FROM signing_round_signers WHERE round_id=?", (round_id,))
-        db.execute("DELETE FROM signing_rounds WHERE id=?", (round_id,))
-        # Si no quedan rondas abiertas, volver el documento a draft
-        remaining = db.execute(
-            "SELECT COUNT(*) AS cnt FROM signing_rounds WHERE project_id=? AND doc_type=? AND status='open'",
-            (proj_id, rnd["doc_type"])
-        ).fetchone()["cnt"]
-        if remaining == 0:
-            db.execute(
-                "UPDATE documents SET status='draft', updated_at=? WHERE project_id=? AND doc_type=?",
-                (time.time(), proj_id, rnd["doc_type"])
-            )
-        return self._send_json(200, {"ok": True})
-
-    def _signing_round_cancel(self, proj_id, round_id, user):
-        """Admin cancela una ronda abierta y devuelve el documento a borrador."""
-        if user.get("r") != "admin":
-            return self._send_json(403, {"ok": False, "error": "Solo admin puede cancelar rondas"})
-        if not _is_valid_proj_id(proj_id) or not _is_valid_uuid(round_id):
-            return self._send_json(404, {"ok": False, "error": "Ronda no encontrada"})
-        data = self._read_json_body() or {}
-        reason = str(data.get("reason", "Cancelada por administrador")).strip()[:500]
-        db = _get_db()
-        now = time.time()
-        db.execute("BEGIN IMMEDIATE")
-        try:
-            rnd = db.execute(
-                "SELECT id, doc_type, status FROM signing_rounds WHERE id=? AND project_id=?",
-                (round_id, proj_id)
-            ).fetchone()
-            if not rnd:
-                db.execute("ROLLBACK")
-                return self._send_json(404, {"ok": False, "error": "Ronda no encontrada"})
-            if rnd["status"] != "open":
-                db.execute("ROLLBACK")
-                return self._send_json(409, {"ok": False, "error": f"La ronda ya está {rnd['status']}"})
-            db.execute(
-                "UPDATE signing_rounds SET status='cancelled', cancelled_at=?, cancel_reason=? WHERE id=?",
-                (now, reason, round_id)
-            )
-            db.execute(
-                "UPDATE documents SET status='draft', updated_at=? WHERE project_id=? AND doc_type=?",
-                (now, proj_id, rnd["doc_type"])
-            )
-            db.execute("""
-                INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
-                VALUES (?, ?, ?, 'signing_round_cancel', ?, ?, ?)
-            """, (proj_id, rnd["doc_type"], user.get("u"),
-                  f"Ronda {round_id} cancelada: {reason}", self._get_client_ip(), now))
-            db.execute("COMMIT")
-        except Exception:
-            try: db.execute("ROLLBACK")
-            except Exception: pass
-            raise
-        return self._send_json(200, {"ok": True})
-
-    def _round_comments_list(self, proj_id, round_id, user):
-        """Lista comentarios de una ronda. Acceso: admin ve todos; client solo los suyos."""
-        if not _is_valid_proj_id(proj_id) or not _is_valid_uuid(round_id):
-            return self._send_json(404, {"ok": False, "error": "Ronda no encontrada"})
-        db = _get_db()
-        if not self._assert_project_access(db, user, proj_id):
-            return
-        role = user.get("r")
-        if role == "admin":
-            rows = db.execute(
-                "SELECT * FROM round_comments WHERE round_id=? ORDER BY created_at",
-                (round_id,)
-            ).fetchall()
-        else:
-            rows = db.execute(
-                "SELECT * FROM round_comments WHERE round_id=? AND username=? ORDER BY created_at",
-                (round_id, user.get("u"))
-            ).fetchall()
-        return self._send_json(200, {"ok": True, "comments": [dict(r) for r in rows]})
-
-    def _round_comments_create(self, proj_id, round_id, user):
-        """Agrega un comentario inline a una ronda. Acceso: admin, auditor, client."""
-        if not _is_valid_proj_id(proj_id) or not _is_valid_uuid(round_id):
-            return self._send_json(404, {"ok": False, "error": "Ronda no encontrada"})
-        db = _get_db()
-        if not self._assert_project_access(db, user, proj_id):
-            return
-        data = self._read_json_body()
-        if data is None:
-            return
-        body = str(data.get("body", "")).strip()[:2000]
-        section_ref = str(data.get("section_ref", "")).strip()[:200]
-        comment_type = str(data.get("comment_type", "observation"))
-        if comment_type not in ("observation", "change_request"):
-            comment_type = "observation"
-        if not body:
-            return self._send_json(400, {"ok": False, "error": "body requerido"})
-        rnd = db.execute(
-            "SELECT id FROM signing_rounds WHERE id=? AND project_id=? AND status='open'",
-            (round_id, proj_id)
-        ).fetchone()
-        if not rnd:
-            return self._send_json(404, {"ok": False, "error": "Ronda no encontrada o no está abierta"})
-        username = user.get("u")
-        u_row = db.execute("SELECT display_name FROM users WHERE username=?", (username,)).fetchone()
-        display_name = u_row["display_name"] if u_row else username
-        now = time.time()
-        db.execute(
-            "INSERT INTO round_comments (round_id, project_id, username, display_name, section_ref, body, status, comment_type, created_at) VALUES (?,?,?,?,?,?,?,?,?)",
-            (round_id, proj_id, username, display_name, section_ref or None, body, "open", comment_type, now)
-        )
-        db.commit()
-        return self._send_json(201, {"ok": True})
-
-    def _round_comment_resolve(self, proj_id, round_id, comment_id, user):
-        """Admin marca un comentario como resuelto."""
-        if user.get("r") != "admin":
-            return self._send_json(403, {"ok": False, "error": "Solo admin puede resolver comentarios"})
-        try:
-            comment_id = int(comment_id)
-        except (ValueError, TypeError):
-            return self._send_json(400, {"ok": False, "error": "comment_id inválido"})
-        db = _get_db()
-        now = time.time()
-        result = db.execute(
-            "UPDATE round_comments SET status='resolved', resolved_at=?, resolved_by=? WHERE id=? AND round_id=? AND project_id=?",
-            (now, user.get("u"), comment_id, round_id, proj_id)
-        )
-        db.commit()
-        if result.rowcount == 0:
-            return self._send_json(404, {"ok": False, "error": "Comentario no encontrado"})
-        return self._send_json(200, {"ok": True})
-
-    def _api_pending_signatures(self, user):
-        """Retorna todas las rondas abiertas donde el revisor tiene firma pendiente."""
-        if user.get("r") != "client":
-            return self._send_json(403, {"ok": False, "error": "Solo revisores"})
-        db = _get_db()
-        username = user.get("u")
-        rows = db.execute("""
-            SELECT sr.id AS round_id, sr.project_id, sr.doc_type, sr.doc_version,
-                   sr.created_at, p.name AS project_name,
-                   srs.role_label, srs.signed_at, srs.revision_requested_at, srs.revision_fulfilled_at
-            FROM signing_round_signers srs
-            INNER JOIN signing_rounds sr ON sr.id = srs.round_id AND sr.status='open'
-            INNER JOIN projects p ON p.id = sr.project_id
-            WHERE srs.username=?
-            ORDER BY sr.created_at ASC
-        """, (username,)).fetchall()
-        return self._send_json(200, {"ok": True, "pending": [dict(r) for r in rows]})
-
-    def _admin_review_activity(self, user):
-        """Dashboard de actividad de revisión para el admin."""
-        if user.get("r") not in ("admin", "auditor"):
-            return self._send_json(403, {"ok": False, "error": "Requiere admin o auditor"})
-        db = _get_db()
-        # Rondas abiertas con progreso
-        rounds = db.execute("""
-            SELECT sr.id, sr.project_id, sr.doc_type, sr.doc_version, sr.status,
-                   sr.phase, sr.created_at, sr.sealed_at, sr.cancel_reason,
-                   p.name AS project_name,
-                   COUNT(srs.id) AS total_signers,
-                   SUM(CASE WHEN srs.signed_at IS NOT NULL THEN 1 ELSE 0 END) AS signed_count,
-                   SUM(CASE WHEN srs.revision_requested_at IS NOT NULL THEN 1 ELSE 0 END) AS revision_count
-            FROM signing_rounds sr
-            INNER JOIN projects p ON p.id = sr.project_id
-            LEFT JOIN signing_round_signers srs ON srs.round_id = sr.id
-            WHERE NOT (sr.status = 'sealed' AND (sr.phase = 'approval' OR sr.phase IS NULL))
-            GROUP BY sr.id, sr.project_id, sr.doc_type, sr.doc_version, sr.status,
-                     sr.phase, sr.created_at, sr.sealed_at, sr.cancel_reason, p.name
-            ORDER BY sr.created_at DESC
-            LIMIT 100
-        """).fetchall()
-        # Últimas solicitudes de revisión
-        revision_requests = db.execute("""
-            SELECT ae.project_id, ae.doc_type, ae.username, ae.detail, ae.created_at,
-                   p.name AS project_name
-            FROM audit_events ae
-            INNER JOIN projects p ON p.id = ae.project_id
-            WHERE ae.action='revision_requested'
-            ORDER BY ae.created_at DESC
-            LIMIT 50
-        """).fetchall()
-        signer_revisions = db.execute("""
-            SELECT srs.round_id, srs.username, srs.display_name, srs.revision_reason,
-                   srs.revision_requested_at, srs.revision_fulfilled_at, srs.revision_fulfilled_by,
-                   sr.project_id, sr.doc_type, p.name AS project_name
-            FROM signing_round_signers srs
-            INNER JOIN signing_rounds sr ON sr.id = srs.round_id
-            INNER JOIN projects p ON p.id = sr.project_id
-            WHERE srs.revision_requested_at IS NOT NULL
-            ORDER BY srs.revision_requested_at DESC
-            LIMIT 200
-        """).fetchall()
-        return self._send_json(200, {
-            "ok": True,
-            "rounds": [dict(r) for r in rounds],
-            "revision_requests": [dict(r) for r in revision_requests],
-            "signer_revisions": [dict(r) for r in signer_revisions],
-        })
-
-    def _validation_book_get(self, proj_id, user):
-        """Retorna todos los bloques sellados del libro de validación."""
-        db = _get_db()
-        if not self._assert_project_access(db, user, proj_id):
-            return
-        blocks = db.execute("""
-            SELECT * FROM validation_book_blocks WHERE project_id=? ORDER BY block_number ASC
-        """, (proj_id,)).fetchall()
-        return self._send_json(200, {"ok": True, "blocks": [dict(b) for b in blocks]})
-
-    def _people_book_get(self, proj_id, user):
-        """GET /api/projects/{id}/people-book — firmas electrónicas por ronda y firmante."""
-        if user.get("r") not in ("admin", "auditor", "superadmin"):
-            return self._send_json(403, {"ok": False, "error": "Requiere admin o auditor"})
-        if not _is_valid_proj_id(proj_id):
-            return self._send_json(404, {"ok": False, "error": "Proyecto no encontrado"})
-        db = _get_db()
-        rows = db.execute("""
-            SELECT srs.id, srs.display_name, srs.role_label, srs.sign_order,
-                   srs.signed_at, srs.audit_hash, srs.email,
-                   srs.revision_requested_at, srs.revision_reason,
-                   srs.username,
-                   sr.id AS round_id, sr.doc_type, sr.doc_version, sr.status AS round_status,
-                   sr.phase, sr.created_at AS round_created_at, sr.sealed_at, sr.seal_hash,
-                   COALESCE(u.is_active, 1) AS is_active,
-                   COALESCE(u.is_provisional, 0) AS is_provisional
-            FROM signing_round_signers srs
-            INNER JOIN signing_rounds sr ON sr.id = srs.round_id
-            LEFT JOIN users u ON u.username = srs.username
-            WHERE sr.project_id = ?
-            ORDER BY sr.created_at ASC, srs.sign_order ASC, srs.id ASC
-        """, (proj_id,)).fetchall()
-        return self._send_json(200, {"ok": True, "entries": [dict(r) for r in rows]})
-
     def _read_json_body(self):
         try:
             length = int(self.headers.get("Content-Length", 0))
@@ -5435,14 +3477,13 @@ class SyncHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path in ("/", ""):
             path = "/index.html"
-        elif path in ("/client", "/client/"):
-            # Portal viejo eliminado — redirigir permanentemente a Suite de Firmas
-            self.send_response(301)
-            self.send_header("Location", "/firmas/")
+        elif path in ("/client", "/client/") or path == "/firmas" or path.startswith("/firmas/"):
+            # Portales viejos eliminados (2026-09-02: el estático /firmas/ y, antes, /client/)
+            # — redirigen a la Suite de Revisión y Firmas real (servicio separado).
+            self.send_response(302)
+            self.send_header("Location", _FIRMAS_BASE_URL or "/")
             self.end_headers()
             return
-        elif path in ("/firmas", "/firmas/"):
-            path = "/firmas/index.html"
 
         # Sanitizar path — pathlib.resolve() resuelve ../ y symlinks
         # antes de comparar contra ROOT_DIR (inmune a encoding alternativo)
@@ -5575,6 +3616,11 @@ class SyncHandler(BaseHTTPRequestHandler):
             code    = 200  if db_ok else 503
             return self._send_json(code, {"status": status, "service": "smart-validation"})
 
+        if path == "/api/config":
+            # Config pública no sensible -- el frontend la usa para armar el link real a la
+            # Suite de Revisión y Firmas (antes apuntaba al portal estático viejo /firmas/).
+            return self._send_json(200, {"ok": True, "firmas_url": _FIRMAS_BASE_URL})
+
         if path in ("/login", "/login.html"):
             if _is_auth_required():
                 _u = _check_auth(self)
@@ -5664,18 +3710,6 @@ class SyncHandler(BaseHTTPRequestHandler):
             new_photos = [p for p in sess["photos"] if p["uploaded_at"] > since]
             return self._send_json(200, {"photos": new_photos, "server_time": time.time()})
 
-        if path.startswith("/sync/signature/"):
-            token = path[len("/sync/signature/"):]
-            cleanup_expired_signatures()
-            entry = SIGNATURES.get(token)
-            if not entry:
-                return self._send_json(404, {"error": "Token no encontrado o expirado"})
-            return self._send_json(200, {
-                "token": token,
-                "firmaImage": entry.get("firmaImage"),
-                "received_at": entry.get("received_at"),
-            })
-
         # ── Verificar autenticación para el resto ────────────────────────────
         user = _check_auth(self)
         # /firmas y /captura son públicos — cada uno maneja su propia autenticación vía token
@@ -5692,15 +3726,12 @@ class SyncHandler(BaseHTTPRequestHandler):
                 return self._send_json(401, {"ok": False, "error": "Sesión reemplazada. Iniciá sesión nuevamente.", "code": "SUPERSEDED"})
 
         # ── Route guard por rol ───────────────────────────────────────────────
-        # Clientes: solo pueden acceder a /firmas/* (portal unificado)
+        # Clientes: la Suite Documental no tiene nada para ellos -- van directo a Firmas.
         if user and user.get("r") == "client":
-            is_html = path in ("/", "") or (
-                path.endswith(".html")
-                and not path.startswith("/firmas/")
-            )
+            is_html = path in ("/", "") or path.endswith(".html")
             if is_html:
                 self.send_response(302)
-                self.send_header("Location", "/firmas/")
+                self.send_header("Location", _FIRMAS_BASE_URL or "/")
                 self.end_headers()
                 return
 
@@ -5735,43 +3766,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_COHERENCE_PACK.match(path)
         if m:
             return self._api_coherence_pack(m.group(1), user)
-        m = _RE_PROJ_DOC_SIGS.match(path)
-        if m:
-            return self._api_doc_signatures_list(m.group(1), m.group(2), user)
-        m = _RE_PROJ_DOC_COMMENTS.match(path)
-        if m:
-            return self._api_doc_comments_list(m.group(1), m.group(2), user)
         m = _RE_PROJ_DOC_FIRMAS_COMMENTS.match(path)
         if m:
             return self._api_doc_firmas_comments(m.group(1), m.group(2), user)
-        m = _RE_SIGNING_ROUNDS.match(path)
-        if m:
-            return self._signing_rounds_list(m.group(1), user)
-        m = _RE_MY_REVISIONS.match(path)
-        if m:
-            return self._api_my_revisions(m.group(1), m.group(2), user)
-        m = _RE_ROUND_COMMENTS.match(path)
-        if m:
-            return self._round_comments_list(m.group(1), m.group(2), user)
-        m = _RE_SIGNING_ROUND_ID.match(path)
-        if m:
-            return self._signing_round_get(m.group(1), m.group(2), user)
-        if path == "/api/me/pending-signatures":
-            return self._api_pending_signatures(user)
-        m = _RE_DOC_REVISIONS.match(path)
-        if m:
-            return self._api_doc_revisions(m.group(1), m.group(2), user)
-        m = _RE_DOC_VERSIONS.match(path)
-        if m:
-            return self._api_doc_versions(m.group(1), m.group(2), user)
-        if path == "/admin/review-activity":
-            return self._admin_review_activity(user)
-        m = re.match(r'^/api/projects/([^/]+)/validation-book$', path)
-        if m:
-            return self._validation_book_get(m.group(1), user)
-        m = re.match(r'^/api/projects/([^/]+)/people-book$', path)
-        if m:
-            return self._people_book_get(m.group(1), user)
         m = _RE_EXECUTIONS.match(path)
         if m:
             return self._api_executions_get(m.group(1), user)
@@ -5892,13 +3889,6 @@ class SyncHandler(BaseHTTPRequestHandler):
             return self._handle_auth_login()
         if path == "/auth/logout":
             return self._handle_auth_logout()
-        # Invitaciones — públicas (no requieren sesión)
-        m = _RE_INVITE_ACTIVATE.match(path)
-        if m:
-            return self._auth_invite_activate(m.group(1))
-        m = _RE_INVITE_TOKEN.match(path)
-        if m:
-            return self._auth_invite_check(m.group(1))
         if path == "/auth/change-credentials":
             u = _check_auth(self)
             if not u:
@@ -5918,8 +3908,6 @@ class SyncHandler(BaseHTTPRequestHandler):
 
         if path == "/sync/photo":
             return self._handle_sync_photo()
-        if path == "/sync/signature":
-            return self._handle_sync_signature()
 
         # ── Verificar autenticación para el resto ────────────────────────────
         user = _check_auth(self)
@@ -5967,48 +3955,9 @@ class SyncHandler(BaseHTTPRequestHandler):
             return self._api_mapeo_save(m.group(1), user)
         if _RE_NOTIFY_DESVIOS.match(path):
             return self._api_notify_desvios(user)
-        m = _RE_PROJ_DOC_SIGN.match(path)
-        if m:
-            return self._api_doc_sign(m.group(1), m.group(2), user)
-        m = _RE_PROJ_DOC_COMMENTS.match(path)
-        if m:
-            return self._api_doc_comment_add(m.group(1), m.group(2), user)
         m = _RE_PROJ_DOC_SEND_FIRMAS.match(path)
         if m:
             return self._api_doc_send_to_firmas(m.group(1), m.group(2), user)
-        m = _RE_SIGNING_ROUNDS.match(path)
-        if m:
-            return self._signing_round_create(m.group(1), user)
-        m = _RE_SIGNING_ROUND_SIGN.match(path)
-        if m:
-            return self._signing_round_sign(m.group(1), m.group(2), user)
-        m = _RE_SIGNING_ROUND_REV.match(path)
-        if m:
-            return self._signing_round_request_revision(m.group(1), m.group(2), user)
-        m = _RE_SIGNING_ROUND_SEAL.match(path)
-        if m:
-            return self._signing_round_seal(m.group(1), m.group(2), user)
-        m = _RE_SIGNING_ROUND_CANCEL.match(path)
-        if m:
-            return self._signing_round_cancel(m.group(1), m.group(2), user)
-        m = _RE_REV_FULFILL.match(path)
-        if m:
-            return self._api_rev_fulfill(m.group(1), m.group(2), m.group(3), user)
-        m = _RE_REV_DISCARD.match(path)
-        if m:
-            return self._api_rev_discard(m.group(1), m.group(2), m.group(3), user)
-        m = _RE_ROUND_RESEND.match(path)
-        if m:
-            return self._api_round_resend(m.group(1), m.group(2), m.group(3), user)
-        m = _RE_ROUND_COMMENT_RESOLVE.match(path)
-        if m:
-            return self._round_comment_resolve(m.group(1), m.group(2), m.group(3), user)
-        m = _RE_ROUND_COMMENTS.match(path)
-        if m:
-            return self._round_comments_create(m.group(1), m.group(2), user)
-        m = _RE_USER_REVOKE.match(path)
-        if m:
-            return self._api_signer_revoke(m.group(1), m.group(2), user)
         m = _RE_PROJ_DOC.match(path)
         if m:
             return self._api_doc_upsert(m.group(1), m.group(2), user)
@@ -6187,21 +4136,6 @@ class SyncHandler(BaseHTTPRequestHandler):
                 "url_movil": url_movil,
             })
 
-        # ── PC registra un token para esperar firma del celular ──
-        if path == "/sync/signature/register":
-            data = self._read_json_body()
-            if data is None:
-                return
-            # VULN-02: servidor genera el token; ignorar token del cliente
-            token = secrets.token_urlsafe(32)
-            cleanup_expired_signatures()
-            SIGNATURES[token] = {
-                "firmaImage": None,
-                "created_at": time.time(),
-                "received_at": None
-            }
-            return self._send_json(200, {"ok": True, "token": token})
-
         return self._send_json(404, {"error": "Endpoint no encontrado"})
 
     def _handle_sync_photo(self):
@@ -6256,30 +4190,6 @@ class SyncHandler(BaseHTTPRequestHandler):
             _save_photo_to_disk(sess["project_id"], photo)
         return self._send_json(200, {"ok": True, "id": photo["id"]})
 
-    def _handle_sync_signature(self):
-        data = self._read_json_body()
-        if data is None:
-            return
-        token = data.get("token")
-        firma = data.get("firmaImage")
-        if not token or not firma:
-            return self._send_json(400, {"error": "token y firmaImage requeridos"})
-        # NEW-08: validar MIME — solo imágenes permitidas, bloquear SVG/HTML/etc.
-        _ALLOWED_IMG_PREFIXES = (
-            "data:image/jpeg;base64,", "data:image/png;base64,",
-            "data:image/webp;base64,", "data:image/gif;base64,",
-        )
-        if not any(firma.startswith(p) for p in _ALLOWED_IMG_PREFIXES):
-            return self._send_json(400, {"error": "Formato de imagen no permitido. Solo jpeg, png, webp o gif."})
-        if len(firma) > MAX_SIGNATURE_BYTES:
-            return self._send_json(413, {"error": "Firma demasiado grande (max 2 MB)"})
-        cleanup_expired_signatures()
-        if token not in SIGNATURES:
-            return self._send_json(404, {"error": "Token no registrado o expirado"})
-        SIGNATURES[token]["firmaImage"] = firma
-        SIGNATURES[token]["received_at"] = time.time()
-        return self._send_json(200, {"ok": True})
-
     def do_DELETE(self):
         if self._anti_scanner():
             return
@@ -6317,9 +4227,6 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_PROJ_ID.match(path)
         if m:
             return self._api_project_delete(m.group(1), user)
-        m = _RE_SIGNING_ROUND_ID.match(path)
-        if m:
-            return self._signing_round_delete(m.group(1), m.group(2), user)
 
         # ── Admin API (DELETE) — requiere rol admin ───────────────────────────
         if path.startswith("/admin/"):
