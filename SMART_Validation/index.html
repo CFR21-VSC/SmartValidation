@@ -6454,9 +6454,12 @@ function openProcessMap() {
     const modal = document.getElementById('modalProcessMap');
     const frame = document.getElementById('pmFrame');
     modal.style.display = 'flex';
-    // Carga el iframe solo la primera vez
-    if (!frame.src || frame.src === window.location.href) {
-        frame.src = '/process-map.html';
+    const pid = window._currentProjectId || '';
+    const targetSrc = '/process-map.html?project=' + encodeURIComponent(pid);
+    // Recarga si cambia el proyecto, carga la primera vez si src vacío
+    if (!frame.src || frame.src === window.location.href || frame.getAttribute('data-pid') !== pid) {
+        frame.setAttribute('data-pid', pid);
+        frame.src = targetSrc;
     }
 }
 function closeProcessMap() {
