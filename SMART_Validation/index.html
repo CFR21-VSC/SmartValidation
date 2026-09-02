@@ -4142,6 +4142,17 @@
                 const projId = localStorage.getItem('vscActiveProjectId');
                 const docType = localStorage.getItem('vscActiveDocType');
                 if (!projId || !docType) { alert('Abrí un documento del proyecto activo antes de enviarlo a Firmas.'); return; }
+
+                // Guarda primero -- si no, este botón podía empujar una versión vieja/incompleta
+                // del documento (bug real: se cargaba un ejemplo con secciones completas, pero
+                // como todavía no se había guardado al proyecto, el bridge terminaba enviando lo
+                // último guardado en la DB en vez de lo que se veía en pantalla). El botón ya
+                // solo aparece con ctx.kind==='project' (ver vsUpdateContextBadge), así que
+                // vsSaveToProject() no debería rechazar por eso -- si igual falla, ya mostró su
+                // propio error y no tiene sentido seguir.
+                const saved = await vsSaveToProject();
+                if (saved === false) return;
+
                 const btn = document.getElementById('vsBtnSendFirmas');
                 const originalText = btn ? btn.textContent : '';
                 if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }

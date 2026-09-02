@@ -398,13 +398,13 @@
     async function vsSaveToProject() {
         if (!_vsEditorContext || _vsEditorContext.kind !== 'project') {
             alert('Este doc no fue cargado desde el proyecto. Para guardarlo al proyecto, cargalo primero desde "Docs del proyecto activo".');
-            return;
+            return false;
         }
         const idx = _vsEditorContext.projectDocIndex;
         const entry = (global.packageDocs || [])[idx];
         if (!entry) {
             alert('No se encontró el entry en el paquete del proyecto. Recargá la página.');
-            return;
+            return false;
         }
 
         // Si estamos en modo visual, volcar los cambios al textarea antes de guardar.
@@ -428,14 +428,14 @@
             data = JSON.parse(editor.value);
         } catch (err) {
             alert('El documento del editor no es válido. Corregí los errores antes de guardar:\n\n' + err.message);
-            return;
+            return false;
         }
         if (!data.type) {
             alert('El documento no tiene campo "type" — no se puede guardar al paquete.');
-            return;
+            return false;
         }
         if (data.type !== entry.type) {
-            if (!confirm('El tipo del documento (' + data.type + ') cambió respecto al original (' + entry.type + '). ¿Continuar y reasignar el tipo?')) return;
+            if (!confirm('El tipo del documento (' + data.type + ') cambió respecto al original (' + entry.type + '). ¿Continuar y reasignar el tipo?')) return false;
         }
 
         // Actualizar el entry
@@ -516,6 +516,7 @@
         if (typeof global.showNotification === 'function') {
             global.showNotification('Doc guardado en el proyecto · ' + entry.type + ' ' + entry.code, 'success');
         }
+        return true;
     }
 
     // ════════════════════════════════════════════════════════════════════
@@ -524,6 +525,14 @@
     function vsUpdateContextBadge() {
         const badge = document.getElementById('vsContextBadge');
         const saveBtn = document.getElementById('vsBtnSaveToProject');
+        const sendFirmasBtn = document.getElementById('vsBtnSendFirmas');
+        const firmasCommentsBtn = document.getElementById('vsBtnFirmasComments');
+        // Enviar/Comentarios Firmas solo tienen sentido para el doc real del proyecto
+        // (ctx.kind==='project') -- un ejemplo o plantilla todavía no tiene nada guardado
+        // en la DB del servidor para empujar.
+        const showFirmasBtns = !!(_vsEditorContext && _vsEditorContext.kind === 'project');
+        if (sendFirmasBtn) sendFirmasBtn.style.display = showFirmasBtns ? '' : 'none';
+        if (firmasCommentsBtn) firmasCommentsBtn.style.display = showFirmasBtns ? '' : 'none';
         if (!badge) return;
 
         const ctx = _vsEditorContext || { kind: null };
@@ -1982,10 +1991,12 @@
         if (btn) btn.style.display = (parsed && _EV_TYPES.has(parsed.type)) ? '' : 'none';
         const btnRev = document.getElementById('vsBtnRevisiones');
         if (btnRev) btnRev.style.display = parsed ? '' : 'none';
-        const btnSendFirmas = document.getElementById('vsBtnSendFirmas');
-        if (btnSendFirmas) btnSendFirmas.style.display = parsed ? '' : 'none';
-        const btnFirmasComments = document.getElementById('vsBtnFirmasComments');
-        if (btnFirmasComments) btnFirmasComments.style.display = parsed ? '' : 'none';
+        // "Enviar a Firmas" / "Comentarios Firmas" NO se controlan acá -- ver
+        // vsUpdateContextBadge(). Tienen que estar atados a ctx.kind==='project' (el doc
+        // realmente guardado en la DB del servidor), no a "hay JSON válido en el editor".
+        // Mostrarlos acá permitía enviar a Firmas un ejemplo/plantilla todavía sin guardar,
+        // lo que terminaba empujando la versión VIEJA guardada en la DB en vez de lo que se
+        // veía en pantalla (bug real reportado por el usuario 2026-09-01).
     }
 
     global.vsOpenEVAIModal = function () {
