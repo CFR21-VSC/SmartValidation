@@ -4143,19 +4143,39 @@
                 const docType = localStorage.getItem('vscActiveDocType');
                 if (!projId || !docType) { alert('Abrí un documento del proyecto activo antes de enviarlo a Firmas.'); return; }
 
-                // Guarda primero -- si no, este botón podía empujar una versión vieja/incompleta
-                // del documento (bug real: se cargaba un ejemplo con secciones completas, pero
-                // como todavía no se había guardado al proyecto, el bridge terminaba enviando lo
-                // último guardado en la DB en vez de lo que se veía en pantalla). El botón ya
-                // solo aparece con ctx.kind==='project' (ver vsUpdateContextBadge), así que
-                // vsSaveToProject() no debería rechazar por eso -- si igual falla, ya mostró su
-                // propio error y no tiene sentido seguir.
-                const saved = await vsSaveToProject();
-                if (saved === false) return;
+                const editor = document.getElementById('vsJsonEditor');
+                let data;
+                try {
+                    data = JSON.parse(editor ? editor.value : '');
+                } catch (err) {
+                    alert('El documento del editor no es válido. Corregí los errores antes de enviarlo a Firmas:\n\n' + err.message);
+                    return;
+                }
 
                 const btn = document.getElementById('vsBtnSendFirmas');
                 const originalText = btn ? btn.textContent : '';
                 if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+
+                // Guarda directo con los MISMOS ids (projId/docType) que se van a usar para el
+                // push -- a propósito NO delega en vsSaveToProject(), que persiste al servidor
+                // solo si _activeSrvProjectId está seteada (variable de la feature de "carpeta
+                // vinculada", ajena a esto). Si esa variable no coincidía con el proyecto activo,
+                // el guardado se salteaba en silencio -- el toast "Doc guardado" igual aparecía,
+                // pero el servidor se quedaba con la versión anterior, y esta función terminaba
+                // empujando esa versión vieja a Firmas (bug real reportado por el usuario
+                // 2026-09-02: el documento llegaba aplanado / sin secciones).
+                const saveResp = await fetch(`/api/projects/${encodeURIComponent(projId)}/documents/${encodeURIComponent(docType)}`, {
+                    method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                }).then(r => r.json().then(d => ({ status: r.status, data: d }))).catch(() => null);
+
+                if (!saveResp || !saveResp.data || !saveResp.data.ok) {
+                    if (btn) { btn.disabled = false; btn.textContent = originalText; }
+                    alert('No se pudo guardar el documento antes de enviarlo a Firmas: ' +
+                        (saveResp && saveResp.data && saveResp.data.error ? saveResp.data.error : 'error desconocido'));
+                    return;
+                }
+
                 const r = await fetch(`/api/projects/${projId}/documents/${docType}/send-to-firmas`, {
                     method: 'POST', credentials: 'include',
                 }).then(r => r.json().then(data => ({ status: r.status, data }))).catch(() => null);

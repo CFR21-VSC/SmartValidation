@@ -19,6 +19,27 @@
     <button class="rf-btn-secondary" id="logout-btn">Cerrar sesión</button>
 </div>
 
+<!-- Modal: renombrar proyecto (DRP-only, solo cosmético -- el id real nunca cambia) -->
+<div class="rf-modal-backdrop" id="rename-project-backdrop" style="display:none;">
+    <div class="rf-modal" style="width:min(440px, 92vw);">
+        <h3>Nombre del proyecto</h3>
+        <div class="rf-label" style="margin-bottom:12px;">
+            El identificador técnico (<code id="rename-project-id"></code>) no cambia — sigue
+            siendo el que usa la Suite Documental para encontrar este proyecto. Esto es solo el
+            nombre que se muestra acá y del lado del cliente.
+        </div>
+        <div class="rf-field">
+            <label class="rf-label" for="rename-project-input">Nombre para mostrar</label>
+            <input class="rf-input" id="rename-project-input" placeholder="Ej: Proyecto Demo 1">
+        </div>
+        <div class="rf-error" id="rename-project-error"></div>
+        <div style="margin-top:14px; display:flex; justify-content:flex-end; gap:10px;">
+            <button type="button" class="rf-btn-secondary" id="rename-project-cancel">Cancelar</button>
+            <button type="button" class="rf-btn" id="rename-project-save">Guardar</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal: cambiar contraseña (cualquier usuario logueado, DRP o cliente) -->
 <div class="rf-modal-backdrop" id="pwd-backdrop" style="display:none;">
     <div class="rf-modal" style="width:min(420px, 92vw);">
@@ -173,6 +194,42 @@ const userBadgeEl = document.getElementById('user-badge');
 document.getElementById('logout-btn').addEventListener('click', doLogout);
 usersLinkEl.addEventListener('click', () => { window.location.href = 'users.html'; });
 document.getElementById('global-audit-link').addEventListener('click', () => openSystemAudit(null));
+
+// ── Renombrar proyecto (DRP-only, cosmético) ────────────────────────────────
+function openRenameProjectModal() {
+    const proj = projects.find(p => p.id === selectedProject);
+    document.getElementById('rename-project-id').textContent = selectedProject;
+    document.getElementById('rename-project-input').value = (proj && proj.display_name) || '';
+    document.getElementById('rename-project-error').classList.remove('visible');
+    document.getElementById('rename-project-backdrop').style.display = 'flex';
+    setTimeout(() => document.getElementById('rename-project-input').focus(), 50);
+}
+document.getElementById('rename-project-cancel').addEventListener('click', () => {
+    document.getElementById('rename-project-backdrop').style.display = 'none';
+});
+document.getElementById('rename-project-backdrop').addEventListener('click', (e) => {
+    if (e.target.id === 'rename-project-backdrop') document.getElementById('rename-project-backdrop').style.display = 'none';
+});
+document.getElementById('rename-project-save').addEventListener('click', async () => {
+    const errorBox = document.getElementById('rename-project-error');
+    errorBox.classList.remove('visible');
+    const name = document.getElementById('rename-project-input').value.trim();
+    const btn = document.getElementById('rename-project-save');
+    btn.disabled = true;
+    const { status, data } = await apiFetch(`/projects/${encodeURIComponent(selectedProject)}/display-name`, {
+        method: 'PATCH', body: { display_name: name },
+    });
+    btn.disabled = false;
+    if (status === 200 && data.ok) {
+        document.getElementById('rename-project-backdrop').style.display = 'none';
+        showToast(name ? 'Nombre actualizado' : 'Nombre quitado — se vuelve a mostrar el id técnico');
+        await loadProjects();
+        renderMain();
+        return;
+    }
+    errorBox.textContent = data.error || 'No se pudo actualizar el nombre.';
+    errorBox.classList.add('visible');
+});
 
 // ── Cambiar contraseña (cualquier usuario logueado) ─────────────────────────
 document.getElementById('change-password-link').addEventListener('click', () => {
@@ -367,7 +424,7 @@ function renderProjectList() {
         <div class="rf-project-item" data-project="${escHtml(p.id)}"
              style="padding:10px 12px; border-radius:6px; cursor:pointer; margin-bottom:4px;
                     ${p.id === selectedProject ? 'background:rgba(200,146,26,.15); color:var(--gold);' : 'color:var(--text);'}">
-            ${escHtml(p.id)}<span style="color:var(--text-muted); font-size:11px;">${statusLabel[p.status] || ''}</span>
+            ${escHtml(p.display_name || p.id)}<span style="color:var(--text-muted); font-size:11px;">${statusLabel[p.status] || ''}</span>
         </div>
     `).join('');
 
@@ -403,9 +460,13 @@ function renderMain() {
     let html = '';
     const pstatus = currentProjectStatus();
     const isDrp = session.role === 'drp';
+    const currentProj = projects.find(p => p.id === selectedProject);
+    const projDisplayName = (currentProj && currentProj.display_name) || selectedProject;
 
     html += `<div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap;">
-        <h2 style="margin:0;">${escHtml(selectedProject)}</h2>
+        <h2 style="margin:0;">${escHtml(projDisplayName)}</h2>
+        ${projDisplayName !== selectedProject ? `<span style="font-size:11px; color:var(--text-muted);">(${escHtml(selectedProject)})</span>` : ''}
+        ${isDrp ? `<button class="rf-btn-secondary" id="btn-rename-project" style="padding:3px 8px; font-size:11px;">✎ Renombrar</button>` : ''}
         ${pstatus !== 'active' ? `<span class="rf-badge">${pstatus === 'closed' ? 'Cerrado' : 'Archivado'}</span>` : ''}
         <div class="rf-spacer"></div>
         <button class="rf-btn-secondary" id="btn-dossier">📊 Estado del proyecto</button>`;
@@ -436,6 +497,7 @@ function renderMain() {
     document.getElementById('btn-dossier').addEventListener('click', () => openDossierPanel(selectedProject));
 
     if (isDrp) {
+        document.getElementById('btn-rename-project').addEventListener('click', openRenameProjectModal);
         const toggleBtn = document.getElementById('toggle-load-form');
         if (toggleBtn) toggleBtn.addEventListener('click', () => { showLoadForm = !showLoadForm; prefillDocType = null; renderMain(); });
 
