@@ -5678,9 +5678,10 @@ class SyncHandler(BaseHTTPRequestHandler):
 
         # ── Verificar autenticación para el resto ────────────────────────────
         user = _check_auth(self)
-        # /firmas es público — el portal maneja su propia autenticación vía token o PIN
+        # /firmas y /captura son públicos — cada uno maneja su propia autenticación vía token
         _is_firmas = path in ("/firmas", "/firmas/", "/firmas/index.html")
-        if _is_auth_required() and not _is_firmas:
+        _is_captura = path in ("/captura", "/captura/", "/captura/index.html")
+        if _is_auth_required() and not _is_firmas and not _is_captura:
             if not user:
                 if path in ("/", "", "/client", "/client/") or path.endswith(".html"):
                     return self._redirect_to_login()
@@ -6158,7 +6159,7 @@ class SyncHandler(BaseHTTPRequestHandler):
             best_ip = get_local_ip()
             all_ips = get_all_local_ips()
             if _PUBLIC_URL:
-                url_movil = f"{_PUBLIC_URL}?mobile={token}"
+                url_movil = f"{_PUBLIC_URL}/captura/?mobile={token}"
             else:
                 # Auto-detectar URL pública desde headers que Railway/Render inyectan
                 fwd_host  = self.headers.get("X-Forwarded-Host", "").strip()
@@ -6175,9 +6176,9 @@ class SyncHandler(BaseHTTPRequestHandler):
                     ))
                 if pub_host and not _is_private(pub_host):
                     proto = fwd_proto or "https"
-                    url_movil = f"{proto}://{pub_host}?mobile={token}"
+                    url_movil = f"{proto}://{pub_host}/captura/?mobile={token}"
                 else:
-                    url_movil = f"http://{best_ip}:{self.server.server_port}?mobile={token}"
+                    url_movil = f"http://{best_ip}:{self.server.server_port}/captura/?mobile={token}"
             return self._send_json(200, {
                 "ok": True,
                 "token": token,

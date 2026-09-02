@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Captura de Evidencias</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #F0F2F5; color: #213B50;
+            overflow-y: auto; -webkit-overflow-scrolling: touch;
+            min-height: 100vh;
+        }
+        .mvHeader {
+            background: #0B2341; color: white; padding: 16px;
+            position: sticky; top: 0; z-index: 10;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            display: flex; align-items: center; gap: 12px;
+        }
+        .mvBack {
+            background: rgba(255,255,255,0.15); border: none; color: white;
+            width: 36px; height: 36px; border-radius: 50%; font-size: 20px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .mvHeader h2 {
+            margin: 0; font-size: 16px; flex: 1;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .mvHeaderSub { font-size: 11px; opacity: 0.7; margin-top: 1px; }
+        .mvBody { padding: 14px; padding-bottom: 80px; }
+        .mvSubtitle { font-size: 12px; color: #717D8A; margin: 0 0 14px; }
+        .mvCard {
+            background: white; border-radius: 10px; padding: 14px; margin-bottom: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            cursor: pointer; transition: all 0.15s;
+            border-left: 4px solid #00b050;
+        }
+        .mvCard:active { transform: scale(0.98); background: #FAFBFC; }
+        .mvCard.finalized { border-left-color: #717D8A; opacity: 0.7; }
+        .mvCard h3 { margin: 0 0 6px; font-size: 14px; color: #0B2341; }
+        .mvCard .mvMeta { font-size: 11px; color: #717D8A; }
+        .mvBadge {
+            display: inline-block; padding: 2px 8px; border-radius: 10px;
+            font-size: 10px; font-weight: bold; margin-right: 4px;
+        }
+        .mvBadge.green { background: #d4f5dd; color: #00b050; }
+        .mvBadge.gray { background: #E8ECF0; color: #717D8A; }
+        .mvGroupLabel {
+            font-size: 11px; color: #717D8A; margin: 14px 0 8px;
+            text-transform: uppercase; letter-spacing: 1px; font-weight: 600;
+        }
+        .mvForm label {
+            display: block; font-size: 11px; color: #0B2341; font-weight: 600;
+            margin: 14px 0 6px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .mvForm input, .mvForm select, .mvForm textarea {
+            width: 100%; padding: 12px; border: 1px solid #E8ECF0;
+            border-radius: 8px; font-size: 14px; background: white;
+            font-family: inherit; -webkit-appearance: none; appearance: none;
+        }
+        .mvForm textarea { resize: vertical; min-height: 70px; }
+        .mvForm input:focus, .mvForm select:focus, .mvForm textarea:focus {
+            outline: none; border-color: #0B2341;
+        }
+        .mvBtn {
+            width: 100%; padding: 14px; border: none; border-radius: 8px;
+            font-size: 15px; font-weight: 600; cursor: pointer;
+            margin-top: 10px; -webkit-appearance: none;
+        }
+        .mvBtn.primary { background: #0B2341; color: white; }
+        .mvBtn.success { background: #00b050; color: white; }
+        .mvBtn.secondary { background: #E8ECF0; color: #213B50; }
+        .mvBtn:active { transform: scale(0.98); }
+        .mvBtn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .mvPhotoPreview {
+            width: 100%; max-height: 280px; object-fit: contain;
+            border-radius: 8px; background: #E8ECF0; margin-top: 10px;
+            display: none;
+        }
+        .mvCaptureRow {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;
+        }
+        .mvCaptureLabel {
+            display: block; padding: 22px 14px; border: 2px dashed #0B2341;
+            border-radius: 12px; text-align: center; cursor: pointer;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fafd 100%);
+            transition: all 0.2s;
+        }
+        .mvCaptureLabel:active { background: #f0f4f8; transform: scale(0.98); }
+        .mvCaptureLabel svg { display: block; margin: 0 auto 8px; }
+        .mvCaptureTxt { font-size: 14px; font-weight: 700; color: #0B2341; }
+        .mvCaptureSub { font-size: 11px; color: #717D8A; margin-top: 4px; }
+        .mvCaptureAlt { border-style: solid; border-color: #AFBDC8; }
+        .mvCaptureAlt svg { stroke: #586574 !important; }
+        .mvCaptureAlt .mvCaptureTxt { color: #586574; }
+        .mvQueueBar {
+            display: none; align-items: center; justify-content: space-between;
+            gap: 8px; margin-top: 8px;
+        }
+        .mvQueueNav {
+            background: #E8ECF0; border: none; border-radius: 50%;
+            width: 36px; height: 36px; font-size: 20px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .mvQueueNav:active { transform: scale(0.92); }
+        .mvQueueLabel { font-size: 13px; font-weight: 600; color: #213B50; flex: 1; text-align: center; }
+        .mvRotateBtn {
+            background: #E8ECF0; border: none; border-radius: 8px;
+            padding: 8px 12px; font-size: 12px; font-weight: 600;
+            cursor: pointer; color: #213B50; display: flex; align-items: center; gap: 4px;
+            flex-shrink: 0;
+        }
+        .mvRotateBtn:active { transform: scale(0.95); }
+        .mvLoading {
+            display: flex; align-items: center; justify-content: center;
+            padding: 60px 20px; flex-direction: column; gap: 10px;
+        }
+        .mvSpinner {
+            width: 32px; height: 32px; border: 3px solid #E8ECF0;
+            border-top-color: #0B2341; border-radius: 50%;
+            animation: mvSpin 0.8s linear infinite;
+        }
+        @keyframes mvSpin { to { transform: rotate(360deg); } }
+        .mvToast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #213B50; color: white; padding: 12px 20px;
+            border-radius: 24px; font-size: 13px; z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            animation: mvFade 0.3s; white-space: nowrap;
+        }
+        .mvToast.success { background: #00b050; }
+        .mvToast.error { background: #DC3545; }
+        @keyframes mvFade { from { opacity: 0; transform: translate(-50%, 20px); } }
+        .mvEmpty { text-align: center; padding: 60px 20px; color: #717D8A; font-size: 13px; }
+        .mvSyncRow {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
+        }
+        .mvSyncDot {
+            display: inline-block; width: 6px; height: 6px;
+            border-radius: 50%; margin-right: 4px; vertical-align: middle;
+        }
+        #mvSyncIndicator { font-size: 10px; display: flex; align-items: center; gap: 4px; }
+        .mvNoToken {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; min-height: 80vh; padding: 24px; text-align: center;
+        }
+        .mvNoToken svg { opacity: 0.3; margin-bottom: 20px; }
+        .mvNoToken h3 { font-size: 16px; color: #213B50; margin-bottom: 8px; }
+        .mvNoToken p { font-size: 13px; color: #717D8A; line-height: 1.5; }
+    </style>
+</head>
+<body>
+<div id="mvRoot">
+    <div class="mvLoading">
+        <div class="mvSpinner"></div>
+        <div style="color:#717D8A; font-size:13px;">Conectando...</div>
+    </div>
+</div>
+
+<script>
+'use strict';
+
+let _token = null;
+let _session = null;
+let _selectedTest = null;
+let _queue = [];
+let _queueIdx = 0;
+let _autoSyncTimer = null;
+let _sessionHash = '';
+let _errCount = 0;
+
+function _esc(s) {
+    if (typeof s !== 'string') return '';
+    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function _toast(msg, type) {
+    document.querySelectorAll('.mvToast').forEach(t => t.remove());
+    const el = document.createElement('div');
+    el.className = 'mvToast' + (type ? ' ' + type : '');
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2800);
+}
+
+function _render(html) {
+    document.getElementById('mvRoot').innerHTML = html;
+}
+
+function _hash(session) {
+    const t = session.tests || [];
+    return t.length + ':' + t.reduce((s, x) => s + (x.evidenceCount || 0), 0);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
+(function init() {
+    const params = new URLSearchParams(window.location.search);
+    _token = params.get('mobile') || params.get('token') || '';
+
+    if (!_token) {
+        _render(`
+            <div class="mvNoToken">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#0B2341" stroke-width="1.5">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1"/>
+                    <rect x="16" y="16" width="2" height="2"/>
+                    <rect x="19" y="16" width="2" height="2"/>
+                    <rect x="16" y="19" width="2" height="2"/>
+                    <rect x="19" y="19" width="2" height="2"/>
+                </svg>
+                <h3>Escaneá el QR desde la suite</h3>
+                <p>Esta página se abre automáticamente al escanear el QR generado en "Captura desde móvil" dentro de la suite de validaciones.</p>
+            </div>
+        `);
+        return;
+    }
+
+    loadSession();
+})();
+
+async function loadSession() {
+    try {
+        const r = await fetch(`/sync/session/${encodeURIComponent(_token)}`);
+        if (r.status === 403) {
+            _renderError('La sincronización móvil no está habilitada en este servidor.');
+            return;
+        }
+        if (!r.ok) {
+            _renderError('Sesión no encontrada o expirada. Pedí un nuevo QR desde la suite.');
+            return;
+        }
+        const data = await r.json();
+        _session = data.session_data;
+        _sessionHash = _hash(_session);
+        renderTestList();
+        _startAutoSync();
+    } catch (e) {
+        _renderError('Error de conexión: ' + e.message);
+    }
+}
+
+function _renderError(msg) {
+    _render(`
+        <div class="mvHeader"><h2>Error de sesión</h2></div>
+        <div class="mvBody"><div class="mvEmpty">${_esc(msg)}</div></div>
+    `);
+}
+
+// ── Auto-sync ─────────────────────────────────────────────────────────────────
+
+function _startAutoSync() {
+    if (_autoSyncTimer) clearInterval(_autoSyncTimer);
+    _autoSyncTimer = setInterval(_autoSync, 5000);
+}
+
+async function _autoSync() {
+    if (_selectedTest) return;
+    try {
+        const r = await fetch(`/sync/session/${encodeURIComponent(_token)}`);
+        if (!r.ok) {
+            _errCount++;
+            _updateSyncIndicator(false);
+            return;
+        }
+        _errCount = 0;
+        const data = await r.json();
+        const newHash = _hash(data.session_data);
+        if (newHash !== _sessionHash) {
+            _session = data.session_data;
+            _sessionHash = newHash;
+            renderTestList();
+            _toast('Sesión actualizada desde PC', 'success');
+        } else {
+            _updateSyncIndicator(true);
+        }
+    } catch (_) {
+        _errCount++;
+        _updateSyncIndicator(false);
+    }
+}
+
+function _updateSyncIndicator(ok) {
+    const el = document.getElementById('mvSyncIndicator');
+    if (!el) return;
+    if (ok) {
+        el.innerHTML = '<span class="mvSyncDot" style="background:#00b050"></span> Sincronizado';
+        el.style.color = '#00b050';
+    } else {
+        const label = _errCount >= 3 ? `Sin conexión (${_errCount})` : 'Reintentando...';
+        const color = _errCount >= 3 ? '#DC3545' : '#ffc000';
+        el.innerHTML = `<span class="mvSyncDot" style="background:${color}"></span> ${label}`;
+        el.style.color = color;
+    }
+}
+
+// ── Lista de pruebas ──────────────────────────────────────────────────────────
+
+function renderTestList() {
+    _selectedTest = null;
+    const groups = (_session && _session.groups) || [];
+    const tests  = (_session && _session.tests)  || [];
+    const system = (_session && _session.systemInfo && _session.systemInfo.nombreSistema) || 'Evidencias';
+
+    let html = `
+        <div class="mvHeader">
+            <h2>${_esc(system)}</h2>
+            <button class="mvBack" onclick="refreshSession()" title="Actualizar">&#x21bb;</button>
+        </div>
+        <div class="mvBody">
+            <div class="mvSyncRow">
+                <p class="mvSubtitle" style="margin:0;">${tests.length} prueba${tests.length !== 1 ? 's' : ''}</p>
+                <span id="mvSyncIndicator" style="color:#00b050">
+                    <span class="mvSyncDot" style="background:#00b050"></span> Sincronizado
+                </span>
+            </div>
+    `;
+
+    if (tests.length === 0) {
+        html += '<div class="mvEmpty">No hay pruebas en esta sesión</div>';
+    } else {
+        // Con carpeta
+        groups.forEach(g => {
+            const ft = tests.filter(t => t.groupId === g.id);
+            if (!ft.length) return;
+            html += `<div class="mvGroupLabel">${_esc(g.name)}</div>`;
+            ft.forEach(t => html += _testCard(t));
+        });
+        // Sin carpeta
+        const noGroup = tests.filter(t => !groups.find(g => g.id === t.groupId));
+        if (noGroup.length) {
+            html += `<div class="mvGroupLabel">Sin carpeta</div>`;
+            noGroup.forEach(t => html += _testCard(t));
+        }
+    }
+
+    html += '</div>';
+    _render(html);
+}
+
+function _testCard(t) {
+    const empty = (t.emptyEvidences || []).length;
+    return `
+        <div class="mvCard ${t.finalized ? 'finalized' : ''}" onclick="openTest(${JSON.stringify(t.id)})">
+            <h3>${_esc(t.name)}</h3>
+            <div class="mvMeta">
+                <span class="mvBadge ${t.finalized ? 'gray' : 'green'}">${t.finalized ? 'Finalizada' : 'Activa'}</span>
+                <span>${t.evidenceCount || 0} evidencia${(t.evidenceCount || 0) !== 1 ? 's' : ''}</span>
+                ${empty > 0 ? ` &middot; <span style="color:#C8921A;">${empty} pendiente${empty > 1 ? 's' : ''}</span>` : ''}
+            </div>
+        </div>
+    `;
+}
+
+async function refreshSession() {
+    _toast('Actualizando...', '');
+    try {
+        const r = await fetch(`/sync/session/${encodeURIComponent(_token)}`);
+        if (!r.ok) { _toast('Sesión expirada', 'error'); return; }
+        const data = await r.json();
+        _session = data.session_data;
+        _sessionHash = _hash(_session);
+        renderTestList();
+        _toast('Actualizado', 'success');
+    } catch (e) {
+        _toast('Error: ' + e.message, 'error');
+    }
+}
+
+// ── Vista de captura ──────────────────────────────────────────────────────────
+
+function openTest(testId) {
+    const test = (_session.tests || []).find(t => t.id === testId);
+    if (!test) return;
+    _selectedTest = test;
+    _queue = [];
+    _queueIdx = 0;
+    renderCaptureView();
+}
+
+function renderCaptureView() {
+    const test  = _selectedTest;
+    const empty = test.emptyEvidences || [];
+
+    const stepOptions = empty.length ? `
+        <label for="mvStepSel">PASO PENDIENTE (opcional)</label>
+        <select id="mvStepSel">
+            <option value="">Nuevo paso al final</option>
+            ${empty.map(e => `<option value="${e.step}">Paso #${String(e.step).padStart(3,'0')}${e.description ? ' — ' + _esc(e.description.substring(0,40)) : ''}</option>`).join('')}
+        </select>
+    ` : '';
+
+    _render(`
+        <div class="mvHeader">
+            <button class="mvBack" onclick="renderTestList()">&larr;</button>
+            <div>
+                <h2>${_esc(test.name)}</h2>
+                <div class="mvHeaderSub">${test.evidenceCount || 0} evidencia${(test.evidenceCount||0)!==1?'s':''} cargada${(test.evidenceCount||0)!==1?'s':''}${empty.length ? ` · ${empty.length} pendiente${empty.length>1?'s':''}` : ''}</div>
+            </div>
+        </div>
+        <div class="mvBody">
+            <form class="mvForm" onsubmit="event.preventDefault(); submitPhotos();">
+
+                <label>EVIDENCIA</label>
+                <div class="mvCaptureRow">
+                    <label for="mvCamInput" class="mvCaptureLabel">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#0B2341" stroke-width="2">
+                            <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+                            <circle cx="12" cy="13" r="4"/>
+                        </svg>
+                        <div class="mvCaptureTxt">Tomar foto</div>
+                        <div class="mvCaptureSub">Cámara trasera</div>
+                    </label>
+                    <label for="mvGalInput" class="mvCaptureLabel mvCaptureAlt">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#586574" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <path d="M21 15l-5-5L5 21"/>
+                        </svg>
+                        <div class="mvCaptureTxt">Elegir imágenes</div>
+                        <div class="mvCaptureSub">Podés elegir varias</div>
+                    </label>
+                </div>
+                <input type="file" id="mvCamInput" accept="image/*" capture="environment" onchange="handleFiles(event,'camera')" style="display:none;">
+                <input type="file" id="mvGalInput" accept="image/*" multiple onchange="handleFiles(event,'gallery')" style="display:none;">
+
+                <img id="mvPreview" class="mvPhotoPreview">
+                <div id="mvQueueBar" class="mvQueueBar">
+                    <button type="button" class="mvQueueNav" onclick="queueNav(-1)">&#8249;</button>
+                    <span id="mvQueueLbl" class="mvQueueLabel">1 / 1</span>
+                    <button type="button" class="mvQueueNav" onclick="queueNav(1)">&#8250;</button>
+                    <button type="button" class="mvRotateBtn" onclick="rotatePhoto()">&#8635; Rotar</button>
+                </div>
+
+                ${stepOptions}
+
+                <label for="mvDesc">DESCRIPCIÓN</label>
+                <textarea id="mvDesc" placeholder="Qué muestra esta evidencia..." rows="3"></textarea>
+
+                <label for="mvOp">OPERACIÓN (opcional)</label>
+                <input type="text" id="mvOp" placeholder="Operación probada">
+
+                <label for="mvRes">RESULTADO</label>
+                <select id="mvRes">
+                    <option value="PASA">PASA</option>
+                    <option value="PASA CON OBSERVACIONES">PASA CON OBSERVACIONES</option>
+                    <option value="NO PASA">NO PASA</option>
+                    <option value="NO APLICA">NO APLICA</option>
+                </select>
+
+                <button type="submit" class="mvBtn success" id="mvSubmit" disabled>Subir evidencia</button>
+                <button type="button" class="mvBtn secondary" onclick="renderTestList()">Volver a pruebas</button>
+            </form>
+        </div>
+    `);
+}
+
+// ── Procesamiento de imágenes ─────────────────────────────────────────────────
+
+function handleFiles(event, sourceType) {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+    _queue = new Array(files.length);
+    _queueIdx = 0;
+    _toast(files.length > 1 ? `Procesando ${files.length} imágenes...` : 'Procesando...', '');
+    let done = 0;
+    files.forEach((file, i) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = new Image();
+            img.onload = () => {
+                const dataUrl = _compress(img, 0);
+                _queue[i] = { img, dataUrl, rotation: 0, sourceType,
+                    meta: { originalFileName: file.name, fileSize: file.size, mimeType: file.type } };
+                done++;
+                if (done === files.length) { _queueIdx = 0; _renderPreview(); }
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function _compress(img, rotation) {
+    const maxDim = 1600, quality = 0.80;
+    const swap = rotation === 90 || rotation === 270;
+    let sw = img.naturalWidth || img.width;
+    let sh = img.naturalHeight || img.height;
+    let dw = sw, dh = sh;
+    if (dw > maxDim || dh > maxDim) {
+        if (dw > dh) { dh = Math.round(dh / dw * maxDim); dw = maxDim; }
+        else { dw = Math.round(dw / dh * maxDim); dh = maxDim; }
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width  = swap ? dh : dw;
+    canvas.height = swap ? dw : dh;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    if (rotation !== 0) {
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(rotation * Math.PI / 180);
+        ctx.drawImage(img, -dw / 2, -dh / 2, dw, dh);
+    } else {
+        ctx.drawImage(img, 0, 0, dw, dh);
+    }
+    return canvas.toDataURL('image/jpeg', quality);
+}
+
+function _renderPreview() {
+    const item = _queue[_queueIdx];
+    if (!item) return;
+    const preview = document.getElementById('mvPreview');
+    if (preview) { preview.src = item.dataUrl; preview.style.display = 'block'; }
+    const bar = document.getElementById('mvQueueBar');
+    if (bar) {
+        bar.style.display = 'flex';
+        const lbl = document.getElementById('mvQueueLbl');
+        if (lbl) lbl.textContent = `${_queueIdx + 1} / ${_queue.length}`;
+        const navs = bar.querySelectorAll('.mvQueueNav');
+        navs.forEach(b => b.style.display = _queue.length > 1 ? '' : 'none');
+    }
+    const btn = document.getElementById('mvSubmit');
+    if (btn) {
+        btn.disabled = false;
+        btn.textContent = _queue.length > 1 ? `Subir ${_queue.length} evidencias` : 'Subir evidencia';
+    }
+}
+
+function queueNav(dir) {
+    _queueIdx = Math.max(0, Math.min(_queue.length - 1, _queueIdx + dir));
+    _renderPreview();
+}
+
+function rotatePhoto() {
+    const item = _queue[_queueIdx];
+    if (!item || !item.img) return;
+    item.rotation = ((item.rotation || 0) + 90) % 360;
+    item.dataUrl = _compress(item.img, item.rotation);
+    _renderPreview();
+}
+
+// ── Envío ─────────────────────────────────────────────────────────────────────
+
+async function submitPhotos() {
+    const valid = _queue.filter(Boolean);
+    if (!valid.length) { _toast('Seleccioná una imagen primero', 'error'); return; }
+
+    const test     = _selectedTest;
+    const stepEl   = document.getElementById('mvStepSel');
+    const step     = stepEl ? (parseInt(stepEl.value) || null) : null;
+    const desc     = (document.getElementById('mvDesc').value.trim()) || 'Foto desde móvil';
+    const op       = document.getElementById('mvOp').value.trim();
+    const result   = document.getElementById('mvRes').value;
+
+    const btn = document.getElementById('mvSubmit');
+    btn.disabled = true;
+    btn.textContent = valid.length > 1 ? `Subiendo ${valid.length} fotos...` : 'Subiendo...';
+
+    const uploads = valid.map((item, i) => {
+        const meta = item.meta || {};
+        return fetch('/sync/photo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                token: _token,
+                id: `photo_${Date.now()}_${i}_${Math.random().toString(36).substr(2,5)}`,
+                testId: test.id,
+                step,
+                image: item.dataUrl,
+                description: desc,
+                operacion: op,
+                resultado: result,
+                executor: (_session && _session.executor) || '',
+                timestamp: new Date().toISOString(),
+                dimensions: '', size: '',
+                sourceType: item.sourceType || 'mobile-gallery',
+                originalFileName: meta.originalFileName || '',
+                cameraMake: '', cameraModel: '',
+                captureDate: '', gpsLatitude: null, gpsLongitude: null,
+                gpsLatitudeRef: null, gpsLongitudeRef: null, orientation: 1
+            })
+        }).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); });
+    });
+
+    const results = await Promise.allSettled(uploads);
+    const ok  = results.filter(r => r.status === 'fulfilled').length;
+    const err = results.filter(r => r.status === 'rejected').length;
+
+    if (err > 0 && ok === 0) {
+        _toast('Error al subir. Reintentá.', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Reintentar';
+        return;
+    }
+    if (err > 0) {
+        _toast(`${ok} subida${ok>1?'s':''}, ${err} fallida${err>1?'s':''}`, 'error');
+    } else {
+        _toast(ok > 1 ? `${ok} fotos enviadas` : 'Foto enviada a la PC', 'success');
+    }
+
+    // Actualizar contador local
+    test.evidenceCount = (test.evidenceCount || 0) + ok;
+
+    // Reset form
+    _queue = []; _queueIdx = 0;
+    const preview = document.getElementById('mvPreview');
+    if (preview) preview.style.display = 'none';
+    const bar = document.getElementById('mvQueueBar');
+    if (bar) bar.style.display = 'none';
+    ['mvCamInput','mvGalInput'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    ['mvDesc','mvOp'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    if (stepEl) stepEl.value = '';
+    btn.disabled = true;
+    btn.textContent = 'Subir evidencia';
+}
+</script>
+</body>
+</html>
