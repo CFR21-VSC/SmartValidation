@@ -3477,6 +3477,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         if path in ("/", ""):
             path = "/index.html"
+        elif path.endswith("/") and path != "/":
+            # Subdirectorio: intentar servir su index.html (ej. /captura/ → /captura/index.html)
+            path = path + "index.html"
         elif path in ("/client", "/client/") or path == "/firmas" or path.startswith("/firmas/"):
             # Portales viejos eliminados (2026-09-02: el estático /firmas/ y, antes, /client/)
             # — redirigen a la Suite de Revisión y Firmas real (servicio separado).
