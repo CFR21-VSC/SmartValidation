@@ -107,9 +107,11 @@ def get_dossier(project_id: str, user: dict = Depends(get_current_user)):
             tuple(doc_ids),
         ):
             open_round_docs.add(r["document_id"])
+        # parent_id IS NULL: solo cuenta hilos raíz sin resolver -- una respuesta (sección
+        # 2026-09-01) nunca se resuelve por sí sola, así que no debe inflar este contador.
         for r in db.execute(
             f"SELECT document_id, COUNT(*) AS n, MIN(created_at) AS oldest FROM rf_section_comments "
-            f"WHERE document_id IN ({placeholders}) AND resolved=0 GROUP BY document_id",
+            f"WHERE document_id IN ({placeholders}) AND resolved=0 AND parent_id IS NULL GROUP BY document_id",
             tuple(doc_ids),
         ):
             pending_by_doc[r["document_id"]] = {"n": r["n"], "oldest": r["oldest"]}

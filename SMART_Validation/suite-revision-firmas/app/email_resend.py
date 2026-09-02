@@ -85,6 +85,46 @@ def send_new_comment_email(
     send_email(to, f"Nuevo comentario en {doc_type}", html)
 
 
+def send_comment_reply_email(
+    to: str, display_name: str, project_id: str, doc_type: str,
+    section_key: str, author: str, content: str, link: str,
+) -> None:
+    preview = content if len(content) <= 300 else content[:300] + "…"
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;">
+      <h2 style="color:#0B2341;">Respondieron tu comentario en {_esc(doc_type)}</h2>
+      <p>Hola {_esc(display_name or to)},</p>
+      <p><strong>{_esc(author)}</strong> respondió tu comentario en <strong>{_esc(doc_type)}</strong>
+         (proyecto <strong>{_esc(project_id)}</strong>, sección {_esc(section_key)}):</p>
+      <p style="background:#f4f4f4;border-left:3px solid #C8921A;padding:10px 14px;
+         color:#333;white-space:pre-wrap;">{_esc(preview)}</p>
+      <p style="margin:24px 0;">
+        <a href="{link}" style="background:#C8921A;color:#0B2341;padding:10px 20px;
+           border-radius:6px;text-decoration:none;font-weight:700;">Ver documento</a>
+      </p>
+    </div>
+    """
+    send_email(to, f"Respondieron tu comentario en {doc_type}", html)
+
+
+def send_comment_resolved_email(
+    to: str, display_name: str, project_id: str, doc_type: str, section_key: str, link: str,
+) -> None:
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;">
+      <h2 style="color:#0B2341;">Tu comentario en {_esc(doc_type)} fue resuelto</h2>
+      <p>Hola {_esc(display_name or to)},</p>
+      <p>DRP marcó como resuelto tu comentario en <strong>{_esc(doc_type)}</strong>
+         (proyecto <strong>{_esc(project_id)}</strong>, sección {_esc(section_key)}).</p>
+      <p style="margin:24px 0;">
+        <a href="{link}" style="background:#C8921A;color:#0B2341;padding:10px 20px;
+           border-radius:6px;text-decoration:none;font-weight:700;">Ver documento</a>
+      </p>
+    </div>
+    """
+    send_email(to, f"Tu comentario en {doc_type} fue resuelto", html)
+
+
 def send_invite_email(to: str, display_name: str, invite_link: str) -> None:
     html = f"""
     <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;">

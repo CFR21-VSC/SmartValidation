@@ -66,12 +66,69 @@ def test_review_sign_blocked_by_unresolved_comment(drp_with_pin, cliente):
     assert r2.status_code == 200
 
 
+def test_review_sign_not_blocked_by_a_reply_on_a_resolved_thread(drp_with_pin, cliente):
+    """Regresión: una respuesta (hilo, sección 2026-09-01) queda siempre con resolved=0 --
+    si el conteo de pendientes no filtrara parent_id IS NULL, un hilo ya resuelto con al
+    menos una respuesta bloquearía la firma para siempre."""
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente
+    drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+    created = cli.post("/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "pregunta"})
+    comment_id = created.json()["comment"]["id"]
+    drp_with_pin.post(
+        "/projects/proj-1/documents/HLRA/sections/proposito/comments",
+        json={"content": "ya lo corrijo", "parent_id": comment_id},
+    )
+    drp_with_pin.patch(f"/projects/proj-1/documents/HLRA/sections/proposito/comments/{comment_id}/resolve")
+
+    r = cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "1234"})
+    assert r.status_code == 200, r.text
+
+
 def test_review_sign_wrong_pin(drp_with_pin, cliente):
     drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     cli, user_id = cliente
     drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
     r = cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "0000"})
     assert r.status_code == 401
+
+
+def test_pin_locks_out_after_five_failed_attempts(drp_with_pin, cliente):
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente
+    drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+
+    for _ in range(5):
+        r = cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "0000"})
+        assert r.status_code == 401
+
+    locked = cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "1234"})  # PIN correcto
+    assert locked.status_code == 429
+    assert "intentos" in locked.json()["detail"].lower()
+
+
+def test_pin_lockout_is_scoped_per_user(drp_with_pin, cliente):
+    """Un firmante bloqueado por PIN no afecta a otro firmante del mismo documento."""
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente
+    drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+    for _ in range(5):
+        cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "0000"})
+
+    # DRP (otro usuario, PIN propio) sigue pudiendo firmar sin problema.
+    r = drp_with_pin.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "9999"})
+    assert r.status_code == 200, r.text
+
+
+def test_pin_attempts_reset_after_success(drp_with_pin, cliente):
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente
+    drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+
+    for _ in range(4):  # justo por debajo del límite (5)
+        cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "0000"})
+    ok = cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "1234"})
+    assert ok.status_code == 200
 
 
 def test_review_sign_duplicate_rejected(drp_with_pin, cliente):

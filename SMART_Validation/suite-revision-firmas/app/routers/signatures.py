@@ -21,6 +21,14 @@ from ..security import pbkdf2_verify
 
 router = APIRouter(prefix="/projects/{project_id}/documents/{doc_type}", tags=["signatures"])
 
+# Fuerza bruta de PIN (sección pedida por el usuario 2026-09-01, tras detectar en auditoría
+# que sign_review/sign_approval verificaban el PIN sin ningún límite -- cualquier sesión
+# válida podía probar las 10.000 combinaciones de un PIN de 4 dígitos sin freno). Mismos
+# números y misma ventana que el lockout de login (auth.py).
+MAX_PIN_ATTEMPTS = 5
+PIN_ATTEMPT_WINDOW_S = 30 * 60
+PIN_LOCKOUT_S = 30 * 60
+
 
 class ReviewSignBody(BaseModel):
     pin: str
@@ -46,10 +54,52 @@ def _get_document_or_404(db, project_id: str, doc_type: str) -> dict:
     return dict(row)
 
 
+def _check_pin_lockout(db, user_id: str) -> float | None:
+    """Devuelve segundos restantes de bloqueo, o None si puede intentar."""
+    row = db.execute("SELECT locked_until FROM rf_pin_attempts WHERE user_id=?", (user_id,)).fetchone()
+    if row and row["locked_until"] and row["locked_until"] > time.time():
+        return row["locked_until"] - time.time()
+    return None
+
+
+def _register_failed_pin(db, user_id: str) -> None:
+    now = time.time()
+    row = db.execute(
+        "SELECT fail_count, first_fail_at FROM rf_pin_attempts WHERE user_id=?", (user_id,)
+    ).fetchone()
+    if row and row["first_fail_at"] and (now - row["first_fail_at"]) < PIN_ATTEMPT_WINDOW_S:
+        fail_count = row["fail_count"] + 1
+        first_fail_at = row["first_fail_at"]
+    else:
+        fail_count = 1
+        first_fail_at = now
+    locked_until = now + PIN_LOCKOUT_S if fail_count >= MAX_PIN_ATTEMPTS else None
+    db.execute(
+        "INSERT INTO rf_pin_attempts (user_id, fail_count, first_fail_at, locked_until) VALUES (?,?,?,?) "
+        "ON CONFLICT(user_id) DO UPDATE SET fail_count=excluded.fail_count, "
+        "first_fail_at=excluded.first_fail_at, locked_until=excluded.locked_until",
+        (user_id, fail_count, first_fail_at, locked_until),
+    )
+    db.commit()
+
+
+def _clear_pin_attempts(db, user_id: str) -> None:
+    db.execute("DELETE FROM rf_pin_attempts WHERE user_id=?", (user_id,))
+    db.commit()
+
+
 def _verify_pin(db, user_id: str, pin: str) -> None:
+    remaining = _check_pin_lockout(db, user_id)
+    if remaining is not None:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            f"Demasiados intentos fallidos. Probá de nuevo en {int(remaining // 60) + 1} minuto(s).",
+        )
     row = db.execute("SELECT pin_hash, pin_set FROM rf_users WHERE id=?", (user_id,)).fetchone()
     if not row or not row["pin_set"] or not pbkdf2_verify(pin, row["pin_hash"]):
+        _register_failed_pin(db, user_id)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "PIN incorrecto o no configurado")
+    _clear_pin_attempts(db, user_id)
 
 
 # ─── 5.1 Firma de Revisión ────────────────────────────────────────────────────
@@ -65,8 +115,11 @@ def sign_review(
     if doc["locked"]:
         raise HTTPException(status.HTTP_409_CONFLICT, "El documento está sellado")
 
+    # parent_id IS NULL: solo cuenta hilos raíz -- una respuesta (sección 2026-09-01) nunca
+    # se resuelve por sí sola, así que contarla acá bloquearía la firma para siempre en
+    # cuanto un hilo ya resuelto tuviera aunque sea una respuesta colgada.
     pending = db.execute(
-        "SELECT COUNT(*) AS n FROM rf_section_comments WHERE document_id=? AND resolved=0",
+        "SELECT COUNT(*) AS n FROM rf_section_comments WHERE document_id=? AND resolved=0 AND parent_id IS NULL",
         (doc["id"],),
     ).fetchone()
     if pending["n"] > 0:

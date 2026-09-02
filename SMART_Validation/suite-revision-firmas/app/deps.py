@@ -1,7 +1,9 @@
 """deps.py — Dependencias de FastAPI para autenticación y autorización."""
-from fastapi import Cookie, Depends, HTTPException, status
+import hmac
 
-from . import security
+from fastapi import Cookie, Depends, Header, HTTPException, status
+
+from . import config, security
 from .db import get_db
 
 
@@ -28,6 +30,19 @@ def require_drp(user: dict = Depends(get_current_user)) -> dict:
     if user.get("r") != "drp":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Requiere rol DRP")
     return user
+
+
+def require_service_token(x_bridge_key: str = Header(default="")) -> dict:
+    """Auth del bridge servicio-a-servicio (router bridge.py) -- NO mira la cookie de
+    sesión en absoluto, solo el header X-Bridge-Key. Un usuario logueado (DRP o cliente)
+    no tiene forma de autenticarse acá; solo lo puede hacer quien conozca BRIDGE_API_KEY
+    (la Suite Documental). Si el server no tiene BRIDGE_API_KEY configurada, rechaza
+    siempre -- nunca queda abierto por falta de configuración.
+    Devuelve un actor sintético para loguear en el audit trail (log_event/log_system_event
+    solo necesitan la clave "u", y usan .get() para el resto)."""
+    if not config.BRIDGE_API_KEY or not hmac.compare_digest(x_bridge_key, config.BRIDGE_API_KEY):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "No autorizado")
+    return {"uid": None, "u": "suite-documental"}
 
 
 def check_document_access(user: dict, project_id: str, doc_type: str) -> None:

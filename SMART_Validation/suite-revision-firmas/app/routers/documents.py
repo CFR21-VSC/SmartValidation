@@ -26,6 +26,48 @@ from .projects import ensure_project
 
 router = APIRouter(prefix="/projects/{project_id}/documents", tags=["documents"])
 
+# Sin prefijo /projects/{project_id} -- es "mis pendientes" cruzando TODOS los proyectos a
+# la vez (sección 2026-09-01, mismo criterio que audit_router en projects.py: no depende de
+# estar parado dentro de un proyecto).
+me_router = APIRouter(prefix="/me", tags=["comments"])
+
+
+@me_router.get("/pending-comments")
+def my_pending_comments(user: dict = Depends(get_current_user)):
+    """DRP ve todos los hilos raíz sin resolver del sistema -- es el único rol que puede
+    resolver, así que todo pendiente es accionable por él (sección 2026-09-01). Cliente ve
+    solo los de los documentos que tiene con grant -- mismo criterio de visibilidad que
+    list_documents/check_document_access, sin inventar un concepto de acceso nuevo. Un solo
+    SELECT en cada rama, sin loop -- evita el patrón N+1 (mismo criterio pedido por el
+    usuario para el bridge)."""
+    db = get_db()
+    base_select = (
+        "SELECT c.id AS comment_id, c.section_key, c.content, c.username AS author, "
+        "c.created_at, d.project_id, d.doc_type "
+        "FROM rf_section_comments c JOIN rf_documents d ON d.id = c.document_id "
+    )
+    if user.get("r") == "drp":
+        rows = db.execute(
+            base_select + "WHERE c.parent_id IS NULL AND c.resolved = 0 ORDER BY c.created_at",
+        ).fetchall()
+    else:
+        rows = db.execute(
+            base_select + "JOIN rf_document_access_grants g "
+            "ON g.project_id = d.project_id AND g.doc_type = d.doc_type "
+            "WHERE g.user_id = ? AND c.parent_id IS NULL AND c.resolved = 0 ORDER BY c.created_at",
+            (user.get("uid"),),
+        ).fetchall()
+
+    items = []
+    for r in rows:
+        content = r["content"] or ""
+        items.append({
+            "project_id": r["project_id"], "doc_type": r["doc_type"], "section_key": r["section_key"],
+            "comment_id": r["comment_id"], "author": r["author"], "created_at": r["created_at"],
+            "content_preview": content if len(content) <= 200 else content[:200] + "…",
+        })
+    return {"ok": True, "count": len(items), "items": items}
+
 
 class LoadDocumentBody(BaseModel):
     json_data: dict[str, Any]
@@ -33,13 +75,14 @@ class LoadDocumentBody(BaseModel):
 
 class CommentBody(BaseModel):
     content: str
+    parent_id: int | None = None  # None = comentario raíz; si no, responde a esa raíz
 
 
-@router.put("/{doc_type}")
-def load_document(project_id: str, doc_type: str, body: LoadDocumentBody, user: dict = Depends(require_drp)):
-    """DRP carga (o reemplaza) el JSON fuente. Rechaza si el documento ya está sellado/inmutable
-    o si el proyecto está cerrado/archivado."""
-    db = get_db()
+def _upsert_document(db, project_id: str, doc_type: str, json_data: dict, actor: dict) -> dict:
+    """Carga o reemplaza el JSON fuente de un documento. Rechaza si el documento ya está
+    sellado/inmutable o si el proyecto está cerrado/archivado. Compartida entre la carga
+    manual (`load_document`, sesión DRP) y el bridge de servicio (push automático desde la
+    Suite Documental) -- `actor` es el dict a loguear, solo necesita la clave "u"."""
     ensure_project_active(db, project_id)
     existing = db.execute(
         "SELECT id, locked FROM rf_documents WHERE project_id=? AND doc_type=?", (project_id, doc_type)
@@ -51,7 +94,7 @@ def load_document(project_id: str, doc_type: str, body: LoadDocumentBody, user: 
     if existing:
         db.execute(
             "UPDATE rf_documents SET json_data=?, loaded_by=?, updated_at=? WHERE id=?",
-            (json.dumps(body.json_data), user["u"], now, existing["id"]),
+            (json.dumps(json_data), actor["u"], now, existing["id"]),
         )
         doc_id = existing["id"]
     else:
@@ -59,14 +102,22 @@ def load_document(project_id: str, doc_type: str, body: LoadDocumentBody, user: 
         db.execute(
             "INSERT INTO rf_documents (id, project_id, doc_type, json_data, loaded_by, created_at, updated_at) "
             "VALUES (?,?,?,?,?,?,?)",
-            (doc_id, project_id, doc_type, json.dumps(body.json_data), user["u"], now, now),
+            (doc_id, project_id, doc_type, json.dumps(json_data), actor["u"], now, now),
         )
-    created_project = ensure_project(db, project_id, user["u"])
+    created_project = ensure_project(db, project_id, actor["u"])
     db.commit()
     if created_project:
-        log_system_event(user, "project_created", f"{user['u']} creó el proyecto", project_id=project_id)
-    log_event(project_id, doc_type, user, "document_loaded", f"{user['u']} cargó {doc_type}")
+        log_system_event(actor, "project_created", f"{actor['u']} creó el proyecto", project_id=project_id)
+    log_event(project_id, doc_type, actor, "document_loaded", f"{actor['u']} cargó {doc_type}")
     return {"ok": True, "document_id": doc_id}
+
+
+@router.put("/{doc_type}")
+def load_document(project_id: str, doc_type: str, body: LoadDocumentBody, user: dict = Depends(require_drp)):
+    """DRP carga (o reemplaza) el JSON fuente. Rechaza si el documento ya está sellado/inmutable
+    o si el proyecto está cerrado/archivado."""
+    db = get_db()
+    return _upsert_document(db, project_id, doc_type, body.json_data, user)
 
 
 @router.delete("/{doc_type}")
@@ -138,7 +189,7 @@ def get_document(project_id: str, doc_type: str, user: dict = Depends(get_curren
     db = get_db()
     doc = _get_document_or_404(db, project_id, doc_type)
     comments = db.execute(
-        "SELECT id, section_key, content, resolved, user_id, username, created_at "
+        "SELECT id, section_key, content, resolved, user_id, username, created_at, parent_id "
         "FROM rf_section_comments WHERE document_id=? ORDER BY section_key, created_at",
         (doc["id"],),
     ).fetchall()
@@ -189,10 +240,14 @@ def add_comment(
 ):
     """Guardado explícito (no autosave) — el revisor escribe y toca "Guardar comentario".
     Cada comentario es una fila nueva, atribuida a su autor; no pisa comentarios de otros
-    revisores en la misma sección. Nunca toca rf_documents.json_data. Dispara un mail a
-    TODO DRP activo, sin excluir al autor — confirmado con el usuario (2026-08-31): con un
-    solo DRP en el sistema, excluir al autor significaba que nunca le llegaba nada a él
-    mismo cuando comentaba."""
+    revisores en la misma sección. Nunca toca rf_documents.json_data.
+
+    Sin `parent_id`: es un comentario raíz nuevo, dispara mail a TODO DRP activo, sin excluir
+    al autor — confirmado con el usuario (2026-08-31): con un solo DRP en el sistema, excluir
+    al autor significaba que nunca le llegaba nada a él mismo cuando comentaba.
+
+    Con `parent_id`: es una respuesta (hilo plano, sección pedida 2026-09-01) -- notifica SOLO
+    al autor del comentario raíz, no a todo DRP, salvo que se esté respondiendo a sí mismo."""
     check_document_access(user, project_id, doc_type)
     db = get_db()
     ensure_project_active(db, project_id)
@@ -200,33 +255,62 @@ def add_comment(
     if doc["locked"]:
         raise HTTPException(status.HTTP_409_CONFLICT, "El documento está sellado — no admite comentarios")
 
+    parent = None
+    if body.parent_id is not None:
+        parent = db.execute(
+            "SELECT id, document_id, parent_id, user_id FROM rf_section_comments WHERE id=?",
+            (body.parent_id,),
+        ).fetchone()
+        if not parent or parent["document_id"] != doc["id"]:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Comentario padre no encontrado en este documento")
+        if parent["parent_id"] is not None:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "No se puede responder a una respuesta -- respondé al comentario raíz del hilo",
+            )
+
     now = time.time()
     cur = db.execute(
-        "INSERT INTO rf_section_comments (document_id, section_key, content, resolved, user_id, username, created_at) "
-        "VALUES (?,?,?,0,?,?,?)",
-        (doc["id"], section_key, body.content, user["uid"], user["u"], now),
+        "INSERT INTO rf_section_comments "
+        "(document_id, section_key, content, resolved, user_id, username, created_at, parent_id) "
+        "VALUES (?,?,?,0,?,?,?,?)",
+        (doc["id"], section_key, body.content, user["uid"], user["u"], now, body.parent_id),
     )
     comment_id = cur.lastrowid
     db.commit()
     log_event(
-        project_id, doc_type, user, "comment_added",
-        f"{user['u']} comentó la sección '{section_key}'",
+        project_id, doc_type, user,
+        "comment_reply_added" if parent else "comment_added",
+        f"{user['u']} " + (
+            f"respondió un comentario en la sección '{section_key}'" if parent
+            else f"comentó la sección '{section_key}'"
+        ),
     )
 
     doc_link = f"{config.APP_BASE_URL}/app/review.html?project={project_id}&doc={doc_type}"
-    drp_users = db.execute(
-        "SELECT email, display_name FROM rf_users WHERE role='drp' AND is_active=1"
-    ).fetchall()
-    for drp in drp_users:
-        email_resend.send_new_comment_email(
-            drp["email"], drp["display_name"], project_id, doc_type, section_key, user["u"], body.content, doc_link,
-        )
+    if parent:
+        if parent["user_id"] and parent["user_id"] != user["uid"]:
+            author = db.execute("SELECT email, display_name FROM rf_users WHERE id=?", (parent["user_id"],)).fetchone()
+            if author and author["email"]:
+                email_resend.send_comment_reply_email(
+                    author["email"], author["display_name"], project_id, doc_type,
+                    section_key, user["u"], body.content, doc_link,
+                )
+    else:
+        drp_users = db.execute(
+            "SELECT email, display_name FROM rf_users WHERE role='drp' AND is_active=1"
+        ).fetchall()
+        for drp in drp_users:
+            email_resend.send_new_comment_email(
+                drp["email"], drp["display_name"], project_id, doc_type, section_key, user["u"], body.content, doc_link,
+            )
 
     return {
         "ok": True,
         "comment": {
             "id": comment_id, "section_key": section_key, "content": body.content,
             "resolved": 0, "user_id": user["uid"], "username": user["u"], "created_at": now,
+            "parent_id": body.parent_id,
         },
     }
 
@@ -244,17 +328,23 @@ def get_people_book(project_id: str, doc_type: str, user: dict = Depends(require
     return {"ok": True, "events": [dict(r) for r in rows]}
 
 
+def _list_comments(db, project_id: str, doc_type: str) -> list[dict]:
+    """Comentarios de sección de un documento, más viejo primero por sección. Compartida
+    entre el endpoint de usuario (`list_comments`) y el bridge de servicio."""
+    doc = _get_document_or_404(db, project_id, doc_type)
+    rows = db.execute(
+        "SELECT id, section_key, content, resolved, user_id, username, created_at, parent_id "
+        "FROM rf_section_comments WHERE document_id=? ORDER BY section_key, created_at",
+        (doc["id"],),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
 @router.get("/{doc_type}/comments")
 def list_comments(project_id: str, doc_type: str, user: dict = Depends(get_current_user)):
     check_document_access(user, project_id, doc_type)
     db = get_db()
-    doc = _get_document_or_404(db, project_id, doc_type)
-    rows = db.execute(
-        "SELECT id, section_key, content, resolved, user_id, username, created_at "
-        "FROM rf_section_comments WHERE document_id=? ORDER BY section_key, created_at",
-        (doc["id"],),
-    ).fetchall()
-    return {"ok": True, "comments": [dict(r) for r in rows]}
+    return {"ok": True, "comments": _list_comments(db, project_id, doc_type)}
 
 
 @router.patch("/{doc_type}/sections/{section_key}/comments/{comment_id}/resolve")
@@ -262,15 +352,29 @@ def resolve_comment(
     project_id: str, doc_type: str, section_key: str, comment_id: int, user: dict = Depends(require_drp),
 ):
     """DRP confirma que ya consideró ese comentario puntual — habilita la firma de revisión
-    cuando todos los comentarios del documento están resueltos (sección 5.1)."""
+    cuando todos los comentarios del documento están resueltos (sección 5.1). Avisa por mail
+    al autor del comentario (sección pedida 2026-09-01), salvo que DRP se esté resolviendo
+    un comentario propio."""
     db = get_db()
     doc = _get_document_or_404(db, project_id, doc_type)
-    result = db.execute(
+    comment = db.execute(
+        "SELECT user_id FROM rf_section_comments WHERE id=? AND document_id=? AND section_key=?",
+        (comment_id, doc["id"], section_key),
+    ).fetchone()
+    if not comment:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Comentario no encontrado")
+    db.execute(
         "UPDATE rf_section_comments SET resolved=1 WHERE id=? AND document_id=? AND section_key=?",
         (comment_id, doc["id"], section_key),
     )
-    if result.rowcount == 0:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Comentario no encontrado")
     db.commit()
     log_event(project_id, doc_type, user, "comment_resolved", f"DRP resolvió un comentario en la sección '{section_key}'")
+
+    if comment["user_id"] and comment["user_id"] != user["uid"]:
+        author = db.execute("SELECT email, display_name FROM rf_users WHERE id=?", (comment["user_id"],)).fetchone()
+        if author and author["email"]:
+            doc_link = f"{config.APP_BASE_URL}/app/review.html?project={project_id}&doc={doc_type}"
+            email_resend.send_comment_resolved_email(
+                author["email"], author["display_name"], project_id, doc_type, section_key, doc_link,
+            )
     return {"ok": True}

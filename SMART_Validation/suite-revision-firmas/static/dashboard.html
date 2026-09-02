@@ -125,6 +125,23 @@
     </div>
 </div>
 
+<!-- Modal: alerta de comentarios pendientes -- cruza TODOS los proyectos, salta sola al
+     loguearse, sin tener que entrar a ningún documento puntual (sección 2026-09-01, pedido
+     explícito del usuario: "que no pase inadvertido") -->
+<div class="rf-modal-backdrop" id="pending-alert-backdrop" style="display:none;">
+    <div class="rf-modal" style="width:min(560px, 92vw); border:2px solid var(--danger);">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+            <span style="font-size:24px;">⚠️</span>
+            <h3 style="margin:0;">Tenés <span id="pending-alert-count">0</span> comentario(s) pendiente(s)</h3>
+        </div>
+        <div class="rf-label" style="margin-bottom:14px;">Sin resolver todavía, cruzando todos tus proyectos.</div>
+        <div id="pending-alert-list" style="max-height:50vh; overflow-y:auto;"></div>
+        <div style="margin-top:16px; text-align:right;">
+            <button class="rf-btn-secondary" id="pending-alert-close">Cerrar</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal: confirmación de acciones destructivas -->
 <div class="rf-modal-backdrop" id="confirm-backdrop" style="display:none;">
     <div class="rf-modal" style="width:min(440px, 92vw);">
@@ -237,6 +254,12 @@ document.getElementById('dossier-close').addEventListener('click', closeDossierP
 document.getElementById('dossier-backdrop').addEventListener('click', (e) => {
     if (e.target.id === 'dossier-backdrop') closeDossierPanel();
 });
+document.getElementById('pending-alert-close').addEventListener('click', () => {
+    document.getElementById('pending-alert-backdrop').style.display = 'none';
+});
+document.getElementById('pending-alert-backdrop').addEventListener('click', (e) => {
+    if (e.target.id === 'pending-alert-backdrop') document.getElementById('pending-alert-backdrop').style.display = 'none';
+});
 
 const includeArchivedLabel = document.getElementById('include-archived-label');
 const includeArchivedToggle = document.getElementById('include-archived-toggle');
@@ -285,6 +308,32 @@ async function init() {
     }
 
     await loadProjects();
+    await checkPendingCommentsAlert();
+}
+
+// ---------------------------------------------------------------------------
+// Alerta de comentarios pendientes -- salta sola al entrar al dashboard (sección
+// 2026-09-01), sin depender de haber abierto antes un documento puntual. DRP ve todo el
+// sistema; cliente solo lo suyo (el endpoint ya hace ese scoping).
+// ---------------------------------------------------------------------------
+async function checkPendingCommentsAlert() {
+    const { status, data } = await apiFetch('/me/pending-comments');
+    if (status !== 200 || !data.ok || !data.count) return;
+
+    document.getElementById('pending-alert-count').textContent = data.count;
+    document.getElementById('pending-alert-list').innerHTML = data.items.map(i => `
+        <a href="review.html?project=${encodeURIComponent(i.project_id)}&doc=${encodeURIComponent(i.doc_type)}"
+           style="display:block; text-decoration:none; color:inherit; padding:10px 12px; margin-bottom:8px;
+                  border:1px solid var(--border); border-radius:8px; background:var(--bg);">
+            <div style="display:flex; justify-content:space-between; gap:8px; font-size:12px; margin-bottom:4px;">
+                <strong>${escHtml(i.project_id)} · ${escHtml(i.doc_type)}</strong>
+                <span style="color:var(--text-muted);">${fmtDateTime(i.created_at)}</span>
+            </div>
+            <div style="font-size:11px; color:var(--gold);">[${escHtml(i.section_key)}] · ${escHtml(i.author)}</div>
+            <div style="font-size:12.5px; color:var(--text); margin-top:4px; white-space:pre-wrap;">${escHtml(i.content_preview)}</div>
+        </a>
+    `).join('');
+    document.getElementById('pending-alert-backdrop').style.display = 'flex';
 }
 
 async function loadProjects() {

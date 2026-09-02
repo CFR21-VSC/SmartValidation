@@ -60,6 +60,18 @@ CREATE TABLE IF NOT EXISTS rf_login_attempts (
     locked_until  REAL
 );
 
+-- Mismo mecanismo que rf_login_attempts, pero para el PIN de firma (sección pedida por
+-- el usuario 2026-09-01, tras auditoría: sign_review/sign_approval verificaban el PIN sin
+-- ningún límite de intentos). Clave por user_id (no username): el PIN se verifica siempre
+-- con una sesión ya autenticada, así que hay un uid disponible y no hace falta trackear
+-- por string libre como en el login previo a autenticarse.
+CREATE TABLE IF NOT EXISTS rf_pin_attempts (
+    user_id       TEXT PRIMARY KEY,
+    fail_count    INTEGER NOT NULL DEFAULT 0,
+    first_fail_at REAL,
+    locked_until  REAL
+);
+
 -- Fase 2: Capa 3 — documentos cargados a mano por DRP + correcciones de revisión.
 
 CREATE TABLE IF NOT EXISTS rf_documents (
@@ -97,6 +109,10 @@ CREATE TABLE IF NOT EXISTS rf_section_corrections (
 -- y por vez, cada uno atribuido a su autor (sección 3). Nunca pisa rf_documents.json_data,
 -- y nunca se mezcla con el contenido del documento en ninguna vista previa (2026-08-31,
 -- confirmado con el usuario: "Ver PDF" siempre muestra el original).
+-- parent_id: NULL = comentario raíz; si no, es una respuesta al comentario raíz cuyo id
+-- referencia (siempre a la raíz, nunca a otra respuesta -- hilo plano, no anidado, sección
+-- pedida por el usuario 2026-09-01: "ida y vuelta" simple, sin árbol). "resolved" es un
+-- concepto de la raíz -- las respuestas no se resuelven independientemente.
 CREATE TABLE IF NOT EXISTS rf_section_comments (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     document_id   TEXT NOT NULL REFERENCES rf_documents(id) ON DELETE CASCADE,
@@ -105,9 +121,12 @@ CREATE TABLE IF NOT EXISTS rf_section_comments (
     resolved      INTEGER DEFAULT 0,  -- DRP lo marca resuelto cuando ya lo consideró/aplicó
     user_id       TEXT,
     username      TEXT,
-    created_at    REAL
+    created_at    REAL,
+    parent_id     INTEGER REFERENCES rf_section_comments(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_rf_comments_doc ON rf_section_comments(document_id);
+-- Usado por GET /me/pending-comments (sección 2026-09-01) -- se consulta en cada login.
+CREATE INDEX IF NOT EXISTS idx_rf_comments_pending ON rf_section_comments(resolved, parent_id);
 
 -- Libro de Validación — People / audit trail (capa de datos, sin UI todavía — sección 6).
 CREATE TABLE IF NOT EXISTS rf_people_book_events (

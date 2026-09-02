@@ -36,3 +36,10 @@ INVITE_TTL_H: int = int(os.environ.get("RF_INVITE_TTL_H", "72"))
 # cada verificación de PIN/password tarda ~300ms, que se multiplica por decenas de
 # llamadas en los tests de firma (una corrida completa pasó de segundos a minutos).
 PBKDF2_ITERS: int = int(os.environ.get("RF_PBKDF2_ITERS", "600000"))
+
+# Secreto compartido con la Suite Documental (server.py) para el bridge servicio-a-servicio
+# (router bridge.py): push de documentos + lectura de comentarios, sin pasar por sesión de
+# usuario. Mismo valor tiene que estar seteado en las env vars de la Suite Documental. Vacío
+# por default a propósito -- con esto vacío, require_service_token rechaza TODO, nunca deja
+# el bridge abierto por falta de configuración.
+BRIDGE_API_KEY: str = os.environ.get("BRIDGE_API_KEY", "")

@@ -53,7 +53,11 @@ if USE_PG:
     def _ensure_pool() -> None:
         global _pg_pool
         if _pg_pool is None:
-            _pg_pool = psycopg2.pool.ThreadedConnectionPool(2, 20, DATABASE_URL)
+            # sslmode='require' explícito: sin esto, psycopg2 cae a 'prefer' por default y
+            # se conecta en texto plano en silencio si el server no ofrece TLS. Si el
+            # DATABASE_URL ya trae su propio sslmode, este kwarg tiene precedencia (lo
+            # sube a 'require', nunca lo baja) -- ver psycopg2.extensions.make_dsn().
+            _pg_pool = psycopg2.pool.ThreadedConnectionPool(2, 20, DATABASE_URL, sslmode="require")
 
     _OR_IGNORE_RE   = re.compile(r'\bINSERT\s+OR\s+IGNORE\b', re.IGNORECASE)
     _BEGIN_IMMED_RE = re.compile(r'\bBEGIN\s+IMMEDIATE\b', re.IGNORECASE)
@@ -230,6 +234,27 @@ def init_db() -> None:
     db.executescript(schema)
     db.commit()
     _migrate_legacy_corrections(db)
+    _migrate_add_comment_parent_id(db)
+
+
+def _migrate_add_comment_parent_id(db) -> None:
+    """Agrega parent_id a rf_section_comments (hilos de respuesta, 2026-09-01) si el schema
+    es de antes de este cambio -- CREATE TABLE IF NOT EXISTS no altera tablas que ya existen,
+    así que las DB creadas antes de hoy necesitan este ALTER explícito, una sola vez."""
+    if USE_PG:
+        exists = db.execute(
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_name='rf_section_comments' AND column_name='parent_id'"
+        ).fetchone()
+    else:
+        cols = db.execute("PRAGMA table_info(rf_section_comments)").fetchall()
+        exists = any(c["name"] == "parent_id" for c in cols)
+    if not exists:
+        db.execute(
+            "ALTER TABLE rf_section_comments ADD COLUMN parent_id INTEGER "
+            "REFERENCES rf_section_comments(id) ON DELETE CASCADE"
+        )
+        db.commit()
 
 
 def _migrate_legacy_corrections(db) -> None:
@@ -273,6 +298,7 @@ def reset_db_for_tests() -> None:
         "rf_invites",
         "rf_sessions",
         "rf_login_attempts",
+        "rf_pin_attempts",
         "rf_users",
     ):
         db.execute(f"DELETE FROM {table}")

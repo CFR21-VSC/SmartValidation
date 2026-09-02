@@ -205,6 +205,145 @@ def test_add_comment_notifies_every_active_drp_user_including_the_author(drp_cli
     assert calls[1][1] == "fbongiovanni"
 
 
+# ─── Hilos de respuesta (parent_id) + emails ─────────────────────────────────
+
+def test_reply_to_comment_keeps_parent_id(drp_client, cliente_client):
+    drp_client.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente_client
+    drp_client.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+
+    root = cli.post("/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "pregunta"})
+    root_id = root.json()["comment"]["id"]
+    assert root.json()["comment"]["parent_id"] is None
+
+    reply = drp_client.post(
+        "/projects/proj-1/documents/HLRA/sections/proposito/comments",
+        json={"content": "respuesta", "parent_id": root_id},
+    )
+    assert reply.status_code == 200, reply.text
+    assert reply.json()["comment"]["parent_id"] == root_id
+
+    comments = cli.get("/projects/proj-1/documents/HLRA/comments").json()["comments"]
+    by_id = {c["id"]: c for c in comments}
+    assert by_id[root_id]["parent_id"] is None
+    assert by_id[reply.json()["comment"]["id"]]["parent_id"] == root_id
+
+
+def test_cannot_reply_to_a_reply(drp_client, cliente_client):
+    """Hilo plano, no anidado -- una respuesta siempre apunta a la raíz."""
+    drp_client.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente_client
+    drp_client.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+
+    root_id = cli.post(
+        "/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "pregunta"}
+    ).json()["comment"]["id"]
+    reply_id = drp_client.post(
+        "/projects/proj-1/documents/HLRA/sections/proposito/comments",
+        json={"content": "respuesta", "parent_id": root_id},
+    ).json()["comment"]["id"]
+
+    r = cli.post(
+        "/projects/proj-1/documents/HLRA/sections/proposito/comments",
+        json={"content": "respuesta a la respuesta", "parent_id": reply_id},
+    )
+    assert r.status_code == 400
+
+
+def test_cannot_reply_to_comment_of_another_document(drp_client):
+    drp_client.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    drp_client.put("/projects/proj-1/documents/URS", json={"json_data": {"type": "URS"}})
+    root_id = drp_client.post(
+        "/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "pregunta"}
+    ).json()["comment"]["id"]
+
+    r = drp_client.post(
+        "/projects/proj-1/documents/URS/sections/proposito/comments",
+        json={"content": "no debería poder", "parent_id": root_id},
+    )
+    assert r.status_code == 400
+
+
+def test_reply_notifies_only_the_parent_author(drp_client, cliente_client, monkeypatch):
+    reply_calls = []
+    root_calls = []
+    monkeypatch.setattr(
+        "app.routers.documents.email_resend.send_comment_reply_email",
+        lambda to, display_name, project_id, doc_type, section_key, author, content, link: reply_calls.append(to),
+    )
+    monkeypatch.setattr(
+        "app.routers.documents.email_resend.send_new_comment_email",
+        lambda to, display_name, project_id, doc_type, section_key, author, content, link: root_calls.append(to),
+    )
+    drp_client.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente_client
+    drp_client.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+
+    root_id = cli.post(
+        "/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "pregunta"}
+    ).json()["comment"]["id"]
+    assert len(root_calls) == 1  # el comentario raíz notificó a DRP, como siempre
+
+    drp_client.post(
+        "/projects/proj-1/documents/HLRA/sections/proposito/comments",
+        json={"content": "respuesta", "parent_id": root_id},
+    )
+    assert reply_calls == ["revisor@example.com"]  # solo al autor del padre (cliente)
+    assert len(root_calls) == 1  # la respuesta no dispara el mail de "nuevo comentario"
+
+
+def test_replying_to_your_own_comment_does_not_notify_yourself(drp_client, monkeypatch):
+    reply_calls = []
+    monkeypatch.setattr(
+        "app.routers.documents.email_resend.send_comment_reply_email",
+        lambda *a, **k: reply_calls.append(a),
+    )
+    drp_client.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    root_id = drp_client.post(
+        "/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "nota propia"}
+    ).json()["comment"]["id"]
+
+    drp_client.post(
+        "/projects/proj-1/documents/HLRA/sections/proposito/comments",
+        json={"content": "sigo yo mismo", "parent_id": root_id},
+    )
+    assert reply_calls == []
+
+
+def test_resolve_notifies_the_comment_author(drp_client, cliente_client, monkeypatch):
+    resolved_calls = []
+    monkeypatch.setattr(
+        "app.routers.documents.email_resend.send_comment_resolved_email",
+        lambda to, display_name, project_id, doc_type, section_key, link: resolved_calls.append(to),
+    )
+    drp_client.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente_client
+    drp_client.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+
+    comment_id = cli.post(
+        "/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "pregunta"}
+    ).json()["comment"]["id"]
+
+    r = drp_client.patch(f"/projects/proj-1/documents/HLRA/sections/proposito/comments/{comment_id}/resolve")
+    assert r.status_code == 200
+    assert resolved_calls == ["revisor@example.com"]
+
+
+def test_resolving_your_own_comment_does_not_notify_yourself(drp_client, monkeypatch):
+    resolved_calls = []
+    monkeypatch.setattr(
+        "app.routers.documents.email_resend.send_comment_resolved_email",
+        lambda *a, **k: resolved_calls.append(a),
+    )
+    drp_client.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    comment_id = drp_client.post(
+        "/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "nota propia"}
+    ).json()["comment"]["id"]
+
+    drp_client.patch(f"/projects/proj-1/documents/HLRA/sections/proposito/comments/{comment_id}/resolve")
+    assert resolved_calls == []
+
+
 def test_list_projects_scoped_by_role(drp_client, cliente_client):
     drp_client.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     drp_client.put("/projects/proj-2/documents/URS", json={"json_data": {"type": "URS"}})

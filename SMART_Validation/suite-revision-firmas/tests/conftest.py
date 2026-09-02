@@ -20,6 +20,7 @@ os.environ["RF_SUPERADMIN_USERNAME"] = "fbongiovanni"
 os.environ["RF_SUPERADMIN_PASSWORD"] = "test-superadmin-pw-123"
 os.environ["RF_SUPERADMIN_EMAIL"] = "fbongiovanni@test.local"
 os.environ.setdefault("RESEND_API_KEY", "")  # sin key → email es no-op en tests
+os.environ["BRIDGE_API_KEY"] = "test-bridge-key"
 os.environ.pop("DATABASE_URL", None)  # forzar modo SQLite en tests
 
 import pytest

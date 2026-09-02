@@ -21,6 +21,7 @@ set RF_SUPERADMIN_USERNAME=fbongiovanni
 set RF_SUPERADMIN_PASSWORD=dev12345678
 set RF_SUPERADMIN_EMAIL=fbongiovanni@drpassurance.com
 set RF_SUPERADMIN_DISPLAY=Federico Bongiovanni
+set BRIDGE_API_KEY=dev-bridge-key-local-no-usar-en-produccion
 
 :: ── Browser ──────────────────────────────────────────────────────────────
 set CHROME_PROFILE=%LOCALAPPDATA%\SuiteRevisionFirmas\ChromeProfile

@@ -384,6 +384,27 @@ def test_dossier_flags_stale_pending_comments(drp_with_pin):
     assert stale["pending_comments_stale"] is True
 
 
+def test_dossier_pending_comments_does_not_count_replies(drp_with_pin):
+    """Regresión: una respuesta (hilo, sección 2026-09-01) queda siempre con resolved=0 --
+    si el conteo no filtrara parent_id IS NULL, un solo hilo con respuestas contaría como
+    varios comentarios pendientes."""
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    root_id = drp_with_pin.post(
+        "/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "pregunta"}
+    ).json()["comment"]["id"]
+    drp_with_pin.post(
+        "/projects/proj-1/documents/HLRA/sections/proposito/comments",
+        json={"content": "respuesta 1", "parent_id": root_id},
+    )
+    drp_with_pin.post(
+        "/projects/proj-1/documents/HLRA/sections/proposito/comments",
+        json={"content": "respuesta 2", "parent_id": root_id},
+    )
+
+    doc = drp_with_pin.get("/projects/proj-1/dossier").json()["documents"][0]
+    assert doc["pending_comments"] == 1  # el hilo cuenta una sola vez, no 3
+
+
 def test_dossier_requires_auth(client):
     r = client.get("/projects/proj-1/dossier")
     assert r.status_code == 401
