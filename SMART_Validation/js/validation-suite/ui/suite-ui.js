@@ -1989,8 +1989,6 @@
     function vsUpdateEVAIBtn(parsed) {
         const btn = document.getElementById('vsBtnGenEV');
         if (btn) btn.style.display = (parsed && _EV_TYPES.has(parsed.type)) ? '' : 'none';
-        const btnRev = document.getElementById('vsBtnRevisiones');
-        if (btnRev) btnRev.style.display = parsed ? '' : 'none';
         // "Enviar a Firmas" / "Comentarios Firmas" NO se controlan acá -- ver
         // vsUpdateContextBadge(). Tienen que estar atados a ctx.kind==='project' (el doc
         // realmente guardado en la DB del servidor), no a "hay JSON válido en el editor".

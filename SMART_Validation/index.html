@@ -21,8 +21,6 @@
     <!-- AI Generator — lectura de PDF y Word (local, sin CDN) -->
     <script src="lib/pdf.min.js"></script>
     <script src="lib/mammoth.browser.min.js"></script>
-    <!-- signature-canvas.js cargado temprano para que la captura mobile (?sigtoken=) no espere -->
-    <script src="js/signature-canvas.js"></script>
 </head>
 
 <body>
@@ -398,28 +396,6 @@
         })();
     </script>
 
-    <!-- ════════════════════════════════════════════════════════════════════
-         MODO MOBILE — CAPTURA DE FIRMA DESDE CELULAR
-         Si la URL tiene ?sigtoken=XXX, esta UI toma control: muestra un
-         canvas full-screen para garabatear con el dedo y submitea el PNG
-         al endpoint /sync/signature. La PC está poleando ese token cada 2s.
-         ════════════════════════════════════════════════════════════════════ -->
-    <div id="mobileSignatureOverlay" style="display:none; position:fixed; inset:0; z-index:100000; background:linear-gradient(135deg, #0B2341 0%, #0E2435 100%); flex-direction:column; padding:14px; box-sizing:border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-        <div style="text-align:center; color:#FFF; padding:8px 0 14px 0;">
-            <div style="font-size:13px; font-weight:700; letter-spacing:2px; color:#C8921A; text-transform:uppercase;">DRP Validation Suite</div>
-            <div style="font-size:11px; color:#AFBDC8; margin-top:2px;">Capturando firma manuscrita</div>
-        </div>
-        <div style="flex:1; background:#FFFFFF; border-radius:8px; overflow:hidden; position:relative; border:2px dashed #C8921A;">
-            <canvas id="mobileSigCanvas" style="width:100%; height:100%; display:block; touch-action:none;"></canvas>
-            <div id="mobileSigHint" style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#AFBDC8; font-size:14px; pointer-events:none;">Firmá aquí con el dedo</div>
-        </div>
-        <div style="display:flex; gap:8px; padding:14px 0 6px 0;">
-            <button id="mobileSigClearBtn" type="button" style="flex:1; padding:14px; background:rgba(255,255,255,0.12); color:#FFF; border:1px solid rgba(255,255,255,0.3); border-radius:6px; font-size:14px; font-weight:600;">↺ Limpiar</button>
-            <button id="mobileSigSendBtn" type="button" style="flex:2; padding:14px; background:#C8921A; color:#0B2341; border:none; border-radius:6px; font-size:14px; font-weight:700; letter-spacing:0.5px;">Enviar a la PC</button>
-        </div>
-        <div id="mobileSigStatus" style="text-align:center; color:#C8921A; font-size:12px; padding:6px 0; min-height:18px;"></div>
-    </div>
-
     <script>
         // Detectar ?mobile=XXX y ocultar splash de inmediato (antes de que cargue el suite)
         (function () {
@@ -436,80 +412,6 @@
             document.body.appendChild(ph);
         })();
     </script>
-    <script>
-        // Detectar ?sigtoken=XXX en la URL y entrar en modo mobile signature
-        (function () {
-            const params = new URLSearchParams(window.location.search);
-            const sigToken = params.get('sigtoken');
-            if (!sigToken) return;
-
-            // Ocultar splash y todo lo demás
-            const splash = document.getElementById('splashScreen');
-            if (splash) splash.classList.add('splash-removed');
-            // Hidear toda la app por debajo del overlay mobile
-            document.body.style.overflow = 'hidden';
-
-            // Mostrar overlay mobile
-            const overlay = document.getElementById('mobileSignatureOverlay');
-            overlay.style.display = 'flex';
-
-            // Esperar a que SignatureCanvas esté disponible (se carga después)
-            let attempts = 0;
-            function tryAttach() {
-                if (window.SignatureCanvas && document.getElementById('mobileSigCanvas')) {
-                    setupMobileCapture();
-                } else if (attempts < 100) {
-                    attempts++;
-                    setTimeout(tryAttach, 50);
-                } else {
-                    document.getElementById('mobileSigStatus').textContent = 'Error cargando canvas';
-                }
-            }
-
-            function setupMobileCapture() {
-                const canvas = document.getElementById('mobileSigCanvas');
-                const hint = document.getElementById('mobileSigHint');
-                const sc = window.SignatureCanvas.attach(canvas, {
-                    color: '#1F3C56',
-                    lineWidth: 3.5,
-                    onChange: function () {
-                        if (hint && hint.style.display !== 'none') hint.style.display = 'none';
-                    }
-                });
-                document.getElementById('mobileSigClearBtn').addEventListener('click', function () {
-                    sc.clear();
-                    if (hint) hint.style.display = 'flex';
-                    document.getElementById('mobileSigStatus').textContent = '';
-                });
-                document.getElementById('mobileSigSendBtn').addEventListener('click', async function () {
-                    if (sc.isEmpty()) {
-                        document.getElementById('mobileSigStatus').textContent = 'Garabateá la firma primero';
-                        return;
-                    }
-                    const status = document.getElementById('mobileSigStatus');
-                    status.textContent = 'Enviando...';
-                    try {
-                        const r = await fetch('/sync/signature', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ token: sigToken, firmaImage: sc.toDataURL() })
-                        });
-                        if (!r.ok) throw new Error('HTTP ' + r.status);
-                        status.style.color = '#C8921A';
-                        status.textContent = '✓ Firma enviada a la PC';
-                        document.getElementById('mobileSigSendBtn').disabled = true;
-                        document.getElementById('mobileSigSendBtn').textContent = 'Enviado ✓';
-                    } catch (e) {
-                        status.style.color = '#FFB0B0';
-                        status.textContent = 'Error: ' + e.message;
-                    }
-                });
-            }
-
-            tryAttach();
-        })();
-    </script>
-
     <!-- ════════════════════════════════════════════
          ZONA 1 — HEADER COMPACTO (50px)
          Brand | Chips de sistema | Estado + Fecha
@@ -530,7 +432,7 @@
             <button class="sys-chip" onclick="openEditProject()" title="Editar datos del proyecto activo — GAMP, cliente, firmantes" style="background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.2);padding:4px 10px;">
                 <span style="font-size:13px;">⚙</span>
             </button>
-            <button class="sys-chip" onclick="window.open('/firmas/','_blank')" title="Abrir Suite de Revisión y Firma" style="background:rgba(76,175,80,0.15);border-color:rgba(76,175,80,0.4);padding:4px 12px;gap:5px;">
+            <button class="sys-chip" onclick="openFirmasSuite()" title="Abrir Suite de Revisión y Firmas" style="background:rgba(76,175,80,0.15);border-color:rgba(76,175,80,0.4);padding:4px 12px;gap:5px;">
                 <span style="font-size:13px;">✍</span>
                 <span class="sys-chip-label" style="color:#A5D6A7;">Suite Firmas</span>
             </button>
@@ -557,7 +459,7 @@
             <button id="btnUserOptions" onclick="toggleUserMenu(event)" title="Menu de usuario" style="display:none; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#FFF; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:11px;">▾</button>
             <div id="userOptionsMenu" style="display:none; position:fixed; top:42px; right:14px; background:#1F3C56; border:1px solid #405A75; border-radius:5px; padding:6px; min-width:200px; box-shadow:0 4px 16px rgba(0,0,0,0.4); z-index:99000;">
                 <button onclick="document.getElementById('userOptionsMenu').style.display='none'; openUserMgmt();" class="user-menu-item" id="menuUserMgmt">👥 Gestionar usuarios</button>
-                <button onclick="document.getElementById('userOptionsMenu').style.display='none'; openReviewDashboard();" class="user-menu-item" id="menuReviewDashboard">📋 Rondas de revisión</button>
+                <button onclick="document.getElementById('userOptionsMenu').style.display='none'; openFirmasSuite();" class="user-menu-item" id="menuReviewDashboard">✍ Suite de Firmas</button>
                 <button onclick="document.getElementById('userOptionsMenu').style.display='none'; handleLogout();" class="user-menu-item user-menu-item-danger">→ Cerrar sesión</button>
             </div>
         </div>
@@ -827,10 +729,6 @@
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                         Comparar versiones (diff)
                     </button>
-                    <button class="sp-item" onclick="openPeopleManagerModal()" title="Gestionar personas firmantes del paquete activo">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-                        Personas del paquete
-                    </button>
                 </div>
 
             </div>
@@ -990,11 +888,6 @@
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
                         Gestionar usuarios
                     </button>
-                    <button id="btnRevDashboard" class="sp-item" onclick="openReviewDashboard()" title="Rondas de revisión y aprobación" style="position:relative;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
-                        Rondas de revisión
-                        <span id="rdRevBadge" style="display:none;position:absolute;top:2px;right:2px;background:#e87a8a;color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;line-height:14px;"></span>
-                    </button>
                     <hr class="sp-sep">
                     <button class="sp-item" onclick="openSuiteAuditTrail()" title="Ver audit trail completo del proyecto">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
@@ -1130,116 +1023,6 @@
     <!-- ════════════════════════════════════════════
          MODALES — SIN CAMBIOS (preservados intactos)
          ════════════════════════════════════════════ -->
-
-    <!-- ════════════════════════════════════════════════════════════
-         MODALES DE FIRMA ELECTRÓNICA (21 CFR Part 11)
-         ════════════════════════════════════════════════════════════ -->
-
-    <!-- Modal: Registro de firmante (datos + canvas para firma manuscrita) -->
-    <div id="modalRegistroFirmante" class="modal modal-theme-evidence" style="display:none;">
-        <div class="modal-content" style="max-width:680px; max-height:92vh; overflow:auto;">
-            <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid #EEF3F4;">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1F3C56" stroke-width="2"><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-                <h3 id="rfTitle" style="flex:1; margin:0; font-size:16px; color:#1F3C56;">Registrar nuevo firmante</h3>
-                <button onclick="closeRegistroFirmanteModal()" style="background:none; border:none; font-size:24px; cursor:pointer; color:#586574;" title="Cerrar">&times;</button>
-            </div>
-
-            <!-- Form de datos (solo en modo 'new') -->
-            <div id="rfFormBlock">
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; margin-bottom:14px;">
-                    <div>
-                        <label style="display:block; font-size:11px; font-weight:700; color:#1F3C56; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.4px;">Nombre completo *</label>
-                        <input type="text" id="rfNombre" placeholder="ej: Federico Bongiovanni" class="rf-input" autocapitalize="words">
-                    </div>
-                    <div>
-                        <label style="display:block; font-size:11px; font-weight:700; color:#1F3C56; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.4px;">Rol</label>
-                        <input type="text" id="rfRol" placeholder="ej: Process Owner / QA Reviewer" class="rf-input">
-                    </div>
-                    <div>
-                        <label style="display:block; font-size:11px; font-weight:700; color:#1F3C56; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.4px;">Iniciales (auto si vacío)</label>
-                        <input type="text" id="rfIniciales" placeholder="FB" class="rf-input" maxlength="6" style="text-transform:uppercase;">
-                    </div>
-                    <div>
-                        <label style="display:block; font-size:11px; font-weight:700; color:#1F3C56; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.4px;">Email (opcional)</label>
-                        <input type="email" id="rfEmail" placeholder="firmante@empresa.com" class="rf-input">
-                    </div>
-                    <div>
-                        <label style="display:block; font-size:11px; font-weight:700; color:#1F3C56; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.4px;">PIN (mín 4) *</label>
-                        <input type="password" id="rfPin" placeholder="••••" class="rf-input" autocomplete="new-password">
-                    </div>
-                    <div>
-                        <label style="display:block; font-size:11px; font-weight:700; color:#1F3C56; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.4px;">Confirmar PIN *</label>
-                        <input type="password" id="rfPinConfirm" placeholder="••••" class="rf-input" autocomplete="new-password">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Canvas de firma -->
-            <div style="margin-bottom:14px;">
-                <label style="display:flex; justify-content:space-between; align-items:flex-end; font-size:11px; font-weight:700; color:#1F3C56; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4px;">
-                    <span>Firma manuscrita *</span>
-                    <span style="font-size:10px; color:#586574; font-weight:400; text-transform:none; letter-spacing:0;">Dibujá con el mouse o el dedo (en tablet/touchscreen)</span>
-                </label>
-                <div style="position:relative; background:#FFF; border:2px dashed #C8D2DC; border-radius:6px; overflow:hidden;">
-                    <canvas id="rfCanvas" style="width:100%; height:180px; display:block; background:#FAFBFC; touch-action:none; cursor:crosshair;"></canvas>
-                    <div style="position:absolute; top:8px; right:10px; font-size:10px; color:#AFBDC8; pointer-events:none; user-select:none;">— Firma aquí —</div>
-                </div>
-                <div style="display:flex; gap:8px; margin-top:8px;">
-                    <button type="button" onclick="clearRegistroFirmanteCanvas()" class="rf-btn rf-btn-secondary">↺ Limpiar</button>
-                    <button type="button" onclick="startMobileSignatureCapture()" class="rf-btn rf-btn-secondary" title="Genera un código QR; escaneá con el celular y dibujá ahí con el dedo">📱 Capturar desde celular</button>
-                </div>
-            </div>
-
-            <!-- Panel de QR para mobile sync (oculto por default) -->
-            <div id="rfMobileQrPanel" style="display:none; padding:14px; background:#EAF1F8; border-radius:6px; margin-bottom:14px; text-align:center;">
-                <div style="font-size:11px; color:#1F3C56; font-weight:700; margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">Escaneá con el celular</div>
-                <img id="rfMobileQrImg" alt="QR" style="width:160px; height:160px; background:#FFF; padding:6px; border-radius:4px;">
-                <div id="rfMobileQrUrl" style="font-size:10px; color:#586574; font-family:ui-monospace, monospace; margin-top:8px; word-break:break-all;"></div>
-                <div style="font-size:10.5px; color:#586574; margin-top:6px; font-style:italic;">Esperando la firma del celular... (puede tardar unos segundos)</div>
-            </div>
-
-            <div id="rfError" style="display:none; padding:8px 12px; background:#FDECEA; color:#A52A2A; border-left:3px solid #A52A2A; border-radius:4px; font-size:12px; margin-bottom:10px;"></div>
-
-            <div style="display:flex; gap:10px; justify-content:flex-end; padding-top:10px; border-top:1px solid #EEF3F4;">
-                <button type="button" onclick="closeRegistroFirmanteModal()" class="rf-btn rf-btn-secondary">Cancelar</button>
-                <button type="button" onclick="confirmRegistroFirmante()" class="rf-btn rf-btn-primary">Guardar firmante</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal: Gestión de Personas del Paquete -->
-    <div id="modalPeopleManager" class="modal modal-theme-evidence" style="display:none;">
-        <div class="modal-content" style="max-width:780px; max-height:85vh; overflow:auto;">
-            <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
-                <h3 style="flex:1; margin:0;">Personas firmantes del paquete</h3>
-                <span id="pmPackageBadge" style="background:#EAF1F8; color:#1F3C56; padding:4px 10px; border-radius:4px; font-size:11px; font-weight:700;">—</span>
-                <button data-pm-close style="background:none; border:none; font-size:24px; cursor:pointer; color:#586574;">&times;</button>
-            </div>
-            <p style="margin:0 0 12px 0; font-size:12px; color:#586574;">
-                Las personas se almacenan dentro del proyecto activo (entrada <code>PEOPLE-{paquete}</code>) y viajan exportadas con él. La primera persona registrada se marca automáticamente como <strong>user maestro</strong> (puede resetear PINs de las demás). El PIN se hashea con SHA-256 antes de persistirse.
-            </p>
-
-            <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:10px;">
-                <thead>
-                    <tr style="background:#1F3C56; color:#FFF;">
-                        <th style="padding:8px; text-align:left;">Nombre</th>
-                        <th style="padding:8px; text-align:center;">Iniciales</th>
-                        <th style="padding:8px; text-align:left;">Rol</th>
-                        <th style="padding:8px; text-align:center;">Firma</th>
-                        <th style="padding:8px; text-align:center;">Maestro</th>
-                        <th style="padding:8px; text-align:center;">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="pmTableBody"></tbody>
-            </table>
-            <p id="pmEmptyState" style="padding:20px; text-align:center; color:#586574; font-size:13px; background:#F4F6F8; border-radius:4px; display:none;"></p>
-
-            <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:14px;">
-                <button data-pm-close class="btn-cancel">Cerrar</button>
-                <button id="pmBtnAddPersona" class="btn-confirm">+ Nueva persona</button>
-            </div>
-        </div>
-    </div>
 
     <!-- ════════════════════════════════════════════════════════════
          MODALES DEL LIBRO DE VALIDACIÓN
@@ -1501,27 +1284,15 @@
 
     <!-- ═══════════════════════════════════════════════════════════════════
          MODAL — EDITAR PROYECTO ACTIVO
-         Edita systemInfo (GAMP, cliente, etc.) + agrega firmantes
          ═══════════════════════════════════════════════════════════════════ -->
     <div id="modalEditProject" class="modal modal-theme-project" style="display:none;" onclick="if(event.target===this)closeEditProject()">
         <div class="modal-content" style="max-width:700px;width:96vw;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;padding:0;">
             <div class="modal-themed-header">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                <div style="flex:1;"><h3>Editar proyecto</h3><div class="modal-themed-subtitle" id="editProjSubtitle">Datos y firmantes</div></div>
+                <div style="flex:1;"><h3>Editar proyecto</h3><div class="modal-themed-subtitle" id="editProjSubtitle">Datos del proyecto</div></div>
                 <button class="modal-themed-close" onclick="closeEditProject()">Cancelar</button>
             </div>
-            <!-- Tabs -->
-            <div style="display:flex;border-bottom:2px solid #D8E0E9;flex-shrink:0;">
-                <button class="ep-tab active" data-tab="epTabDatos" onclick="epSwitchTab('epTabDatos')">Datos del proyecto</button>
-                <button class="ep-tab" data-tab="epTabFirmantes" onclick="epSwitchTab('epTabFirmantes')">Firmantes</button>
-            </div>
-            <style>
-                .ep-tab{background:none;border:none;padding:9px 20px;font-size:12px;font-weight:600;color:#7A8EA0;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;}
-                .ep-tab.active{color:var(--theme-project-main,#0B2341);border-bottom-color:var(--theme-project-main,#0B2341);}
-                .ep-tab:hover{color:var(--theme-project-main,#0B2341);}
-            </style>
             <div style="flex:1;overflow-y:auto;padding:20px 24px;">
-                <!-- Tab Datos -->
                 <div id="epTabDatos">
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 18px;">
                         <div style="grid-column:1/-1;">
@@ -1574,24 +1345,6 @@
                         </div>
                     </div>
                 </div>
-                <!-- Tab Firmantes -->
-                <div id="epTabFirmantes" style="display:none;">
-                    <p style="margin:0 0 14px;font-size:13px;color:#586574;">Agregá firmantes al proyecto activo. El PIN y la firma manuscrita pueden completarse después desde la Suite Validación.</p>
-                    <div style="background:#FAFBFC;border:1px solid #EEF3F4;border-radius:6px;padding:14px;margin-bottom:16px;">
-                        <div style="font-size:11px;font-weight:700;color:var(--theme-project-main,#0B2341);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Agregar firmante</div>
-                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px 14px;margin-bottom:10px;">
-                            <div><label class="wiz-label-sm">Nombre completo *</label><input type="text" id="epSignerName" class="modal-themed-input" autocapitalize="words"></div>
-                            <div><label class="wiz-label-sm">Rol *</label><input type="text" id="epSignerRole" class="modal-themed-input" placeholder="Process Owner / QA Reviewer"></div>
-                            <div><label class="wiz-label-sm">Iniciales (auto)</label><input type="text" id="epSignerInitials" class="modal-themed-input" maxlength="6" style="text-transform:uppercase;font-family:ui-monospace,monospace;"></div>
-                            <div><label class="wiz-label-sm">Email</label><input type="email" id="epSignerEmail" class="modal-themed-input"></div>
-                            <div><label class="wiz-label-sm">PIN (mín 4) *</label><input type="password" id="epSignerPin" class="modal-themed-input" autocomplete="new-password"></div>
-                            <div><label class="wiz-label-sm">Confirmar PIN *</label><input type="password" id="epSignerPin2" class="modal-themed-input" autocomplete="new-password"></div>
-                        </div>
-                        <div id="epSignerErr" style="display:none;color:#A52A2A;font-size:12px;margin-bottom:8px;"></div>
-                        <button type="button" onclick="epAddSigner()" class="modal-themed-btn-primary" style="width:100%;">+ Registrar firmante</button>
-                    </div>
-                    <div id="epSignerList"><p style="color:#9AABB8;font-size:12px;text-align:center;padding:16px 0;">Cargando firmantes actuales…</p></div>
-                </div>
             </div>
             <div style="display:flex;gap:10px;justify-content:flex-end;padding:14px 22px;background:#F4F6F8;border-top:1px solid #C8D2DC;flex-shrink:0;">
                 <button type="button" id="epSyncServerBtn" onclick="epForceSyncServer(this)" class="modal-themed-btn-secondary" title="Subir el proyecto al servidor ahora para que aparezca en otros navegadores">
@@ -1615,7 +1368,7 @@
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
                 <div style="flex:1;">
                     <h3>Crear nuevo proyecto</h3>
-                    <div class="modal-themed-subtitle" id="wizSubtitle">Paso 1 de 3 · Datos del proyecto</div>
+                    <div class="modal-themed-subtitle" id="wizSubtitle">Paso 1 de 2 · Datos del proyecto</div>
                 </div>
                 <button class="modal-themed-close" onclick="wizardCancel()">Cancelar</button>
             </div>
@@ -1629,11 +1382,6 @@
                 <div class="modal-themed-step-divider"></div>
                 <div class="modal-themed-step" data-step="2">
                     <div class="modal-themed-step-num"><span class="step-num-text">2</span></div>
-                    <span>Firmantes</span>
-                </div>
-                <div class="modal-themed-step-divider"></div>
-                <div class="modal-themed-step" data-step="3">
-                    <div class="modal-themed-step-num"><span class="step-num-text">3</span></div>
                     <span>Confirmar</span>
                 </div>
             </div>
@@ -1707,70 +1455,6 @@
                     </div>
                 </div>
 
-                <!-- STEP 2: Firmantes -->
-                <div id="wizStep2" class="wiz-step-content" style="display:none;">
-                    <p style="margin:0 0 14px 0; color:#586574; font-size:13px;">Registrá el equipo de firmantes que va a aprobar los documentos a lo largo del ciclo. El primero queda como <strong>user maestro</strong> (puede resetear PINs ajenos). Podés agregar más después desde la Suite Validación.</p>
-
-                    <!-- Form de firmante actual -->
-                    <div style="background:#FAFBFC; border:1px solid #EEF3F4; border-radius:6px; padding:14px; margin-bottom:14px;">
-                        <div style="font-size:11px; font-weight:700; color:var(--theme-project-main); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px;">Agregar firmante</div>
-                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; margin-bottom:12px;">
-                            <div>
-                                <label class="wiz-label-sm">Nombre completo *</label>
-                                <input type="text" id="wizSignerName" class="modal-themed-input" placeholder="Ej: Federico Bongiovanni" autocapitalize="words">
-                            </div>
-                            <div>
-                                <label class="wiz-label-sm">Rol *</label>
-                                <input type="text" id="wizSignerRole" class="modal-themed-input" placeholder="Ej: Process Owner / QA Reviewer">
-                            </div>
-                            <div>
-                                <label class="wiz-label-sm">Iniciales (auto si vacío)</label>
-                                <input type="text" id="wizSignerInitials" class="modal-themed-input" maxlength="6" style="text-transform:uppercase; font-family:ui-monospace, monospace;">
-                            </div>
-                            <div>
-                                <label class="wiz-label-sm">Email (opcional)</label>
-                                <input type="email" id="wizSignerEmail" class="modal-themed-input" placeholder="firmante@empresa.com">
-                            </div>
-                            <div>
-                                <label class="wiz-label-sm">PIN (mín 4) *</label>
-                                <input type="password" id="wizSignerPin" class="modal-themed-input" autocomplete="new-password">
-                            </div>
-                            <div>
-                                <label class="wiz-label-sm">Confirmar PIN *</label>
-                                <input type="password" id="wizSignerPin2" class="modal-themed-input" autocomplete="new-password">
-                            </div>
-                        </div>
-                        <div style="margin-bottom:10px;">
-                            <label class="wiz-label-sm" style="display:flex; justify-content:space-between; align-items:flex-end;">
-                                <span>Firma manuscrita *</span>
-                                <span style="font-size:10px; color:#586574; font-weight:400; text-transform:none; letter-spacing:0;">Dibujá con mouse, tablet o capturá desde el celular</span>
-                            </label>
-                            <div style="background:#FFF; border:2px dashed #C8D2DC; border-radius:5px; overflow:hidden;">
-                                <canvas id="wizSignerCanvas" style="width:100%; height:140px; display:block; background:#FAFBFC; touch-action:none; cursor:crosshair;"></canvas>
-                            </div>
-                            <div style="display:flex; gap:8px; margin-top:6px;">
-                                <button type="button" onclick="wizardClearCanvas()" class="modal-themed-btn-secondary" style="font-size:11px; padding:6px 12px;">↺ Limpiar trazo</button>
-                                <button type="button" onclick="wizardMobileCapture()" class="modal-themed-btn-secondary" style="font-size:11px; padding:6px 12px;">📱 Capturar desde celular</button>
-                            </div>
-                            <div id="wizMobileQrPanel" style="display:none; margin-top:10px; padding:12px; background:var(--theme-project-tint); border-left:3px solid var(--theme-project-main); border-radius:3px; text-align:center;">
-                                <div style="font-size:10px; color:var(--theme-project-dark); font-weight:700; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Escaneá con el celular</div>
-                                <img id="wizMobileQrImg" alt="QR" style="width:140px; height:140px; background:#FFF; padding:4px; border-radius:3px;">
-                                <div id="wizMobileQrUrl" style="font-size:9.5px; color:#586574; font-family:ui-monospace, monospace; margin-top:6px; word-break:break-all;"></div>
-                            </div>
-                        </div>
-                        <div id="wizSignerError" class="modal-themed-error" style="display:none; margin-bottom:10px;"></div>
-                        <button type="button" onclick="wizardAddSigner()" class="modal-themed-btn-primary" style="width:100%;">+ Agregar este firmante</button>
-                    </div>
-
-                    <!-- Lista de firmantes agregados -->
-                    <div>
-                        <div style="font-size:11px; font-weight:700; color:#1F2C3A; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Firmantes registrados (<span id="wizSignerCount">0</span>)</div>
-                        <div id="wizSignerList" style="display:flex; flex-direction:column; gap:8px;">
-                            <div style="padding:14px; background:#F4F6F8; border:1.5px dashed #C8D2DC; border-radius:4px; color:#AFBDC8; text-align:center; font-size:12px; font-style:italic;">Aún no agregaste firmantes. Podés saltearlo y registrarlos después.</div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- STEP 3: Confirmar -->
                 <div id="wizStep3" class="wiz-step-content" style="display:none;">
                     <p style="margin:0 0 16px 0; color:#586574; font-size:13px;">Revisá los datos antes de crear el proyecto. Al confirmar se va a:</p>
@@ -1778,7 +1462,6 @@
                         <li>Guardar el proyecto actual (si hay uno abierto)</li>
                         <li>Crear el proyecto nuevo con los datos ingresados</li>
                         <li>Sembrar 5 docs vacíos: HLRA, VP, URS, RA, IRA</li>
-                        <li>Registrar los firmantes y sus firmas manuscritas</li>
                         <li>Abrir el proyecto nuevo (recarga la página)</li>
                     </ul>
                     <div id="wizSummary" style="background:#FFF; border:1px solid #EEF3F4; border-left:4px solid var(--theme-project-main); border-radius:4px; padding:16px;"></div>
@@ -1789,7 +1472,6 @@
             <div style="display:flex; gap:10px; justify-content:space-between; padding:14px 22px; background:#F4F6F8; border-top:1px solid #C8D2DC;">
                 <button type="button" id="wizBtnBack" onclick="wizardBack()" class="modal-themed-btn-secondary" style="display:none;">← Atrás</button>
                 <div style="flex:1;"></div>
-                <button type="button" id="wizBtnSkipSigners" onclick="wizardNext()" class="modal-themed-btn-secondary" style="display:none;">Saltear este paso →</button>
                 <button type="button" id="wizBtnNext" onclick="wizardNext()" class="modal-themed-btn-primary">Continuar →</button>
                 <button type="button" id="wizBtnConfirm" onclick="wizardConfirm()" class="modal-themed-btn-primary" style="display:none;">✓ Crear proyecto</button>
             </div>
@@ -3873,8 +3555,6 @@
                         title="Cerrar documento actual sin eliminar nada">✕ Limpiar</button>
                     <button class="vs-hdr-btn" onclick="openMacroPanel()"
                         title="Configuración macro: cambiar campos en todos los documentos">⚙ Macro</button>
-                    <button id="vsBtnRevisiones" class="vs-hdr-btn" onclick="openRevisionesPanel()" style="display:none;"
-                        title="Ver solicitudes de revisión de este documento">📋 Revisiones <span id="vsRevBadge" style="background:#e87a8a;color:#fff;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;display:none;"></span></button>
                 </div>
                 <span class="vs-hdr-sep"></span>
 
@@ -3920,10 +3600,10 @@
             <div id="vsSignDocBar" style="display:none; padding:6px 16px; background:#081526; border-bottom:1px solid rgba(200,146,26,0.2); align-items:center; gap:10px; flex-wrap:wrap; font-size:12px;">
                 <span style="font-size:13px;">🔏</span>
                 <span style="font-weight:700; color:#C8921A; font-size:11px;">Este documento tiene sección de firmas.</span>
-                <span style="color:#7A9AB8; font-size:11px;">Las rondas se gestionan desde la Suite de Revisión y Firma.</span>
+                <span style="color:#7A9AB8; font-size:11px;">La revisión y firma se gestionan desde la Suite de Revisión y Firmas.</span>
                 <span style="margin-left:auto; font-size:10px; color:#3A5A72; font-style:italic;">Compliance 21 CFR Part 11 · hash SHA-256</span>
                 <button type="button"
-                    onclick="window.open('/firmas/','_blank')"
+                    onclick="openFirmasSuite()"
                     style="padding:4px 14px; font-size:11px; font-weight:700; background:#C8921A; color:#0B2341; border:none; border-radius:5px; cursor:pointer;">
                     ✍ Suite Firmas →
                 </button>
@@ -4056,17 +3736,6 @@
                 </div>
             </div>
 
-            <!-- ── Panel de Revisiones ────────────────────────────────────── -->
-            <div id="vsRevisionesPanel" class="vs-macro-panel" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();">
-              <div class="vmp-header">
-                <span class="vmp-title">📋 Revisiones</span>
-                <button class="vmp-close" onclick="closeRevisionesPanel()">✕</button>
-              </div>
-              <div class="vmp-body" id="vsRevBody" style="gap:0;">
-                <div style="color:#4a6a86;font-size:13px;padding:8px 0;">Cargando...</div>
-              </div>
-            </div>
-
             <!-- ── Panel de Comentarios de Firmas (bridge, solo lectura) ─────── -->
             <div id="vsFirmasPanel" class="vs-macro-panel" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();">
               <div class="vmp-header">
@@ -4129,15 +3798,19 @@
                 document.getElementById('vsMacroPanel').classList.remove('open');
             };
 
-            window.openRevisionesPanel = function() {
-                document.getElementById('vsRevisionesPanel').classList.add('open');
-                _vsLoadRevisiones();
-            };
-            window.closeRevisionesPanel = function() {
-                document.getElementById('vsRevisionesPanel').classList.remove('open');
+            // ── Bridge con la Suite de Revisión y Firmas ────────────────────────
+            // Abre la Suite de Firmas real en pestaña nueva (antes de 2026-09-02 esto
+            // abría un portal estático viejo /firmas/, ya eliminado). La URL viene del
+            // servidor (env var FIRMAS_BASE_URL) en vez de hardcodearla acá.
+            window.openFirmasSuite = async function() {
+                const { status, data } = await fetch('/api/config').then(r => r.json().then(d => ({ status: r.status, data: d }))).catch(() => ({ status: 0, data: null }));
+                if (status === 200 && data && data.firmas_url) {
+                    window.open(data.firmas_url, '_blank');
+                } else {
+                    alert('No se pudo determinar la URL de la Suite de Firmas (FIRMAS_BASE_URL no configurada en el servidor).');
+                }
             };
 
-            // ── Bridge con la Suite de Revisión y Firmas ────────────────────────
             window.vsSendToFirmas = async function() {
                 const projId = localStorage.getItem('vscActiveProjectId');
                 const docType = localStorage.getItem('vscActiveDocType');
@@ -4261,81 +3934,6 @@
                 });
                 body.innerHTML = html;
             }
-
-            async function _vsLoadRevisiones() {
-                const body = document.getElementById('vsRevBody');
-                if (!body) return;
-                body.innerHTML = '<div style="color:#4a6a86;font-size:13px;">Cargando...</div>';
-                const projId = localStorage.getItem('vscActiveProjectId');
-                const docType = localStorage.getItem('vscActiveDocType');
-                if (!projId || !docType) {
-                    body.innerHTML = '<div style="color:#4a6a86;font-size:13px;">Abrí un documento para ver sus revisiones.</div>';
-                    return;
-                }
-                const r = await fetch(`/api/projects/${projId}/documents/${docType}/revisions`, { credentials:'include' }).then(r=>r.json()).catch(()=>null);
-                if (!r?.ok) { body.innerHTML = '<div style="color:#e87a8a;font-size:13px;">Error al cargar revisiones.</div>'; return; }
-                const revs = r.revisions || [];
-                if (!revs.length) { body.innerHTML = '<div style="color:#4a6a86;font-size:13px;padding:8px 0;">Sin solicitudes de revisión para este documento.</div>'; return; }
-
-                const fmtTs = ts => ts ? new Date(ts*1000).toLocaleString('es-AR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
-
-                let html = '';
-                revs.forEach(rev => {
-                    let points = [];
-                    try { const p = JSON.parse(rev.revision_reason); if (Array.isArray(p)) points = p.map(x => typeof x==='string'?{section:'',point:x}:x); else points = [{section:'',point:rev.revision_reason}]; }
-                    catch(_) { points = [{section:'', point: rev.revision_reason || ''}]; }
-
-                    const isFulfilled = !!rev.revision_fulfilled_at;
-                    html += `<div style="border:1px solid ${isFulfilled ? '#1a3a20' : '#5a2030'};border-radius:8px;padding:10px 12px;margin-bottom:10px;background:${isFulfilled ? '#0d1e14' : '#1a0d10'};">
-                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-                            <div>
-                                <span style="font-size:12px;font-weight:700;color:${isFulfilled ? '#27c459' : '#e87a8a'};">${rev.display_name || rev.username}</span>
-                                <span style="font-size:11px;color:#4a6a86;"> · v${rev.doc_version||1} · ${fmtTs(rev.revision_requested_at)}</span>
-                            </div>
-                            ${isFulfilled
-                                ? `<div style="display:flex;gap:6px;flex-shrink:0;align-items:center;">
-                                    <span style="font-size:10px;color:#27c459;font-weight:700;">✓ Cumplida</span>
-                                    <button onclick="_vsDiscardRevision('${rev.round_id}','${rev.username}')" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:5px;padding:3px 6px;font-size:10px;cursor:pointer;">✕</button>
-                                   </div>`
-                                : `<div style="display:flex;gap:6px;flex-shrink:0;">
-                                    <button onclick="_vsMarkFulfilled('${rev.round_id}','${rev.username}')" style="background:#0e2820;border:1px solid #1e4830;color:#27c459;border-radius:5px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;">✓ Cumplida</button>
-                                    <button onclick="_vsDiscardRevision('${rev.round_id}','${rev.username}')" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:5px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;">✕ Descartar</button>
-                                   </div>`}
-                        </div>
-                        <ul style="margin:8px 0 0 0;padding-left:16px;${isFulfilled ? 'opacity:0.5;' : ''}">
-                            ${points.filter(p=>p.point).map(p => `<li style="font-size:12px;color:#b8cce0;margin-bottom:4px;">${p.section ? `<span style="font-size:10px;font-weight:700;color:#C8921A;margin-right:5px;">[${esc(p.section)}]</span>` : ''}${esc(p.point)}</li>`).join('')}
-                        </ul>
-                        ${isFulfilled ? `<div style="font-size:10px;color:#4a6a86;margin-top:6px;">Marcada cumplida por ${rev.revision_fulfilled_by||'admin'} · ${fmtTs(rev.revision_fulfilled_at)}</div>` : ''}
-                    </div>`;
-                });
-                body.innerHTML = html;
-
-                // Update badge
-                const pending = revs.filter(r => !r.revision_fulfilled_at).length;
-                const badge = document.getElementById('vsRevBadge');
-                if (badge) { badge.textContent = pending; badge.style.display = pending ? '' : 'none'; }
-            }
-
-            window._vsMarkFulfilled = async function(roundId, username) {
-                const projId = localStorage.getItem('vscActiveProjectId');
-                if (!projId) return;
-                const r = await fetch(`/api/projects/${projId}/signing-rounds/${roundId}/fulfill/${username}`, {
-                    method: 'POST', credentials: 'include', headers:{'Content-Type':'application/json'}, body:'{}',
-                }).then(r=>r.json()).catch(()=>null);
-                if (r?.ok) _vsLoadRevisiones();
-                else alert('Error: ' + (r?.error || 'desconocido'));
-            };
-
-            window._vsDiscardRevision = async function(roundId, username) {
-                if (!confirm('¿Descartar esta solicitud de revisión? La ronda se reabrirá si no quedan otras revisiones pendientes.')) return;
-                const projId = localStorage.getItem('vscActiveProjectId');
-                if (!projId) return;
-                const r = await fetch(`/api/projects/${projId}/signing-rounds/${roundId}/discard-revision/${username}`, {
-                    method: 'POST', credentials: 'include', headers:{'Content-Type':'application/json'}, body:'{}',
-                }).then(r=>r.json()).catch(()=>null);
-                if (r?.ok) _vsLoadRevisiones();
-                else alert('Error: ' + (r?.error || 'desconocido'));
-            };
 
             window.macroToggleAllDocs = function(checked) {
                 document.querySelectorAll('#vmpDocList input[type=checkbox]')
@@ -4532,7 +4130,6 @@
     <script src="js/auth-sync.js"></script>
     <script src="js/storage-server.js"></script>
     <script src="js/project-folder-fs.js"></script>
-    <script src="js/firma-digital.js"></script>
     <script src="js/projects-manager.js"></script>
     <script src="js/logica-modular.js"></script>
     <script src="js/projects-ui.js"></script>
@@ -4540,11 +4137,6 @@
     <script src="js/user-management.js"></script>
     <script src="js/pdf-exportacion.js"></script>
     <script src="js/audit-trail.js"></script>
-
-    <!-- People Manager (firma electrónica 21 CFR Part 11)
-         signature-canvas.js ya se carga en <head> para soporte mobile temprano -->
-    <script src="js/people-manager.js"></script>
-    <script src="js/people-ui.js"></script>
 
     <!-- Validation Suite (modulo nuevo) -->
     <script src="js/validation-suite/core/template-base.js?v=20260813b"></script>
@@ -4584,1125 +4176,14 @@
     <script src="js/excel-validator/excel-parser.js"></script>
     <script src="js/excel-validator/spreadsheet-wizard.js"></script>
     <script src="js/validation-suite/ui/ncr-snippets.js"></script>
-    <script src="js/validation-suite/ui/sign-document.js"></script>
     <script src="js/validation-suite/ui/book-ui.js"></script>
     <script src="js/validation-suite/ui/book-preview.js"></script>
     <script src="js/analytics-panel.js"></script>
     <script src="js/validation-suite/ui/diff-versions.js"></script>
-    <script src="js/validation-suite/ui/sign-archive.js"></script>
     <script src="js/validation-suite/ui/demo-loader.js"></script>
     <script src="js/validation-suite/ui/visual-editor.js"></script>
     <script src="js/validation-suite/ui/suite-ui.js?v=20260813g"></script>
 
-    <!-- ── Review Dashboard Modal ────────────────────────────────────────── -->
-    <!-- Drawer lateral — no bloquea la navegación; cierra al hacer clic en el backdrop -->
-    <div id="rdModal" onclick="if(event.target===this)closeReviewDashboard()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9000; justify-content:flex-end;">
-      <div style="background:#0d1621; border-left:1px solid #1e3550; width:min(520px,96vw); height:100vh; display:flex; flex-direction:column; overflow:hidden; animation:rdDrawerIn .18s cubic-bezier(.4,0,.2,1);">
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 22px; border-bottom:1px solid #1a3050; flex-shrink:0;">
-          <div style="font-size:15px; font-weight:700; color:#eef3f8;">Rondas de Revisión y Aprobación</div>
-          <button onclick="closeReviewDashboard()" style="background:none; border:none; color:#5a7a96; font-size:22px; cursor:pointer; line-height:1;" title="Cerrar">×</button>
-        </div>
-        <div style="overflow-y:auto; padding:20px 22px; flex:1;" id="rdBody">
-          <div style="color:#4a6a86; font-size:13px;">Cargando...</div>
-        </div>
-        <div style="padding:14px 22px; border-top:1px solid #1a3050; flex-shrink:0; display:flex; gap:10px;">
-          <button id="rd-btn-new-round" onclick="openCreateRoundModal()" style="background:#1a5aaa; color:#fff; border:none; border-radius:8px; padding:9px 18px; font-size:13px; font-weight:600; cursor:pointer; flex:1;">+ Nueva ronda</button>
-          <button onclick="openArchivoProyecto()" style="background:#0b2341; border:1px solid #C8921A55; color:#C8921A; border-radius:8px; padding:9px 14px; font-size:13px; cursor:pointer;" title="Archivo de documentos firmados del proyecto">Archivo</button>
-          <button onclick="openPeopleBook()" style="background:#0b2341; border:1px solid #1e3550; color:#a0b8cc; border-radius:8px; padding:9px 14px; font-size:13px; cursor:pointer;" title="People Book — todas las firmas electrónicas">People Book</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Suite Firmas — Panel completo (PDF + ronda) ──────────────────────── -->
-    <div id="sfPanel" style="display:none; position:fixed; inset:0; background:#08131F; z-index:9200; flex-direction:column; overflow:hidden;">
-      <!-- Header -->
-      <div style="height:50px; background:#0B2341; border-bottom:2px solid #C8921A; display:flex; align-items:center; padding:0 18px; gap:12px; flex-shrink:0;">
-        <span style="font-size:13px; font-weight:600; color:#C8D8E8; white-space:nowrap;">⚗️ Suite Firmas</span>
-        <span id="sfDocLabel" style="background:rgba(200,146,26,.15);border:1px solid rgba(200,146,26,.3);border-radius:20px;padding:3px 12px;color:#C8921A;font-size:11px;font-weight:500;white-space:nowrap;"></span>
-        <span id="sfDocStatus" style="font-size:11px;color:#4A6A86;"></span>
-        <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
-          <button onclick="sfDownloadDoc()" id="sfBtnDownload" style="display:none;background:transparent;border:1px solid rgba(200,146,26,.35);color:#C8921A;border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;">⬇ PDF</button>
-          <button onclick="sfOpenNewRound()" style="background:#C8921A;border:none;color:#0B2341;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;">+ Nueva ronda</button>
-          <button onclick="sfClose()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:6px 12px;color:#8AACC0;font-size:12px;cursor:pointer;">✕ Cerrar</button>
-        </div>
-      </div>
-      <!-- Body: split -->
-      <div style="flex:1;display:flex;overflow:hidden;min-height:0;">
-        <!-- LEFT: PDF viewer -->
-        <div id="sfPdfSide" style="flex:1;min-width:0;display:flex;flex-direction:column;border-right:1px solid #1E3450;background:#060F1A;">
-          <div style="padding:6px 14px;border-bottom:1px solid #1E3450;flex-shrink:0;">
-            <span style="font-size:10px;font-weight:700;color:#2A4A6A;text-transform:uppercase;letter-spacing:.07em;">Vista del documento</span>
-          </div>
-          <div id="sfPdfWrap" style="flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;">
-            <div style="color:#2A4A6A;font-size:13px;">Seleccioná un documento para previsualizar</div>
-          </div>
-        </div>
-        <!-- RIGHT: Rounds panel -->
-        <div style="width:390px;flex-shrink:0;display:flex;flex-direction:column;background:#0B1621;overflow:hidden;">
-          <div style="padding:8px 14px;border-bottom:1px solid #1E3450;display:flex;align-items:center;gap:8px;flex-shrink:0;">
-            <span style="font-size:10px;font-weight:700;color:#2A4A6A;text-transform:uppercase;letter-spacing:.07em;">Rondas de Firma</span>
-            <span id="sfRoundsCount" style="background:rgba(200,146,26,.2);color:#C8921A;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none;"></span>
-          </div>
-          <div id="sfRoundWrap" style="flex:1;overflow-y:auto;padding:12px 14px;">
-            <div style="color:#2A4A6A;font-size:13px;">Seleccioná un documento</div>
-          </div>
-          <!-- ── Dossier del Proyecto — footer colapsable ── -->
-          <div id="sfDossierSection" style="border-top:2px solid #1A3050;flex-shrink:0;background:#060D16;">
-            <div onclick="_sfToggleDossier()" style="padding:9px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;">
-              <span style="font-size:10px;font-weight:700;color:#4A6A86;text-transform:uppercase;letter-spacing:.07em;">📦 Dossier del Proyecto</span>
-              <span id="sfDossierArrow" style="font-size:10px;color:#4A6A86;">▾</span>
-            </div>
-            <div id="sfDossierBody" style="display:none;padding:0 14px 14px;">
-              <div style="font-size:9px;font-weight:700;color:#2A4A6A;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Tomos PDF</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:12px;">
-                <button onclick="previewBookTomoI()" style="background:#0B1621;border:1px solid #1E3450;color:#8AACC0;border-radius:5px;padding:5px 8px;font-size:10px;cursor:pointer;text-align:left;">👁 Preview Tomo I</button>
-                <button onclick="downloadBookTomoI()" style="background:#0B1621;border:1px solid rgba(200,146,26,.3);color:#C8921A;border-radius:5px;padding:5px 8px;font-size:10px;cursor:pointer;text-align:left;">⬇ Tomo I PDF</button>
-                <button onclick="previewBookTomoII()" style="background:#0B1621;border:1px solid #1E3450;color:#8AACC0;border-radius:5px;padding:5px 8px;font-size:10px;cursor:pointer;text-align:left;">👁 Preview Tomo II</button>
-                <button onclick="downloadBookTomoII()" style="background:#0B1621;border:1px solid rgba(200,146,26,.3);color:#C8921A;border-radius:5px;padding:5px 8px;font-size:10px;cursor:pointer;text-align:left;">⬇ Tomo II PDF</button>
-                <button onclick="downloadTomoIII()" style="background:#0B1621;border:1px solid #1E3450;color:#8AACC0;border-radius:5px;padding:5px 8px;font-size:10px;cursor:pointer;text-align:left;grid-column:1/-1;">⬇ Tomo III (ZIP completo)</button>
-              </div>
-              <div style="font-size:9px;font-weight:700;color:#2A4A6A;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Libros de Validación</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:12px;">
-                <button onclick="openValidatorBook('ALL')" style="background:#0B1621;border:1px solid rgba(200,146,26,.3);color:#C8921A;border-radius:5px;padding:5px 8px;font-size:10px;cursor:pointer;text-align:left;grid-column:1/-1;">📖 Libro IQ + OQ + PQ completo</button>
-                <button onclick="openValidatorBook('PIQ')" style="background:#0B1621;border:1px solid #1E3450;color:#8AACC0;border-radius:5px;padding:5px 8px;font-size:10px;cursor:pointer;">Libro IQ</button>
-                <button onclick="openValidatorBook('POQ')" style="background:#0B1621;border:1px solid #1E3450;color:#8AACC0;border-radius:5px;padding:5px 8px;font-size:10px;cursor:pointer;">Libro OQ</button>
-                <button onclick="openValidatorBook('PPQ')" style="background:#0B1621;border:1px solid #1E3450;color:#8AACC0;border-radius:5px;padding:5px 8px;font-size:10px;cursor:pointer;grid-column:1/-1;">Libro PQ</button>
-              </div>
-              <div style="font-size:9px;font-weight:700;color:#2A4A6A;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Libro de Firmas</div>
-              <button onclick="openPeopleBook()" style="width:100%;background:#0B2341;border:1px solid rgba(200,146,26,.3);color:#C8921A;border-radius:5px;padding:7px 10px;font-size:11px;cursor:pointer;text-align:left;font-weight:600;">👥 People Book — Firmas Electrónicas</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Create Round Modal ─────────────────────────────────────────────── -->
-    <div id="crModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:9100; align-items:center; justify-content:center;">
-      <div style="background:#0f1e2e; border:1px solid #1e3550; border-radius:16px; width:min(520px,95vw); max-height:90vh; overflow-y:auto; padding:26px 24px;">
-        <div style="font-size:15px; font-weight:700; color:#eef3f8; margin-bottom:4px;">Nueva ronda de firma</div>
-        <div style="font-size:13px; color:#4a6a86; margin-bottom:16px;">Seleccioná el documento, la fase y los firmantes en orden.</div>
-        <div style="display:flex; gap:10px; margin-bottom:14px;">
-          <div style="flex:1;">
-            <div style="font-size:11px;color:#4a6a86;text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px;">Fase</div>
-            <select id="cr-phase" style="width:100%;background:#0b1621;border:1.5px solid #1e3550;border-radius:8px;padding:8px 12px;font-size:13px;color:#dde6f0;outline:none;">
-              <option value="review">Revisión</option>
-              <option value="approval">Aprobación</option>
-            </select>
-          </div>
-        </div>
-        <div id="cr-error" style="display:none; background:#2a1520; border:1px solid #5a2030; color:#e87a8a; padding:10px 13px; border-radius:8px; font-size:13px; margin-bottom:14px;"></div>
-
-        <div style="font-size:11px;color:#4a6a86;text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px;">Proyecto</div>
-        <select id="cr-proj" onchange="rdLoadDocs()" style="width:100%;background:#0b1621;border:1.5px solid #1e3550;border-radius:8px;padding:9px 12px;font-size:13px;color:#dde6f0;outline:none;margin-bottom:12px;">
-          <option value="">— Seleccioná un proyecto —</option>
-        </select>
-
-        <div style="font-size:11px;color:#4a6a86;text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px;">Documentos</div>
-        <div id="rdDocCheckboxes" style="max-height:180px;overflow-y:auto;border:1px solid #1F3C56;border-radius:6px;padding:6px;margin-bottom:12px;">
-          <div style="color:#4a6a86;font-size:12px;padding:6px 8px;">— Seleccioná un proyecto primero —</div>
-        </div>
-
-        <div style="font-size:11px;color:#4a6a86;text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;">Firmantes requeridos</div>
-        <div id="cr-signers-list" style="margin-bottom:10px;"></div>
-        <button onclick="rdAddSigner()" style="background:#132030;border:1px solid #1e3550;color:#5aaade;border-radius:7px;padding:7px 14px;font-size:12px;cursor:pointer;margin-bottom:14px;">+ Agregar firmante</button>
-
-        <div style="display:flex;gap:10px;margin-top:6px;">
-          <button onclick="closeCreateRoundModal()" style="flex:1;background:transparent;border:1px solid #1e3550;color:#5a7a96;border-radius:8px;padding:10px;font-size:13px;cursor:pointer;">Cancelar</button>
-          <button onclick="submitCreateRound()" id="cr-submit" style="flex:2;background:#27a459;color:#fff;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;">Crear ronda</button>
-        </div>
-      </div>
-    </div>
-
-    <script>
-    // ── Review Dashboard ──────────────────────────────────────────────────
-    let _rdProjects = [];
-
-    function _rdToggleSealedSection(header) {
-      const body = header.nextElementSibling;
-      const lbl  = header.querySelector('span:last-child');
-      const open = body.style.display === 'none';
-      body.style.display = open ? '' : 'none';
-      lbl.textContent = open ? '▴ colapsar' : '▾ expandir';
-    }
-
-    async function _rdCreateApprovalRound(projId, docType) {
-      // Abre el formulario de nueva ronda pre-configurado para fase aprobación
-      openCreateRoundModal();
-      // Esperar a que el modal renderice
-      await new Promise(r => setTimeout(r, 120));
-      const phSel = document.getElementById('cr-phase');
-      if (phSel) phSel.value = 'approval';
-      const projSel = document.getElementById('cr-proj');
-      if (projSel) { projSel.value = projId; await rdLoadDocs(); }
-      // Pre-check el docType en los checkboxes
-      await new Promise(r => setTimeout(r, 200));
-      document.querySelectorAll('#rdDocCheckboxes input[type=checkbox]').forEach(cb => {
-        cb.checked = cb.value === docType;
-      });
-    }
-
-    function openReviewDashboard() {
-      window.open('/firmas/', '_blank');
-    }
-    function closeReviewDashboard() {
-      document.getElementById('rdModal').style.display = 'none';
-    }
-
-    async function archivoToggleAccess(projId, username, btn) {
-      const action = btn.dataset.action || 'revoke';
-      const label  = action === 'revoke' ? 'Revocar' : 'Reactivar';
-      if (!confirm(`¿${label} el acceso de "${username}" al Portal de Firmas?`)) return;
-      btn.disabled = true; btn.textContent = '…';
-      const r = await fetch(`/api/projects/${projId}/signers/${encodeURIComponent(username)}/revoke`, {
-        method: 'POST', credentials: 'include',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ action }),
-      }).then(r=>r.json()).catch(()=>null);
-      if (!r?.ok) {
-        alert(r?.error || 'Error al cambiar el acceso');
-        btn.disabled = false; btn.textContent = label;
-        return;
-      }
-      const isNowActive = r.is_active === 1;
-      const statusEl = btn.closest('.archivo-signer-row')?.querySelector('[class^="archivo-status-"]');
-      if (statusEl) {
-        statusEl.textContent = isNowActive ? '● Activo' : '○ Revocado';
-        statusEl.style.color = isNowActive ? '#27a855' : '#e87a8a';
-      }
-      btn.dataset.action = isNowActive ? 'revoke' : 'reactivate';
-      btn.textContent    = isNowActive ? 'Revocar' : 'Reactivar';
-      btn.style.color    = isNowActive ? '#c87a9a' : '#27a855';
-      btn.style.borderColor = isNowActive ? '#5a2050' : '#1a4030';
-      btn.disabled = false;
-      _rdToast(isNowActive ? `"${username}" reactivado` : `"${username}" revocado`, isNowActive ? '#27a855' : '#C8921A');
-    }
-
-    async function vsDownloadPDFForDoc(docType) {
-      // Cierra el archivo modal y abre el documento en la Suite Validación
-      const projId = window._currentProjectId;
-      if (!projId) return;
-      document.getElementById('archivoModal')?.remove();
-      // Navegar a Suite Validación y cargar el doc
-      if (typeof vsLoadDocument === 'function') {
-        await vsLoadDocument(docType);
-        // pequeño delay para que el editor cargue, luego trigger descarga
-        setTimeout(() => { if (typeof vsDownloadPDF === 'function') vsDownloadPDF(); }, 800);
-      } else {
-        // fallback: simplemente cambiar a la suite
-        const tab = document.querySelector('[data-suite="validacion"]') || document.querySelector('.suite-tab');
-        if (tab) tab.click();
-        _rdToast(`Documento cargado: ${docType} — usá el botón ⬇ PDF`, '#C8921A');
-      }
-    }
-
-    async function openArchivoProyecto() {
-      const projId = window._currentProjectId;
-      if (!projId) { _rdToast('Seleccioná un proyecto primero', '#e87a8a'); return; }
-
-      const [docsR, pbR] = await Promise.all([
-        fetch(`/api/projects/${projId}/documents`, {credentials:'include'}).then(r=>r.json()).catch(()=>null),
-        fetch(`/api/projects/${projId}/people-book`, {credentials:'include'}).then(r=>r.json()).catch(()=>null),
-      ]);
-
-      const approvedDocs = (docsR?.documents || []).filter(d => d.status === 'approved');
-      const pbEntries    = pbR?.entries || [];
-
-      // Agrupar people-book por doc_type+phase=approval
-      const signersByDoc = {};
-      for (const e of pbEntries) {
-        if (e.round_status === 'sealed' && (e.phase || 'review') === 'approval') {
-          if (!signersByDoc[e.doc_type]) signersByDoc[e.doc_type] = [];
-          signersByDoc[e.doc_type].push(e);
-        }
-      }
-
-      const fmtDate = ts => ts ? new Date(ts*1000).toLocaleDateString('es-AR',{day:'2-digit',month:'short',year:'numeric'}) : '—';
-      const fmtDT = ts => ts ? new Date(ts*1000).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
-
-      let html = '';
-      if (!approvedDocs.length) {
-        html = '<div style="text-align:center;padding:40px 0;color:#4a6a86;font-size:13px;">No hay documentos aprobados en este proyecto todavía.</div>';
-      } else {
-        html += `<div style="font-size:12px;color:#5a7a96;margin-bottom:18px;">
-          ${approvedDocs.length} documento(s) aprobado(s) · firmados electrónicamente · trazables en Validation Book
-        </div>`;
-        for (const doc of approvedDocs) {
-          const signers = signersByDoc[doc.doc_type] || [];
-          const signersHtml = signers.length
-            ? signers.map(s => `<div style="display:flex;gap:10px;align-items:center;padding:5px 0;border-bottom:1px solid #0d1e30;">
-                <span style="min-width:120px;font-size:12px;color:#dde6f0;">${s.display_name || s.email || '—'}</span>
-                <span style="min-width:90px;font-size:11px;color:#7a9ab8;">${s.role_label}</span>
-                <span style="font-size:11px;color:#27a855;">✓ ${fmtDT(s.signed_at)}</span>
-                <span style="font-family:monospace;font-size:9px;color:#4a6a86;margin-left:auto;">${s.audit_hash ? s.audit_hash.slice(0,16)+'…' : '—'}</span>
-              </div>`).join('')
-            : '<div style="font-size:11px;color:#4a6a86;padding:6px 0;">Sin firmantes registrados (ronda anterior a v2)</div>';
-
-          html += `
-            <div style="background:#0b1826;border:1px solid #1a4030;border-radius:10px;margin-bottom:14px;overflow:hidden;">
-              <div style="padding:10px 16px;border-bottom:1px solid #1a3050;display:flex;align-items:center;gap:10px;">
-                <span style="font-weight:700;color:#27a855;font-size:14px;">✓</span>
-                <span style="font-weight:700;color:#eef3f8;font-size:13px;">${doc.doc_type}</span>
-                <span style="font-size:11px;color:#4a6a86;">v${doc.version||1}</span>
-                <span style="font-size:11px;color:#4a6a86;">· Aprobado ${fmtDate(doc.updated_at)}</span>
-                <button onclick="vsDownloadPDFForDoc('${doc.doc_type}')" style="margin-left:auto;background:#0e2820;border:1px solid #27a85555;color:#27a855;border-radius:6px;padding:4px 12px;font-size:11px;cursor:pointer;">⬇ PDF firmado</button>
-              </div>
-              <div style="padding:10px 16px;">
-                <div style="font-size:10px;color:#4a6a86;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;">Firmantes de aprobación</div>
-                ${signersHtml}
-              </div>
-            </div>`;
-        }
-      }
-
-      // Sección gestión de acceso: firmantes únicos del proyecto
-      const uniqueSigners = {};
-      for (const e of pbEntries) {
-        if (!uniqueSigners[e.username]) {
-          uniqueSigners[e.username] = { ...e };
-        }
-      }
-      const signersList = Object.values(uniqueSigners);
-      let accessHtml = '';
-      if (signersList.length) {
-        accessHtml = `
-          <div style="margin-top:20px;border-top:1px solid #1a3050;padding-top:16px;">
-            <div style="font-size:11px;color:#4a6a86;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Gestión de acceso — Firmantes del proyecto</div>
-            <div style="font-size:11px;color:#3a5a76;margin-bottom:12px;">Podés revocar el acceso al Portal de Firmas a firmantes provisionales cuando el proyecto concluya. No afecta a admins ni auditores.</div>
-            ${signersList.map(s => `
-              <div class="archivo-signer-row" data-username="${esc(s.username||'')}" style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #0d1e30;">
-                <div style="flex:1;">
-                  <span style="font-size:12px;color:#dde6f0;">${s.display_name||s.email||s.username||'—'}</span>
-                  ${s.email ? `<span style="font-size:10px;color:#2a4a66;margin-left:6px;">&lt;${esc(s.email)}&gt;</span>` : ''}
-                </div>
-                <span style="font-size:10px;color:#4a6a86;">${s.role_label||'—'}</span>
-                <span class="archivo-status-${esc(s.username||'')}" style="font-size:10px;color:${s.is_active!==0?'#27a855':'#e87a8a'};">${s.is_active!==0?'● Activo':'○ Revocado'}</span>
-                <button onclick="archivoToggleAccess('${esc(projId)}','${esc(s.username||'')}',this)"
-                  style="background:${s.is_active!==0?'#1a0d1a':'#0a1e0a'};border:1px solid ${s.is_active!==0?'#5a2050':'#1a4030'};color:${s.is_active!==0?'#c87a9a':'#27a855'};border-radius:5px;padding:3px 10px;font-size:10px;cursor:pointer;"
-                  data-action="${s.is_active!==0?'revoke':'reactivate'}">${s.is_active!==0?'Revocar':'Reactivar'}</button>
-              </div>`).join('')}
-          </div>`;
-      }
-      html = (html || '') + accessHtml;
-
-      let ar = document.getElementById('archivoModal');
-      if (!ar) {
-        ar = document.createElement('div');
-        ar.id = 'archivoModal';
-        ar.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9200;display:flex;align-items:center;justify-content:center;';
-        ar.onclick = e => { if(e.target===ar) ar.remove(); };
-        document.body.appendChild(ar);
-      }
-      ar.innerHTML = `
-        <div style="background:#0d1621;border:1px solid #1e3550;border-radius:14px;width:min(820px,96vw);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:15px 20px;border-bottom:1px solid #1a3050;flex-shrink:0;">
-            <div>
-              <div style="font-weight:700;color:#eef3f8;font-size:15px;">Archivo del Proyecto — Documentos Firmados</div>
-              <div style="font-size:11px;color:#4a6a86;margin-top:2px;">Cada documento está firmado electrónicamente y es trazable en el Validation Book.</div>
-            </div>
-            <button onclick="document.getElementById('archivoModal').remove()" style="background:none;border:none;color:#5a7a96;font-size:22px;cursor:pointer;line-height:1;">×</button>
-          </div>
-          <div style="overflow-y:auto;padding:18px 20px;">${html}</div>
-        </div>`;
-    }
-
-    async function openPeopleBook() {
-      const projId = window._currentProjectId;
-      if (!projId) return;
-      const r = await fetch(`/api/projects/${projId}/people-book`, {credentials:'include'}).then(r=>r.json()).catch(()=>null);
-      if (!r?.ok) return;
-      const entries = r.entries || [];
-
-      // Agrupar por round_id
-      const rounds = {};
-      for (const e of entries) {
-        if (!rounds[e.round_id]) rounds[e.round_id] = { doc_type: e.doc_type, doc_version: e.doc_version, phase: e.phase || 'review', round_status: e.round_status, sealed_at: e.sealed_at, seal_hash: e.seal_hash, signers: [] };
-        rounds[e.round_id].signers.push(e);
-      }
-
-      const phaseLabel = p => p === 'approval' ? 'Aprobación' : 'Revisión';
-      const fmtDate = ts => ts ? new Date(ts * 1000).toLocaleDateString('es-AR', {day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'}) : '—';
-      const statusDot = (signed_at) => signed_at
-        ? `<span style="color:#27a855;font-size:11px;">&#10003; ${fmtDate(signed_at)}</span>`
-        : `<span style="color:#5a7a96;font-size:11px;">Pendiente</span>`;
-
-      let html = `<div style="font-size:13px;color:#7a9ab8;margin-bottom:16px;">Firmas electrónicas registradas para este proyecto. Cada bloque queda trazado en el Validation Book.</div>`;
-      if (!Object.keys(rounds).length) {
-        html += `<div style="color:#4a6a86;font-size:13px;text-align:center;padding:30px 0;">Sin rondas registradas todavía.</div>`;
-      }
-      for (const [rid, rd] of Object.entries(rounds)) {
-        const phColor = rd.phase === 'approval' ? '#C8921A' : '#3a7aaa';
-        const sealedBadge = rd.round_status === 'sealed'
-          ? `<span style="background:#0d2a1a;border:1px solid #27a855;color:#27a855;border-radius:4px;padding:1px 7px;font-size:10px;margin-left:8px;">SELLADA</span>`
-          : rd.round_status === 'cancelled'
-            ? `<span style="background:#2a1515;border:1px solid #aa3333;color:#cc6666;border-radius:4px;padding:1px 7px;font-size:10px;margin-left:8px;">CANCELADA</span>`
-            : `<span style="background:#0b1e35;border:1px solid #1e3550;color:#5a8aaa;border-radius:4px;padding:1px 7px;font-size:10px;margin-left:8px;">ABIERTA</span>`;
-        html += `
-          <div style="background:#0b1826;border:1px solid #1a3050;border-radius:10px;margin-bottom:14px;overflow:hidden;">
-            <div style="padding:10px 14px;border-bottom:1px solid #1a3050;display:flex;align-items:center;gap:8px;">
-              <span style="font-weight:700;color:#eef3f8;font-size:13px;">${rd.doc_type} v${rd.doc_version}</span>
-              <span style="background:${phColor}22;border:1px solid ${phColor}55;color:${phColor};border-radius:4px;padding:1px 7px;font-size:10px;font-weight:600;">${phaseLabel(rd.phase)}</span>
-              ${sealedBadge}
-              ${rd.seal_hash ? `<span style="color:#4a6a86;font-size:10px;margin-left:auto;">Hash: ${rd.seal_hash.slice(0,14)}…</span>` : ''}
-            </div>
-            <table style="width:100%;border-collapse:collapse;font-size:12px;">
-              <thead><tr style="color:#4a6a86;border-bottom:1px solid #1a3050;">
-                <th style="padding:7px 14px;text-align:left;font-weight:500;">Orden</th>
-                <th style="padding:7px 14px;text-align:left;font-weight:500;">Firmante</th>
-                <th style="padding:7px 14px;text-align:left;font-weight:500;">Rol</th>
-                <th style="padding:7px 14px;text-align:left;font-weight:500;">Estado</th>
-                <th style="padding:7px 14px;text-align:left;font-weight:500;">Hash auditoría</th>
-              </tr></thead>
-              <tbody>
-              ${rd.signers.map(s => `<tr style="border-bottom:1px solid #0d1e30;">
-                <td style="padding:7px 14px;color:#7a9ab8;">${s.sign_order || '—'}</td>
-                <td style="padding:7px 14px;color:#dde6f0;">${s.display_name || s.email || '—'}</td>
-                <td style="padding:7px 14px;color:#7a9ab8;">${s.role_label}</td>
-                <td style="padding:7px 14px;">${statusDot(s.signed_at)}</td>
-                <td style="padding:7px 14px;color:#4a6a86;font-family:monospace;font-size:10px;">${s.audit_hash ? s.audit_hash.slice(0,18)+'…' : '—'}</td>
-              </tr>`).join('')}
-              </tbody>
-            </table>
-          </div>`;
-      }
-
-      // Mostrar en un modal simple sobre el drawer
-      let pb = document.getElementById('pbModal');
-      if (!pb) {
-        pb = document.createElement('div');
-        pb.id = 'pbModal';
-        pb.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9200;display:flex;align-items:center;justify-content:center;';
-        pb.onclick = e => { if(e.target===pb) pb.remove(); };
-        document.body.appendChild(pb);
-      }
-      pb.innerHTML = `
-        <div style="background:#0d1621;border:1px solid #1e3550;border-radius:14px;width:min(780px,95vw);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;">
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:15px 20px;border-bottom:1px solid #1a3050;flex-shrink:0;">
-            <div style="font-weight:700;color:#eef3f8;font-size:15px;">People Book — Firmas Electrónicas</div>
-            <button onclick="document.getElementById('pbModal').remove()" style="background:none;border:none;color:#5a7a96;font-size:22px;cursor:pointer;line-height:1;">×</button>
-          </div>
-          <div style="overflow-y:auto;padding:18px 20px;">${html}</div>
-        </div>`;
-    }
-
-    let _rdSignerRevisions = [];
-    // ── Suite Firmas full-panel ─────────────────────────────────────────────
-    const _sfState = { projId: null, docType: null, pdfBlobUrl: null };
-
-    function _sfToggleDossier() {
-      const body  = document.getElementById('sfDossierBody');
-      const arrow = document.getElementById('sfDossierArrow');
-      const open  = body.style.display === 'none';
-      body.style.display = open ? '' : 'none';
-      if (arrow) arrow.textContent = open ? '▴' : '▾';
-    }
-
-    async function sfOpenDocView(projId, docType) {
-      _sfState.projId = projId; _sfState.docType = docType;
-      window._currentProjectId = projId; // sync para Tomos/People Book del Dossier
-      if (_sfState.pdfBlobUrl) { URL.revokeObjectURL(_sfState.pdfBlobUrl); _sfState.pdfBlobUrl = null; }
-
-      document.getElementById('sfPanel').style.display = 'flex';
-      document.getElementById('sfDocLabel').textContent = docType;
-      document.getElementById('sfDocStatus').textContent = '';
-      document.getElementById('sfBtnDownload').style.display = 'none';
-      document.getElementById('sfPdfWrap').innerHTML = '<div style="color:#3A6A9A;font-size:13px;">Generando PDF…</div>';
-      document.getElementById('sfRoundWrap').innerHTML = '<div style="color:#3A6A9A;font-size:13px;">Cargando rondas…</div>';
-
-      const [docR, roundsR] = await Promise.all([
-        fetch(`/api/projects/${projId}/documents/${docType}`, {credentials:'include'}).then(r=>r.json()).catch(()=>null),
-        fetch(`/api/projects/${projId}/signing-rounds`, {credentials:'include'}).then(r=>r.json()).catch(()=>null),
-      ]);
-
-      // PDF preview
-      if (docR?.ok && docR.document?.json_data) {
-        const docStatus = docR.document.status || 'draft';
-        document.getElementById('sfDocStatus').textContent = ({draft:'Borrador',review:'En revisión',approved:'✓ Aprobado'}[docStatus] || docStatus);
-        try {
-          const data = JSON.parse(docR.document.json_data);
-          const blob = await ValidationSuite.renderDocument(data, { download: false });
-          _sfState.pdfBlobUrl = URL.createObjectURL(blob);
-          document.getElementById('sfPdfWrap').innerHTML =
-            `<iframe src="${_sfState.pdfBlobUrl}" style="width:100%;height:100%;border:none;display:block;" title="Vista documento ${esc(docType)}"></iframe>`;
-          document.getElementById('sfBtnDownload').style.display = '';
-        } catch(e) {
-          document.getElementById('sfPdfWrap').innerHTML =
-            `<div style="color:#e87a8a;font-size:13px;padding:24px;text-align:center;">Error al renderizar el PDF.<br><small style="color:#5a3a3a;">${esc(String(e.message||e))}</small></div>`;
-        }
-      } else {
-        document.getElementById('sfPdfWrap').innerHTML =
-          '<div style="color:#e87a8a;font-size:13px;padding:24px;text-align:center;">No se pudo cargar el documento.</div>';
-      }
-
-      // Rounds panel
-      const rounds = (roundsR?.rounds || []).filter(r => r.doc_type === docType);
-      const cnt = document.getElementById('sfRoundsCount');
-      if (rounds.length) { cnt.textContent = rounds.length; cnt.style.display = ''; }
-      else { cnt.style.display = 'none'; }
-      document.getElementById('sfRoundWrap').innerHTML = rounds.length
-        ? rounds.map(r => _sfRenderRoundCard(r)).join('')
-        : '<div style="color:#3A5A76;font-size:13px;padding:24px;text-align:center;">Sin rondas para este documento.<br><br>Usá <strong style="color:#C8921A;">+ Nueva ronda</strong> para iniciar el circuito de firma.</div>';
-    }
-
-    function _sfRenderRoundCard(r) {
-      const phLbl   = r.phase === 'approval' ? 'Aprobación' : 'Revisión';
-      const phColor = r.phase === 'approval' ? '#C8921A' : '#3a7aaa';
-      const allDone = r.total_signers > 0 && (r.signed_count||0) >= r.total_signers;
-      const stColor = {open:'#c4a427', sealed:'#27c459', cancelled:'#e87a8a'}[r.status] || '#4a6a86';
-
-      const sealBtn = r.status === 'open'
-        ? (allDone
-          ? `<button onclick="sfSealRound('${esc(r.project_id)}','${esc(r.id)}')" style="background:#C8921A;border:none;color:#0B2341;border-radius:5px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;animation:_rdPulse 1.8s ease-in-out infinite;">✓ Sellar</button>`
-          : `<button onclick="sfSealRound('${esc(r.project_id)}','${esc(r.id)}')" style="background:#0e2820;border:1px solid #1e4830;color:#27c459;border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;">Sellar ▶</button>`)
-        : '';
-      const cancelBtn = r.status === 'open'
-        ? `<button onclick="cancelRound('${esc(r.project_id)}','${esc(r.id)}').then?.(()=>sfOpenDocView('${esc(r.project_id)}','${esc(r.doc_type)}'))||sfOpenDocView('${esc(r.project_id)}','${esc(r.doc_type)}')" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:5px;padding:4px 10px;font-size:11px;cursor:pointer;">✕ Cancelar</button>`
-        : '';
-
-      const signersHtml = (r.signers||[]).map(s => {
-        const signed = s.signed_at;
-        const init = (s.display_name||s.username||'?').replace(/\s+/g,'').slice(0,2).toUpperCase();
-        return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #0E1E2E;">
-          <div style="width:26px;height:26px;border-radius:50%;background:#0B2341;border:1px solid #1E3450;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#C8921A;flex-shrink:0;">${esc(init)}</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:12px;font-weight:500;color:#DDE8F5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(s.display_name||s.username)}</div>
-            <div style="font-size:10px;color:#4a6a86;">${esc(s.role_label||'')}${s.sign_order?' · Orden '+s.sign_order:''}</div>
-            ${s.email?`<div style="font-size:10px;color:#2a4a66;">${esc(s.email)}</div>`:''}
-          </div>
-          <div style="text-align:right;flex-shrink:0;">
-            <div style="font-size:10px;font-weight:600;color:${signed?'#27c459':'#c4a427'};">${signed?'✓ Firmado':'⏳ Pendiente'}</div>
-            ${signed?`<div style="font-size:9px;color:#2a4a36;">${fmtDTrd(s.signed_at)}</div>`:''}
-            ${s.revision_requested_at&&!s.signed_at?`<div style="font-size:9px;color:#e87a8a;">🔄 Solicita revisión</div>`:''}
-          </div>
-        </div>`;
-      }).join('');
-
-      const revWarning = r.revision_count > 0
-        ? `<div style="margin-top:8px;background:#1a0d10;border-left:3px solid #e87a8a;border-radius:0 4px 4px 0;padding:6px 10px;font-size:11px;color:#e87a8a;">${r.revision_count} solicitud(es) de revisión pendiente(s)</div>`
-        : '';
-      const sealNote = r.status === 'sealed'
-        ? `<div style="margin-top:6px;font-size:10px;color:#27c459;">🔒 Sellada ${fmtDTrd(r.sealed_at)}</div>`
-        : '';
-
-      return `<div style="background:#0D1A28;border:1px solid ${allDone&&r.status==='open'?'rgba(200,146,26,.5)':'#1E3450'};border-radius:8px;padding:12px;margin-bottom:10px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-          <div style="display:flex;gap:6px;align-items:center;">
-            <span style="background:${phColor}22;border:1px solid ${phColor}55;color:${phColor};border-radius:4px;padding:1px 7px;font-size:9px;font-weight:700;">${phLbl}</span>
-            <span style="font-size:10px;font-weight:700;color:${stColor};text-transform:uppercase;">${r.status}</span>
-          </div>
-          <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
-            <span style="font-size:11px;color:#4a6a86;">${r.signed_count||0}/${r.total_signers} firmaron</span>
-            ${sealBtn}${cancelBtn}
-          </div>
-        </div>
-        <div style="font-size:10px;color:#2A4A66;margin-bottom:8px;">Iniciada ${fmtDTrd(r.created_at)}</div>
-        <div style="border-top:1px solid #1a3050;padding-top:8px;">${signersHtml||'<div style="color:#3A5A76;font-size:11px;">Sin firmantes.</div>'}</div>
-        ${revWarning}${sealNote}
-      <div style="margin-top:8px;border-top:1px solid #1a3050;padding-top:8px;display:flex;justify-content:space-between;align-items:center;">
-        <button onclick="_sfToggleComments('${esc(r.project_id)}','${esc(r.id)}')" id="sfcc-btn-${r.id.replace(/-/g,'_')}" style="background:transparent;border:1px solid #1E3450;color:#5aaade;border-radius:5px;padding:3px 10px;font-size:10px;cursor:pointer;">💬 Comentarios</button>
-      </div>
-      <div id="sfcc-${r.id.replace(/-/g,'_')}" style="display:none;margin-top:8px;"></div>
-      </div>`;
-    }
-
-    async function _sfToggleComments(projId, roundId) {
-      const key = roundId.replace(/-/g,'_');
-      const el = document.getElementById('sfcc-'+key);
-      if (!el) return;
-      if (el.style.display !== 'none') { el.style.display = 'none'; return; }
-      el.style.display = '';
-      el.innerHTML = '<div style="color:#3A6A9A;font-size:11px;padding:6px 0;">Cargando comentarios...</div>';
-      const r = await fetch(`/api/projects/${projId}/signing-rounds/${roundId}/comments`, {credentials:'include'}).then(r=>r.json()).catch(()=>null);
-      const comments = r?.comments || [];
-      if (!comments.length) {
-        el.innerHTML = '<div style="color:#3A5A76;font-size:11px;padding:6px 0;">Sin comentarios en esta ronda.</div>';
-        return;
-      }
-      el.innerHTML = comments.map(c => `
-        <div style="background:#0D1A28;border-left:3px solid ${c.status==='resolved'?'#27c459':'#C8921A'};border-radius:0 4px 4px 0;padding:7px 10px;margin-bottom:6px;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
-            <div>
-              ${c.section_ref?`<span style="font-size:9px;font-weight:700;color:#C8921A;margin-right:4px;">[${esc(c.section_ref)}]</span>`:''}
-              <span style="font-size:12px;color:#DDE8F5;">${esc(c.body)}</span>
-            </div>
-            ${c.status==='open'?`<button onclick="_sfResolveComment('${esc(projId)}','${esc(roundId)}','${c.id}','${key}')" style="background:transparent;border:1px solid #1E4030;color:#27c459;border-radius:4px;padding:2px 7px;font-size:9px;cursor:pointer;flex-shrink:0;">✓ Resolver</button>`:'<span style="font-size:9px;color:#27c459;">✓ Resuelto</span>'}
-          </div>
-          <div style="font-size:10px;color:#3A5A76;margin-top:3px;">${esc(c.display_name||c.username)} · ${fmtDTrd(c.created_at)}</div>
-        </div>`).join('');
-    }
-
-    async function _sfResolveComment(projId, roundId, commentId, key) {
-      await fetch(`/api/projects/${projId}/signing-rounds/${roundId}/comments/${commentId}/resolve`, {method:'POST',credentials:'include'}).catch(()=>null);
-      _sfToggleComments(projId, roundId); // reload
-      const el = document.getElementById('sfcc-'+key); if (el) el.style.display = '';
-    }
-
-    async function sfSealRound(projId, roundId) {
-      await sealRound(projId, roundId);
-      if (_sfState.projId === projId && _sfState.docType) await sfOpenDocView(projId, _sfState.docType);
-    }
-
-    async function sfDownloadDoc() {
-      if (!_sfState.projId || !_sfState.docType) return;
-      const docR = await fetch(`/api/projects/${_sfState.projId}/documents/${_sfState.docType}`, {credentials:'include'}).then(r=>r.json()).catch(()=>null);
-      if (!docR?.ok || !docR.document?.json_data) return;
-      ValidationSuite.renderDocument(JSON.parse(docR.document.json_data), { download: true });
-    }
-
-    function sfClose() {
-      document.getElementById('sfPanel').style.display = 'none';
-      if (_sfState.pdfBlobUrl) { URL.revokeObjectURL(_sfState.pdfBlobUrl); _sfState.pdfBlobUrl = null; }
-    }
-
-    function sfOpenNewRound() {
-      sfClose();
-      openReviewDashboard();
-      setTimeout(() => { openCreateRoundModal(); }, 250);
-    }
-
-    async function loadReviewDashboard() {
-      const body = document.getElementById('rdBody');
-      body.innerHTML = '<div style="color:#4a6a86;font-size:13px;">Cargando...</div>';
-      const [r, sess] = await Promise.all([
-        fetch('/admin/review-activity', { credentials:'include' }).then(r=>r.json()).catch(()=>null),
-        fetch('/auth/session', { credentials:'include' }).then(r=>r.json()).catch(()=>null),
-      ]);
-      _rdIsAdmin = sess?.role === 'admin';
-      const btnNew = document.getElementById('rd-btn-new-round');
-      if (btnNew) btnNew.style.display = _rdIsAdmin ? '' : 'none';
-      if (!r?.ok) { body.innerHTML = '<div style="color:#e87a8a;font-size:13px;">Error al cargar.</div>'; return; }
-
-      _rdSignerRevisions = r.signer_revisions || [];
-      const rounds = r.rounds || [];
-      const html = [];
-
-      // Solicitudes de revisión activas (from signer_revisions — desaparecen al descartar)
-      const openRevs = _rdSignerRevisions.filter(s => !s.revision_fulfilled_at).slice(0, 10);
-      if (openRevs.length) {
-        html.push(`<div style="margin-bottom:20px;">
-          <div style="font-size:11px;font-weight:700;color:#e87a8a;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #3a1a20;">🔔 Solicitudes de revisión activas</div>`);
-        openRevs.forEach(rv => {
-          let points = [];
-          try { const p = JSON.parse(rv.revision_reason); if (Array.isArray(p)) points = p.map(x=>typeof x==='string'?{section:'',point:x}:x); else points=[{section:'',point:rv.revision_reason}]; } catch(_) { points=[{section:'',point:rv.revision_reason||''}]; }
-          const discardBtn = _rdIsAdmin ? `<button onclick="_rdDiscardRevision('${esc(rv.project_id)}','${esc(rv.round_id)}','${esc(rv.username)}')" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:5px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer;margin-top:8px;">✕ Descartar</button>` : '';
-          html.push(`<div style="background:#1a0d10;border:1px solid #3a1a20;border-radius:8px;padding:12px 14px;margin-bottom:8px;">
-            <div style="font-size:12px;font-weight:600;color:#e87a8a;">${esc(rv.doc_type)} — ${esc(rv.project_name||rv.project_id)}</div>
-            <div style="font-size:12px;color:#4a6a86;margin-top:2px;">${esc(rv.display_name||rv.username)} · ${fmtDTrd(rv.revision_requested_at)}</div>
-            <ul style="margin:6px 0 0 0;padding-left:14px;">${points.filter(p=>p.point).map(p=>`<li style="font-size:12px;color:#b8cce0;margin-bottom:3px;">${p.section?`<span style="font-size:10px;font-weight:700;color:#C8921A;margin-right:4px;">[${esc(p.section)}]</span>`:''} ${esc(p.point)}</li>`).join('')}</ul>
-            ${discardBtn}
-          </div>`);
-        });
-        html.push('</div>');
-      }
-
-      // Rondas activas
-      const open = rounds.filter(r=>r.status==='open');
-      // Distinguir: abiertas listas para sellar vs. abiertas con firma pendiente
-      const readyToSeal = open.filter(r => r.total_signers > 0 && (r.signed_count||0) >= r.total_signers);
-      const pendingSign = open.filter(r => (r.signed_count||0) < r.total_signers);
-
-      if (readyToSeal.length) {
-        html.push(`<div style="margin-bottom:20px;">
-          <div style="font-size:11px;font-weight:700;color:#C8921A;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #3a2808;">⚡ Listas para sellar — todos firmaron</div>`);
-        readyToSeal.forEach(rnd => renderRoundCard(html, rnd, true));
-        html.push('</div>');
-      }
-
-      if (pendingSign.length) {
-        html.push(`<div style="margin-bottom:20px;">
-          <div style="font-size:11px;font-weight:700;color:#3a8ace;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #1a3050;">⏳ Esperando firmas</div>`);
-        pendingSign.forEach(rnd => renderRoundCard(html, rnd, false));
-        html.push('</div>');
-      }
-
-      if (!open.length) {
-        html.push(`<div style="margin-bottom:20px;padding:20px;background:#0a1620;border:1px dashed #1e3550;border-radius:10px;text-align:center;">
-          <div style="font-size:13px;color:#4a6a86;margin-bottom:6px;">No hay rondas de firma abiertas</div>
-          <div style="font-size:12px;color:#2a4a66;">Usá <strong style="color:#1a5aaa;">+ Nueva ronda de firma</strong> para iniciar el circuito de un documento</div>
-        </div>`);
-      }
-
-      // Rondas selladas de revisión pendiente de aprobación (colapsadas por defecto)
-      const sealedReview = rounds.filter(r => r.status === 'sealed' && (r.phase || 'review') === 'review');
-      if (sealedReview.length) {
-        const sealedHtml = [];
-        sealedReview.slice(0, 5).forEach(rnd => renderRoundCard(sealedHtml, rnd, false));
-        const extra = sealedReview.length > 5 ? `<div style="font-size:11px;color:#4a6a86;padding:6px 0;">… y ${sealedReview.length - 5} más. Abrí el Archivo para verlas todas.</div>` : '';
-        html.push(`
-          <div style="margin-bottom:20px;">
-            <div style="display:flex;align-items:center;gap:8px;padding-bottom:6px;border-bottom:1px solid #1a3050;margin-bottom:8px;cursor:pointer;" onclick="_rdToggleSealedSection(this)">
-              <span style="font-size:11px;font-weight:700;color:#c4a427;text-transform:uppercase;letter-spacing:.8px;">↻ Revisión sellada — esperando aprobación (${sealedReview.length})</span>
-              <span style="font-size:10px;color:#4a6a86;margin-left:auto;">▾ expandir</span>
-            </div>
-            <div class="rd-sealed-body" style="display:none;">${sealedHtml.join('')}${extra}</div>
-          </div>`);
-      }
-
-      if (!html.length) html.push('<div style="color:#4a6a86;font-size:13px;padding:20px 0;">Sin rondas registradas. Creá la primera usando el botón de abajo.</div>');
-      body.innerHTML = html.join('');
-    }
-
-    function renderRoundCard(html, rnd, allSigned) {
-      const statusColor = {open:'#c4a427', sealed:'#27c459', cancelled:'#e87a8a'}[rnd.status] || '#4a6a86';
-      const borderColor = allSigned ? '#C8921A' : (rnd.status === 'sealed' ? '#1a4030' : '#1e3550');
-      const cardBg      = allSigned ? '#100e02' : '#0d1a28';
-      const progress = rnd.total_signers ? `${rnd.signed_count||0}/${rnd.total_signers} firmaron` : '';
-      const revCount = rnd.revision_count > 0 ? `· <span style="color:#e87a8a;">${rnd.revision_count} solicitud(es) de revisión</span>` : '';
-      const revDetails = _rdSignerRevisions.filter(s => s.round_id === rnd.id);
-      const revBlock = revDetails.length ? revDetails.map(s => {
-        let points = [];
-        try { const p = JSON.parse(s.revision_reason); if (Array.isArray(p)) points = p.map(x=>typeof x==='string'?{section:'',point:x}:x); else points=[{section:'',point:s.revision_reason}]; } catch(_) { points=[{section:'',point:s.revision_reason||''}]; }
-        const discardBtn = _rdIsAdmin ? `<button onclick="_rdDiscardRevision('${esc(s.project_id)}','${esc(s.round_id)}','${esc(s.username)}')" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:4px;padding:2px 7px;font-size:10px;cursor:pointer;margin-top:4px;">✕ Descartar</button>` : '';
-        return `<div style="margin-top:6px;background:#1a0d10;border-left:3px solid #e87a8a;border-radius:0 4px 4px 0;padding:6px 10px;">
-          <span style="font-size:11px;font-weight:600;color:#e87a8a;">${esc(s.display_name||s.username)}</span>
-          <span style="font-size:11px;color:#4a6a86;"> · ${fmtDTrd(s.revision_requested_at)}</span>
-          <ul style="margin:4px 0 0 0;padding-left:14px;">${points.filter(p=>p.point).map(p=>`<li style="font-size:11px;color:#b8cce0;margin-bottom:2px;">${p.section?`<span style="font-size:9px;font-weight:700;color:#C8921A;margin-right:4px;">[${esc(p.section)}]</span>`:''} ${esc(p.point)}</li>`).join('')}</ul>
-          ${discardBtn}
-        </div>`;
-      }).join('') : '';
-
-      // Botón sellar — prominente cuando todos firmaron
-      const sealBtn = _rdIsAdmin && rnd.status === 'open'
-        ? (allSigned
-          ? `<button onclick="sealRound('${esc(rnd.project_id)}','${esc(rnd.id)}')" style="background:#C8921A;border:none;color:#0B2341;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.3px;animation:_rdPulse 1.8s ease-in-out infinite;">✓ Sellar ahora</button>`
-          : `<button onclick="sealRound('${esc(rnd.project_id)}','${esc(rnd.id)}')" style="background:#0e2820;border:1px solid #1e4830;color:#27c459;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;">Sellar ▶</button>`)
-        : '';
-      const cancelBtn = _rdIsAdmin && rnd.status === 'open'
-        ? `<button onclick="cancelRound('${esc(rnd.project_id)}','${esc(rnd.id)}')" style="background:#1a0d10;border:1px solid #5a2030;color:#e87a8a;border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;">✕ Cancelar</button>`
-        : '';
-      const deleteBtn = _rdIsAdmin && rnd.status !== 'sealed'
-        ? `<button onclick="deleteRound('${esc(rnd.project_id)}','${esc(rnd.id)}')" style="background:#0f0a0a;border:1px solid #3a1520;color:#7a4a56;border-radius:6px;padding:4px 10px;font-size:10px;cursor:pointer;" title="Eliminar ronda">🗑</button>`
-        : '';
-
-      // Botón ver firmantes (selladas) + shortcut "Nueva ronda aprobación" para review selladas
-      const expandId = `rdexp_${rnd.id.replace(/-/g,'_')}`;
-      const expandBtn = rnd.status === 'sealed'
-        ? `<button onclick="_rdToggleSigners('${esc(rnd.project_id)}','${esc(rnd.id)}','${expandId}')" style="background:#0a1825;border:1px solid #1e3550;color:#5aaade;border-radius:5px;padding:3px 10px;font-size:10px;cursor:pointer;">Ver firmantes ▾</button>`
-        : '';
-      // Si revisión sellada → ofrecer crear ronda de aprobación directamente
-      const approvalShortcut = _rdIsAdmin && rnd.status === 'sealed' && (rnd.phase||'review') === 'review'
-        ? `<button onclick="_rdCreateApprovalRound('${esc(rnd.project_id)}','${esc(rnd.doc_type)}')" style="background:#0e1e10;border:1px solid #C8921A44;color:#C8921A;border-radius:5px;padding:3px 10px;font-size:10px;cursor:pointer;margin-top:2px;">+ Nueva aprobación</button>`
-        : '';
-
-      const phaseLabel = (rnd.phase||'review') === 'approval' ? 'Aprobación' : 'Revisión';
-      const phaseColor = (rnd.phase||'review') === 'approval' ? '#C8921A' : '#3a7aaa';
-      html.push(`<div style="background:${cardBg};border:1px solid ${borderColor};border-radius:10px;padding:12px 16px;margin-bottom:8px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
-          <div style="min-width:0;flex:1;">
-            <div style="font-size:13px;font-weight:600;color:${allSigned?'#e8be60':'#eef3f8'};">
-              ${esc(rnd.doc_type)} <span style="font-size:11px;color:#4a6a86;font-weight:400;">v${rnd.doc_version||1}</span>
-              <span style="background:${phaseColor}22;border:1px solid ${phaseColor}55;color:${phaseColor};border-radius:4px;padding:1px 6px;font-size:9px;font-weight:600;margin-left:6px;">${phaseLabel}</span>
-            </div>
-            <div style="font-size:11px;color:#4a6a86;margin-top:2px;">${esc(rnd.project_name)} · Iniciada ${fmtDTrd(rnd.created_at)}</div>
-            <div style="font-size:12px;color:#7a9ab8;margin-top:4px;">${progress} ${revCount}</div>
-            ${revBlock}
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
-            <span style="font-size:10px;font-weight:700;color:${statusColor};text-transform:uppercase;letter-spacing:.5px;">${rnd.status}</span>
-            <button onclick="sfOpenDocView('${esc(rnd.project_id)}','${esc(rnd.doc_type)}');closeReviewDashboard();" style="background:#0B2341;border:1px solid rgba(200,146,26,.35);color:#C8921A;border-radius:5px;padding:3px 10px;font-size:10px;cursor:pointer;" title="Ver documento completo + ronda en Suite Firmas">📄 Ver doc</button>
-            ${sealBtn}${cancelBtn}${deleteBtn}${expandBtn}${approvalShortcut}
-          </div>
-        </div>
-        <div id="${expandId}" style="display:none;margin-top:10px;border-top:1px solid #1a3050;padding-top:10px;"></div>
-      </div>`);
-    }
-
-    async function _rdToggleSigners(projId, roundId, expandId) {
-      const el = document.getElementById(expandId);
-      if (!el) return;
-      if (el.style.display !== 'none') { el.style.display = 'none'; return; }
-      el.style.display = '';
-      el.innerHTML = '<div style="color:#4a6a86;font-size:12px;">Cargando firmantes...</div>';
-      const r = await fetch(`/api/projects/${projId}/signing-rounds/${roundId}`, { credentials:'include' }).then(r=>r.json()).catch(()=>null);
-      if (!r?.ok) { el.innerHTML = '<div style="color:#e87a8a;font-size:12px;">Error al cargar.</div>'; return; }
-      const signers = r.signers || [];
-      if (!signers.length) { el.innerHTML = '<div style="color:#4a6a86;font-size:12px;">Sin firmantes registrados.</div>'; return; }
-      el.innerHTML = signers.map(s => `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #102030;gap:10px;">
-          <div>
-            <span style="font-size:12px;font-weight:600;color:#dde6f0;">${esc(s.display_name||s.username)}</span>
-            <span style="font-size:11px;color:#4a6a86;margin-left:6px;">${esc(s.role_label||'')}</span>
-            ${s.email ? `<span style="font-size:10px;color:#2a4a66;margin-left:4px;">&lt;${esc(s.email)}&gt;</span>` : ''}
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-            <span style="font-size:11px;color:${s.signed_at?'#27c459':'#e87a8a'};">
-              ${s.signed_at ? '✓ ' + fmtDTrd(s.signed_at) : '✗ Pendiente'}
-            </span>
-            ${!s.signed_at && s.email ? `<button onclick="rdResendNotification('${esc(projId)}','${esc(roundId)}','${esc(s.id)}')" style="background:#0a1830;border:1px solid #1a3a6a;color:#5aaade;border-radius:5px;padding:2px 8px;font-size:10px;cursor:pointer;" title="Reenviar notificación por email">✉ Reenviar</button>` : ''}
-          </div>
-        </div>`).join('');
-    }
-
-    async function rdResendNotification(projId, roundId, signerId) {
-      const btn = event?.target;
-      if (btn) { btn.disabled = true; btn.textContent = '…'; }
-      try {
-        const r = await fetch(`/api/projects/${projId}/signing-rounds/${roundId}/resend/${signerId}`, {
-          method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'}, body: '{}'
-        }).then(r=>r.json()).catch(()=>null);
-        if (r?.ok) {
-          _rdToast('Notificación enviada', '#27a855');
-          if (btn) { btn.textContent = '✓ Enviado'; btn.style.color='#27a855'; }
-        } else {
-          _rdToast(r?.error || 'Error al enviar', '#e87a8a');
-          if (btn) { btn.disabled = false; btn.textContent = '✉ Reenviar'; }
-        }
-      } catch(e) {
-        if (btn) { btn.disabled = false; btn.textContent = '✉ Reenviar'; }
-      }
-    }
-
-    function fmtDTrd(ts) {
-      if (!ts) return '—';
-      return new Date(ts*1000).toLocaleString('es-AR',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-    }
-    function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-    async function _rdDiscardRevision(projId, roundId, username) {
-      if (!confirm('¿Descartar esta solicitud de revisión? La ronda se reabrirá si no quedan otras revisiones pendientes.')) return;
-      const r = await fetch(`/api/projects/${projId}/signing-rounds/${roundId}/discard-revision/${username}`, {
-        method: 'POST', credentials: 'include', headers: {'Content-Type':'application/json'}, body: '{}'
-      }).then(r=>r.json()).catch(()=>null);
-      if (r?.ok) loadReviewDashboard();
-      else alert('Error: ' + (r?.error || 'desconocido'));
-    }
-
-    async function cancelRound(projId, roundId) {
-      const reason = prompt('Motivo de cancelación (opcional):') ?? '';
-      if (reason === null) return;
-      if (!confirm('¿Cancelar la ronda? El documento volverá a estado Borrador.')) return;
-      const r = await fetch(`/api/projects/${projId}/signing-rounds/${roundId}/cancel`, {
-        method:'POST', credentials:'include',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ reason: reason || 'Cancelada por administrador' }),
-      }).then(r=>r.json()).catch(()=>null);
-      if (!r?.ok) { alert('Error al cancelar: ' + (r?.error||'Error desconocido')); return; }
-      loadReviewDashboard();
-    }
-
-    async function deleteRound(projId, roundId) {
-      if (!confirm('¿ELIMINAR esta ronda? Se borrará junto con todas sus firmas y revisiones.\nUsá esto solo para resetear pruebas — las rondas selladas NO se pueden eliminar.')) return;
-      const r = await fetch(`/api/projects/${projId}/signing-rounds/${roundId}`, {
-        method: 'DELETE', credentials: 'include',
-      }).then(r=>r.json()).catch(()=>null);
-      if (!r?.ok) { alert('Error: ' + (r?.error || 'desconocido')); return; }
-      loadReviewDashboard();
-    }
-
-    function _rdToast(msg, color) {
-      const t = document.createElement('div');
-      t.style.cssText = `position:fixed;top:68px;right:24px;background:#0B2341;border:2px solid ${color||'#27c459'};color:#eef3f8;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:340px;line-height:1.4;`;
-      t.textContent = msg;
-      document.body.appendChild(t);
-      setTimeout(() => t.remove(), 5000);
-    }
-
-    async function sealRound(projId, roundId) {
-      const btn = event?.currentTarget;
-      if (btn) {
-        if (btn.dataset.confirming !== '1') {
-          btn.dataset.confirming = '1';
-          const orig = btn.innerHTML;
-          btn.innerHTML = '¿Confirmar sellado?';
-          btn.style.background = '#7a5010';
-          setTimeout(() => { btn.dataset.confirming = ''; btn.innerHTML = orig; btn.style.background = '#C8921A'; }, 4000);
-          return;
-        }
-        btn.disabled = true;
-        btn.innerHTML = 'Sellando...';
-      }
-      const r = await fetch(`/api/projects/${projId}/signing-rounds/${roundId}/seal`, {
-        method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:'{}',
-      }).then(r=>r.json()).catch(()=>null);
-      if (!r?.ok) { _rdToast('Error al sellar: ' + (r?.error||'Error desconocido'), '#e87a8a'); if (btn) { btn.disabled=false; btn.innerHTML='✓ Sellar ahora'; } return; }
-      _rdToast(`✅ Sellado · Block #${r.block_number} · ${r.seal_hash?.slice(0,16)}…`, '#27c459');
-      setTimeout(() => loadReviewDashboard(), 800);
-    }
-
-    // ── Create Round ──────────────────────────────────────────────────────
-    function openCreateRoundModal() {
-      document.getElementById('cr-error').style.display = 'none';
-      document.getElementById('cr-signers-list').innerHTML = '';
-      rdAddSigner(); // al menos uno
-      document.getElementById('crModal').style.display = 'flex';
-      rdLoadProjects();
-    }
-    function closeCreateRoundModal() {
-      document.getElementById('crModal').style.display = 'none';
-      _rdKnownEmails = null; // reset cache so next open re-fetches
-    }
-
-    async function rdLoadProjects() {
-      const sel = document.getElementById('cr-proj');
-      const r = await fetch('/api/projects', { credentials:'include' }).then(r=>r.json()).catch(()=>null);
-      _rdProjects = (r?.projects || []).filter(p => !p.id.startsWith('__demo'));
-      sel.innerHTML = '<option value="">— Seleccioná un proyecto —</option>';
-      _rdProjects.forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.id;
-        // Mostrar nombre humano; si la columna name es el ID crudo, usar system_name como fallback
-        const label = (p.name && p.name !== p.id) ? p.name : (p.system_name || p.id);
-        opt.textContent = label;
-        sel.appendChild(opt);
-      });
-      // Auto-seleccionar el proyecto activo en este navegador
-      const activeId = localStorage.getItem('vscActiveProjectId');
-      if (activeId && _rdProjects.some(p => p.id === activeId)) {
-        sel.value = activeId;
-        await rdLoadDocs();
-      }
-    }
-
-    async function rdLoadDocs() {
-      const projId = document.getElementById('cr-proj').value;
-      const container = document.getElementById('rdDocCheckboxes');
-      container.innerHTML = '<div style="color:#4a6a86;font-size:12px;padding:6px 8px;">Cargando...</div>';
-      if (!projId) {
-        container.innerHTML = '<div style="color:#4a6a86;font-size:12px;padding:6px 8px;">— Seleccioná un proyecto primero —</div>';
-        return;
-      }
-      const r = await fetch(`/api/projects/${projId}/documents`, { credentials:'include' }).then(r=>r.json()).catch(()=>null);
-      const DOC_NAMES_ADMIN = {
-        HLRA:'High Level Risk Assessment', VP:'Validation Plan', URS:'User Requirements Spec.',
-        FRS:'Functional Requirements Spec.', DS:'Design Specification', RA:'Risk Assessment',
-        IRA:'Impact Risk Analysis', RRM:'Risk Register Matrix', MTR:'Master Test Report',
-        PIQ:'Protocol IQ', POQ:'Protocol OQ', PPQ:'Protocol PQ',
-        IIQ:'Informe IQ', IOQ:'Informe OQ', IPQ:'Informe PQ',
-        RIQ:'Reporte IQ', ROQ:'Reporte OQ', RPQ:'Reporte PQ',
-        NCR:'Non-Conformance Report', VSR:'Validation Summary Report',
-      };
-      const STATUS_LABEL = { draft:'borrador', for_review:'en revisión', approved:'aprobado' };
-      const docs = r?.documents || [];
-      if (!docs.length) {
-        container.innerHTML = '<div style="color:#4a6a86;font-size:12px;padding:6px 8px;">Sin documentos disponibles.</div>';
-        return;
-      }
-      container.innerHTML = docs.map(d => {
-        const fullName = DOC_NAMES_ADMIN[d.doc_type] || d.doc_type;
-        const st = STATUS_LABEL[d.status] || d.status;
-        const label = `${d.doc_type} — ${fullName} (v${d.version||1}) [${st}]`;
-        return `<label style="display:flex;align-items:center;gap:8px;padding:5px 8px;cursor:pointer;border-radius:4px;font-size:13px;color:#b8cce0;">
-          <input type="checkbox" value="${esc(d.doc_type)}" style="accent-color:#C8921A;">
-          ${esc(label)}
-        </label>`;
-      }).join('');
-    }
-
-    let _rdUsers = null;
-    let _rdIsAdmin = false;
-    let _rdLastRevCount = -1;  // -1 = primer poll aún no hecho
-
-    async function _pollRevisionBadge() {
-      try {
-        const r = await fetch('/admin/review-activity', { credentials:'include' }).then(r=>r.json()).catch(()=>null);
-        if (!r?.ok) return;
-        // Solo contar revisiones pendientes (sin cumplir)
-        const pending = (r.signer_revisions || []).filter(s => !s.revision_fulfilled_at);
-        const count = pending.length;
-        const badge = document.getElementById('rdRevBadge');
-        if (badge) {
-          if (count > 0) { badge.textContent = count; badge.style.display = ''; }
-          else { badge.style.display = 'none'; }
-        }
-        const dashOpen = document.getElementById('rdModal')?.style.display !== 'none';
-        // Mostrar toast si llegó algo nuevo y el dashboard está cerrado
-        if (!dashOpen && _rdLastRevCount >= 0 && count > _rdLastRevCount) {
-          const diff = count - _rdLastRevCount;
-          const names = pending.slice(-diff).map(s => s.display_name || s.username).join(', ');
-          const toastEl = document.createElement('div');
-          toastEl.style.cssText = 'position:fixed;bottom:24px;right:24px;background:#0B2341;border:2px solid #e87a8a;color:#eef3f8;padding:14px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:99999;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:300px;';
-          toastEl.innerHTML = `<div style="color:#e87a8a;font-size:14px;margin-bottom:4px;">🔔 ${diff > 1 ? diff + ' nuevas revisiones' : 'Nueva revisión solicitada'}</div><div style="font-size:12px;color:#b8cce0;font-weight:400;">${names}</div><div style="font-size:11px;color:#4a6a86;margin-top:6px;">Clic para abrir el dashboard</div>`;
-          toastEl.onclick = () => { openReviewDashboard(); toastEl.remove(); };
-          document.body.appendChild(toastEl);
-          setTimeout(() => { if (toastEl.parentNode) toastEl.remove(); }, 10000);
-        }
-        _rdLastRevCount = count;
-      } catch(_) {}
-    }
-    // Arrancar polling de revisiones (solo si hay sesión admin)
-    setTimeout(async () => {
-      const sess = await fetch('/auth/session', { credentials:'include' }).then(r=>r.json()).catch(()=>null);
-      if (sess?.role === 'admin') {
-        _pollRevisionBadge();
-        setInterval(_pollRevisionBadge, 60000);
-      }
-    }, 3000);
-    async function rdGetUsers() {
-      if (_rdUsers) return _rdUsers;
-      const r = await fetch('/admin/users', { credentials:'include' }).then(r=>r.json()).catch(()=>null);
-      _rdUsers = (r?.users||[]).filter(u=>u.role==='client'&&u.is_active);
-      return _rdUsers;
-    }
-
-    async function rdAddSigner() {
-      const users = await rdGetUsers();
-      const container = document.getElementById('cr-signers-list');
-      const idx = container.children.length;
-      const rowId = `sr_${Date.now()}_${idx}`;
-      const row = document.createElement('div');
-      row.style.cssText = 'background:#080f18;border:1px solid #1a3050;border-radius:8px;padding:10px 12px;margin-bottom:8px;';
-      row.dataset.rowId = rowId;
-
-      const userOptions = users.map(u =>
-        `<option value="${esc(u.username)}">${esc(u.display_name||u.username)} &lt;${esc(u.email||'')}></option>`
-      ).join('');
-
-      row.innerHTML = `
-        <!-- Fila superior: modo + rol + orden -->
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-          <span style="font-size:11px;font-weight:700;color:#3a6a8a;min-width:20px;">${idx+1}</span>
-          <!-- Toggle modo -->
-          <div style="display:flex;border:1px solid #1a3050;border-radius:6px;overflow:hidden;flex-shrink:0;">
-            <button class="cr-mode-btn cr-mode-existing" onclick="rdSignerMode(this,'existing')"
-              style="padding:5px 10px;font-size:11px;border:none;cursor:pointer;background:#0f2a45;color:#5aaade;font-weight:600;">
-              👤 Sistema
-            </button>
-            <button class="cr-mode-btn cr-mode-email" onclick="rdSignerMode(this,'email')"
-              style="padding:5px 10px;font-size:11px;border:none;cursor:pointer;background:#0b1621;color:#4a6a86;">
-              ✉ Invitar
-            </button>
-          </div>
-          <!-- Rol -->
-          <select class="cr-signer-role" style="flex:1;background:#0b1621;border:1.5px solid #1e3550;border-radius:7px;padding:7px 8px;font-size:12px;color:#dde6f0;outline:none;">
-            <option>Revisor</option>
-            <option>Aprobador</option>
-            <option>Ejecutor</option>
-            <option>Calidad</option>
-          </select>
-          <!-- Orden -->
-          <input type="number" class="cr-signer-order" min="0" max="99" value="${idx+1}"
-            title="Orden de firma (1=primero, 0=sin orden)"
-            style="width:44px;background:#0b1621;border:1.5px solid #1e3550;border-radius:7px;padding:7px 6px;font-size:12px;color:#dde6f0;outline:none;text-align:center;">
-          <button onclick="this.closest('[data-row-id]').remove()"
-            style="background:#1a0810;border:1px solid #5a2030;color:#e87a8a;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer;">✕</button>
-        </div>
-        <!-- Panel: usuario existente -->
-        <div class="cr-panel-existing" style="display:block;">
-          <select class="cr-signer-user" style="width:100%;background:#0b1621;border:1.5px solid #1e3550;border-radius:7px;padding:8px 10px;font-size:12px;color:#dde6f0;outline:none;">
-            <option value="">— Seleccioná un usuario —</option>
-            ${userOptions}
-          </select>
-        </div>
-        <!-- Panel: invitar por email -->
-        <div class="cr-panel-email" style="display:none;">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">
-            <div>
-              <div style="font-size:10px;color:#4a6a86;margin-bottom:3px;">Usuario (login) <span style="color:#e87a8a;">*</span></div>
-              <input type="text" class="cr-signer-username" placeholder="jperez"
-                autocomplete="off" autocapitalize="off" spellcheck="false"
-                style="width:100%;box-sizing:border-box;background:#0b1621;border:1.5px solid #1e3550;border-radius:7px;padding:8px 10px;font-size:12px;color:#dde6f0;outline:none;font-family:monospace;"
-                oninput="this.value=this.value.replace(/[^a-z0-9._-]/gi,'').toLowerCase()">
-            </div>
-            <div>
-              <div style="font-size:10px;color:#4a6a86;margin-bottom:3px;">Nombre completo <span style="color:#e87a8a;">*</span></div>
-              <input type="text" class="cr-signer-name" placeholder="Juan Pérez"
-                style="width:100%;box-sizing:border-box;background:#0b1621;border:1.5px solid #1e3550;border-radius:7px;padding:8px 10px;font-size:12px;color:#dde6f0;outline:none;">
-            </div>
-          </div>
-          <div>
-            <div style="font-size:10px;color:#4a6a86;margin-bottom:3px;">Email (recibirá el acceso) <span style="color:#e87a8a;">*</span></div>
-            <input type="email" class="cr-signer-email" placeholder="jperez@empresa.com"
-              style="width:100%;box-sizing:border-box;background:#0b1621;border:1.5px solid #C8921A55;border-radius:7px;padding:8px 10px;font-size:12px;color:#dde6f0;outline:none;"
-              oninput="rdSignerEmailHint(this)">
-          </div>
-          <div class="cr-email-hint" style="font-size:10px;color:#C8921A;margin-top:5px;display:none;">
-            ⚠ Este email no tiene cuenta — se creará el usuario y recibirá el magic link al crear la ronda.
-          </div>
-        </div>`;
-      container.appendChild(row);
-    }
-
-    function rdSignerMode(btn, mode) {
-      const row = btn.closest('[data-row-id]');
-      row.querySelectorAll('.cr-mode-btn').forEach(b => {
-        b.style.background = '#0b1621'; b.style.color = '#4a6a86'; b.style.fontWeight = '400';
-      });
-      btn.style.background = '#0f2a45'; btn.style.color = '#5aaade'; btn.style.fontWeight = '600';
-      row.querySelector('.cr-panel-existing').style.display = mode === 'existing' ? 'block' : 'none';
-      row.querySelector('.cr-panel-email').style.display    = mode === 'email'    ? 'block' : 'none';
-    }
-
-    let _rdKnownEmails = null;
-    async function rdSignerEmailHint(input) {
-      const email = input.value.trim().toLowerCase();
-      const hint = input.closest('[data-row-id]').querySelector('.cr-email-hint');
-      if (!email || !email.includes('@')) { hint.style.display = 'none'; return; }
-      if (!_rdKnownEmails) {
-        const users = await rdGetUsers();
-        _rdKnownEmails = new Set(users.map(u => (u.email||'').toLowerCase()).filter(Boolean));
-      }
-      hint.style.display = _rdKnownEmails.has(email) ? 'none' : 'block';
-    }
-
-    async function submitCreateRound() {
-      const projId  = document.getElementById('cr-proj').value;
-      const phase   = document.getElementById('cr-phase')?.value || 'review';
-      const errEl   = document.getElementById('cr-error');
-      const btn     = document.getElementById('cr-submit');
-      errEl.style.display = 'none';
-
-      if (!projId) {
-        errEl.textContent = 'Seleccioná un proyecto.';
-        errEl.style.display = 'block'; return;
-      }
-
-      const checkedTypes = [...document.querySelectorAll('#rdDocCheckboxes input[type=checkbox]:checked')].map(cb => cb.value);
-      if (!checkedTypes.length) {
-        errEl.textContent = 'Seleccioná al menos un documento.';
-        errEl.style.display = 'block'; return;
-      }
-
-      const signerRows = [...document.querySelectorAll('#cr-signers-list [data-row-id]')];
-      const signers = [];
-      let signerError = '';
-      for (const row of signerRows) {
-        const role_label = row.querySelector('.cr-signer-role').value;
-        const sign_order = parseInt(row.querySelector('.cr-signer-order')?.value) || 0;
-        const emailPanel = row.querySelector('.cr-panel-email');
-        const isEmailMode = emailPanel && emailPanel.style.display !== 'none';
-
-        if (isEmailMode) {
-          const usernameInv = row.querySelector('.cr-signer-username')?.value.trim().toLowerCase();
-          const name        = row.querySelector('.cr-signer-name')?.value.trim();
-          const email       = row.querySelector('.cr-signer-email')?.value.trim().toLowerCase();
-          if (!usernameInv) { signerError = `Definí el nombre de usuario en el firmante ${signers.length+1}.`; break; }
-          if (!name)        { signerError = `Ingresá el nombre completo en el firmante ${signers.length+1}.`; break; }
-          if (!email || !email.includes('@')) { signerError = `Ingresá un email válido en el firmante ${signers.length+1}.`; break; }
-          signers.push({ username: usernameInv, email, display_name: name, role_label, sign_order });
-        } else {
-          const username = row.querySelector('.cr-signer-user')?.value;
-          if (!username) { signerError = `Seleccioná un usuario en el firmante ${signers.length+1}.`; break; }
-          signers.push({ username, role_label, sign_order });
-        }
-      }
-
-      if (signerError || !signers.length) {
-        errEl.textContent = signerError || 'Agregá al menos un firmante.';
-        errEl.style.display = 'block'; return;
-      }
-
-      btn.disabled = true; btn.textContent = 'Creando...';
-      let created = 0, errors = [], lastErr = '';
-      for (const docType of checkedTypes) {
-        const r = await fetch(`/api/projects/${projId}/signing-rounds`, {
-          method:'POST', credentials:'include',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ doc_type: docType, phase, signers }),
-        }).then(r=>r.json()).catch(()=>null);
-        if (r?.ok) created++;
-        else { errors.push(docType); lastErr = r?.error || 'Error desconocido'; }
-      }
-      btn.disabled = false; btn.textContent = 'Crear ronda';
-
-      if (errors.length) {
-        errEl.textContent = `${created} ronda(s) creada(s). Error en: ${errors.join(', ')} — ${lastErr}`;
-        errEl.style.display = 'block';
-        if (created) { closeCreateRoundModal(); loadReviewDashboard(); }
-      } else {
-        closeCreateRoundModal();
-        loadReviewDashboard();
-      }
-    }
-    </script>
 
     <!-- AI Generator -->
     <script>
@@ -6069,8 +4550,6 @@
             'modalLogin':                'validation',
             'modalRecovery':             'validation',
             'modalCmpDiff':              'compare',
-            'modalRegistroFirmante':     'evidence',  // firmas dentro de evidencias
-            'modalPeopleManager':        'evidence',
             'modalBookGenerating':       'book',
             'modalBookPreview':          'book',
             'modalBookInfo':             'book'
@@ -6454,7 +4933,7 @@ function openProcessMap() {
     const modal = document.getElementById('modalProcessMap');
     const frame = document.getElementById('pmFrame');
     modal.style.display = 'flex';
-    const pid = window._currentProjectId || '';
+    const pid = (window.VS && window.VS.projects && window.VS.projects.getActiveId && window.VS.projects.getActiveId()) || '';
     const targetSrc = '/process-map.html?project=' + encodeURIComponent(pid);
     // Recarga si cambia el proyecto, carga la primera vez si src vacío
     if (!frame.src || frame.src === window.location.href || frame.getAttribute('data-pid') !== pid) {

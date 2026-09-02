@@ -271,9 +271,6 @@
     // WIZARD DE CREACIÓN DE PROYECTO (3 pasos)
     // ═══════════════════════════════════════════════════════════════════
     let _wizState = null;
-    let _wizSignerCanvas = null;
-    let _wizMobileSigToken = null;
-    let _wizMobileSigPoll = null;
 
     function handleProjectNew() {
         openWizard();
@@ -292,7 +289,6 @@
         _wizState = {
             step: 1,
             data: { name: '', cliente: '', sistemaCode: '', sistemaName: '', gampCat: '', tipoSistema: '' },
-            signers: [],           // [{ nombre, rol, iniciales, email, pin, firmaImage }]
             folderHandle: null,    // FileSystemDirectoryHandle elegido por el usuario
             folderName: null,      // nombre de la carpeta física (para display y storagePath)
             _projectsModalWasOpen: wasProjectsOpen
@@ -337,16 +333,15 @@
     function closeWizard() {
         const modal = document.getElementById('modalCrearProyectoWizard');
         if (modal) modal.style.display = 'none';
-        cleanupMobileSigPoll();
-        if (_wizSignerCanvas) { try { _wizSignerCanvas.detach(); } catch (e) {} _wizSignerCanvas = null; }
         _wizState = null;
     }
 
     function renderWizardStep() {
         if (!_wizState) return;
         const step = _wizState.step;
-        // Activar el step content correcto
-        ['wizStep1', 'wizStep2', 'wizStep3'].forEach((id, i) => {
+        // Activar el step content correcto -- wizStep3 (HTML) es el paso 2 visible
+        // (el "Equipo de firmantes" intermedio se eliminó 2026-09-02).
+        ['wizStep1', 'wizStep3'].forEach((id, i) => {
             const el = document.getElementById(id);
             if (el) el.style.display = (i + 1 === step) ? 'block' : 'none';
         });
@@ -363,25 +358,18 @@
         // Subtitle
         const sub = document.getElementById('wizSubtitle');
         if (sub) {
-            const labels = ['Datos del proyecto', 'Equipo de firmantes', 'Confirmar y crear'];
-            sub.textContent = 'Paso ' + step + ' de 3 · ' + labels[step - 1];
+            const labels = ['Datos del proyecto', 'Confirmar y crear'];
+            sub.textContent = 'Paso ' + step + ' de 2 · ' + labels[step - 1];
         }
         // Botones de navegación
         const btnBack = document.getElementById('wizBtnBack');
-        const btnSkip = document.getElementById('wizBtnSkipSigners');
         const btnNext = document.getElementById('wizBtnNext');
         const btnConfirm = document.getElementById('wizBtnConfirm');
         btnBack.style.display = step > 1 ? '' : 'none';
-        btnSkip.style.display = step === 2 ? '' : 'none';
-        btnNext.style.display = step < 3 ? '' : 'none';
-        btnConfirm.style.display = step === 3 ? '' : 'none';
+        btnNext.style.display = step < 2 ? '' : 'none';
+        btnConfirm.style.display = step === 2 ? '' : 'none';
 
-        // Setup específico por paso
         if (step === 2) {
-            setupWizardSignerCanvas();
-            renderWizardSignerList();
-        }
-        if (step === 3) {
             renderWizardSummary();
         }
     }
@@ -410,100 +398,12 @@
             _wizState.data.gampCat = document.getElementById('wizGampCat').value;
             _wizState.data.tipoSistema = document.getElementById('wizTipoSistema').value;
         }
-        if (_wizState.step < 3) _wizState.step++;
+        if (_wizState.step < 2) _wizState.step++;
         renderWizardStep();
-    }
-
-    function setupWizardSignerCanvas() {
-        const canvas = document.getElementById('wizSignerCanvas');
-        if (!canvas) return;
-        if (_wizSignerCanvas) { try { _wizSignerCanvas.detach(); } catch (e) {} }
-        _wizSignerCanvas = global.SignatureCanvas.attach(canvas, {
-            color: '#1F3C56',
-            lineWidth: 2.8
-        });
-    }
-
-    function wizardClearCanvas() {
-        if (_wizSignerCanvas) _wizSignerCanvas.clear();
-    }
-
-    async function wizardAddSigner() {
-        const errEl = document.getElementById('wizSignerError');
-        errEl.style.display = 'none';
-        const nombre = document.getElementById('wizSignerName').value.trim();
-        const rol = document.getElementById('wizSignerRole').value.trim();
-        const iniciales = document.getElementById('wizSignerInitials').value.trim();
-        const email = document.getElementById('wizSignerEmail').value.trim();
-        const pin = document.getElementById('wizSignerPin').value;
-        const pin2 = document.getElementById('wizSignerPin2').value;
-
-        if (!nombre) { showWizErr('Nombre requerido'); return; }
-        if (!rol) { showWizErr('Rol requerido'); return; }
-        if (!pin || pin.length < 4) { showWizErr('PIN mínimo 4 caracteres'); return; }
-        if (pin !== pin2) { showWizErr('Los PINs no coinciden'); return; }
-        if (!_wizSignerCanvas || _wizSignerCanvas.isEmpty()) { showWizErr('Garabateá la firma manuscrita en el recuadro'); return; }
-        // Validar nombre único en la lista actual
-        if (_wizState.signers.some(s => s.nombre.toLowerCase() === nombre.toLowerCase())) {
-            showWizErr('Ya hay un firmante con ese nombre en la lista');
-            return;
-        }
-        const firmaImage = _wizSignerCanvas.toDataURL();
-        _wizState.signers.push({ nombre, rol, iniciales, email, pin, firmaImage });
-        // Reset form
-        document.getElementById('wizSignerName').value = '';
-        document.getElementById('wizSignerRole').value = '';
-        document.getElementById('wizSignerInitials').value = '';
-        document.getElementById('wizSignerEmail').value = '';
-        document.getElementById('wizSignerPin').value = '';
-        document.getElementById('wizSignerPin2').value = '';
-        _wizSignerCanvas.clear();
-        cleanupMobileSigPoll();
-        renderWizardSignerList();
-    }
-
-    function showWizErr(msg) {
-        const errEl = document.getElementById('wizSignerError');
-        errEl.textContent = msg;
-        errEl.style.display = 'block';
-    }
-
-    function renderWizardSignerList() {
-        const list = document.getElementById('wizSignerList');
-        const countEl = document.getElementById('wizSignerCount');
-        if (!list) return;
-        const signers = _wizState.signers;
-        countEl.textContent = signers.length;
-        if (signers.length === 0) {
-            list.innerHTML = '<div style="padding:14px; background:#F4F6F8; border:1.5px dashed #C8D2DC; border-radius:4px; color:#AFBDC8; text-align:center; font-size:12px; font-style:italic;">Aún no agregaste firmantes. Podés saltearlo y registrarlos después.</div>';
-            return;
-        }
-        list.innerHTML = signers.map((s, i) => {
-            const masterBadge = i === 0 ? '<span class="wiz-signer-card-master">Maestro</span>' : '';
-            return '<div class="wiz-signer-card">' +
-                '<img src="' + s.firmaImage + '" alt="firma" class="wiz-signer-card-firma">' +
-                '<div class="wiz-signer-card-info">' +
-                    '<div class="wiz-signer-card-name">' + escapeHtml(s.nombre) + ' ' + masterBadge + '</div>' +
-                    '<div class="wiz-signer-card-meta"><strong>' + escapeHtml(s.rol || '—') + '</strong> · iniciales: ' + escapeHtml(s.iniciales || autoIniciales(s.nombre)) + (s.email ? ' · ' + escapeHtml(s.email) : '') + '</div>' +
-                '</div>' +
-                '<button class="wiz-signer-card-remove" onclick="wizardRemoveSigner(' + i + ')">Quitar</button>' +
-            '</div>';
-        }).join('');
-    }
-
-    function autoIniciales(nombre) {
-        return (nombre || '').split(/\s+/).filter(Boolean).map(w => w[0].toUpperCase()).slice(0, 3).join('');
-    }
-
-    function wizardRemoveSigner(idx) {
-        if (!_wizState) return;
-        _wizState.signers.splice(idx, 1);
-        renderWizardSignerList();
     }
 
     function renderWizardSummary() {
         const d = _wizState.data;
-        const signers = _wizState.signers;
         const sumEl = document.getElementById('wizSummary');
         if (!sumEl) return;
         const rows = [];
@@ -514,10 +414,6 @@
         if (d.gampCat) rows.push(['Categoría GAMP', d.gampCat]);
         if (d.tipoSistema) rows.push(['Tipo', d.tipoSistema]);
         rows.push(['Documentos iniciales', 'HLRA · VP · URS · RA · IRA (5 templates)']);
-        rows.push(['Firmantes registrados', signers.length === 0
-            ? '<em style="color:#AFBDC8;">Ninguno (podés agregar después)</em>'
-            : signers.map((s, i) => escapeHtml(s.nombre) + ' (' + escapeHtml(s.rol) + ')' + (i === 0 ? ' <span style="color:var(--theme-project-main); font-weight:700;">[maestro]</span>' : '')).join('<br>')
-        ]);
         sumEl.innerHTML = rows.map(([label, val]) =>
             '<div class="wiz-summary-row"><div class="wiz-summary-label">' + label + '</div><div class="wiz-summary-value">' + val + '</div></div>'
         ).join('');
@@ -558,7 +454,6 @@
         btn.textContent = 'Creando...';
         try {
             const d = _wizState.data;
-            const signers = _wizState.signers;
             const systemInfo = {
                 empresa: '', cliente: d.cliente, nombreSistema: d.sistemaName,
                 codigoSistema: d.sistemaCode || ('SYS-' + Date.now().toString().slice(-6)),
@@ -566,16 +461,6 @@
                 proveedor: '', revisor: '', aprobador: '', auditor: '',
                 fechaInicio: '', fechaCierre: '', notasProyecto: ''
             };
-            // createNew() hace reload, así que persistimos firmantes y carpeta ANTES.
-            if (signers.length > 0) {
-                localStorage.setItem('vscPendingSigners', JSON.stringify({
-                    sistemaCode: systemInfo.codigoSistema,
-                    signers: signers.map(s => ({
-                        nombre: s.nombre, rol: s.rol, iniciales: s.iniciales,
-                        email: s.email, pin: s.pin, firmaImage: s.firmaImage
-                    }))
-                }));
-            }
             await VS.projects.createNew({
                 name: d.name,
                 systemInfo,
@@ -587,51 +472,6 @@
             alert('Error creando proyecto: ' + e.message);
             btn.disabled = false;
             btn.textContent = '✓ Crear proyecto';
-        }
-    }
-
-    // ─── Mobile signature capture en el wizard ───
-    function cleanupMobileSigPoll() {
-        if (_wizMobileSigPoll) { clearInterval(_wizMobileSigPoll); _wizMobileSigPoll = null; }
-        _wizMobileSigToken = null;
-        const panel = document.getElementById('wizMobileQrPanel');
-        if (panel) panel.style.display = 'none';
-    }
-
-    async function wizardMobileCapture() {
-        try {
-            let serverIp = 'localhost';
-            try {
-                const r = await fetch('/sync/info');
-                if (r.ok) { const info = await r.json(); serverIp = info.ip || 'localhost'; }
-            } catch (e) {}
-            const port = window.location.port || '8080';
-            // Registrar en el server — el server genera el token (VULN-02: ignorar token del cliente)
-            const reg = await fetch('/sync/signature/register', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({})
-            });
-            if (!reg.ok) throw new Error('No se pudo registrar token en el server');
-            const regData = await reg.json();
-            _wizMobileSigToken = regData.token;   // token generado por el server
-            const url = 'http://' + serverIp + ':' + port + '/?sigtoken=' + _wizMobileSigToken;
-            const panel = document.getElementById('wizMobileQrPanel');
-            document.getElementById('wizMobileQrUrl').textContent = url;
-            _renderQrToImg(document.getElementById('wizMobileQrImg'), url, 200);
-            panel.style.display = 'block';
-            _wizMobileSigPoll = setInterval(async () => {
-                try {
-                    const r = await fetch('/sync/signature/' + _wizMobileSigToken);
-                    if (!r.ok) return;
-                    const data = await r.json();
-                    if (data.firmaImage && _wizSignerCanvas) {
-                        await _wizSignerCanvas.loadDataURL(data.firmaImage);
-                        cleanupMobileSigPoll();
-                    }
-                } catch (e) {}
-            }, 2000);
-        } catch (e) {
-            alert('Error iniciando captura móvil: ' + e.message);
         }
     }
 
@@ -654,21 +494,12 @@
         document.getElementById('epProveedor').value   = si.proveedor      || '';
         document.getElementById('epVersion').value     = si.versionSistema || '';
 
-        epLoadSigners();
         modal.style.display = 'flex';
     }
 
     function closeEditProject() {
         const modal = document.getElementById('modalEditProject');
         if (modal) modal.style.display = 'none';
-    }
-
-    function epSwitchTab(tabId) {
-        document.querySelectorAll('.ep-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabId));
-        ['epTabDatos', 'epTabFirmantes'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.style.display = id === tabId ? '' : 'none';
-        });
     }
 
     async function saveEditProject() {
@@ -705,67 +536,6 @@
         else if (typeof refreshChips === 'function') refreshChips();
     }
 
-    async function epLoadSigners() {
-        const listEl = document.getElementById('epSignerList');
-        if (!listEl) return;
-        try {
-            const PM = window.PeopleManager;
-            if (!PM || typeof PM.list !== 'function') {
-                listEl.innerHTML = '<p style="color:#9AABB8;font-size:12px;text-align:center;padding:16px 0;">PeopleManager no disponible — gestioná firmantes desde Suite Comparación &amp; Firma.</p>';
-                return;
-            }
-            const pkgCode = PM.getPackageCode ? PM.getPackageCode() : null;
-            const signers = pkgCode ? (await PM.list(pkgCode) || []) : [];
-            if (!signers.length) {
-                listEl.innerHTML = '<p style="color:#9AABB8;font-size:12px;text-align:center;padding:8px 0;">Sin firmantes registrados aún.</p>';
-            } else {
-                listEl.innerHTML = signers.map(s =>
-                    `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#F8F9FB;border:1px solid #EEF3F4;border-radius:5px;margin-bottom:6px;">
-                        <div style="width:32px;height:32px;border-radius:50%;background:#213B50;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${(s.iniciales||s.nombre||'?').slice(0,2).toUpperCase()}</div>
-                        <div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:13px;">${s.nombre||''}</div><div style="font-size:11px;color:#7A8EA0;">${s.rol||''}</div></div>
-                    </div>`
-                ).join('');
-            }
-        } catch (e) {
-            listEl.innerHTML = `<p style="color:#A52A2A;font-size:12px;">Error cargando firmantes: ${e.message}</p>`;
-        }
-    }
-
-    async function epAddSigner() {
-        const err = document.getElementById('epSignerErr');
-        const hide = () => { if (err) err.style.display = 'none'; };
-        const show = msg => { if (err) { err.textContent = msg; err.style.display = 'block'; } };
-        hide();
-
-        const nombre    = document.getElementById('epSignerName').value.trim();
-        const rol       = document.getElementById('epSignerRole').value.trim();
-        const iniciales = document.getElementById('epSignerInitials').value.trim().toUpperCase() ||
-                          nombre.split(' ').map(w => w[0]).join('').slice(0, 3).toUpperCase();
-        const email     = document.getElementById('epSignerEmail').value.trim();
-        const pin       = document.getElementById('epSignerPin').value;
-        const pin2      = document.getElementById('epSignerPin2').value;
-
-        if (!nombre)        return show('El nombre es requerido.');
-        if (!rol)           return show('El rol es requerido.');
-        if (pin.length < 4) return show('El PIN debe tener al menos 4 caracteres.');
-        if (pin !== pin2)   return show('Los PINs no coinciden.');
-
-        const PM = window.PeopleManager;
-        if (!PM || typeof PM.add !== 'function') return show('PeopleManager no disponible.');
-        const pkgCode = PM.getPackageCode ? PM.getPackageCode() : null;
-        if (!pkgCode) return show('No hay proyecto activo con código de sistema definido.');
-
-        try {
-            await PM.add(pkgCode, { nombre, rol, iniciales, email, firmaImage: null }, pin);
-            ['epSignerName','epSignerRole','epSignerInitials','epSignerEmail','epSignerPin','epSignerPin2']
-                .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-            await epLoadSigners();
-            if (typeof showNotification === 'function') showNotification(`Firmante "${nombre}" registrado`, 'success');
-        } catch (e) {
-            show('Error: ' + e.message);
-        }
-    }
-
     // Globals para los onclick del HTML
     global.openEditProject  = openEditProject;
     async function epForceSyncServer(btn) {
@@ -789,19 +559,13 @@
     }
 
     global.closeEditProject = closeEditProject;
-    global.epSwitchTab      = epSwitchTab;
     global.saveEditProject  = saveEditProject;
-    global.epAddSigner      = epAddSigner;
     global.epForceSyncServer = epForceSyncServer;
     global.wizardPickFolder = wizardPickFolder;
     global.wizardCancel = wizardCancel;
     global.wizardBack = wizardBack;
     global.wizardNext = wizardNext;
     global.wizardConfirm = wizardConfirm;
-    global.wizardClearCanvas = wizardClearCanvas;
-    global.wizardAddSigner = wizardAddSigner;
-    global.wizardRemoveSigner = wizardRemoveSigner;
-    global.wizardMobileCapture = wizardMobileCapture;
 
     async function handleProjectDuplicate(id) {
         const entry = await VS.projects.get(id);
@@ -927,75 +691,12 @@
     global.handleProjectImportFile = handleProjectImportFile;
     global.refreshActiveProjectChip = refreshActiveProjectChip;
 
-    // ════════════════════════════════════════════════════════════════════
-    // POST-RELOAD: aplicar firmantes pendientes del wizard.
-    // Cuando el wizard crea un proyecto con firmantes, los guarda en
-    // localStorage `vscPendingSigners` antes del reload (porque createNew()
-    // recarga la página). Acá, después del reload, esperamos a que la app
-    // termine de inicializar (PeopleManager + packageDocs cargados) y los
-    // aplicamos vía PM.add(). Se limpia el localStorage al terminar.
-    // ════════════════════════════════════════════════════════════════════
-    async function applyPendingSigners() {
-        const raw = localStorage.getItem('vscPendingSigners');
-        if (!raw) return;
-        let pending;
-        try { pending = JSON.parse(raw); } catch (e) { localStorage.removeItem('vscPendingSigners'); return; }
-        if (!pending || !Array.isArray(pending.signers) || pending.signers.length === 0) {
-            localStorage.removeItem('vscPendingSigners');
-            return;
-        }
-        // Esperar a que PeopleManager y packageDocs estén listos
-        const ready = await new Promise(resolve => {
-            let tries = 0;
-            const iv = setInterval(() => {
-                tries++;
-                const pmReady = window.PeopleManager && typeof window.PeopleManager.add === 'function';
-                const pkgReady = Array.isArray(window.packageDocs) && window.packageDocs.length > 0;
-                if (pmReady && pkgReady) { clearInterval(iv); resolve(true); }
-                else if (tries > 60) { clearInterval(iv); resolve(false); } // ~12s max
-            }, 200);
-        });
-        if (!ready) {
-            console.warn('[projects-ui] No se pudieron aplicar firmantes pendientes (PeopleManager/packageDocs no listos)');
-            return;
-        }
-        // Aplicar los firmantes uno por uno. PeopleManager.add() persiste cada uno
-        // dentro del paquete PEOPLE-{codigo} y dispara el audit log SIGNER_REGISTERED.
-        const pkgCode = window.PeopleManager.getPackageCode();
-        if (!pkgCode) {
-            console.warn('[projects-ui] No hay package code activo, abortando seed de firmantes');
-            return;
-        }
-        let ok = 0, fail = 0;
-        for (const s of pending.signers) {
-            try {
-                await window.PeopleManager.add(pkgCode, {
-                    nombre: s.nombre, rol: s.rol, iniciales: s.iniciales,
-                    email: s.email, firmaImage: s.firmaImage
-                }, s.pin);
-                ok++;
-            } catch (e) {
-                console.warn('[projects-ui] Error agregando firmante', s.nombre, e.message);
-                fail++;
-            }
-        }
-        localStorage.removeItem('vscPendingSigners');
-        if (typeof global.showNotification === 'function') {
-            global.showNotification(
-                ok + ' firmante(s) registrado(s) en el proyecto nuevo' + (fail > 0 ? ' (' + fail + ' fallaron)' : ''),
-                'success'
-            );
-        }
-    }
-
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(refreshActiveProjectChip, 200);
-            setTimeout(applyPendingSigners, 1500); // dar tiempo a la app a inicializar
         });
     } else {
         setTimeout(refreshActiveProjectChip, 200);
-        setTimeout(applyPendingSigners, 1500);
     }
 
 })(window);
