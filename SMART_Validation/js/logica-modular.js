@@ -11149,7 +11149,7 @@ async function processMobilePhoto(photo) {
     };
     targetEvidence.isEmpty = false;
 
-    // Guardar imagen en IndexedDB
+    // Guardar imagen en IndexedDB + subir al servidor
     const imageId = `${test.id}_evidence_${targetEvidence.step}`;
     try {
         await saveImageToDB(imageId, photo.image);
@@ -11157,8 +11157,17 @@ async function processMobilePhoto(photo) {
         console.error('Error guardando imagen:', e);
     }
 
-    // Persistir sesion
+    // Persistir sesion (guarda metadata en localStorage; sincroniza activeTestId al servidor)
     await saveToStorage();
+
+    // Sincronizar ESTE test al servidor independientemente de si es el activo.
+    // saveToStorage solo sube el activeTestId; sin esto la evidencia no persiste
+    // en el servidor si el usuario tiene otro test abierto.
+    const _mobileProjId = window.ValidationSuite && window.ValidationSuite.projects
+        && window.ValidationSuite.projects.getActiveId();
+    if (_mobileProjId) {
+        _syncTestExecution(_mobileProjId, test).catch(() => {});
+    }
 
     // Re-renderizar si la prueba afectada esta activa
     if (activeTestId === test.id) {
