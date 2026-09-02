@@ -381,6 +381,7 @@
         };
         try { localStorage.setItem('vscActiveDocType', entry.type); } catch(_) {}
         vsUpdateContextBadge();
+        if (typeof global._vsRefreshFirmasBadge === 'function') global._vsRefreshFirmasBadge();
         vsValidateJSONLive();
         if (_vsEditMode === 'visual') vsRenderVisualFromJSON();
         setTimeout(() => vsRenderPreview(), 100);
@@ -1981,6 +1982,10 @@
         if (btn) btn.style.display = (parsed && _EV_TYPES.has(parsed.type)) ? '' : 'none';
         const btnRev = document.getElementById('vsBtnRevisiones');
         if (btnRev) btnRev.style.display = parsed ? '' : 'none';
+        const btnSendFirmas = document.getElementById('vsBtnSendFirmas');
+        if (btnSendFirmas) btnSendFirmas.style.display = parsed ? '' : 'none';
+        const btnFirmasComments = document.getElementById('vsBtnFirmasComments');
+        if (btnFirmasComments) btnFirmasComments.style.display = parsed ? '' : 'none';
     }
 
     global.vsOpenEVAIModal = function () {

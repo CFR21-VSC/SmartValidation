@@ -51,7 +51,11 @@ if USE_PG:
     def _ensure_pool() -> None:
         global _pg_pool
         if _pg_pool is None:
-            _pg_pool = psycopg2.pool.ThreadedConnectionPool(4, 50, DATABASE_URL)
+            # sslmode='require' explícito: sin esto, psycopg2 cae a 'prefer' por default y
+            # se conecta en texto plano en silencio si el server no ofrece TLS. Si el
+            # DATABASE_URL ya trae su propio sslmode, este kwarg tiene precedencia (lo
+            # sube a 'require', nunca lo baja) -- ver psycopg2.extensions.make_dsn().
+            _pg_pool = psycopg2.pool.ThreadedConnectionPool(4, 50, DATABASE_URL, sslmode="require")
 
     # ── DML pattern translations (SQLite-only syntax → PostgreSQL) ───────────────
     _OR_IGNORE_RE   = re.compile(r'\bINSERT\s+OR\s+IGNORE\b',   re.IGNORECASE)

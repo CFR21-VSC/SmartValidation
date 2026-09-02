@@ -3887,6 +3887,15 @@
                     <button id="vsBtnDownloadAll" class="vs-hdr-btn vs-btn-secondary"
                         onclick="vsDownloadAllPDFs()" title="Descargar todos los PDFs del proyecto">⬇ Todos</button>
                 </div>
+                <span class="vs-hdr-sep"></span>
+
+                <!-- Grupo 6: Suite de Revisión y Firmas (bridge) -->
+                <div class="vs-hdr-group">
+                    <button id="vsBtnSendFirmas" class="vs-hdr-btn vs-btn-action" onclick="vsSendToFirmas()"
+                        style="display:none;" title="Enviar este documento a la Suite de Revisión y Firmas">📤 Enviar a Firmas</button>
+                    <button id="vsBtnFirmasComments" class="vs-hdr-btn" onclick="openFirmasPanel()"
+                        style="display:none;" title="Ver comentarios de revisión de Firmas">💬 Comentarios Firmas <span id="vsFirmasBadge" style="background:#e87a8a;color:#fff;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;display:none;"></span></button>
+                </div>
 
                 <!-- Spacer + cerrar -->
                 <span class="vs-hdr-spacer"></span>
@@ -4057,6 +4066,17 @@
                 <div style="color:#4a6a86;font-size:13px;padding:8px 0;">Cargando...</div>
               </div>
             </div>
+
+            <!-- ── Panel de Comentarios de Firmas (bridge, solo lectura) ─────── -->
+            <div id="vsFirmasPanel" class="vs-macro-panel" onclick="event.stopPropagation();" onmousedown="event.stopPropagation();">
+              <div class="vmp-header">
+                <span class="vmp-title">💬 Comentarios de Firmas</span>
+                <button class="vmp-close" onclick="closeFirmasPanel()">✕</button>
+              </div>
+              <div class="vmp-body" id="vsFirmasBody" style="gap:0;">
+                <div style="color:#4a6a86;font-size:13px;padding:8px 0;">Cargando...</div>
+              </div>
+            </div>
         </div>
 
         <input type="file" id="vsImportFileInput" accept=".json" style="display: none;">
@@ -4116,6 +4136,100 @@
             window.closeRevisionesPanel = function() {
                 document.getElementById('vsRevisionesPanel').classList.remove('open');
             };
+
+            // ── Bridge con la Suite de Revisión y Firmas ────────────────────────
+            window.vsSendToFirmas = async function() {
+                const projId = localStorage.getItem('vscActiveProjectId');
+                const docType = localStorage.getItem('vscActiveDocType');
+                if (!projId || !docType) { alert('Abrí un documento del proyecto activo antes de enviarlo a Firmas.'); return; }
+                const btn = document.getElementById('vsBtnSendFirmas');
+                const originalText = btn ? btn.textContent : '';
+                if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+                const r = await fetch(`/api/projects/${projId}/documents/${docType}/send-to-firmas`, {
+                    method: 'POST', credentials: 'include',
+                }).then(r => r.json().then(data => ({ status: r.status, data }))).catch(() => null);
+                if (btn) { btn.disabled = false; btn.textContent = originalText; }
+                if (!r || !r.data || !r.data.ok) {
+                    alert('No se pudo enviar a Firmas: ' + (r && r.data && r.data.error ? r.data.error : 'error desconocido'));
+                    return;
+                }
+                alert(`"${docType}" enviado a la Suite de Revisión y Firmas.`);
+                _vsRefreshFirmasBadge();
+            };
+
+            window.openFirmasPanel = function() {
+                document.getElementById('vsFirmasPanel').classList.add('open');
+                _vsLoadFirmasComments();
+            };
+            window.closeFirmasPanel = function() {
+                document.getElementById('vsFirmasPanel').classList.remove('open');
+            };
+
+            function _vsSetFirmasBadge(pending) {
+                const badge = document.getElementById('vsFirmasBadge');
+                if (badge) { badge.textContent = pending; badge.style.display = pending ? '' : 'none'; }
+            }
+
+            // Refresca solo el número del badge, sin abrir el panel — se llama al abrir un
+            // documento para que la alerta de "hay comentarios" no dependa de haber entrado
+            // antes al panel (pedido por el usuario: que no pase inadvertido).
+            window._vsRefreshFirmasBadge = async function() {
+                const projId = localStorage.getItem('vscActiveProjectId');
+                const docType = localStorage.getItem('vscActiveDocType');
+                if (!projId || !docType) { _vsSetFirmasBadge(0); return; }
+                const r = await fetch(`/api/projects/${projId}/documents/${docType}/firmas-comments`, { credentials: 'include' })
+                    .then(r => r.json()).catch(() => null);
+                if (!r || !r.ok) { _vsSetFirmasBadge(0); return; }
+                const pending = (r.comments || []).filter(c => !c.resolved).length;
+                _vsSetFirmasBadge(pending);
+            };
+            function _vsRefreshFirmasBadge() { window._vsRefreshFirmasBadge(); }
+
+            async function _vsLoadFirmasComments() {
+                const body = document.getElementById('vsFirmasBody');
+                if (!body) return;
+                body.innerHTML = '<div style="color:#4a6a86;font-size:13px;">Cargando...</div>';
+                const projId = localStorage.getItem('vscActiveProjectId');
+                const docType = localStorage.getItem('vscActiveDocType');
+                if (!projId || !docType) {
+                    body.innerHTML = '<div style="color:#4a6a86;font-size:13px;">Abrí un documento para ver sus comentarios.</div>';
+                    return;
+                }
+                const r = await fetch(`/api/projects/${projId}/documents/${docType}/firmas-comments`, { credentials: 'include' })
+                    .then(r => r.json()).catch(() => null);
+                if (!r || !r.ok) {
+                    body.innerHTML = '<div style="color:#e87a8a;font-size:13px;">' +
+                        (r && r.error === 'Documento no encontrado'
+                            ? 'Este documento todavía no fue enviado a Firmas.'
+                            : 'Error al cargar comentarios' + (r && r.error ? ': ' + esc(r.error) : '') + '.') +
+                        '</div>';
+                    _vsSetFirmasBadge(0);
+                    return;
+                }
+                const comments = r.comments || [];
+                _vsSetFirmasBadge(comments.filter(c => !c.resolved).length);
+                if (!comments.length) {
+                    body.innerHTML = '<div style="color:#4a6a86;font-size:13px;padding:8px 0;">Sin comentarios de revisión para este documento.</div>';
+                    return;
+                }
+                const fmtTs = ts => ts ? new Date(ts * 1000).toLocaleString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
+                let html = '';
+                comments.forEach(c => {
+                    const resolved = !!c.resolved;
+                    html += `<div style="border:1px solid ${resolved ? '#1a3a20' : '#5a2030'};border-radius:8px;padding:10px 12px;margin-bottom:10px;background:${resolved ? '#0d1e14' : '#1a0d10'};">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
+                            <div>
+                                <span style="font-size:11px;font-weight:700;color:#C8921A;">[${esc(c.section_key || '')}]</span>
+                                <span style="font-size:12px;font-weight:700;color:${resolved ? '#27c459' : '#e87a8a'};margin-left:6px;">${esc(c.username || '?')}</span>
+                                <span style="font-size:11px;color:#4a6a86;"> · ${fmtTs(c.created_at)}</span>
+                            </div>
+                            <span style="font-size:10px;font-weight:700;color:${resolved ? '#27c459' : '#e87a8a'};white-space:nowrap;">${resolved ? '✓ Resuelto' : 'Pendiente'}</span>
+                        </div>
+                        <div style="font-size:13px;color:#d8e4f0;margin-top:8px;white-space:pre-wrap;">${esc(c.content || '')}</div>
+                    </div>`;
+                });
+                body.innerHTML = html;
+            }
 
             async function _vsLoadRevisiones() {
                 const body = document.getElementById('vsRevBody');

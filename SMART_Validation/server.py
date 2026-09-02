@@ -29,7 +29,7 @@ import urllib.request
 import urllib.error
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, quote
 
 try:
     import r2_adapter as _r2
@@ -446,6 +446,8 @@ _RE_PROJ_DOC      = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)$')
 _RE_PROJ_DOC_SIGN     = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/sign$')
 _RE_PROJ_DOC_SIGS     = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/signatures$')
 _RE_PROJ_DOC_COMMENTS  = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/comments$')
+_RE_PROJ_DOC_SEND_FIRMAS     = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/send-to-firmas$')
+_RE_PROJ_DOC_FIRMAS_COMMENTS = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/firmas-comments$')
 _RE_SIGNING_ROUNDS     = re.compile(r'^/api/projects/([^/]+)/signing-rounds$')
 _RE_SIGNING_ROUND_ID   = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)$')
 _RE_SIGNING_ROUND_SIGN = re.compile(r'^/api/projects/([^/]+)/signing-rounds/([^/]+)/sign$')
@@ -501,6 +503,13 @@ _PUBLIC_URL = os.environ.get("PUBLIC_URL", "").rstrip("/") or (
 )
 # Sync habilitado siempre — usado tanto en LAN (HTTP) como en cloud (HTTPS con token)
 _SYNC_ENABLED = True
+
+# Bridge servicio-a-servicio con la Suite de Revisión y Firmas (suite-revision-firmas/).
+# BRIDGE_API_KEY debe tener el MISMO valor que en las env vars de ese otro servicio.
+# Vacío por default a propósito: sin ambas configuradas, _bridge_push_document /
+# _bridge_pull_comments devuelven error en vez de intentar una llamada que va a fallar.
+_FIRMAS_BASE_URL = os.environ.get("FIRMAS_BASE_URL", "").rstrip("/")
+_BRIDGE_API_KEY = os.environ.get("BRIDGE_API_KEY", "").strip()
 
 # VULN-08: clave HMAC para hashes del audit trail (Validation Book)
 # Usar AUDIT_HMAC_KEY dedicada o caer en AUTH_SECRET_KEY como mínimo.
@@ -1000,6 +1009,66 @@ def _send_email(to: str, subject: str, html: str) -> None:
             sys.stderr.write(f"[email] Falló envío a {to}: {exc}\n")
 
     threading.Thread(target=_worker, daemon=True).start()
+
+
+def _bridge_request(method: str, path: str, payload: dict | None = None) -> dict:
+    """Llamada síncrona al bridge de la Suite de Revisión y Firmas (a diferencia de
+    _send_email, acá NO corre en un thread daemon -- quien llama necesita saber si
+    funcionó antes de decirle algo al usuario en la respuesta HTTP). Devuelve siempre un
+    dict con "ok"; nunca lanza -- errores de red, HTTP o de config vuelven como
+    {"ok": False, "error": ..., "status": <código HTTP o None>}."""
+    if not _FIRMAS_BASE_URL or not _BRIDGE_API_KEY:
+        return {"ok": False, "error": "Bridge no configurado (falta FIRMAS_BASE_URL o BRIDGE_API_KEY)", "status": 503}
+
+    url = f"{_FIRMAS_BASE_URL}{path}"
+    data = json.dumps(payload).encode("utf-8") if payload is not None else None
+    req = urllib.request.Request(
+        url, data=data,
+        headers={"Content-Type": "application/json", "X-Bridge-Key": _BRIDGE_API_KEY,
+                 "User-Agent": "SmartValidation-Bridge/1.0"},
+        method=method,
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            body = json.loads(resp.read() or b"{}")
+            body["ok"] = True
+            body["status"] = resp.status
+            return body
+    except urllib.error.HTTPError as exc:
+        try:
+            detail = json.loads(exc.read()).get("detail", exc.reason)
+        except Exception:
+            detail = exc.reason
+        return {"ok": False, "error": str(detail), "status": exc.code}
+    except Exception as exc:
+        return {"ok": False, "error": str(exc), "status": None}
+
+
+def _bridge_push_document(proj_id: str, doc_type: str) -> dict:
+    """Empuja el json_data de un documento propio hacia Firmas. El documento tiene que
+    existir localmente -- esta función no valida el proyecto/rol, eso queda del lado
+    del endpoint que la invoque (Fase 4)."""
+    db = _get_db()
+    row = db.execute(
+        "SELECT json_data FROM documents WHERE project_id=? AND doc_type=?",
+        (proj_id, doc_type)
+    ).fetchone()
+    if not row:
+        return {"ok": False, "error": "Documento no encontrado", "status": 404}
+    try:
+        content = json.loads(row["json_data"])
+    except Exception:
+        return {"ok": False, "error": "json_data corrupto, no se pudo parsear", "status": 500}
+
+    path = f"/bridge/projects/{quote(proj_id, safe='')}/documents/{quote(doc_type, safe='')}"
+    return _bridge_request("PUT", path, {"json_data": content})
+
+
+def _bridge_pull_comments(proj_id: str, doc_type: str) -> dict:
+    """Trae los comentarios de revisión de un documento desde Firmas. Solo lectura --
+    no se persisten acá, Firmas sigue siendo la única fuente de verdad de comentarios."""
+    path = f"/bridge/projects/{quote(proj_id, safe='')}/documents/{quote(doc_type, safe='')}/comments"
+    return _bridge_request("GET", path)
 
 
 def _send_security_alert(subject: str, body_html: str) -> None:
@@ -3335,6 +3404,42 @@ class SyncHandler(BaseHTTPRequestHandler):
 
         return self._send_json(200, {"ok": True, "id": f"{proj_id}_{doc_type}"})
 
+    def _api_doc_send_to_firmas(self, proj_id, doc_type, user):
+        """Empuja el documento actual hacia la Suite de Revisión y Firmas (bridge, Fase 4).
+        Es el único camino de entrada de un documento a Firmas desde la v1 -- funciona igual
+        para la primera versión que para un reenvío tras corregir. Mismo control de acceso
+        que _api_doc_upsert: solo admin, y solo con acceso al proyecto."""
+        if not _is_valid_doc_type(doc_type):
+            return self._send_json(400, {"ok": False, "error": "doc_type inválido"})
+        if user.get("r") != "admin":
+            return self._send_json(403, {"ok": False, "error": "Solo admin puede enviar documentos a Firmas"})
+        db = _get_db()
+        if not self._assert_project_access(db, user, proj_id):
+            return
+        result = _bridge_push_document(proj_id, doc_type)
+        if not result.get("ok"):
+            return self._send_json(result.get("status") or 502, {"ok": False, "error": result.get("error")})
+        db.execute("""
+            INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (proj_id, doc_type, user.get("u"), "sent_to_firmas",
+              f"Envió '{doc_type}' a la Suite de Firmas", self._get_client_ip(), time.time()))
+        db.commit()
+        return self._send_json(200, {"ok": True})
+
+    def _api_doc_firmas_comments(self, proj_id, doc_type, user):
+        """Trae los comentarios de revisión de Firmas para este documento (bridge, Fase 4).
+        Solo lectura -- no se persisten acá, Firmas sigue siendo la única fuente de verdad."""
+        if not _is_valid_doc_type(doc_type):
+            return self._send_json(400, {"ok": False, "error": "doc_type inválido"})
+        db = _get_db()
+        if not self._assert_project_access(db, user, proj_id):
+            return
+        result = _bridge_pull_comments(proj_id, doc_type)
+        if not result.get("ok"):
+            return self._send_json(result.get("status") or 502, {"ok": False, "error": result.get("error")})
+        return self._send_json(200, {"ok": True, "comments": result.get("comments", [])})
+
     def _api_doc_delete(self, proj_id, doc_type, user):
         if not _is_valid_doc_type(doc_type):
             return self._send_json(400, {"ok": False, "error": "doc_type inválido"})
@@ -5635,6 +5740,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_PROJ_DOC_COMMENTS.match(path)
         if m:
             return self._api_doc_comments_list(m.group(1), m.group(2), user)
+        m = _RE_PROJ_DOC_FIRMAS_COMMENTS.match(path)
+        if m:
+            return self._api_doc_firmas_comments(m.group(1), m.group(2), user)
         m = _RE_SIGNING_ROUNDS.match(path)
         if m:
             return self._signing_rounds_list(m.group(1), user)
@@ -5864,6 +5972,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_PROJ_DOC_COMMENTS.match(path)
         if m:
             return self._api_doc_comment_add(m.group(1), m.group(2), user)
+        m = _RE_PROJ_DOC_SEND_FIRMAS.match(path)
+        if m:
+            return self._api_doc_send_to_firmas(m.group(1), m.group(2), user)
         m = _RE_SIGNING_ROUNDS.match(path)
         if m:
             return self._signing_round_create(m.group(1), user)
@@ -6223,8 +6334,24 @@ class SyncHandler(BaseHTTPRequestHandler):
         return self._send_json(404, {"error": "Endpoint no encontrado"})
 
     def do_PUT(self):
-        self.send_response(405)
-        self.end_headers()
+        """Antes esto era un stub que devolvía 405 en blanco para CUALQUIER PUT -- incluido
+        el upsert de documentos, que la doc del propio repo (docstring de
+        tests/test_revision_workflow.py) sigue describiendo como PUT. El upsert real vive en
+        do_POST (_RE_PROJ_DOC -> _api_doc_upsert); acá se replica esa única ruta (mismo
+        chequeo de auth que do_POST) para que PUT funcione como está documentado, en vez de
+        fallar en silencio. El resto de PUT sigue sin soportarse, pero ahora con un cuerpo
+        JSON explicando por qué."""
+        if self._anti_scanner():
+            return
+        path = urlparse(self.path).path
+        user = _check_auth(self)
+        if self._require_auth(user): return
+
+        m = _RE_PROJ_DOC.match(path)
+        if m:
+            return self._api_doc_upsert(m.group(1), m.group(2), user)
+
+        return self._send_json(405, {"ok": False, "error": "Método no soportado para esta ruta"})
 
     def do_TRACE(self):
         self.send_response(405)

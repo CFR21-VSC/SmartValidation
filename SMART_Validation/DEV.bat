@@ -21,6 +21,8 @@ ping -n 3 127.0.0.1 >nul
 set ALLOW_NO_AUTH=true
 set AUTH_SECRET_KEY=
 set DATA_DIR=C:\Users\fjbon\OneDrive\Escritorio\SMART Validation\data
+set FIRMAS_BASE_URL=http://localhost:8090
+set BRIDGE_API_KEY=dev-bridge-key-local-no-usar-en-produccion
 
 :: ── Motor de coherencia documental (puerto 8765) ──────────────────────────
 echo  Iniciando motor de analítica (puerto 8765)...
