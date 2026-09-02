@@ -773,9 +773,10 @@ def _ban_ip(ip: str) -> None:
             _BANNED_IPS.pop(k, None)
 
 
-def _add_sec_headers(handler, *, html: bool = False) -> None:
+def _add_sec_headers(handler, *, html: bool = False, allow_camera: bool = False) -> None:
     """Inyecta headers de seguridad en la respuesta activa.
-    Llamar antes de end_headers(). html=True añade Content-Security-Policy."""
+    Llamar antes de end_headers(). html=True añade Content-Security-Policy.
+    allow_camera=True usa camera=(self) en lugar de camera=() — necesario para /captura/."""
     if _IS_PROD:
         handler.send_header(
             "Strict-Transport-Security",
@@ -784,7 +785,8 @@ def _add_sec_headers(handler, *, html: bool = False) -> None:
     handler.send_header("X-Content-Type-Options", "nosniff")
     handler.send_header("X-Frame-Options", "SAMEORIGIN")
     handler.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
-    handler.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    _cam_policy = "camera=(self)" if allow_camera else "camera=()"
+    handler.send_header("Permissions-Policy", f"{_cam_policy}, microphone=(), geolocation=()")
     if html:
         # ALTA-1: no usar Host del cliente en CSP — un Host malicioso inyectaría orígenes en connect-src.
         # El analytics service (puerto 8765) solo existe en modo local, nunca en producción.
@@ -3573,7 +3575,8 @@ class SyncHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
-        _add_sec_headers(self, html=(ext == ".html"))
+        _is_captura_html = path.startswith("/captura/") and ext == ".html"
+        _add_sec_headers(self, html=(ext == ".html"), allow_camera=_is_captura_html)
         self.end_headers()
         self.wfile.write(data)
 
