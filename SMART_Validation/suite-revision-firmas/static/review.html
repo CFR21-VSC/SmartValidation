@@ -192,6 +192,382 @@
         background: #fff;
     }
 
+    /* ============================================================
+       Editor visual — vendorizado desde js/validation-suite/ui/visual-editor.js
+       (motor tal cual, CSS copiado del mismo lugar que lo usa en la Suite de
+       Validación: index.html). Colores propios (--vsc-*), fijos, independientes
+       del tema claro/oscuro de esta suite -- superficie tipo "hoja de papel"
+       a propósito, igual que en el original.
+       ============================================================ */
+    .vs-visual-editor {
+        --vsc-azul: #0B2341;
+        --vsc-gris: #8a94a3;
+        --vsc-gris-claro: #e3e6ea;
+        --vsc-verde: #27AE60;
+        --vsc-texto: #1a2733;
+        background: #ffffff;
+        color: var(--vsc-texto);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 13px;
+        line-height: 1.55;
+    }
+    .vs-visual-editor .ve-empty {
+        padding: 60px 20px; text-align: center; color: var(--vsc-gris);
+        font-style: italic;
+    }
+    .vs-visual-editor [contenteditable=true]:empty::before {
+        content: attr(data-placeholder); color: #a8b2bd; font-style: italic;
+    }
+    .vs-visual-editor [contenteditable=true]:focus {
+        outline: 2px solid rgba(33,59,80,0.15);
+        outline-offset: 2px; background: #FFFBF0;
+    }
+    /* Header del doc de Validación (título/código/versión/control de cambios/matriz de
+       aprobaciones) -- Firmas no tiene ese modelo (usa su propia tabla de metadata y su
+       propio circuito de firmas), así que se oculta para no mostrar campos vacíos que no
+       corresponden a nada acá. serialize() los sigue leyendo igual (todos vacíos); el
+       wrapper JS de guardado los descarta si el documento original no los tenía. */
+    .vs-visual-editor .ve-header { display: none; }
+    /* Barra "Aprobar sección" del editor -- es un flag interno del JSON de Validación, sin
+       conexión con las firmas reales de Firmas (rf_review_signatures/rf_approval_rounds).
+       Se oculta para no mostrar un botón de aprobación que no significa nada acá. */
+    .vs-visual-editor .ve-section-approval-bar { display: none; }
+
+    .ve-doc-title {
+        font-size: 22px; font-weight: 700; color: var(--vsc-azul);
+        margin: 0 0 14px 0; line-height: 1.25;
+    }
+    .ve-header-meta {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 10px 18px;
+    }
+    .ve-field { display: flex; flex-direction: column; gap: 3px; }
+    .ve-field label {
+        font-size: 10px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.4px; color: var(--vsc-gris);
+    }
+    .ve-field-input, .ve-extra-key, .ve-extra-value,
+    .ve-info-key, .ve-info-value {
+        border: 1px solid var(--vsc-gris-claro); border-radius: 3px;
+        padding: 5px 8px; font-size: 12px; font-family: inherit;
+        color: var(--vsc-texto); background: #fafbfc;
+    }
+    .ve-field-input:focus, .ve-extra-key:focus, .ve-extra-value:focus,
+    .ve-info-key:focus, .ve-info-value:focus {
+        outline: none; border-color: var(--vsc-azul);
+        box-shadow: 0 0 0 2px rgba(33,59,80,0.08);
+        background: #FFFBF0;
+    }
+    .ve-extras { margin-top: 16px; }
+    .ve-extras-label {
+        font-size: 11px; font-weight: 700; color: var(--vsc-gris);
+        text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px;
+    }
+    .ve-extras-list { display: flex; flex-direction: column; gap: 4px; }
+    .ve-extra-row {
+        display: grid; grid-template-columns: 160px 12px 1fr; gap: 6px; align-items: center;
+    }
+    .ve-extra-sep, .ve-info-sep { color: var(--vsc-gris); font-weight: 700; }
+
+    .ve-sections { display: flex; flex-direction: column; gap: 28px; }
+    .ve-section {
+        position: relative; padding: 14px 16px 18px 16px;
+        border: 1px solid #eef0f3; border-radius: 5px;
+        background: #fefefe;
+    }
+    .ve-section:hover {
+        border-color: var(--vsc-gris); box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    .ve-section-type-badge {
+        position: absolute; top: -10px; right: 14px;
+        background: var(--vsc-azul); color: white;
+        font-size: 9.5px; font-weight: 700; letter-spacing: 0.4px;
+        padding: 2px 8px; border-radius: 10px; text-transform: uppercase;
+    }
+    .ve-section-title {
+        font-size: 16px; font-weight: 700; color: var(--vsc-azul);
+        margin: 0 0 10px 0; padding-bottom: 6px;
+        border-bottom: 1px solid var(--vsc-gris-claro);
+    }
+    .ve-section-body { display: flex; flex-direction: column; gap: 10px; }
+    .ve-section-note {
+        font-size: 11px; color: var(--vsc-gris); font-style: italic;
+        background: #f4f6f8; padding: 8px 12px; border-radius: 3px;
+        border-left: 3px solid var(--vsc-gris);
+    }
+
+    .ve-bloques { display: flex; flex-direction: column; gap: 16px; }
+    .ve-bloque {
+        position: relative; padding: 8px 12px; border-radius: 4px;
+        background: #fafbfc; border-left: 3px solid var(--vsc-gris-claro);
+    }
+    .ve-bloque-subtitulo {
+        font-size: 13px; font-weight: 700; color: var(--vsc-azul);
+        margin-bottom: 4px; min-height: 18px;
+    }
+    .ve-bloque-texto {
+        font-size: 13px; color: var(--vsc-texto); white-space: pre-wrap;
+        min-height: 22px; line-height: 1.55;
+    }
+    .ve-bloque-del { position: absolute; top: 4px; right: 4px; }
+
+    .ve-bullets {
+        list-style: disc inside; padding-left: 4px; margin: 6px 0;
+        display: flex; flex-direction: column; gap: 3px;
+    }
+    .ve-bullet { display: flex; align-items: flex-start; gap: 6px; padding: 2px 0; }
+    .ve-bullet-text { flex: 1; min-height: 18px; }
+
+    .ve-lista-block {
+        background: #fafbfc; padding: 10px 14px;
+        border-left: 3px solid var(--vsc-verde); border-radius: 3px;
+    }
+    .ve-lista-label {
+        font-size: 11px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.4px; color: var(--vsc-azul); margin-bottom: 5px;
+    }
+    .ve-lista-subtitulo {
+        font-size: 12px; font-weight: 600; color: var(--vsc-texto);
+        margin-bottom: 4px; min-height: 16px;
+    }
+
+    .ve-tabla-wrap { overflow-x: auto; }
+    .ve-tabla { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .ve-tabla .ve-th, .ve-tabla .ve-td {
+        border: 1px solid var(--vsc-gris-claro);
+        padding: 6px 8px; vertical-align: top;
+    }
+    .ve-tabla .ve-th {
+        background: var(--vsc-gris-claro); font-weight: 700;
+        color: var(--vsc-azul); text-align: left;
+    }
+    .ve-th-actions, .ve-td-actions { width: 28px; text-align: center; background: #fafbfc; }
+
+    .ve-tabla-info { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+    .ve-info-row {
+        display: grid; grid-template-columns: 200px 12px 1fr auto; gap: 6px;
+        align-items: center;
+    }
+
+    .ve-caja-parrafos { display: flex; flex-direction: column; gap: 8px; }
+    .ve-parrafo {
+        display: flex; gap: 6px; align-items: flex-start;
+        padding: 8px 12px; background: #FFFBE6; border-left: 3px solid #F39C12;
+        border-radius: 3px;
+    }
+    .ve-parrafo-text { flex: 1; min-height: 18px; }
+
+    .ve-tc-intro { font-size: 11px; color: #777; margin: 0 0 10px; font-style: italic; line-height: 1.4; }
+    .ve-tc-list { display: flex; flex-direction: column; gap: 8px; }
+    .ve-tc-card { border: 1px solid #dde3ed; border-radius: 6px; padding: 10px 12px; background: #fafbfd; }
+    .ve-tc-header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 5px; flex-wrap: wrap; }
+    .ve-tc-id { font-size: 11px; font-weight: 700; color: #1a56a0; background: #e8f0fb; border-radius: 4px; padding: 1px 6px; white-space: nowrap; }
+    .ve-tc-titulo { font-size: 12px; font-weight: 600; color: #222; flex: 1; }
+    .ve-tc-badges { display: flex; gap: 4px; }
+    .ve-tc-badge { font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
+    .ve-tc-badge-nivel { background: #fff3cd; color: #856404; }
+    .ve-tc-badge-tipo { background: #e8f4e8; color: #2d6a30; }
+    .ve-tc-traz { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 5px; }
+    .ve-tc-traz-group { display: flex; align-items: center; gap: 4px; }
+    .ve-tc-traz-label { font-size: 10px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.03em; }
+    .ve-tc-pill { font-size: 10px; padding: 1px 7px; border-radius: 10px; font-weight: 600; }
+    .ve-tc-pill-urs { background: #f0ebff; color: #5b3a8c; border: 1px solid #c9b8f0; }
+    .ve-tc-pill-ra  { background: #fff0e6; color: #c05a00; border: 1px solid #f0c89a; }
+    .ve-tc-objetivo { font-size: 11px; color: #444; margin: 4px 0; line-height: 1.4; }
+    .ve-tc-criterio { font-size: 11px; color: #444; margin: 4px 0; line-height: 1.4; }
+    .ve-tc-pasos-wrap { margin-top: 6px; }
+    .ve-tc-pasos-summary { font-size: 11px; color: #666; cursor: pointer; user-select: none; }
+    .ve-tc-pasos { margin: 6px 0 0 16px; padding: 0; font-size: 11px; color: #444; }
+    .ve-tc-pasos li { margin-bottom: 3px; line-height: 1.4; }
+    .ve-tc-paso-inst { color: #222; }
+    .ve-tc-paso-re { color: #888; font-style: italic; }
+
+    .ve-tc-ejecucion {
+        background: #f0f4ff; border: 1px solid #c0d0ee;
+        border-top: 2px solid #1a56a0; border-radius: 0 0 5px 5px;
+        padding: 8px 10px; margin-top: 8px;
+        display: flex; flex-direction: column; gap: 5px;
+    }
+    .ve-tc-exec-title {
+        font-size: 10px; font-weight: 700; color: #1a56a0;
+        text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px;
+    }
+    .ve-tc-exec-row { display: flex; align-items: flex-start; gap: 8px; }
+    .ve-tc-exec-row-inline { align-items: center; }
+    .ve-tc-exec-2col { display: flex; gap: 12px; flex: 1; }
+    .ve-tc-exec-col { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+    .ve-tc-exec-label {
+        font-size: 10px; font-weight: 700; color: #445; white-space: nowrap;
+        min-width: 130px; padding-top: 4px;
+    }
+    .ve-tc-exec-select, .ve-tc-exec-input {
+        font-size: 11px; border: 1px solid #ced4da; border-radius: 3px;
+        padding: 3px 7px; flex: 1; min-width: 0; background: white;
+    }
+    .ve-tc-exec-select { max-width: 140px; font-weight: 700; }
+    .ve-tc-exec-text {
+        font-size: 11px; border: 1px solid #ced4da; border-radius: 3px;
+        padding: 4px 8px; min-height: 38px; flex: 1; line-height: 1.45;
+        background: white;
+    }
+    .ve-tc-exec-text:focus { outline: 2px solid #1a56a0; border-color: transparent; }
+
+    .ve-vsr-dec-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .ve-vsr-dec-select {
+        font-size: 12px; font-weight: 700; border: 2px solid #1a56a0;
+        border-radius: 4px; padding: 5px 10px; flex: 1; max-width: 340px; background: white;
+    }
+    .ve-vsr-dec-validez {
+        font-size: 11px; border: 1px solid #ced4da; border-radius: 3px;
+        padding: 3px 8px; flex: 1; min-width: 0;
+    }
+
+    .ve-fallback-chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: #f4f4f4; border: 1px solid #e0e0e0;
+        border-radius: 20px; padding: 4px 12px;
+        margin: 2px 0; opacity: 0.75;
+    }
+
+    .ve-mini-btn {
+        background: white; color: var(--vsc-azul);
+        border: 1px solid var(--vsc-gris); border-radius: 3px;
+        padding: 3px 9px; font-size: 11px; font-weight: 600;
+        cursor: pointer; transition: all 0.1s;
+    }
+    .ve-mini-btn:hover { background: var(--vsc-gris-claro); }
+    .ve-mini-btn-danger {
+        color: #A52A2A; border-color: #E8B4B4;
+        background: white; padding: 1px 7px;
+        font-size: 14px; line-height: 1;
+    }
+    .ve-mini-btn-danger:hover { background: #FDECEA; }
+
+    .ve-tabla-smart { table-layout: fixed; }
+    .ve-tabla-smart .ve-th, .ve-tabla-smart .ve-td { word-break: break-word; overflow-wrap: break-word; }
+    .ve-tabla-smart .ve-td-subheader {
+        background: var(--vsc-azul); color: white;
+        font-weight: 700; font-size: 11px; letter-spacing: 0.3px;
+        padding: 5px 8px;
+    }
+    .ve-smart-intro {
+        background: #f4f6f9; border-left: 3px solid var(--vsc-gris);
+        padding: 8px 12px; border-radius: 3px; margin-bottom: 8px;
+        font-size: 12px; color: #555; line-height: 1.5;
+        white-space: pre-wrap;
+    }
+    .ve-smart-note {
+        font-size: 10.5px; color: #999; font-style: italic;
+        margin-top: 8px; padding: 4px 8px;
+        border-top: 1px dashed #e0e0e0;
+    }
+    .ve-smart-empty { font-size: 12px; color: #aaa; font-style: italic; }
+    .ve-smart-kv {
+        display: flex; gap: 8px; align-items: baseline;
+        padding: 3px 0; border-bottom: 1px solid #f0f0f0; font-size: 12px;
+    }
+    .ve-smart-key { font-weight: 700; color: #555; min-width: 140px; flex-shrink: 0; }
+    .ve-smart-val { color: var(--vsc-texto); word-break: break-word; }
+    .ve-smart-array-badge { font-size: 11.5px; margin-top: 6px; color: var(--vsc-azul); }
+    .ve-smart-count { color: #888; font-weight: 400; font-size: 11px; margin-left: 4px; }
+    .ve-smart-array-item {
+        font-size: 11px; color: #666; padding: 2px 0 2px 12px;
+        border-left: 2px solid #dde3ed; margin: 2px 0;
+        white-space: pre-wrap; word-break: break-all;
+    }
+    .ve-smart-more { font-size: 11px; color: #aaa; font-style: italic; padding-left: 12px; }
+
+    .ve-tarjeta-gap-form { display: flex; flex-direction: column; gap: 6px; }
+    .ve-gap-row { display: grid; grid-template-columns: 160px 1fr; gap: 8px; align-items: center; }
+    .ve-gap-label { font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: 0.3px; }
+    .ve-gap-input {
+        border: 1px solid #d0d8e8; border-radius: 3px;
+        padding: 5px 8px; font-size: 12px; font-family: inherit;
+        color: var(--vsc-texto); background: #fafbfc;
+    }
+    .ve-gap-input:focus {
+        outline: none; border-color: var(--vsc-azul);
+        box-shadow: 0 0 0 2px rgba(33,59,80,0.08); background: #FFFBF0;
+    }
+
+    .ve-cc-block, .ve-ma-block { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--vsc-gris-claro); }
+    .ve-cc-title {
+        font-size: 11px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.4px; color: var(--vsc-azul); margin-bottom: 8px;
+    }
+    .ve-cc-tabla { table-layout: fixed; }
+    .ve-cc-tabla .ve-th:nth-child(1) { width: 12%; }
+    .ve-cc-tabla .ve-th:nth-child(2) { width: 17%; }
+    .ve-cc-tabla .ve-th:nth-child(3) { width: 21%; }
+    .ve-cc-tabla .ve-th:nth-child(4) { width: 44%; }
+    .ve-ma-tabla { table-layout: fixed; }
+    .ve-ma-tabla .ve-th:nth-child(1) { width: 22%; }
+    .ve-ma-tabla .ve-th:nth-child(2) { width: 36%; }
+    .ve-ma-tabla .ve-th:nth-child(3) { width: 13%; }
+    .ve-ma-tabla .ve-th:nth-child(4) { width: 21%; }
+
+    .ve-roles-list { display: flex; flex-direction: column; gap: 4px; }
+    .ve-role-row { display: flex; gap: 8px; align-items: center; }
+    .ve-role-input {
+        flex: 1; border: 1px solid #d0d8e8; border-radius: 3px;
+        padding: 5px 8px; font-size: 12px; font-family: inherit;
+        color: var(--vsc-texto); background: #fafbfc;
+    }
+    .ve-role-input:focus {
+        outline: none; border-color: var(--vsc-azul);
+        box-shadow: 0 0 0 2px rgba(33,59,80,0.08);
+    }
+
+    .ve-preguntas-list { display: flex; flex-direction: column; gap: 6px; }
+    .ve-pregunta-row {
+        display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px;
+        align-items: center; padding: 6px 10px;
+        background: #f0f4ff; border-left: 3px solid var(--vsc-azul);
+        border-radius: 3px;
+    }
+    .ve-pregunta-q, .ve-pregunta-r {
+        border: 1px solid #c8d4e8; border-radius: 3px;
+        padding: 5px 8px; font-size: 12px; font-family: inherit;
+        color: var(--vsc-texto); background: white;
+    }
+    .ve-pregunta-q:focus, .ve-pregunta-r:focus {
+        outline: none; border-color: var(--vsc-azul);
+        box-shadow: 0 0 0 2px rgba(33,59,80,0.08);
+    }
+    .ve-pregunta-q { font-weight: 600; }
+    .ve-pregunta-r { color: #27AE60; font-weight: 600; }
+
+    .ve-caja-resultado-subtitulo {
+        width: 100%; border: 1px solid #b8e6c8; border-radius: 4px;
+        padding: 8px 12px; font-size: 13px; font-family: inherit;
+        color: #1a5c35; background: #e8f8ee; font-weight: 600;
+    }
+    .ve-caja-resultado-subtitulo:focus {
+        outline: none; border-color: var(--vsc-verde);
+        box-shadow: 0 0 0 2px rgba(39,174,96,0.12);
+    }
+
+    .ve-tabla-docs .ve-th:nth-child(1) { width: 40%; }
+    .ve-tabla-docs .ve-th:nth-child(2) { width: 20%; }
+    .ve-tabla-docs .ve-th:nth-child(3) { width: 40%; }
+
+    .ve-section-approved-badge {
+        display: none;
+        align-items: center; gap: 4px;
+        padding: 2px 8px; font-size: 10px; font-weight: 700;
+        background: #1a4a2a; color: #27AE60; border-radius: 10px;
+        border: 1px solid #27AE60; letter-spacing: 0.3px;
+    }
+    .section-approved .ve-section-approved-badge { display: inline-flex; }
+    .section-approved { border-left: 3px solid #27AE60 !important; background: #fafffe !important; }
+    .section-approved .ve-section-body [contenteditable="false"] {
+        cursor: default; user-select: text;
+        background: transparent !important; outline: none !important;
+    }
+    .section-approved .ve-section-body [contenteditable="false"]:focus {
+        outline: none !important; background: transparent !important; box-shadow: none !important;
+    }
+
     .rv-signatures-list {
         list-style: none;
         margin: 10px 0 0;
@@ -242,12 +618,21 @@
                 <div class="rf-pane-header">
                     <span>Documento fuente</span>
                     <div class="rv-pane-header-actions" id="source-actions" style="display:none;">
+                        <button class="rf-btn-secondary" id="btn-visual-editor">🖊️ Editor visual</button>
                         <button class="rf-btn-secondary" id="btn-load-doc">Cargar</button>
                         <button class="rf-btn-secondary" id="btn-download-doc">Descargar</button>
                     </div>
                 </div>
                 <div class="rf-pane-body" id="source-body">
                     <div class="rf-empty">Cargando…</div>
+                </div>
+                <div class="rf-pane-body" id="visual-editor-wrap" style="display:none; flex-direction:column; padding:0;">
+                    <div class="vs-visual-editor" id="visual-editor-body" style="flex:1; overflow-y:auto; padding:20px;"></div>
+                    <div style="padding:10px 20px; border-top:1px solid var(--border); display:flex; gap:10px; align-items:center; flex-shrink:0;">
+                        <span class="rf-error" id="visual-editor-error" style="margin-right:auto;"></span>
+                        <button class="rf-btn-secondary" id="visual-editor-cancel">Cancelar</button>
+                        <button class="rf-btn" id="visual-editor-save">Guardar cambios</button>
+                    </div>
                 </div>
             </div>
 
@@ -346,8 +731,6 @@ let session = null;
 let documentRow = null;      // { id, doc_type, status, locked, json_data, ... }
 let commentsBySection = {};  // section_key -> [{ id, content, resolved, user_id, username, created_at }, …]
 let sections = [];           // [{ key, label }]
-let editingSectionIndex = null;  // índice dentro de secciones[] (array crudo) en edición, o null
-let savingSectionEdit = false;
 let pdfLibsLoaded = false;
 let pdfLibsLoading = null;
 let currentPdfObjectUrl = null;
@@ -521,20 +904,6 @@ function getSectionContentText(sectionObj) {
     return '';
 }
 
-// Editor inline (sección pedida por el usuario 2026-09-03): solo se puede editar en pantalla
-// el caso simple -- un único campo de texto plano (contenido/content/texto). El patrón
-// "bloques" de getSectionContentText() junta subtítulo+texto+bullets en un solo string
-// para MOSTRAR, pero escribirlo de vuelta sería ambiguo (no se sabe qué línea vuelve a qué
-// bloque) -- esas secciones structuradas siguen corrigiéndose con "Cargar" (reemplazo de
-// archivo completo), igual que las tablas/listas.
-function getEditableField(sectionObj) {
-    if (!sectionObj || typeof sectionObj !== 'object') return null;
-    if (typeof sectionObj.contenido === 'string') return 'contenido';
-    if (typeof sectionObj.content === 'string') return 'content';
-    if (typeof sectionObj.texto === 'string') return 'texto';
-    return null;
-}
-
 // ---------------------------------------------------------------------------
 // Enviar corrección a Validación — dirección INVERSA del bridge (mismo endpoint y misma
 // lógica de bloqueo/confirmación por severidad que el botón equivalente en dashboard.html;
@@ -621,6 +990,9 @@ async function init() {
     document.getElementById('btn-sign-review').addEventListener('click', openSignModal);
     document.getElementById('btn-load-doc').addEventListener('click', openLoadModal);
     document.getElementById('btn-download-doc').addEventListener('click', downloadJson);
+    document.getElementById('btn-visual-editor').addEventListener('click', openVisualEditor);
+    document.getElementById('visual-editor-cancel').addEventListener('click', closeVisualEditor);
+    document.getElementById('visual-editor-save').addEventListener('click', saveVisualEditor);
 
     document.getElementById('load-cancel').addEventListener('click', closeLoadModal);
     document.getElementById('load-submit').addEventListener('click', submitLoad);
@@ -719,46 +1091,23 @@ function renderSource() {
     }
 
     const arr = getSectionsArray(jsonData);
-    const canEdit = session.role === 'drp' && !documentRow.locked;
     if (arr) {
         const sectionByKey = {};
         sections.forEach(s => { sectionByKey[s.key] = s; });
 
         arr.forEach((raw, i) => {
             const sec = sectionByKey[`sec-${i}`];
-            const editField = getEditableField(raw);
-
-            if (sec && canEdit && editField && editingSectionIndex === i) {
-                html += `<div class="rv-section" id="${escHtml(sec.key)}">
-                    <h3>${escHtml(sec.label)}</h3>
-                    <textarea class="rf-textarea rv-edit-textarea" id="edit-textarea-${i}" style="min-height:140px;">${escHtml(raw[editField])}</textarea>
-                    <div style="margin-top:8px; display:flex; gap:8px;">
-                        <button class="rf-btn section-save-btn" data-index="${i}" data-field="${escHtml(editField)}" ${savingSectionEdit ? 'disabled' : ''}>${savingSectionEdit ? 'Guardando…' : 'Guardar'}</button>
-                        <button class="rf-btn-secondary section-cancel-btn" ${savingSectionEdit ? 'disabled' : ''}>Cancelar</button>
-                    </div>
-                    <div class="rf-error" id="edit-error-${i}"></div>
-                </div>`;
-                return;
-            }
-
             const content = getSectionContentText(raw);
             const known = content ? null : renderKnownSectionBody(raw);
             const body = content ? escHtml(content) : (known !== null ? known : renderPlainObject(raw));
-            const editBtn = (sec && canEdit && editField)
-                ? `<button class="rf-btn-secondary section-edit-btn" data-index="${i}" style="padding:3px 10px; font-size:11px; margin-left:auto;">✏️ Editar</button>`
-                : '';
             if (sec) {
                 html += `<div class="rv-section" id="${escHtml(sec.key)}">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <h3 style="margin:0;">${escHtml(sec.label)}</h3>
-                        ${editBtn}
-                    </div>
+                    <h3>${escHtml(sec.label)}</h3>
                     <div class="rv-section-content">${body}</div>
                 </div>`;
             } else {
                 // Sin título propio en el documento — se muestra igual, pero como
                 // continuación del bloque anterior, sin encabezado ni número inventado.
-                // No es editable en pantalla (sin lugar propio para el botón/índice de outline).
                 html += `<div class="rv-section-content rv-untitled-continuation">${body}</div>`;
             }
         });
@@ -769,69 +1118,101 @@ function renderSource() {
     }
 
     sourceBody.innerHTML = html || '<div class="rf-empty">Documento vacío.</div>';
-
-    sourceBody.querySelectorAll('.section-edit-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            editingSectionIndex = Number(btn.dataset.index);
-            renderSource();
-        });
-    });
-    sourceBody.querySelectorAll('.section-cancel-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            editingSectionIndex = null;
-            renderSource();
-        });
-    });
-    sourceBody.querySelectorAll('.section-save-btn').forEach(btn => {
-        btn.addEventListener('click', () => saveSectionEdit(Number(btn.dataset.index), btn.dataset.field));
-    });
 }
 
-async function saveSectionEdit(i, field) {
-    // Deliberadamente NO se llama a renderSource() durante el guardado ni si falla -- eso
-    // reconstruiría el <textarea> desde documentRow.json_data (el valor VIEJO, sin guardar)
-    // y el texto que la persona acaba de tipear se perdería si el guardado falla. Se
-    // manipulan los botones/mensaje de error directo en el DOM en su lugar; solo se vuelve
-    // a renderizar todo si el guardado realmente tuvo éxito (loadDocument, con datos frescos
-    // del servidor).
-    const textarea = document.getElementById(`edit-textarea-${i}`);
-    const errorEl = document.getElementById(`edit-error-${i}`);
-    const saveBtn = sourceBody.querySelector(`.section-save-btn[data-index="${i}"]`);
-    const cancelBtn = sourceBody.querySelector('.section-cancel-btn');
-    if (!textarea) return;
-    const newText = textarea.value;
+// ---------------------------------------------------------------------------
+// Editor visual — vendorizado desde la Suite de Validación (js/validation-suite/ui/
+// visual-editor.js tal cual, sin tocar), sección pedida por el usuario 2026-09-03: poder
+// corregir bloques/tablas/listas estructuradas en pantalla, no solo texto plano suelto.
+// Reemplaza el editor simple por sección de antes (que solo cubría el campo
+// contenido/content/texto, un caso que en documentos reales casi no aparece -- las
+// secciones reales tienen tipo:'texto' con bloques[], que este editor sí maneja).
+// ---------------------------------------------------------------------------
+let visualEditorScriptLoaded = false;
+let visualEditorScriptLoading = null;
 
-    savingSectionEdit = true;
-    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Guardando…'; }
-    if (cancelBtn) cancelBtn.disabled = true;
-    if (errorEl) { errorEl.textContent = ''; errorEl.classList.remove('visible'); }
+function ensureVisualEditorLoaded() {
+    if (visualEditorScriptLoaded) return Promise.resolve();
+    if (visualEditorScriptLoading) return visualEditorScriptLoading;
+    visualEditorScriptLoading = loadScript('js/validation-suite/ui/visual-editor.js').then(() => {
+        visualEditorScriptLoaded = true;
+    });
+    return visualEditorScriptLoading;
+}
 
-    const merged = JSON.parse(JSON.stringify(documentRow.json_data));
-    const arr = getSectionsArray(merged);
-    if (!arr || !arr[i]) {
-        savingSectionEdit = false;
+async function openVisualEditor() {
+    const errorEl = document.getElementById('visual-editor-error');
+    errorEl.textContent = '';
+    errorEl.classList.remove('visible');
+
+    try {
+        await ensureVisualEditorLoaded();
+    } catch (e) {
+        showToast('No se pudo cargar el editor visual', true);
         return;
     }
-    arr[i][field] = newText;
+    if (!window.ValidationSuite || !window.ValidationSuite.visualEditor) {
+        showToast('El editor visual no está disponible', true);
+        return;
+    }
+
+    document.getElementById('source-body').style.display = 'none';
+    const wrap = document.getElementById('visual-editor-wrap');
+    wrap.style.display = 'flex';
+    const container = document.getElementById('visual-editor-body');
+    window.ValidationSuite.visualEditor.render(documentRow.json_data, container);
+}
+
+function closeVisualEditor() {
+    document.getElementById('visual-editor-wrap').style.display = 'none';
+    document.getElementById('source-body').style.display = '';
+}
+
+async function saveVisualEditor() {
+    const errorEl = document.getElementById('visual-editor-error');
+    const saveBtn = document.getElementById('visual-editor-save');
+    const cancelBtn = document.getElementById('visual-editor-cancel');
+    errorEl.textContent = '';
+    errorEl.classList.remove('visible');
+
+    const container = document.getElementById('visual-editor-body');
+    const original = documentRow.json_data;
+    const serialized = window.ValidationSuite.visualEditor.serialize(original, container);
+    // El header del editor visual (título/código/control de cambios/matriz de aprobaciones)
+    // es un modelo propio de la Suite de Validación que acá está oculto (CSS) -- si el
+    // documento original no tenía esas claves, no se las agregamos vacías solo porque
+    // serialize() las vuelve a escribir igual (siempre, con los inputs ocultos en blanco).
+    ['document', 'package', 'controlCambios', 'matrizAprobaciones'].forEach(k => {
+        if (!original || !Object.prototype.hasOwnProperty.call(original, k)) {
+            delete serialized[k];
+        }
+    });
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Guardando…';
+    cancelBtn.disabled = true;
 
     const { status, data } = await apiFetch(
         `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}`,
-        { method: 'PUT', body: { json_data: merged } }
+        { method: 'PUT', body: { json_data: serialized } }
     );
 
-    savingSectionEdit = false;
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Guardar cambios';
+    cancelBtn.disabled = false;
 
     if (status === 200 && data.ok) {
-        editingSectionIndex = null;
-        showToast('Sección guardada');
+        showToast('Documento guardado');
+        closeVisualEditor();
         await loadDocument();
         return;
     }
 
-    const msg = status === 409 ? (data.error || 'El documento está sellado o el proyecto no admite cambios') : (data.error || 'No se pudo guardar la sección.');
-    if (errorEl) { errorEl.textContent = msg; errorEl.classList.add('visible'); }
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; }
-    if (cancelBtn) cancelBtn.disabled = false;
+    const msg = status === 409
+        ? (data.error || 'El documento está sellado o el proyecto no admite cambios')
+        : (data.error || 'No se pudo guardar el documento.');
+    errorEl.textContent = msg;
+    errorEl.classList.add('visible');
 }
 
 function renderComments() {
