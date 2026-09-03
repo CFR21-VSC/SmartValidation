@@ -91,6 +91,94 @@ def list_users(user: dict = Depends(require_drp)):
     return {"ok": True, "users": [dict(r) for r in rows]}
 
 
+def _revoke_active_sessions(db, username: str) -> None:
+    db.execute(
+        "UPDATE rf_sessions SET revoked_at=? WHERE username=? AND revoked_at IS NULL",
+        (time.time(), username),
+    )
+
+
+@router.patch("/{user_id}/deactivate")
+def deactivate_user(user_id: str, user: dict = Depends(require_drp)):
+    """Desactiva sin borrar nada -- accesos y firmas quedan intactos por si la persona
+    vuelve a trabajar con DRP más adelante (pedido explícito del usuario 2026-09-03:
+    "eliminar perfiles (o desactivar mejor y reactivar...)"). Corta cualquier sesión ya
+    abierta al instante (ver get_current_user en deps.py) -- no alcanza con solo bloquear
+    logins nuevos."""
+    db = get_db()
+    target = db.execute("SELECT username, display_name, email, is_superadmin, is_active FROM rf_users WHERE id=?", (user_id,)).fetchone()
+    if not target:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+    if target["username"] == user["u"]:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No podés desactivar tu propia cuenta")
+    if target["is_superadmin"]:
+        others = db.execute(
+            "SELECT COUNT(*) AS n FROM rf_users WHERE is_superadmin=1 AND is_active=1 AND id!=?", (user_id,)
+        ).fetchone()["n"]
+        if others == 0:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "No se puede desactivar al último superadmin activo")
+
+    db.execute("UPDATE rf_users SET is_active=0, updated_at=? WHERE id=?", (time.time(), user_id))
+    _revoke_active_sessions(db, target["username"])
+    db.commit()
+
+    target_label = target["display_name"] or target["email"]
+    log_system_event(user, "user_deactivated", f"{user['u']} desactivó a {target_label}")
+    return {"ok": True}
+
+
+@router.patch("/{user_id}/reactivate")
+def reactivate_user(user_id: str, user: dict = Depends(require_drp)):
+    db = get_db()
+    target = db.execute("SELECT display_name, email FROM rf_users WHERE id=?", (user_id,)).fetchone()
+    if not target:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+
+    db.execute("UPDATE rf_users SET is_active=1, updated_at=? WHERE id=?", (time.time(), user_id))
+    db.commit()
+
+    target_label = target["display_name"] or target["email"]
+    log_system_event(user, "user_reactivated", f"{user['u']} reactivó a {target_label}")
+    return {"ok": True}
+
+
+@router.post("/{user_id}/reset-credentials")
+def reset_credentials(user_id: str, user: dict = Depends(require_drp)):
+    """Cubre dos pedidos del usuario a la vez, porque son mecánicamente lo mismo (un link
+    nuevo de rf_invites para terminar de configurar la cuenta): "resetear la contraseña" de
+    alguien que ya activó su cuenta, y "reenviar invitación" si la original venció sin
+    usarse. Invalida la contraseña actual (si tenía) y cualquier sesión abierta al instante
+    -- el link viejo también queda inválido porque el token es de un solo uso
+    (rf_invites.consumed_at)."""
+    db = get_db()
+    target = db.execute(
+        "SELECT username, email, display_name FROM rf_users WHERE id=?", (user_id,)
+    ).fetchone()
+    if not target:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+
+    now = time.time()
+    db.execute("UPDATE rf_users SET password_hash=NULL, updated_at=? WHERE id=?", (now, user_id))
+    _revoke_active_sessions(db, target["username"])
+
+    token = security.generate_invite_token()
+    db.execute(
+        "INSERT INTO rf_invites (token, user_id, created_at, expires_at) VALUES (?,?,?,?)",
+        (token, user_id, now, now + config.INVITE_TTL_H * 3600),
+    )
+    db.commit()
+
+    invite_link = f"{config.APP_BASE_URL}/app/invite.html?token={token}"
+    email_resend.send_credentials_reset_email(target["email"], target["display_name"], invite_link)
+
+    target_label = target["display_name"] or target["email"]
+    log_system_event(user, "credentials_reset", f"{user['u']} generó un nuevo link de acceso para {target_label}")
+    return {
+        "ok": True, "invite_link": invite_link,
+        "email_configured": bool(config.RESEND_API_KEY),
+    }
+
+
 @router.post("/{user_id}/grants")
 def grant_document_access(user_id: str, body: GrantBody, user: dict = Depends(require_drp)):
     db = get_db()

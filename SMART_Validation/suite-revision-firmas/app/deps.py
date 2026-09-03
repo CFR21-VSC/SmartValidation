@@ -19,9 +19,17 @@ def get_current_user(rf_session: str | None = Cookie(default=None)) -> dict:
     # (reportado por el usuario 2026-08-31: "permite concurrencia de sesiones del mismo
     # usuario"). Como _issue_session borra la fila de sesión anterior al crear una nueva, este
     # chequeo también hace que solo quede una sesión activa por usuario a la vez.
+    # Se suma el chequeo de is_active en la MISMA consulta: desactivar un usuario (sección
+    # pedida por el usuario 2026-09-03) tiene que cortarle el acceso al instante, no recién
+    # cuando el token de sesión vence solo (hasta 12h más tarde) -- sin esto, is_active=0
+    # solo bloqueaba un LOGIN nuevo, no una sesión ya abierta.
     db = get_db()
-    row = db.execute("SELECT revoked_at FROM rf_sessions WHERE nonce=?", (payload.get("n"),)).fetchone()
-    if not row or row["revoked_at"]:
+    row = db.execute(
+        "SELECT s.revoked_at, u.is_active FROM rf_sessions s "
+        "JOIN rf_users u ON u.username = s.username WHERE s.nonce=?",
+        (payload.get("n"),),
+    ).fetchone()
+    if not row or row["revoked_at"] or not row["is_active"]:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "No autenticado")
     return payload
 

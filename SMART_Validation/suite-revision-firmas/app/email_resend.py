@@ -125,6 +125,24 @@ def send_comment_resolved_email(
     send_email(to, f"Tu comentario en {doc_type} fue resuelto", html)
 
 
+def send_credentials_reset_email(to: str, display_name: str, reset_link: str) -> None:
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;">
+      <h2 style="color:#0B2341;">Nuevo acceso — Suite de Revisión y Firmas</h2>
+      <p>Hola {_esc(display_name or to)},</p>
+      <p>Se generó un link nuevo para que configures tu contraseña de acceso
+         a la Suite de Revisión y Firmas. Cualquier acceso anterior con la
+         contraseña vieja ya no funciona.</p>
+      <p style="margin:24px 0;">
+        <a href="{reset_link}" style="background:#C8921A;color:#0B2341;padding:10px 20px;
+           border-radius:6px;text-decoration:none;font-weight:700;">Configurar acceso</a>
+      </p>
+      <p style="font-size:12px;color:#666;">Si no esperabas este correo, avisale a quien administra la suite.</p>
+    </div>
+    """
+    send_email(to, "Nuevo acceso — Suite de Revisión y Firmas", html)
+
+
 def send_invite_email(to: str, display_name: str, invite_link: str) -> None:
     html = f"""
     <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;">

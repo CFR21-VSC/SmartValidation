@@ -1,4 +1,20 @@
 """Tests de gestión de usuarios y accesos por documento (Capa 2)."""
+import pytest
+from fastapi.testclient import TestClient
+
+from app.main import app
+
+
+@pytest.fixture
+def cliente_client(drp_client):
+    created = drp_client.post(
+        "/users",
+        json={"username": "cli-fix", "email": "cli-fix@example.com", "display_name": "Cli Fix", "role": "cliente"},
+    )
+    token = created.json()["invite_link"].split("token=")[-1]
+    cli = TestClient(app)
+    cli.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "1234"})
+    return cli, created.json()["user_id"]
 
 
 def test_create_user_requires_auth(client):
@@ -122,3 +138,137 @@ def test_grant_notifies_by_email_only_once(drp_client, monkeypatch):
 
     drp_client.post(f"/users/{user_id}/grants", json=body)  # ya tenía acceso -> no renotificar
     assert len(calls) == 1
+
+
+# ─── Desactivar / reactivar / resetear credenciales (sección pedida 2026-09-03) ───
+
+def _invite_and_activate(drp_client, username, email, role="cliente", password="password123", pin="1234"):
+    created = drp_client.post(
+        "/users", json={"username": username, "email": email, "display_name": username, "role": role}
+    )
+    user_id = created.json()["user_id"]
+    token = created.json()["invite_link"].split("token=")[-1]
+    cli = TestClient(app)
+    accept = cli.post(f"/invite/{token}/accept", json={"password": password, "pin": pin})
+    assert accept.status_code == 200, accept.text
+    return user_id, cli
+
+
+def test_deactivate_blocks_new_login(drp_client):
+    user_id, cli = _invite_and_activate(drp_client, "deact1", "deact1@example.com")
+    r = drp_client.patch(f"/users/{user_id}/deactivate")
+    assert r.status_code == 200, r.text
+
+    relogin = cli.post("/auth/login", json={"username": "deact1", "password": "password123"})
+    assert relogin.status_code == 401
+
+
+def test_deactivate_kills_already_open_session_immediately(drp_client):
+    """No alcanza con bloquear un login nuevo -- una sesión YA abierta tiene que cortarse
+    al instante, no seguir sirviendo hasta que el token venza solo."""
+    user_id, cli = _invite_and_activate(drp_client, "deact2", "deact2@example.com")
+    still_works = cli.get("/auth/session")
+    assert still_works.status_code == 200
+
+    drp_client.patch(f"/users/{user_id}/deactivate")
+
+    now_blocked = cli.get("/auth/session")
+    assert now_blocked.status_code == 401
+
+
+def test_deactivate_cannot_target_self(drp_client):
+    # El propio DRP no aparece en /users (esa lista es de invitados) -- se resuelve
+    # directo contra la base, mismo patrón que otros tests de esta suite.
+    from app.db import get_db
+    me = get_db().execute("SELECT id FROM rf_users WHERE is_superadmin=1").fetchone()
+    r = drp_client.patch(f"/users/{me['id']}/deactivate")
+    assert r.status_code == 400
+
+
+def test_deactivate_blocks_last_active_superadmin(drp_client):
+    from app.db import get_db
+    me = get_db().execute("SELECT id FROM rf_users WHERE is_superadmin=1").fetchone()
+    # Otro DRP intenta desactivar al único superadmin -- primero se necesita otro DRP
+    # logueado para no chocar con el bloqueo de auto-desactivación de arriba.
+    other_id, other_cli = _invite_and_activate(drp_client, "otrodrp", "otrodrp@example.com", role="drp")
+    r = other_cli.patch(f"/users/{me['id']}/deactivate")
+    assert r.status_code == 400
+    assert "superadmin" in r.json()["detail"].lower()
+
+
+def test_deactivate_unknown_user_404(drp_client):
+    r = drp_client.patch("/users/no-existe/deactivate")
+    assert r.status_code == 404
+
+
+def test_deactivate_requires_drp(cliente_client):
+    cli, uid = cliente_client
+    r = cli.patch(f"/users/{uid}/deactivate")
+    assert r.status_code == 403
+
+
+def test_reactivate_allows_login_again(drp_client):
+    user_id, cli = _invite_and_activate(drp_client, "react1", "react1@example.com")
+    drp_client.patch(f"/users/{user_id}/deactivate")
+    assert cli.post("/auth/login", json={"username": "react1", "password": "password123"}).status_code == 401
+
+    r = drp_client.patch(f"/users/{user_id}/reactivate")
+    assert r.status_code == 200, r.text
+
+    relogin = cli.post("/auth/login", json={"username": "react1", "password": "password123"})
+    assert relogin.status_code == 200
+
+
+def test_deactivate_reactivate_preserves_grants(drp_client):
+    """Desactivar/reactivar no debe tocar los accesos ya otorgados -- pedido explícito del
+    usuario: quiere poder reactivar a alguien que vuelve a trabajar sin re-armarle todo."""
+    user_id, _cli = _invite_and_activate(drp_client, "grantskeep", "grantskeep@example.com")
+    drp_client.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+
+    drp_client.patch(f"/users/{user_id}/deactivate")
+    drp_client.patch(f"/users/{user_id}/reactivate")
+
+    grants = drp_client.get(f"/users/{user_id}/grants").json()["grants"]
+    assert len(grants) == 1
+    assert grants[0]["project_id"] == "proj-1" and grants[0]["doc_type"] == "HLRA"
+
+
+def test_reset_credentials_invalidates_old_password_and_session(drp_client):
+    user_id, cli = _invite_and_activate(drp_client, "reset1", "reset1@example.com")
+    assert cli.get("/auth/session").status_code == 200
+
+    r = drp_client.post(f"/users/{user_id}/reset-credentials")
+    assert r.status_code == 200, r.text
+    assert r.json()["invite_link"]
+
+    # Sesión vieja muerta, contraseña vieja ya no sirve.
+    assert cli.get("/auth/session").status_code == 401
+    old_login = cli.post("/auth/login", json={"username": "reset1", "password": "password123"})
+    assert old_login.status_code == 401
+
+
+def test_reset_credentials_link_lets_user_set_new_password(drp_client):
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    user_id, _cli = _invite_and_activate(drp_client, "reset2", "reset2@example.com")
+    r = drp_client.post(f"/users/{user_id}/reset-credentials")
+    token = r.json()["invite_link"].split("token=")[-1]
+
+    fresh = TestClient(app)
+    accept = fresh.post(f"/invite/{token}/accept", json={"password": "unaClaveNueva123", "pin": "9999"})
+    assert accept.status_code == 200, accept.text
+
+    login = fresh.post("/auth/login", json={"username": "reset2", "password": "unaClaveNueva123"})
+    assert login.status_code == 200
+
+
+def test_reset_credentials_unknown_user_404(drp_client):
+    r = drp_client.post("/users/no-existe/reset-credentials")
+    assert r.status_code == 404
+
+
+def test_reset_credentials_requires_drp(cliente_client):
+    cli, uid = cliente_client
+    r = cli.post(f"/users/{uid}/reset-credentials")
+    assert r.status_code == 403
