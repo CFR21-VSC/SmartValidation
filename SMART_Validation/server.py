@@ -3705,50 +3705,41 @@ class SyncHandler(BaseHTTPRequestHandler):
             })
 
         if path.startswith("/sync/photos/"):
+            token = path[len("/sync/photos/"):]
+            qs = parse_qs(urlparse(self.path).query)
+            # NEW-16: validar que since sea numérico; float("abc") crashearía el thread
             try:
-                token = path[len("/sync/photos/"):]
-                print(f"[SYNC-POLL] token={token[:8]}… sessions_count={len(SESSIONS)}", flush=True)
-                qs = parse_qs(urlparse(self.path).query)
-                # NEW-16: validar que since sea numérico; float("abc") crashearía el thread
+                since = float(qs.get("since", ["0"])[0])
+            except (ValueError, TypeError):
+                since = 0.0
+            sess = SESSIONS.get(token)
+            if not sess:
+                # Fallback a DB (sobrevive reinicios del servidor)
                 try:
-                    since = float(qs.get("since", ["0"])[0])
-                except (ValueError, TypeError):
-                    since = 0.0
-                sess = SESSIONS.get(token)
-                print(f"[SYNC-POLL] sess_in_memory={sess is not None}", flush=True)
-                if not sess:
-                    # Fallback a DB (sobrevive reinicios del servidor)
-                    try:
-                        db = _get_db()
-                        row = db.execute(
-                            "SELECT session_data, project_id, created_at FROM sync_sessions WHERE token=? AND expires_at>?",
-                            (token, time.time())
-                        ).fetchone()
-                        if row:
-                            SESSIONS[token] = {
-                                "session_data": json.loads(row["session_data"]),
-                                "project_id": row["project_id"] or "",
-                                "photos": [],
-                                "created_at": row["created_at"],
-                                "created_by": "restored",
-                            }
-                            sess = SESSIONS[token]
-                        print(f"[SYNC-POLL] db_restore={sess is not None}", flush=True)
-                    except Exception as _e:
-                        print(f"[SYNC-POLL] db_error={_e}", flush=True)
-                if not sess:
-                    print("[SYNC-POLL] returning 404", flush=True)
-                    return self._send_json(404, {"error": "Sesion no encontrada"})
-                new_photos = [p for p in sess["photos"] if p["uploaded_at"] > since]
-                print(f"[SYNC-POLL] returning 200 photos={len(new_photos)} connected={sess.get('mobile_connected',False)}", flush=True)
-                return self._send_json(200, {
-                    "photos": new_photos,
-                    "server_time": time.time(),
-                    "mobile_connected": sess.get("mobile_connected", False),
-                })
-            except Exception as _poll_err:
-                print(f"[SYNC-POLL] EXCEPTION: {_poll_err}", flush=True)
-                return self._send_json(500, {"error": "Error interno en poll", "detail": str(_poll_err)})
+                    db = _get_db()
+                    row = db.execute(
+                        "SELECT session_data, project_id, created_at FROM sync_sessions WHERE token=? AND expires_at>?",
+                        (token, time.time())
+                    ).fetchone()
+                    if row:
+                        SESSIONS[token] = {
+                            "session_data": json.loads(row["session_data"]),
+                            "project_id": row["project_id"] or "",
+                            "photos": [],
+                            "created_at": row["created_at"],
+                            "created_by": "restored",
+                        }
+                        sess = SESSIONS[token]
+                except Exception:
+                    pass
+            if not sess:
+                return self._send_json(404, {"error": "Sesion no encontrada"})
+            new_photos = [p for p in sess["photos"] if p["uploaded_at"] > since]
+            return self._send_json(200, {
+                "photos": new_photos,
+                "server_time": time.time(),
+                "mobile_connected": sess.get("mobile_connected", False),
+            })
 
         # ── Verificar autenticación para el resto ────────────────────────────
         user = _check_auth(self)
@@ -3904,13 +3895,12 @@ class SyncHandler(BaseHTTPRequestHandler):
         if _is_auth_required() and path in ("/", "/index.html"):
             if not _check_auth(self):
                 qs = urlparse(self.path).query
-                from urllib.parse import parse_qs, quote as _quote
                 params = parse_qs(qs)
                 mobile = params.get("mobile", [""])[0]
                 # Pasar mobile como parámetro propio para evitar ?next=/?mobile=TOKEN
                 # que proxies como traefik pueden cortar en el segundo '?'
                 if mobile:
-                    loc = f"/login.html?mobile={_quote(mobile, safe='')}"
+                    loc = f"/login.html?mobile={quote(mobile, safe='')}"
                 else:
                     loc = "/login.html"
                 self.send_response(302)
