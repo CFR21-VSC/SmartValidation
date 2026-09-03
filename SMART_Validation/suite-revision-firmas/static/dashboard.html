@@ -146,6 +146,20 @@
     </div>
 </div>
 
+<!-- Modal: Enviar corrección a Validación (dirección inversa del bridge) -->
+<div class="rf-modal-backdrop" id="push-validacion-backdrop" style="display:none;">
+    <div class="rf-modal" style="width:min(640px, 92vw);">
+        <h3 id="push-validacion-title">Enviar corrección a Validación</h3>
+        <div id="push-validacion-body">
+            <div class="rf-empty">Validando coherencia…</div>
+        </div>
+        <div style="margin-top:16px; text-align:right; display:flex; gap:10px; justify-content:flex-end;">
+            <button class="rf-btn-secondary" id="push-validacion-cancel">Cerrar</button>
+            <button class="rf-btn" id="push-validacion-confirm" style="display:none;">Enviar igual</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal: alerta de comentarios pendientes -- cruza TODOS los proyectos, salta sola al
      loguearse, sin tener que entrar a ningún documento puntual (sección 2026-09-01, pedido
      explícito del usuario: "que no pase inadvertido") -->
@@ -310,6 +324,15 @@ document.getElementById('sys-backdrop').addEventListener('click', (e) => {
 document.getElementById('dossier-close').addEventListener('click', closeDossierPanel);
 document.getElementById('dossier-backdrop').addEventListener('click', (e) => {
     if (e.target.id === 'dossier-backdrop') closeDossierPanel();
+});
+document.getElementById('push-validacion-cancel').addEventListener('click', () => {
+    document.getElementById('push-validacion-backdrop').style.display = 'none';
+});
+document.getElementById('push-validacion-backdrop').addEventListener('click', (e) => {
+    if (e.target.id === 'push-validacion-backdrop') document.getElementById('push-validacion-backdrop').style.display = 'none';
+});
+document.getElementById('push-validacion-confirm').addEventListener('click', () => {
+    if (pushValidacionDocType) doPushToValidacion(pushValidacionDocType, true);
 });
 document.getElementById('pending-alert-close').addEventListener('click', () => {
     document.getElementById('pending-alert-backdrop').style.display = 'none';
@@ -520,6 +543,9 @@ function renderMain() {
         mainEl.querySelectorAll('.replace-doc-btn').forEach(btn => {
             btn.addEventListener('click', () => openReplaceForm(btn.dataset.doctype));
         });
+        mainEl.querySelectorAll('.push-validacion-btn').forEach(btn => {
+            btn.addEventListener('click', () => pushToValidacion(btn.dataset.doctype));
+        });
         mainEl.querySelectorAll('.access-toggle-btn').forEach(btn => {
             btn.addEventListener('click', () => toggleAccessPanel(btn.dataset.doctype));
         });
@@ -625,6 +651,7 @@ function renderDocumentsTable() {
             actions += ` <button class="rf-btn-secondary pb-open-btn" data-doctype="${escHtml(doc.doc_type)}">People Book</button>`;
             if (!sealed && currentProjectStatus() === 'active') {
                 actions += ` <button class="rf-btn-secondary replace-doc-btn" data-doctype="${escHtml(doc.doc_type)}">🔁 Reemplazar</button>`;
+                actions += ` <button class="rf-btn-secondary push-validacion-btn" data-doctype="${escHtml(doc.doc_type)}">📤 Enviar a Validación</button>`;
                 actions += ` <button class="rf-btn-danger delete-doc-btn" data-doctype="${escHtml(doc.doc_type)}">Eliminar</button>`;
             }
         }
@@ -1100,6 +1127,70 @@ async function openDossierPanel(projectId) {
 
 function closeDossierPanel() {
     document.getElementById('dossier-backdrop').style.display = 'none';
+}
+
+// ---------------------------------------------------------------------------
+// Enviar corrección a Validación — dirección INVERSA del bridge (Firmas -> Validación).
+// El documento tal como está guardado acá se re-valida contra el motor de coherencia allá
+// antes de pisar nada; CRITICO nuevo bloquea, MAYOR/MENOR nuevo pide confirmación explícita.
+// ---------------------------------------------------------------------------
+let pushValidacionDocType = null;
+
+function renderIssuesList(issues) {
+    issues = issues || {};
+    const sevLabel = { CRITICO: 'Crítico', MAYOR: 'Mayor', MENOR: 'Menor' };
+    const sevColor = { CRITICO: 'var(--danger)', MAYOR: 'var(--gold)', MENOR: 'var(--text-muted)' };
+    const all = ['CRITICO', 'MAYOR', 'MENOR'].flatMap(sev => (issues[sev] || []).map(i => ({ ...i, sev })));
+    if (all.length === 0) return '';
+    return `<div style="margin-top:10px; max-height:35vh; overflow-y:auto;">` + all.map(i => `
+        <div style="padding:8px 10px; border-left:3px solid ${sevColor[i.sev]}; margin-bottom:6px; background:var(--bg); border-radius:4px;">
+            <span style="font-size:10px; font-weight:700; color:${sevColor[i.sev]}; text-transform:uppercase;">${sevLabel[i.sev]} · ${escHtml(i.bucket || '')}</span>
+            <div style="font-size:12.5px; margin-top:2px;">${escHtml(i.description || i.detail || i.message || JSON.stringify(i))}</div>
+        </div>
+    `).join('') + `</div>`;
+}
+
+async function pushToValidacion(docType) {
+    pushValidacionDocType = docType;
+    document.getElementById('push-validacion-title').textContent = `Enviar corrección de ${docType} a Validación`;
+    document.getElementById('push-validacion-body').innerHTML = '<div class="rf-empty">Validando coherencia…</div>';
+    document.getElementById('push-validacion-confirm').style.display = 'none';
+    document.getElementById('push-validacion-backdrop').style.display = 'flex';
+    await doPushToValidacion(docType, false);
+}
+
+async function doPushToValidacion(docType, confirmed) {
+    const bodyEl = document.getElementById('push-validacion-body');
+    const confirmBtn = document.getElementById('push-validacion-confirm');
+    confirmBtn.style.display = 'none';
+    bodyEl.innerHTML = '<div class="rf-empty">Validando coherencia…</div>';
+
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(selectedProject)}/documents/${encodeURIComponent(docType)}/push-to-validacion`,
+        { method: 'POST', body: { confirmed } }
+    );
+
+    if (status === 200 && data.ok) {
+        bodyEl.innerHTML = '<div style="color:var(--success); font-weight:600;">✓ Enviado y aplicado en la Suite de Validación.</div>'
+            + renderIssuesList(data.issues);
+        showToast('Corrección enviada a Validación');
+        return;
+    }
+
+    if (data.reason === 'critical') {
+        bodyEl.innerHTML = '<div style="color:var(--danger); font-weight:600;">✗ Bloqueado: la corrección introduce problemas críticos de coherencia.</div>'
+            + renderIssuesList(data.issues);
+        return;
+    }
+
+    if (data.reason === 'needs_confirmation') {
+        bodyEl.innerHTML = '<div style="color:var(--gold-light); font-weight:600;">⚠ Hay advertencias nuevas de coherencia — revisá antes de confirmar el envío.</div>'
+            + renderIssuesList(data.issues);
+        confirmBtn.style.display = '';
+        return;
+    }
+
+    bodyEl.innerHTML = `<div class="rf-empty">${escHtml(data.error || 'No se pudo validar/enviar la corrección.')}</div>`;
 }
 
 // ---------------------------------------------------------------------------

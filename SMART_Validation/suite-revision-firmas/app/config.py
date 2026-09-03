@@ -43,3 +43,8 @@ PBKDF2_ITERS: int = int(os.environ.get("RF_PBKDF2_ITERS", "600000"))
 # por default a propósito -- con esto vacío, require_service_token rechaza TODO, nunca deja
 # el bridge abierto por falta de configuración.
 BRIDGE_API_KEY: str = os.environ.get("BRIDGE_API_KEY", "")
+
+# Base URL de la Suite Documental (server.py), para la dirección INVERSA del bridge --
+# corregir un documento acá y mandarlo de vuelta re-validado (routers/bridge.py,
+# validacion_bridge.py). Usa el mismo BRIDGE_API_KEY de arriba como header X-Bridge-Key.
+VALIDACION_BASE_URL: str = os.environ.get("VALIDACION_BASE_URL", "").rstrip("/")

@@ -324,6 +324,9 @@ _RE_COHERENCE_PACK = re.compile(r'^/api/projects/([^/]+)/coherence-pack$')
 _RE_PROJ_DOC      = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)$')
 _RE_PROJ_DOC_SEND_FIRMAS     = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/send-to-firmas$')
 _RE_PROJ_DOC_FIRMAS_COMMENTS = re.compile(r'^/api/projects/([^/]+)/documents/([^/]+)/firmas-comments$')
+# Bridge INVERSO (Firmas -> Validación): una corrección hecha en la Suite de Revisión y
+# Firmas, re-validada contra el motor de coherencia antes de pisar el documento acá.
+_RE_BRIDGE_VALIDATE_PUSH = re.compile(r'^/api/bridge/projects/([^/]+)/documents/([^/]+)/validate-and-push$')
 _RE_PROJ_PHOTOS   = re.compile(r'^/api/projects/([^/]+)/photos$')
 _RE_PROJ_PHOTO_ID = re.compile(r'^/api/projects/([^/]+)/photos/([^/]+)$')
 _RE_EVIDENCE_BULK = re.compile(r'^/api/projects/([^/]+)/evidence$')
@@ -872,6 +875,17 @@ def _send_email(to: str, subject: str, html: str) -> None:
     threading.Thread(target=_worker, daemon=True).start()
 
 
+def _verify_bridge_key(handler) -> bool:
+    """Autenticación servidor-a-servidor para /api/bridge/... (dirección Firmas -> acá) --
+    nunca sesión de usuario, nunca cookie. Mismo patrón que require_service_token del lado de
+    Firmas (app/deps.py): header X-Bridge-Key comparado con hmac.compare_digest contra el
+    mismo BRIDGE_API_KEY que ya usa _bridge_request para la dirección inversa."""
+    if not _BRIDGE_API_KEY:
+        return False
+    provided = handler.headers.get("X-Bridge-Key", "")
+    return hmac.compare_digest(provided, _BRIDGE_API_KEY)
+
+
 def _bridge_request(method: str, path: str, payload: dict | None = None) -> dict:
     """Llamada síncrona al bridge de la Suite de Revisión y Firmas (a diferencia de
     _send_email, acá NO corre en un thread daemon -- quien llama necesita saber si
@@ -930,6 +944,127 @@ def _bridge_pull_comments(proj_id: str, doc_type: str) -> dict:
     no se persisten acá, Firmas sigue siendo la única fuente de verdad de comentarios."""
     path = f"/bridge/projects/{quote(proj_id, safe='')}/documents/{quote(doc_type, safe='')}/comments"
     return _bridge_request("GET", path)
+
+
+def _call_analytics_analyze(proj_id: str, documents_upper: dict) -> dict | None:
+    """POST a analytics-service /analyze (mismo host/puerto que ya usa _api_coherence_pack --
+    127.0.0.1:8765, solo alcanzable desde este proceso, por eso el bridge de correcciones desde
+    Firmas pasa por acá en vez de que Firmas le hable directo al motor).
+
+    `documents_upper` usa las claves EN MAYÚSCULA como se guardan en la tabla `documents`
+    (URS, RA, PIQ, ...). tracer.py y cascade_checker.py del motor leen esas claves en
+    MINÚSCULA (documents.get('urs', {})) -- si se le manda mayúscula, el motor no tira error,
+    devuelve un resultado "limpio" en falso silenciosamente. Se bajan acá antes de mandar."""
+    documents_lower = {k.lower(): v for k, v in (documents_upper or {}).items()}
+    payload = json.dumps({"projectId": proj_id, "documents": documents_lower}).encode()
+    try:
+        req = urllib.request.Request(
+            "http://127.0.0.1:8765/analyze", data=payload,
+            headers={"Content-Type": "application/json"}, method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            return json.loads(resp.read())
+    except Exception as e:
+        sys.stderr.write(f"[bridge] analytics-service /analyze no disponible: {e}\n")
+        return None
+
+
+def _diff_new_issues(before: dict, after: dict) -> dict:
+    """Compara dos respuestas de /analyze y devuelve, por severidad, los issues que aparecen
+    en `after` y NO estaban en `before` -- así una corrección puntual no se bloquea por
+    problemas preexistentes del proyecto que no tienen nada que ver con el cambio (AnalyzeResponse
+    no tiene un único campo "todo limpio": status/score no contemplan cascadeIssues, hay que
+    escanear gaps + coherenceIssues + cascadeIssues directamente)."""
+    def _all_issues(analysis):
+        out = []
+        for bucket in ("gaps", "coherenceIssues", "cascadeIssues"):
+            for issue in (analysis or {}).get(bucket, []) or []:
+                out.append((bucket, issue))
+        return out
+
+    before_sigs = {json.dumps(i, sort_keys=True) for _, i in _all_issues(before)}
+    result = {"CRITICO": [], "MAYOR": [], "MENOR": []}
+    for bucket, issue in _all_issues(after):
+        if json.dumps(issue, sort_keys=True) in before_sigs:
+            continue
+        sev = issue.get("severity")
+        if sev in result:
+            result[sev].append({"bucket": bucket, **issue})
+    return result
+
+
+def _upsert_document_row(db, proj_id: str, doc_type: str, content, username: str, ip: str,
+                          action: str | None = None, requested_status: str = "draft") -> dict:
+    """Inserta o actualiza un documento (fila SQL + audit event) -- extraído de
+    _api_doc_upsert para poder reusarlo desde el bridge servidor-a-servidor (correcciones que
+    llegan desde Firmas) sin pasar por la capa HTTP humana. `action` permite loguear una
+    acción de audit distinta de doc_create/doc_update (p.ej. "corrected_via_firmas"); si es
+    None usa el default de siempre. Devuelve {"ok": True, "id": ...} o
+    {"ok": False, "error": ..., "status": <código HTTP>}; nunca lanza."""
+    if requested_status not in ("draft", "needs_revision"):
+        requested_status = "draft"
+    content_str = json.dumps(content)
+    if len(content_str) > 5 * 1024 * 1024:  # 5 MB max por documento
+        return {"ok": False, "error": "Contenido del documento demasiado grande (máx 5 MB)", "status": 413}
+    now = time.time()
+    # ADV-01: BEGIN IMMEDIATE para hacer atómica la verificación de estado + escritura
+    db.execute("BEGIN IMMEDIATE")
+    try:
+        # NEW-03: los documentos aprobados inician nuevo ciclo (incrementan versión)
+        existing = db.execute(
+            "SELECT version, status, json_data FROM documents WHERE project_id=? AND doc_type=?",
+            (proj_id, doc_type)
+        ).fetchone()
+        if existing and existing["status"] == "approved":
+            new_version = (existing["version"] or 1) + 1
+            requested_status = "draft"
+        else:
+            new_version = existing["version"] if existing else 1
+        is_create = existing is None
+        doc_action = action or ("doc_create" if is_create else "doc_update")
+        db.execute("""
+            INSERT INTO documents
+              (id, project_id, doc_type, version, status, json_data,
+               created_by, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              json_data=excluded.json_data,
+              status=excluded.status,
+              version=excluded.version,
+              updated_at=excluded.updated_at
+        """, (
+            f"{proj_id}_{doc_type}", proj_id, doc_type,
+            new_version, requested_status,
+            content_str, username, now, now
+        ))
+        # ALCOA+: audit trail de creación/modificación de documento GxP
+        prev_status = existing["status"] if existing else None
+        prev_hash = (
+            hashlib.sha256(existing["json_data"].encode("utf-8")).hexdigest()[:16]
+            if existing and existing["json_data"] else None
+        )
+        detail = (
+            f"{'Creó' if is_create else 'Modificó'} documento '{doc_type}'"
+            + (" vía Suite de Revisión y Firmas" if action else "")
+            + f" (estado: {requested_status}"
+            + (f", estado previo: {prev_status}" if prev_status else "")
+            + (f", hash_previo: {prev_hash}" if prev_hash else "")
+            + ")"
+        )
+        db.execute("""
+            INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (proj_id, doc_type, username, doc_action, detail, ip, now))
+        db.execute("COMMIT")
+    except Exception as e:
+        try:
+            db.execute("ROLLBACK")
+        except Exception:
+            pass
+        print(f"[DB] Error al guardar documento {doc_type}: {e}")
+        return {"ok": False, "error": "Error interno al guardar documento.", "status": 500}
+
+    return {"ok": True, "id": f"{proj_id}_{doc_type}"}
 
 
 def _send_security_alert(subject: str, body_html: str) -> None:
@@ -2800,69 +2935,74 @@ class SyncHandler(BaseHTTPRequestHandler):
             return
         # ADV-03: el status solo puede ser 'draft' o 'needs_revision' vía upsert; el sistema gestiona los demás
         requested_status = str(data.get("status", "draft")).strip()
-        if requested_status not in ("draft", "needs_revision"):
-            requested_status = "draft"
         content = data.get("content") or data
-        content_str = json.dumps(content)
-        if len(content_str) > 5 * 1024 * 1024:  # 5 MB max por documento
-            return self._send_json(413, {"ok": False, "error": "Contenido del documento demasiado grande (máx 5 MB)"})
-        now = time.time()
-        # ADV-01: BEGIN IMMEDIATE para hacer atómica la verificación de estado + escritura
-        db.execute("BEGIN IMMEDIATE")
-        try:
-            # NEW-03: los documentos aprobados inician nuevo ciclo (incrementan versión)
-            existing = db.execute(
-                "SELECT version, status, json_data FROM documents WHERE project_id=? AND doc_type=?",
-                (proj_id, doc_type)
-            ).fetchone()
-            if existing and existing["status"] == "approved":
-                new_version = (existing["version"] or 1) + 1
-                requested_status = "draft"
-            else:
-                new_version = existing["version"] if existing else 1
-            doc_action = "doc_update" if existing else "doc_create"
-            db.execute("""
-                INSERT INTO documents
-                  (id, project_id, doc_type, version, status, json_data,
-                   created_by, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                  json_data=excluded.json_data,
-                  status=excluded.status,
-                  version=excluded.version,
-                  updated_at=excluded.updated_at
-            """, (
-                f"{proj_id}_{doc_type}", proj_id, doc_type,
-                new_version, requested_status,
-                content_str, user.get("u"), now, now
-            ))
-            # ALCOA+: audit trail de creación/modificación de documento GxP
-            prev_status = existing["status"] if existing else None
-            prev_hash = (
-                hashlib.sha256(existing["json_data"].encode("utf-8")).hexdigest()[:16]
-                if existing and existing["json_data"] else None
-            )
-            detail = (
-                f"{'Creó' if doc_action == 'doc_create' else 'Modificó'} documento '{doc_type}' "
-                f"(estado: {requested_status}"
-                + (f", estado previo: {prev_status}" if prev_status else "")
-                + (f", hash_previo: {prev_hash}" if prev_hash else "")
-                + ")"
-            )
-            db.execute("""
-                INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (proj_id, doc_type, user.get("u"), doc_action, detail, self._get_client_ip(), now))
-            db.execute("COMMIT")
-        except Exception as e:
+        result = _upsert_document_row(
+            db, proj_id, doc_type, content, user.get("u"), self._get_client_ip(),
+            requested_status=requested_status,
+        )
+        if not result.get("ok"):
+            return self._send_json(result.get("status") or 500, result)
+        return self._send_json(200, result)
+
+    def _api_bridge_validate_and_push(self, proj_id, doc_type):
+        """POST /api/bridge/projects/{id}/documents/{doc_type}/validate-and-push -- dirección
+        INVERSA del bridge (Firmas -> acá). Autenticado con _verify_bridge_key en el
+        dispatcher, no con sesión de usuario. Re-corre el motor de coherencia ANTES vs.
+        DESPUÉS de aplicar la corrección, para no bloquear por problemas preexistentes del
+        proyecto que no tienen nada que ver con este cambio puntual (sección 3 del diseño,
+        confirmado con el usuario 2026-08-31): CRITICO nuevo bloquea siempre; MAYOR/MENOR
+        nuevo requiere `confirmed: true` en el body (esa confirmación ya la mostró Firmas del
+        lado humano antes de reintentar)."""
+        if not _is_valid_doc_type(doc_type):
+            return self._send_json(400, {"ok": False, "error": "doc_type inválido"})
+        data = self._read_json_body()
+        if data is None:
+            return
+        content = data.get("json_data")
+        if not isinstance(content, dict):
+            return self._send_json(400, {"ok": False, "error": "json_data inválido"})
+        confirmed = bool(data.get("confirmed"))
+        actor_username = str(data.get("actor_username") or "suite-firmas")
+
+        db = _get_db()
+        rows = db.execute(
+            "SELECT doc_type, json_data FROM documents WHERE project_id=?", (proj_id,)
+        ).fetchall()
+        documents_before = {}
+        for row in rows:
             try:
-                db.execute("ROLLBACK")
+                documents_before[row["doc_type"]] = json.loads(row["json_data"])
             except Exception:
                 pass
-            print(f"[DB] Error al guardar documento {doc_type}: {e}")
-            return self._send_json(500, {"ok": False, "error": "Error interno al guardar documento."})
+        documents_after = dict(documents_before)
+        documents_after[doc_type] = content
 
-        return self._send_json(200, {"ok": True, "id": f"{proj_id}_{doc_type}"})
+        analysis_before = _call_analytics_analyze(proj_id, documents_before) or {}
+        analysis_after = _call_analytics_analyze(proj_id, documents_after)
+        if analysis_after is None:
+            return self._send_json(503, {"ok": False, "error": "Motor de analytics no disponible."})
+
+        new_issues = _diff_new_issues(analysis_before, analysis_after)
+        if new_issues["CRITICO"]:
+            return self._send_json(409, {
+                "ok": False, "blocked": True, "reason": "critical",
+                "error": "La corrección introduce problemas críticos de coherencia -- no se puede enviar.",
+                "issues": new_issues,
+            })
+        if (new_issues["MAYOR"] or new_issues["MENOR"]) and not confirmed:
+            return self._send_json(409, {
+                "ok": False, "blocked": False, "reason": "needs_confirmation",
+                "error": "La corrección introduce advertencias de coherencia -- confirmá para enviarla igual.",
+                "issues": new_issues,
+            })
+
+        result = _upsert_document_row(
+            db, proj_id, doc_type, content, actor_username, self._get_client_ip(),
+            action="corrected_via_firmas",
+        )
+        if not result.get("ok"):
+            return self._send_json(result.get("status") or 500, result)
+        return self._send_json(200, {**result, "issues": new_issues})
 
     def _api_doc_send_to_firmas(self, proj_id, doc_type, user):
         """Empuja el documento actual hacia la Suite de Revisión y Firmas (bridge, Fase 4).
@@ -3938,6 +4078,13 @@ class SyncHandler(BaseHTTPRequestHandler):
 
         if path == "/sync/photo":
             return self._handle_sync_photo()
+
+        # ── Bridge servidor-a-servidor con Suite de Revisión y Firmas (nunca cookie) ────────
+        m = _RE_BRIDGE_VALIDATE_PUSH.match(path)
+        if m:
+            if not _verify_bridge_key(self):
+                return self._send_json(401, {"ok": False, "error": "No autorizado"})
+            return self._api_bridge_validate_and_push(m.group(1), m.group(2))
 
         # ── Verificar autenticación para el resto ────────────────────────────
         user = _check_auth(self)

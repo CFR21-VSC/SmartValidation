@@ -15,9 +15,10 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from .. import config, email_resend
+from .. import config, email_resend, validacion_bridge
 from ..audit import log_event, log_system_event
 from ..db import get_db
 from ..deps import check_document_access, ensure_project_active, get_current_user, require_drp
@@ -76,6 +77,10 @@ class LoadDocumentBody(BaseModel):
 class CommentBody(BaseModel):
     content: str
     parent_id: int | None = None  # None = comentario raíz; si no, responde a esa raíz
+
+
+class PushToValidacionBody(BaseModel):
+    confirmed: bool = False
 
 
 def _upsert_document(db, project_id: str, doc_type: str, json_data: dict, actor: dict) -> dict:
@@ -181,6 +186,29 @@ def _get_document_or_404(db, project_id: str, doc_type: str) -> dict:
     if not row:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Documento no encontrado")
     return dict(row)
+
+
+@router.post("/{doc_type}/push-to-validacion")
+def push_to_validacion(
+    project_id: str, doc_type: str, body: PushToValidacionBody, user: dict = Depends(require_drp),
+):
+    """Manda el documento tal como está guardado acá (con las correcciones ya aplicadas) de
+    vuelta a la Suite Documental (server.py) para que el motor de coherencia lo re-valide
+    antes de pisar el documento real allá -- dirección INVERSA del bridge original, que solo
+    empujaba Validación -> Firmas. Ver validacion_bridge.py para el detalle del contrato
+    (bloqueo por CRITICO nuevo, confirmación por MAYOR/MENOR nuevo)."""
+    db = get_db()
+    doc = _get_document_or_404(db, project_id, doc_type)
+    result = validacion_bridge.push_correction(
+        project_id, doc_type, json.loads(doc["json_data"]), user["u"], confirmed=body.confirmed,
+    )
+    if result.get("ok"):
+        log_system_event(
+            user, "corrected_pushed_to_validacion",
+            f"{user['u']} envió una corrección de {doc_type} a la Suite Documental",
+            project_id=project_id, doc_type=doc_type,
+        )
+    return JSONResponse(status_code=result.get("status") or 502, content=result)
 
 
 @router.get("/{doc_type}")
