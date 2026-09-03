@@ -1015,6 +1015,7 @@ async function init() {
 
     await loadDocument();
     await loadSignatures();
+    startCommentsPolling();
 }
 
 // ---------------------------------------------------------------------------
@@ -1058,6 +1059,31 @@ async function reloadComments() {
         });
     }
     renderComments();
+}
+
+// ---------------------------------------------------------------------------
+// Auto-refresco de comentarios (sección pedida por el usuario 2026-09-03: antes había que
+// recargar la página a mano para ver un comentario de otra persona). Sondea cada 20s
+// mientras la pestaña esté abierta -- si hay un comentario a medio escribir (raíz o
+// respuesta) se salta ese ciclo, para no pisarle el borrador a quien está tipeando.
+// ---------------------------------------------------------------------------
+let commentsPollTimer = null;
+const COMMENTS_POLL_MS = 20000;
+
+function hasUnsavedCommentDraft() {
+    const textareas = correctionsBody.querySelectorAll('textarea');
+    for (const ta of textareas) {
+        if (ta.value.trim() || document.activeElement === ta) return true;
+    }
+    return false;
+}
+
+function startCommentsPolling() {
+    if (commentsPollTimer) return;
+    commentsPollTimer = setInterval(() => {
+        if (document.hidden || hasUnsavedCommentDraft()) return;
+        reloadComments();
+    }, COMMENTS_POLL_MS);
 }
 
 function renderOutline() {
