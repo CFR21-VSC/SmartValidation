@@ -3679,13 +3679,13 @@ class SyncHandler(BaseHTTPRequestHandler):
                 try:
                     db = _get_db()
                     row = db.execute(
-                        "SELECT session_data, created_at FROM sync_sessions WHERE token=? AND expires_at>?",
+                        "SELECT session_data, project_id, created_at FROM sync_sessions WHERE token=? AND expires_at>?",
                         (token, time.time())
                     ).fetchone()
                     if row:
                         SESSIONS[token] = {
                             "session_data": json.loads(row["session_data"]),
-                            "project_id": "",
+                            "project_id": row["project_id"] or "",
                             "photos": [],
                             "created_at": row["created_at"],
                             "created_by": "restored",
@@ -3711,6 +3711,25 @@ class SyncHandler(BaseHTTPRequestHandler):
             except (ValueError, TypeError):
                 since = 0.0
             sess = SESSIONS.get(token)
+            if not sess:
+                # Fallback a DB (sobrevive reinicios del servidor)
+                try:
+                    db = _get_db()
+                    row = db.execute(
+                        "SELECT session_data, project_id, created_at FROM sync_sessions WHERE token=? AND expires_at>?",
+                        (token, time.time())
+                    ).fetchone()
+                    if row:
+                        SESSIONS[token] = {
+                            "session_data": json.loads(row["session_data"]),
+                            "project_id": row["project_id"] or "",
+                            "photos": [],
+                            "created_at": row["created_at"],
+                            "created_by": "restored",
+                        }
+                        sess = SESSIONS[token]
+                except Exception:
+                    pass
             if not sess:
                 return self._send_json(404, {"error": "Sesion no encontrada"})
             new_photos = [p for p in sess["photos"] if p["uploaded_at"] > since]
@@ -4150,6 +4169,25 @@ class SyncHandler(BaseHTTPRequestHandler):
             return
         token = data.get("token")
         sess = SESSIONS.get(token)
+        if not sess:
+            # Fallback a DB (sobrevive reinicios del servidor)
+            try:
+                db = _get_db()
+                row = db.execute(
+                    "SELECT session_data, project_id, created_at FROM sync_sessions WHERE token=? AND expires_at>?",
+                    (token, time.time())
+                ).fetchone()
+                if row:
+                    SESSIONS[token] = {
+                        "session_data": json.loads(row["session_data"]),
+                        "project_id": row["project_id"] or "",
+                        "photos": [],
+                        "created_at": row["created_at"],
+                        "created_by": "restored",
+                    }
+                    sess = SESSIONS[token]
+            except Exception:
+                pass
         if not sess:
             return self._send_json(404, {"error": "Sesion no encontrada"})
         photo = {
