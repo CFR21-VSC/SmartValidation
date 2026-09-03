@@ -222,6 +222,7 @@
 <div class="rv-shell">
     <div class="rv-toolbar">
         <button class="rf-btn-secondary" id="btn-view-pdf">Ver PDF</button>
+        <button class="rf-btn-secondary" id="btn-push-validacion" style="display:none;">📤 Enviar a Validación</button>
         <button class="rf-btn" id="btn-sign-review">Firmar revisión</button>
         <div class="rv-signers" id="signers-summary">Cargando firmas…</div>
     </div>
@@ -279,6 +280,20 @@
     </div>
 </div>
 
+<!-- Modal: Enviar corrección a Validación (dirección inversa del bridge) -->
+<div class="rf-modal-backdrop" id="push-validacion-backdrop" style="display:none;">
+    <div class="rf-modal" style="width:min(640px, 92vw);">
+        <h3>Enviar corrección a Validación</h3>
+        <div id="push-validacion-body">
+            <div class="rf-empty">Validando coherencia…</div>
+        </div>
+        <div style="margin-top:16px; text-align:right; display:flex; gap:10px; justify-content:flex-end;">
+            <button class="rf-btn-secondary" id="push-validacion-cancel">Cerrar</button>
+            <button class="rf-btn" id="push-validacion-confirm" style="display:none;">Enviar igual</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal: Ver PDF -->
 <div class="rf-modal-backdrop" id="pdf-backdrop" style="display:none;">
     <div class="rf-modal rv-pdf-modal">
@@ -331,6 +346,8 @@ let session = null;
 let documentRow = null;      // { id, doc_type, status, locked, json_data, ... }
 let commentsBySection = {};  // section_key -> [{ id, content, resolved, user_id, username, created_at }, …]
 let sections = [];           // [{ key, label }]
+let editingSectionIndex = null;  // índice dentro de secciones[] (array crudo) en edición, o null
+let savingSectionEdit = false;
 let pdfLibsLoaded = false;
 let pdfLibsLoading = null;
 let currentPdfObjectUrl = null;
@@ -504,6 +521,80 @@ function getSectionContentText(sectionObj) {
     return '';
 }
 
+// Editor inline (sección pedida por el usuario 2026-09-03): solo se puede editar en pantalla
+// el caso simple -- un único campo de texto plano (contenido/content/texto). El patrón
+// "bloques" de getSectionContentText() junta subtítulo+texto+bullets en un solo string
+// para MOSTRAR, pero escribirlo de vuelta sería ambiguo (no se sabe qué línea vuelve a qué
+// bloque) -- esas secciones structuradas siguen corrigiéndose con "Cargar" (reemplazo de
+// archivo completo), igual que las tablas/listas.
+function getEditableField(sectionObj) {
+    if (!sectionObj || typeof sectionObj !== 'object') return null;
+    if (typeof sectionObj.contenido === 'string') return 'contenido';
+    if (typeof sectionObj.content === 'string') return 'content';
+    if (typeof sectionObj.texto === 'string') return 'texto';
+    return null;
+}
+
+// ---------------------------------------------------------------------------
+// Enviar corrección a Validación — dirección INVERSA del bridge (mismo endpoint y misma
+// lógica de bloqueo/confirmación por severidad que el botón equivalente en dashboard.html;
+// acá vive para poder corregir y enviar sin volver al panel del proyecto).
+// ---------------------------------------------------------------------------
+function renderIssuesList(issues) {
+    issues = issues || {};
+    const sevLabel = { CRITICO: 'Crítico', MAYOR: 'Mayor', MENOR: 'Menor' };
+    const sevColor = { CRITICO: 'var(--danger)', MAYOR: 'var(--gold)', MENOR: 'var(--text-muted)' };
+    const all = ['CRITICO', 'MAYOR', 'MENOR'].flatMap(sev => (issues[sev] || []).map(i => ({ ...i, sev })));
+    if (all.length === 0) return '';
+    return `<div style="margin-top:10px; max-height:35vh; overflow-y:auto;">` + all.map(i => `
+        <div style="padding:8px 10px; border-left:3px solid ${sevColor[i.sev]}; margin-bottom:6px; background:var(--bg); border-radius:4px;">
+            <span style="font-size:10px; font-weight:700; color:${sevColor[i.sev]}; text-transform:uppercase;">${sevLabel[i.sev]} · ${escHtml(i.bucket || '')}</span>
+            <div style="font-size:12.5px; margin-top:2px;">${escHtml(i.description || i.detail || i.message || JSON.stringify(i))}</div>
+        </div>
+    `).join('') + `</div>`;
+}
+
+async function pushToValidacion() {
+    document.getElementById('push-validacion-body').innerHTML = '<div class="rf-empty">Validando coherencia…</div>';
+    document.getElementById('push-validacion-confirm').style.display = 'none';
+    document.getElementById('push-validacion-backdrop').style.display = 'flex';
+    await doPushToValidacion(false);
+}
+
+async function doPushToValidacion(confirmed) {
+    const bodyEl = document.getElementById('push-validacion-body');
+    const confirmBtn = document.getElementById('push-validacion-confirm');
+    confirmBtn.style.display = 'none';
+    bodyEl.innerHTML = '<div class="rf-empty">Validando coherencia…</div>';
+
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}/push-to-validacion`,
+        { method: 'POST', body: { confirmed } }
+    );
+
+    if (status === 200 && data.ok) {
+        bodyEl.innerHTML = '<div style="color:var(--success); font-weight:600;">✓ Enviado y aplicado en la Suite de Validación.</div>'
+            + renderIssuesList(data.issues);
+        showToast('Corrección enviada a Validación');
+        return;
+    }
+
+    if (data.reason === 'critical') {
+        bodyEl.innerHTML = '<div style="color:var(--danger); font-weight:600;">✗ Bloqueado: la corrección introduce problemas críticos de coherencia.</div>'
+            + renderIssuesList(data.issues);
+        return;
+    }
+
+    if (data.reason === 'needs_confirmation') {
+        bodyEl.innerHTML = '<div style="color:var(--gold-light); font-weight:600;">⚠ Hay advertencias nuevas de coherencia — revisá antes de confirmar el envío.</div>'
+            + renderIssuesList(data.issues);
+        confirmBtn.style.display = '';
+        return;
+    }
+
+    bodyEl.innerHTML = `<div class="rf-empty">${escHtml(data.error || 'No se pudo validar/enviar la corrección.')}</div>`;
+}
+
 // ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
@@ -515,9 +606,18 @@ async function init() {
 
     if (session.role === 'drp') {
         sourceActions.style.display = '';
+        document.getElementById('btn-push-validacion').style.display = '';
     }
 
     document.getElementById('btn-view-pdf').addEventListener('click', openPdfModal);
+    document.getElementById('btn-push-validacion').addEventListener('click', pushToValidacion);
+    document.getElementById('push-validacion-cancel').addEventListener('click', () => {
+        document.getElementById('push-validacion-backdrop').style.display = 'none';
+    });
+    document.getElementById('push-validacion-backdrop').addEventListener('click', (e) => {
+        if (e.target.id === 'push-validacion-backdrop') document.getElementById('push-validacion-backdrop').style.display = 'none';
+    });
+    document.getElementById('push-validacion-confirm').addEventListener('click', () => doPushToValidacion(true));
     document.getElementById('btn-sign-review').addEventListener('click', openSignModal);
     document.getElementById('btn-load-doc').addEventListener('click', openLoadModal);
     document.getElementById('btn-download-doc').addEventListener('click', downloadJson);
@@ -619,23 +719,46 @@ function renderSource() {
     }
 
     const arr = getSectionsArray(jsonData);
+    const canEdit = session.role === 'drp' && !documentRow.locked;
     if (arr) {
         const sectionByKey = {};
         sections.forEach(s => { sectionByKey[s.key] = s; });
 
         arr.forEach((raw, i) => {
             const sec = sectionByKey[`sec-${i}`];
+            const editField = getEditableField(raw);
+
+            if (sec && canEdit && editField && editingSectionIndex === i) {
+                html += `<div class="rv-section" id="${escHtml(sec.key)}">
+                    <h3>${escHtml(sec.label)}</h3>
+                    <textarea class="rf-textarea rv-edit-textarea" id="edit-textarea-${i}" style="min-height:140px;">${escHtml(raw[editField])}</textarea>
+                    <div style="margin-top:8px; display:flex; gap:8px;">
+                        <button class="rf-btn section-save-btn" data-index="${i}" data-field="${escHtml(editField)}" ${savingSectionEdit ? 'disabled' : ''}>${savingSectionEdit ? 'Guardando…' : 'Guardar'}</button>
+                        <button class="rf-btn-secondary section-cancel-btn" ${savingSectionEdit ? 'disabled' : ''}>Cancelar</button>
+                    </div>
+                    <div class="rf-error" id="edit-error-${i}"></div>
+                </div>`;
+                return;
+            }
+
             const content = getSectionContentText(raw);
             const known = content ? null : renderKnownSectionBody(raw);
             const body = content ? escHtml(content) : (known !== null ? known : renderPlainObject(raw));
+            const editBtn = (sec && canEdit && editField)
+                ? `<button class="rf-btn-secondary section-edit-btn" data-index="${i}" style="padding:3px 10px; font-size:11px; margin-left:auto;">✏️ Editar</button>`
+                : '';
             if (sec) {
                 html += `<div class="rv-section" id="${escHtml(sec.key)}">
-                    <h3>${escHtml(sec.label)}</h3>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <h3 style="margin:0;">${escHtml(sec.label)}</h3>
+                        ${editBtn}
+                    </div>
                     <div class="rv-section-content">${body}</div>
                 </div>`;
             } else {
                 // Sin título propio en el documento — se muestra igual, pero como
                 // continuación del bloque anterior, sin encabezado ni número inventado.
+                // No es editable en pantalla (sin lugar propio para el botón/índice de outline).
                 html += `<div class="rv-section-content rv-untitled-continuation">${body}</div>`;
             }
         });
@@ -646,6 +769,69 @@ function renderSource() {
     }
 
     sourceBody.innerHTML = html || '<div class="rf-empty">Documento vacío.</div>';
+
+    sourceBody.querySelectorAll('.section-edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            editingSectionIndex = Number(btn.dataset.index);
+            renderSource();
+        });
+    });
+    sourceBody.querySelectorAll('.section-cancel-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            editingSectionIndex = null;
+            renderSource();
+        });
+    });
+    sourceBody.querySelectorAll('.section-save-btn').forEach(btn => {
+        btn.addEventListener('click', () => saveSectionEdit(Number(btn.dataset.index), btn.dataset.field));
+    });
+}
+
+async function saveSectionEdit(i, field) {
+    // Deliberadamente NO se llama a renderSource() durante el guardado ni si falla -- eso
+    // reconstruiría el <textarea> desde documentRow.json_data (el valor VIEJO, sin guardar)
+    // y el texto que la persona acaba de tipear se perdería si el guardado falla. Se
+    // manipulan los botones/mensaje de error directo en el DOM en su lugar; solo se vuelve
+    // a renderizar todo si el guardado realmente tuvo éxito (loadDocument, con datos frescos
+    // del servidor).
+    const textarea = document.getElementById(`edit-textarea-${i}`);
+    const errorEl = document.getElementById(`edit-error-${i}`);
+    const saveBtn = sourceBody.querySelector(`.section-save-btn[data-index="${i}"]`);
+    const cancelBtn = sourceBody.querySelector('.section-cancel-btn');
+    if (!textarea) return;
+    const newText = textarea.value;
+
+    savingSectionEdit = true;
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Guardando…'; }
+    if (cancelBtn) cancelBtn.disabled = true;
+    if (errorEl) { errorEl.textContent = ''; errorEl.classList.remove('visible'); }
+
+    const merged = JSON.parse(JSON.stringify(documentRow.json_data));
+    const arr = getSectionsArray(merged);
+    if (!arr || !arr[i]) {
+        savingSectionEdit = false;
+        return;
+    }
+    arr[i][field] = newText;
+
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}`,
+        { method: 'PUT', body: { json_data: merged } }
+    );
+
+    savingSectionEdit = false;
+
+    if (status === 200 && data.ok) {
+        editingSectionIndex = null;
+        showToast('Sección guardada');
+        await loadDocument();
+        return;
+    }
+
+    const msg = status === 409 ? (data.error || 'El documento está sellado o el proyecto no admite cambios') : (data.error || 'No se pudo guardar la sección.');
+    if (errorEl) { errorEl.textContent = msg; errorEl.classList.add('visible'); }
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Guardar'; }
+    if (cancelBtn) cancelBtn.disabled = false;
 }
 
 function renderComments() {
