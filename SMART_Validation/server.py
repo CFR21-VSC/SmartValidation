@@ -3695,6 +3695,8 @@ class SyncHandler(BaseHTTPRequestHandler):
                     pass
             if not sess:
                 return self._send_json(404, {"error": "Sesion no encontrada o expirada"})
+            # El mobile acaba de cargar — marcar como conectado para que el desktop lo detecte
+            sess["mobile_connected"] = True
             return self._send_json(200, {
                 "token": token,
                 "session_data": sess["session_data"],
@@ -3733,7 +3735,11 @@ class SyncHandler(BaseHTTPRequestHandler):
             if not sess:
                 return self._send_json(404, {"error": "Sesion no encontrada"})
             new_photos = [p for p in sess["photos"] if p["uploaded_at"] > since]
-            return self._send_json(200, {"photos": new_photos, "server_time": time.time()})
+            return self._send_json(200, {
+                "photos": new_photos,
+                "server_time": time.time(),
+                "mobile_connected": sess.get("mobile_connected", False),
+            })
 
         # ── Verificar autenticación para el resto ────────────────────────────
         user = _check_auth(self)

@@ -11059,13 +11059,14 @@ async function pollMobilePhotos() {
         const data = await resp.json();
         mobileSyncLastTimestamp = data.server_time || mobileSyncLastTimestamp;
 
+        // Detectar conexion del mobile apenas carga la pagina (antes de que haya fotos)
+        if (data.mobile_connected && !mobileSyncStatusReceived) {
+            mobileSyncStatusReceived = true;
+            document.getElementById('mobileStatusText').textContent = 'Movil conectado';
+            document.querySelector('.spinner-mobile').style.display = 'none';
+        }
+
         if (data.photos && data.photos.length > 0) {
-            // Marcar conexion establecida
-            if (!mobileSyncStatusReceived) {
-                mobileSyncStatusReceived = true;
-                document.getElementById('mobileStatusText').textContent = 'Movil conectado';
-                document.querySelector('.spinner-mobile').style.display = 'none';
-            }
 
             let anyNew = false;
             for (const photo of data.photos) {

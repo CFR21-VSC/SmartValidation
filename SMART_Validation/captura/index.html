@@ -600,6 +600,13 @@ async function submitPhotos() {
 
     if (err > 0 && ok === 0) {
         _toast('Error al subir. Reintentá.', 'error');
+        // Banner persistente para que no se pierda el error
+        const errBanner = document.createElement('div');
+        errBanner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#c0392b;color:#fff;text-align:center;padding:12px 16px;font-weight:600;font-size:15px;z-index:9999;';
+        errBanner.textContent = 'No se pudo enviar la foto. Verificá la conexion y reintentá.';
+        errBanner.onclick = () => errBanner.remove();
+        document.body.appendChild(errBanner);
+        setTimeout(() => errBanner.remove(), 8000);
         btn.disabled = false;
         btn.textContent = 'Reintentar';
         return;
@@ -607,7 +614,7 @@ async function submitPhotos() {
     if (err > 0) {
         _toast(`${ok} subida${ok>1?'s':''}, ${err} fallida${err>1?'s':''}`, 'error');
     } else {
-        _toast(ok > 1 ? `${ok} fotos enviadas` : 'Foto enviada a la PC', 'success');
+        _toast(ok > 1 ? `${ok} fotos enviadas` : 'Foto enviada a la PC ✓', 'success');
     }
 
     // Actualizar contador local
