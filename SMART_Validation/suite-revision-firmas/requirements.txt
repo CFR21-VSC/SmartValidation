@@ -1,6 +1,7 @@
 # Python 3.11+
-fastapi>=0.110
-uvicorn[standard]>=0.29
-pydantic[email]>=2.6
+# Versiones fijadas (SEC-FIX-DEPS01): ver requirements.txt de la Suite de Validación.
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+pydantic[email]==2.13.5
 # Solo se importa cuando DATABASE_URL apunta a Postgres (Railway). Dev local usa SQLite stdlib.
-psycopg2-binary>=2.9
+psycopg2-binary==2.9.12

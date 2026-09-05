@@ -152,6 +152,44 @@ def test_approval_round_requires_superadmin_last(drp_with_pin, cliente):
     assert "DRP" in r.text
 
 
+def test_approval_sign_last_signer_superadmin_checked_live(drp_with_pin, cliente):
+    """El chequeo de "último firmante debe ser superadmin" tiene que releer la base en
+    el momento de firmar, no confiar en el atributo `sa` fijado en el token al loguearse
+    -- si alguien pierde is_superadmin después de loguearse, su sesión ya abierta no debe
+    poder sellar igual, tal como is_active ya se revalida en cada request (deps.py)."""
+    from app.db import get_db
+
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente
+    drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+
+    db = get_db()
+    # Promoción temporal: necesaria para poder crear la ronda (el creador ya exige
+    # is_superadmin=1 en base para el último firmante) y para que el re-login emita
+    # un token con sa=true.
+    db.execute("UPDATE rf_users SET is_superadmin=1 WHERE id=?", (user_id,))
+    db.commit()
+    cli.post("/auth/login", json={"username": "firmante", "password": "password123"})
+
+    created = drp_with_pin.post(
+        "/projects/proj-1/documents/HLRA/approval-round",
+        json={"signers": [{"user_id": user_id, "role_label": "Aprobador", "sign_order": 1}]},
+    )
+    assert created.status_code == 200, created.text
+
+    # Se revoca is_superadmin en la base sin que la sesión ya emitida de "firmante" se
+    # entere -- su token sigue firmado con sa=true.
+    db.execute("UPDATE rf_users SET is_superadmin=0 WHERE id=?", (user_id,))
+    db.commit()
+
+    r = cli.post(
+        "/projects/proj-1/documents/HLRA/approval-round/sign",
+        json={"pin": "1234", "justification_text": "Apruebo", "pdf_base64": "ZmFrZS1wZGY="},
+    )
+    assert r.status_code == 403
+    assert "DRP" in r.text
+
+
 def test_approval_round_rejects_signer_without_document_access(drp_with_pin, cliente):
     drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     cli, user_id = cliente

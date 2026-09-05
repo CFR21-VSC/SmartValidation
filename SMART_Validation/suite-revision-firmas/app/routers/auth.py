@@ -76,6 +76,7 @@ class AcceptInviteBody(BaseModel):
 
 class SetPinBody(BaseModel):
     pin: str
+    current_pin: str = ""
 
 
 class ChangePasswordBody(BaseModel):
@@ -174,12 +175,18 @@ def session(user: dict = Depends(get_current_user)):
 
 @router.post("/auth/set-pin")
 def set_pin(body: SetPinBody, user: dict = Depends(get_current_user)):
-    """Autoservicio: configurar/cambiar el PIN de firma. Requerido al primer login
-    para cuentas que no pasaron por el flujo de invitación (p. ej. el superadmin
-    bootstrapeado por env vars, sección 3 Capa 2)."""
+    """Autoservicio: configurar/cambiar el PIN de firma. Sin PIN previo (primer login,
+    p. ej. el superadmin bootstrapeado por env vars, sección 3 Capa 2) no hace falta
+    reconfirmar nada. Si ya había un PIN, exige el actual -- si no, una sesión robada
+    (cookie) alcanzaría para tomar la credencial de firma electrónica de la cuenta,
+    igual que /auth/change-password ya exige la contraseña actual para ese caso."""
     if len(body.pin) < 4 or not body.pin.isdigit():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "El PIN debe tener al menos 4 dígitos")
     db = get_db()
+    row = db.execute("SELECT pin_hash, pin_set FROM rf_users WHERE id=?", (user["uid"],)).fetchone()
+    if row and row["pin_set"]:
+        if not security.pbkdf2_verify(body.current_pin, row["pin_hash"]):
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "El PIN actual es incorrecto")
     db.execute(
         "UPDATE rf_users SET pin_hash=?, pin_set=1, updated_at=? WHERE id=?",
         (security.pbkdf2_hash(body.pin), time.time(), user["uid"]),

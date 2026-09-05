@@ -53,11 +53,14 @@ def create_token(user_id: str, username: str, display: str, role: str, is_supera
         raise RuntimeError("RF_AUTH_SECRET_KEY no configurada")
     expires = int(time.time()) + config.TOKEN_EXPIRE_H * 3600
     nonce = secrets.token_hex(8)
-    payload_str = f"{user_id}:{username}:{role}:{expires}:{nonce}"
+    sa_flag = bool(is_superadmin)
+    # "sa" tiene que estar dentro de lo firmado -- si no, alcanza con editar el JSON en
+    # base64 (no está cifrado) para pasar de sa=false a sa=true sin invalidar la firma.
+    payload_str = f"{user_id}:{username}:{role}:{int(sa_flag)}:{expires}:{nonce}"
     sig = hmac.HMAC(config.AUTH_SECRET_KEY.encode(), payload_str.encode(), hashlib.sha256).hexdigest()
     data = json.dumps({
         "uid": user_id, "u": username, "d": display, "r": role,
-        "sa": bool(is_superadmin), "e": expires, "n": nonce, "s": sig,
+        "sa": sa_flag, "e": expires, "n": nonce, "s": sig,
     })
     token = base64.urlsafe_b64encode(data.encode()).decode()
     return token, nonce
@@ -70,7 +73,7 @@ def decode_token(token: str) -> dict:
     try:
         data = json.loads(base64.urlsafe_b64decode(token.encode()).decode())
         expected_sig = data.pop("s")
-        payload_str = f"{data['uid']}:{data['u']}:{data['r']}:{data['e']}:{data['n']}"
+        payload_str = f"{data['uid']}:{data['u']}:{data['r']}:{int(bool(data['sa']))}:{data['e']}:{data['n']}"
         sig = hmac.HMAC(config.AUTH_SECRET_KEY.encode(), payload_str.encode(), hashlib.sha256).hexdigest()
         if not hmac.compare_digest(sig, expected_sig):
             return {}

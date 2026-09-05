@@ -1,2 +1,7 @@
-psycopg2-binary>=2.9.9
-boto3>=1.34.0
+# Versiones fijadas (SEC-FIX-DEPS01): `>=` deja que un build futuro instale una
+# versión nueva no probada sin aviso -- una imagen reconstruida hoy y otra dentro de
+# unos meses con el mismo Dockerfile podían terminar corriendo psycopg2/boto3
+# distintos. Reproducir con `docker build` (sin --no-cache reviejo) para resolver
+# la próxima versión evaluada antes de subir el pin.
+psycopg2-binary==2.9.12
+boto3==1.43.89

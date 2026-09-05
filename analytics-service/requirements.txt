@@ -1,4 +1,5 @@
-fastapi>=0.111.0
-uvicorn[standard]>=0.29.0
-openpyxl>=3.1.2
-pydantic>=2.9.0
+# Versiones fijadas (SEC-FIX-DEPS01) -- ver requirements.txt de la raíz.
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+openpyxl==3.1.5
+pydantic==2.13.5

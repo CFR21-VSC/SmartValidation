@@ -1,0 +1,76 @@
+# SEC-FIX-DOCKER01 (INFORME.md hallazgo #5): el Dockerfile de la raíz usa la raíz del
+# repo como build context (`COPY SMART_Validation/ ./`, `COPY analytics-service/ ...`),
+# no el directorio de cada servicio -- el .dockerignore anidado en SMART_Validation/ NO
+# se aplica a ese COPY. Sin este archivo en la raíz, todo lo que exista en disco dentro
+# de esas carpetas al momento del build (incluido SMART_Validation/.env,
+# SMART_Validation/data/ con SQLite+evidencia real, y el árbol completo de
+# suite-revision-firmas/ -- su propio .venv, su propia data/, su propio .env.example --
+# se copia dentro de la imagen del servicio principal.
+
+# ── Secretos — nunca en ninguna imagen ───────────────────────────────────────
+.env
+*.env
+!*.env.example
+SMART_Validation/.env
+SMART_Validation/suite-revision-firmas/.env
+
+# ── Datos persistentes reales (SQLite, fotos, evidencia) ─────────────────────
+data/
+SMART_Validation/data/
+SMART_Validation/suite-revision-firmas/data/
+
+# ── Suite de Revisión y Firmas: servicio separado, con su propio Dockerfile y
+# despliegue en Railway -- el servicio principal no necesita ni debe incluirla ──
+SMART_Validation/suite-revision-firmas/
+
+# ── Documentos GxP / datos de cliente que no van a ninguna imagen ────────────
+docs-privados/
+Proyecto_Prueba_2026_RECOVERED.json
+proj_*.project.json
+SMART_Validation/proj_*.project.json
+MapeoGxP.html
+
+# ── Revisión de seguridad local (scripts y hallazgos, no runtime) ────────────
+security-review/
+
+# ── Control de versiones ──────────────────────────────────────────────────────
+.git/
+.gitignore
+.claude/
+
+# ── Node (las apps son Python; node_modules no se necesita en ninguna imagen) ─
+node_modules/
+package.json
+package-lock.json
+SMART_Validation/node_modules/
+SMART_Validation/package.json
+SMART_Validation/package-lock.json
+
+# ── Entornos y cache de Python ────────────────────────────────────────────────
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.venv/
+**/.pytest_cache/
+
+# ── Tests, tooling y scripts de solo-desarrollo ───────────────────────────────
+tests/
+test-results/
+playwright.config.js
+INSTALAR.ps1
+SMART_Validation/tests/
+SMART_Validation/claude-desktop-skills/
+SMART_Validation/*.bat
+SMART_Validation/*.sh
+SMART_Validation/*.vbs
+SMART_Validation/generate_keys.py
+SMART_Validation/reset_password.py
+SMART_Validation/pytest.ini
+SMART_Validation/requirements-dev.txt
+SMART_Validation/docker-compose.yml
+
+# ── Documentación interna ──────────────────────────────────────────────────────
+# NB: a diferencia de .gitignore, un patrón sin "/" en .dockerignore NO matchea a
+# cualquier profundidad (usa filepath.Match contra el path completo) -- hace falta
+# el prefijo **/ para que alcance también a SMART_Validation/docs/*.md, etc.
+**/*.md

@@ -289,7 +289,11 @@ def sign_approval(
     _verify_pin(db, user["uid"], body.pin)
 
     is_last = me["sign_order"] == max(s["sign_order"] for s in signers)
-    is_superadmin = bool(user.get("sa"))
+    # No confiar en user["sa"] (viene del token, no cubierto por su firma HMAC -- ver
+    # security.py) para una decisión de autorización real. Se relee is_superadmin desde
+    # rf_users, igual que ya hace create_round más arriba para el mismo chequeo.
+    urow = db.execute("SELECT is_superadmin FROM rf_users WHERE id=?", (user["uid"],)).fetchone()
+    is_superadmin = bool(urow["is_superadmin"]) if urow else False
     if is_last and not is_superadmin:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "El último firmante debe ser DRP (superadmin)")
     if is_last and not body.pdf_base64:

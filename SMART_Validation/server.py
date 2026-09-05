@@ -1333,6 +1333,42 @@ def cleanup_expired_sessions():
         pass
 
 
+def _get_valid_sync_session(token: str) -> "dict | None":
+    """Busca una sesión de sync vigente por token -- primero en memoria, con fallback a
+    DB (sobrevive reinicios). SEC-FIX-SYNC03: antes cada ruta (/sync/session/,
+    /sync/photos/, /sync/photo) repetía este fallback a mano, y solo la rama que venía
+    de DB revalidaba el vencimiento (WHERE expires_at>?) -- una sesión que ya estaba
+    cacheada en SESSIONS se aceptaba sin repreguntar su antigüedad, así hubiera pasado
+    SESSION_TTL hace rato y cleanup_expired_sessions() todavía no hubiera pasado a
+    purgarla (esa limpieza es perezosa, solo corre cuando otra ruta la dispara)."""
+    if not token:
+        return None
+    now = time.time()
+    sess = SESSIONS.get(token)
+    if sess is not None and now - sess["created_at"] > SESSION_TTL:
+        SESSIONS.pop(token, None)
+        sess = None
+    if sess is None:
+        try:
+            db = _get_db()
+            row = db.execute(
+                "SELECT session_data, project_id, created_at FROM sync_sessions WHERE token=? AND expires_at>?",
+                (token, now)
+            ).fetchone()
+            if row:
+                sess = {
+                    "session_data": json.loads(row["session_data"]),
+                    "project_id": row["project_id"] or "",
+                    "photos": [],
+                    "created_at": row["created_at"],
+                    "created_by": "restored",
+                }
+                SESSIONS[token] = sess
+        except Exception:
+            pass
+    return sess
+
+
 def _safe_filename(name: str, fallback: str) -> str:
     """VULN-09: sanitiza nombre de archivo bloqueando dispositivos Windows reservados."""
     safe = os.path.basename(name or fallback) or fallback
@@ -1677,6 +1713,10 @@ class SyncHandler(BaseHTTPRequestHandler):
     def _auth_set_signing_pin(self, user):
         """POST /auth/set-signing-pin — configura el PIN de firma (separado del password de login).
         P1: todos los roles pueden tener un PIN de firma independiente de su contraseña.
+
+        SEC-FIX-CRED02: sin PIN previo (pin_set=0) no hay nada que reconfirmar. Con uno
+        ya establecido, exige el vigente -- si no, una cookie de sesión robada alcanzaría
+        para tomar la credencial de firma electrónica de la cuenta sin saber el PIN real.
         """
         data = self._read_json_body()
         if not isinstance(data, dict):
@@ -1684,10 +1724,19 @@ class SyncHandler(BaseHTTPRequestHandler):
         pin = str(data.get("pin", "")).strip()
         if len(pin) < 6 or len(pin) > 8 or not pin.isdigit():
             return self._send_json(400, {"ok": False, "error": "El PIN debe tener entre 6 y 8 dígitos numéricos"})
+        ip = self._get_client_ip()
+        if not _rate_limit(_GENERIC_ATTEMPTS, f"cred:{user.get('u')}:{ip}", 5):
+            return self._send_json(429, {"ok": False, "error": "Demasiados intentos. Esperá un minuto."})
         db = _get_db()
-        row = db.execute("SELECT id FROM users WHERE username=? AND is_active=1", (user.get("u"),)).fetchone()
+        row = db.execute(
+            "SELECT id, pin_hash, pin_set FROM users WHERE username=? AND is_active=1", (user.get("u"),)
+        ).fetchone()
         if not row:
             return self._send_json(404, {"ok": False, "error": "Usuario no encontrado"})
+        if row["pin_set"]:
+            current = str(data.get("current_pin", ""))
+            if not current or not _pbkdf2_verify(current, row["pin_hash"] or ""):
+                return self._send_json(401, {"ok": False, "error": "El PIN actual es incorrecto"})
         db.execute(
             "UPDATE users SET pin_hash=?, pin_set=1, updated_at=? WHERE id=?",
             (_pbkdf2_hash(pin), time.time(), row["id"])
@@ -1696,34 +1745,50 @@ class SyncHandler(BaseHTTPRequestHandler):
         return self._send_json(200, {"ok": True})
 
     def _auth_change_credentials(self, user):
-        """Cambio obligatorio de credenciales en primer acceso (o voluntario posterior).
-        Admin/auditor → new_password. Cliente → new_pin."""
+        """Cambio obligatorio de credenciales en primer acceso, o voluntario posterior.
+        Admin/auditor → new_password. Cliente → new_pin.
+
+        SEC-FIX-CRED01: el primer ingreso (must_change_password=1 / pin_set=0) no exige
+        nada más que la sesión ya autenticada -- es el flujo de onboarding. Pero fuera de
+        ese caso, una sesión sola no puede reemplazar una credencial ya establecida: hay
+        que probar que se conoce la vigente (current_password / current_pin), si no
+        cualquiera que robe la cookie de sesión se queda con la cuenta para siempre con
+        solo golpear este endpoint."""
         data = self._read_json_body()
         if data is None:
             return
         role = user.get("r")
+        ip = self._get_client_ip()
+        if not _rate_limit(_GENERIC_ATTEMPTS, f"cred:{user.get('u')}:{ip}", 5):
+            return self._send_json(429, {"ok": False, "error": "Demasiados intentos. Esperá un minuto."})
         db = _get_db()
         row = db.execute(
-            "SELECT id, username FROM users WHERE username=? AND is_active=1",
+            "SELECT id, username, password_hash, pin_hash, pin_set, must_change_password "
+            "FROM users WHERE username=? AND is_active=1",
             (user.get("u"),)
         ).fetchone()
         if not row:
             return self._send_json(404, {"ok": False, "error": "Usuario no encontrado"})
         now = time.time()
-        ip  = self._get_client_ip()
+        is_first_login = bool(row["must_change_password"]) if role in ("admin", "auditor") else not bool(row["pin_set"])
 
         if role in ("admin", "auditor"):
             new_pass = str(data.get("new_password", "")).strip()
             if not new_pass or len(new_pass) < 8 or len(new_pass) > 256:
                 return self._send_json(400, {"ok": False, "error": "La contraseña debe tener entre 8 y 256 caracteres"})
+            if not is_first_login:
+                current = str(data.get("current_password", ""))
+                if not current or not _pbkdf2_verify(current, row["password_hash"] or ""):
+                    return self._send_json(401, {"ok": False, "error": "La contraseña actual es incorrecta"})
             db.execute(
                 "UPDATE users SET password_hash=?, must_change_password=0, updated_at=? WHERE id=?",
                 (_pbkdf2_hash(new_pass), now, row["id"])
             )
+            detail = "Contraseña cambiada en primer ingreso" if is_first_login else "Contraseña cambiada (reconfirmada)"
             db.execute("""
                 INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
-                VALUES (NULL, NULL, ?, 'change_credentials', 'Contraseña cambiada en primer ingreso', ?, ?)
-            """, (user.get("u"), ip, now))
+                VALUES (NULL, NULL, ?, 'change_credentials', ?, ?, ?)
+            """, (user.get("u"), detail, ip, now))
             return self._send_json(200, {"ok": True})
 
         elif role == "client":
@@ -1731,14 +1796,19 @@ class SyncHandler(BaseHTTPRequestHandler):
             if not new_pin or not new_pin.isdigit() or len(new_pin) < _PIN_MIN_LEN or len(new_pin) > _PIN_MAX_LEN:
                 return self._send_json(400, {"ok": False,
                     "error": f"El PIN debe ser {_PIN_MIN_LEN}-{_PIN_MAX_LEN} dígitos numéricos"})
+            if not is_first_login:
+                current = str(data.get("current_pin", ""))
+                if not current or not _pbkdf2_verify(current, row["pin_hash"] or ""):
+                    return self._send_json(401, {"ok": False, "error": "El PIN actual es incorrecto"})
             db.execute(
                 "UPDATE users SET pin_hash=?, pin_set=1, must_change_password=0, updated_at=? WHERE id=?",
                 (_pbkdf2_hash(new_pin), now, row["id"])
             )
+            detail = "PIN establecido en primer ingreso" if is_first_login else "PIN cambiado (reconfirmado)"
             db.execute("""
                 INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
-                VALUES (NULL, NULL, ?, 'change_credentials', 'PIN establecido en primer ingreso', ?, ?)
-            """, (user.get("u"), ip, now))
+                VALUES (NULL, NULL, ?, 'change_credentials', ?, ?, ?)
+            """, (user.get("u"), detail, ip, now))
             return self._send_json(200, {"ok": True})
 
         return self._send_json(400, {"ok": False, "error": "Rol no soportado"})
@@ -3108,6 +3178,15 @@ class SyncHandler(BaseHTTPRequestHandler):
         if not pin or len(pin) < _PIN_MIN_LEN or len(pin) > _PIN_MAX_LEN or not pin.isdigit():
             return self._send_json(400, {"ok": False, "error": f"PIN debe ser {_PIN_MIN_LEN}-{_PIN_MAX_LEN} dígitos numéricos"})
         db = _get_db()
+        row = db.execute(
+            "SELECT pin_hash, pin_set FROM users WHERE username=?", (user.get("u"),)
+        ).fetchone()
+        # SEC-FIX-CRED03: mismo hueco que /auth/set-signing-pin -- sin esto, una cookie de
+        # sesión robada alcanza para tomar el PIN de firma del cliente sin conocer el actual.
+        if row and row["pin_set"]:
+            current = str(data.get("current_pin", ""))
+            if not current or not _pbkdf2_verify(current, row["pin_hash"] or ""):
+                return self._send_json(401, {"ok": False, "error": "El PIN actual es incorrecto"})
         now_pin = time.time()
         db.execute(
             "UPDATE users SET pin_hash=?, pin_set=1, updated_at=? WHERE username=?",
@@ -3813,26 +3892,7 @@ class SyncHandler(BaseHTTPRequestHandler):
         if path.startswith("/sync/session/"):
             token = path[len("/sync/session/"):]
             cleanup_expired_sessions()
-            sess = SESSIONS.get(token)
-            if not sess:
-                # Fallback a DB (sobrevive reinicios del servidor)
-                try:
-                    db = _get_db()
-                    row = db.execute(
-                        "SELECT session_data, project_id, created_at FROM sync_sessions WHERE token=? AND expires_at>?",
-                        (token, time.time())
-                    ).fetchone()
-                    if row:
-                        SESSIONS[token] = {
-                            "session_data": json.loads(row["session_data"]),
-                            "project_id": row["project_id"] or "",
-                            "photos": [],
-                            "created_at": row["created_at"],
-                            "created_by": "restored",
-                        }
-                        sess = SESSIONS[token]
-                except Exception:
-                    pass
+            sess = _get_valid_sync_session(token)
             if not sess:
                 return self._send_json(404, {"error": "Sesion no encontrada o expirada"})
             # El mobile acaba de cargar — marcar como conectado para que el desktop lo detecte
@@ -3852,26 +3912,7 @@ class SyncHandler(BaseHTTPRequestHandler):
                 since = float(qs.get("since", ["0"])[0])
             except (ValueError, TypeError):
                 since = 0.0
-            sess = SESSIONS.get(token)
-            if not sess:
-                # Fallback a DB (sobrevive reinicios del servidor)
-                try:
-                    db = _get_db()
-                    row = db.execute(
-                        "SELECT session_data, project_id, created_at FROM sync_sessions WHERE token=? AND expires_at>?",
-                        (token, time.time())
-                    ).fetchone()
-                    if row:
-                        SESSIONS[token] = {
-                            "session_data": json.loads(row["session_data"]),
-                            "project_id": row["project_id"] or "",
-                            "photos": [],
-                            "created_at": row["created_at"],
-                            "created_by": "restored",
-                        }
-                        sess = SESSIONS[token]
-                except Exception:
-                    pass
+            sess = _get_valid_sync_session(token)
             if not sess:
                 return self._send_json(404, {"error": "Sesion no encontrada"})
             new_photos = [p for p in sess["photos"] if p["uploaded_at"] > since]
@@ -4260,6 +4301,11 @@ class SyncHandler(BaseHTTPRequestHandler):
             # ADV-10: validar que project_id tenga formato válido o vacío — previene contaminación de directorios
             raw_proj = str(data.get("project_id", "") or "")
             safe_project_id = raw_proj if _is_valid_proj_id(raw_proj) else ""
+            # SEC-FIX-SYNC01: sin esto, cualquier usuario autenticado podía pedir un token
+            # móvil para un project_id ajeno (mismo permiso que cargar evidencia normal,
+            # ver _api_evidence_images_upload) y usarlo para escribir fotos en ese proyecto.
+            if safe_project_id and not self._assert_project_access(_get_db(), user, safe_project_id):
+                return
             cleanup_expired_sessions()
             if len(SESSIONS) >= MAX_SESSIONS:
                 return self._send_json(503, {"error": f"Demasiadas sesiones activas ({MAX_SESSIONS} máx). Intentá más tarde."})
@@ -4320,30 +4366,17 @@ class SyncHandler(BaseHTTPRequestHandler):
         if data is None:
             return
         token = data.get("token")
-        sess = SESSIONS.get(token)
-        if not sess:
-            # Fallback a DB (sobrevive reinicios del servidor)
-            try:
-                db = _get_db()
-                row = db.execute(
-                    "SELECT session_data, project_id, created_at FROM sync_sessions WHERE token=? AND expires_at>?",
-                    (token, time.time())
-                ).fetchone()
-                if row:
-                    SESSIONS[token] = {
-                        "session_data": json.loads(row["session_data"]),
-                        "project_id": row["project_id"] or "",
-                        "photos": [],
-                        "created_at": row["created_at"],
-                        "created_by": "restored",
-                    }
-                    sess = SESSIONS[token]
-            except Exception:
-                pass
+        sess = _get_valid_sync_session(token)
         if not sess:
             return self._send_json(404, {"error": "Sesion no encontrada"})
         photo = {
-            "id": data.get("id") or f"photo_{int(time.time() * 1000)}",
+            # SEC-FIX-SYNC02: id generado siempre en el servidor, nunca el que mande el
+            # cliente -- _save_photo_to_disk lo usa como nombre de archivo y abre con
+            # modo "w" (sobrescribe). Aceptar un id elegido por el cliente permitía
+            # apuntar a una foto ya persistida y machacarla. Ninguna pantalla depende de
+            # que este id coincida con el que mandó el móvil (ver captura/index.html y
+            # el poll en logica-modular.js): ambos usan el que devuelve/lista el server.
+            "id": f"photo_{int(time.time() * 1000)}_{secrets.token_hex(6)}",
             "testId": data.get("testId"),
             "step": data.get("step"),
             "image": data.get("image"),

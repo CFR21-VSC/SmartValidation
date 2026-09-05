@@ -153,6 +153,23 @@ def test_set_pin_rejects_short_pin(client, superadmin_creds):
     assert r.status_code == 400
 
 
+def test_set_pin_requires_current_pin_once_set(client, superadmin_creds):
+    """Una vez que ya hay PIN, una sesión sola no alcanza para reemplazarlo -- tiene
+    que probar que conoce el PIN vigente, igual que /auth/change-password exige la
+    contraseña actual."""
+    client.post("/auth/login", json=superadmin_creds)
+    client.post("/auth/set-pin", json={"pin": "9999"})  # primer PIN, sin reconfirmar
+
+    r = client.post("/auth/set-pin", json={"pin": "1111"})  # sin current_pin
+    assert r.status_code == 401
+
+    r = client.post("/auth/set-pin", json={"pin": "1111", "current_pin": "0000"})  # incorrecto
+    assert r.status_code == 401
+
+    r = client.post("/auth/set-pin", json={"pin": "1111", "current_pin": "9999"})  # correcto
+    assert r.status_code == 200
+
+
 def test_change_password_requires_auth(client):
     r = client.post("/auth/change-password", json={"current_password": "x", "new_password": "newpass123"})
     assert r.status_code == 401
