@@ -38,6 +38,46 @@
      * @param {Array} nodes - Nodos del árbol de contenido
      * @param {boolean} insideUnbreakable - true si ya estamos dentro de un stack unbreakable
      */
+    /**
+     * Glifos que la Roboto embebida en lib/vfs_fonts.js NO tiene y que pdfMake dibuja
+     * como un cuadrito vacío. Verificado leyendo el cmap de las cuatro variantes
+     * (Regular, Medium, Italic, MediumItalic): las tres faltan en todas.
+     *
+     * La sustitución se hace SOLO al renderizar, sobre el árbol ya clonado: el documento
+     * guardado conserva el carácter original. Si en el futuro se embebe una fuente con
+     * cobertura completa, se borra esta tabla y los documentos se ven con el glifo real
+     * sin haber perdido nada.
+     *
+     * Uso medido en el corpus real: → 223 veces, ↔ 21, ✓ 1.
+     */
+    const GLIFOS_SIN_COBERTURA = {
+        '→': '»',      // →  flecha derecha   → »
+        '↔': '«»',// ↔  flecha doble     → «»
+        '✓': '√'       // ✓  check            → √
+    };
+    const _RE_GLIFOS = /[→↔✓]/g;
+
+    function sustituirGlifos(s) {
+        return s.replace(_RE_GLIFOS, function (c) { return GLIFOS_SIN_COBERTURA[c] || c; });
+    }
+
+    /** Recorre todo el árbol y sustituye los glifos sin cobertura en cualquier texto. */
+    function sanitizeGlyphs(node) {
+        if (node == null) return node;
+        if (typeof node === 'string') return sustituirGlifos(node);
+        if (Array.isArray(node)) {
+            for (let i = 0; i < node.length; i++) node[i] = sanitizeGlyphs(node[i]);
+            return node;
+        }
+        if (typeof node === 'object') {
+            for (const k in node) {
+                if (Object.prototype.hasOwnProperty.call(node, k)) node[k] = sanitizeGlyphs(node[k]);
+            }
+            return node;
+        }
+        return node;
+    }
+
     function sanitizeContentTree(nodes, insideUnbreakable) {
         if (!Array.isArray(nodes)) return;
         nodes.forEach(function (node) {
@@ -207,6 +247,9 @@
 
         // Sanitizar todo el árbol de contenido: pdfMake crashea con undefined en celdas de tabla
         sanitizeContentTree(docDefinition.content);
+        // Sustituir los glifos que la fuente embebida no cubre (saldrían como cuadrito).
+        // Va sobre el clon, nunca sobre el documento original.
+        sanitizeGlyphs(docDefinition.content);
 
         // Generar
         return new Promise((resolve, reject) => {

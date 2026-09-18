@@ -2121,7 +2121,10 @@ class SyncHandler(BaseHTTPRequestHandler):
                 continue
             fpath = os.path.join(folder_path, fname)
             try:
-                with open(fpath, "r", encoding="utf-8") as f:
+                # utf-8-sig, no utf-8: los JSON generados por la suite se guardan con BOM.
+                # Con "utf-8" el BOM queda en el string y json.load falla con
+                # "Unexpected UTF-8 BOM" — el archivo se reportaba como ilegible.
+                with open(fpath, "r", encoding="utf-8-sig") as f:
                     data = json.load(f)
                 doc_type = str(data.get("type", "")).upper()
                 version  = str(data.get("document", {}).get("version", "")) if isinstance(data.get("document"), dict) else ""
@@ -2164,7 +2167,9 @@ class SyncHandler(BaseHTTPRequestHandler):
                 results.append({"filename": fname, "ok": False, "error": "archivo no encontrado"})
                 continue
             try:
-                with open(fpath, "r", encoding="utf-8") as f:
+                # utf-8-sig: ver nota en _api_project_folder_list. Sin esto, importar la
+                # carpeta ai-docs fallaba en TODOS los documentos por el BOM.
+                with open(fpath, "r", encoding="utf-8-sig") as f:
                     json_data = json.load(f)
                 doc_type = str(json_data.get("type", "")).upper()
                 if not doc_type:
