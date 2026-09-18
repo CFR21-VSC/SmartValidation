@@ -543,20 +543,50 @@
 
     function renderTablaFila(fila, cols) {
         const tr = el('tr');
+
+        // ── Filas de agrupación ({subheader}) ────────────────────────────────
+        // Antes caían en la rama de "objeto con keys por columna": ninguna de sus
+        // claves coincide con los nombres de columna, así que se dibujaban como una
+        // fila totalmente vacía y se guardaban como ['','',...] — se perdía el texto
+        // del grupo, no solo su formato. Se dibujan como una celda única editable y
+        // se conserva el objeto original para reemitirlo intacto al serializar.
+        if (fila && typeof fila === 'object' && !Array.isArray(fila) && fila.subheader != null) {
+            tr._rawFila = fila;
+            tr.dataset.filaKind = 'subheader';
+            const td = el('td', {
+                contentEditable: true,
+                text: String(fila.subheader),
+                className: 've-td ve-td-subheader',
+                attrs: { colspan: String(Math.max(cols.length, 1)) }
+            });
+            tr.appendChild(td);
+            tr.appendChild(el('td', { className: 've-td ve-td-actions' }, [makeDelBtn(() => tr.remove())]));
+            return tr;
+        }
+
         let arr;
+        let esObjetoPorColumna = false;
         if (Array.isArray(fila)) {
             arr = fila;
         } else if (fila && typeof fila === 'object') {
             // Objeto con keys por columna
             arr = cols.map(c => fila[c] != null ? fila[c] : '');
+            esObjetoPorColumna = true;
         } else {
             arr = cols.map(() => '');
         }
-        arr.forEach(cell => {
+        tr._rawFila = fila;
+        tr.dataset.filaKind = esObjetoPorColumna ? 'objeto' : 'array';
+        arr.forEach((cell, idx) => {
             const cellText = (cell && typeof cell === 'object')
                 ? (cell.text || cell.contenido || JSON.stringify(cell))
                 : (cell || '');
-            tr.appendChild(el('td', { contentEditable: true, text: cellText, className: 've-td' }));
+            const td = el('td', { contentEditable: true, text: cellText, className: 've-td' });
+            // Celda rica ({text, color, bold, fillColor, …}): se conserva el objeto
+            // original para reescribir SOLO su texto al serializar y no perder el resto.
+            if (cell && typeof cell === 'object') td._rawCell = cell;
+            td.dataset.cellIdx = String(idx);
+            tr.appendChild(td);
         });
         const actions = el('td', { className: 've-td ve-td-actions' }, [makeDelBtn(() => tr.remove())]);
         tr.appendChild(actions);
@@ -1241,13 +1271,45 @@
         });
         const filas = [];
         tbl.querySelectorAll('tbody > tr').forEach(tr => {
-            const cells = [];
+            // Fila de agrupación: se reemite con su forma original ({subheader, …}),
+            // conservando cualquier propiedad extra que traía, y actualizando el texto
+            // si el usuario lo editó. NO se renombra la clave: los renderers actuales
+            // (shared-renderers.js:362) leen `subheader`, cambiarla sería una migración.
+            if (tr.dataset.filaKind === 'subheader') {
+                const td = tr.querySelector('td.ve-td-subheader');
+                const base = (tr._rawFila && typeof tr._rawFila === 'object') ? tr._rawFila : {};
+                filas.push(Object.assign({}, base, { subheader: readEditableMultiline(td) }));
+                return;
+            }
+
+            const celdas = [];
             tr.querySelectorAll('td:not(.ve-td-actions)').forEach(td => {
-                cells.push(readEditableMultiline(td));
+                const texto = readEditableMultiline(td);
+                // Celda rica: se preserva el objeto original y solo se pisa `text`.
+                if (td._rawCell && typeof td._rawCell === 'object') {
+                    celdas.push(Object.assign({}, td._rawCell, { text: texto }));
+                } else {
+                    celdas.push(texto);
+                }
             });
-            filas.push(cells);
+
+            // Fila que venía como objeto {columna: valor}: se reemite como objeto,
+            // no se aplana a array (aplanarla cambia la forma que leen los extractores).
+            if (tr.dataset.filaKind === 'objeto') {
+                const base = (tr._rawFila && typeof tr._rawFila === 'object') ? tr._rawFila : {};
+                const obj = Object.assign({}, base);
+                cols.forEach((c, i) => { if (i < celdas.length) obj[c] = celdas[i]; });
+                filas.push(obj);
+                return;
+            }
+
+            filas.push(celdas);
         });
-        out.columnas = cols;
+        // No inyectar `columnas` si la sección no la tenía (caso noHeader): agregar una
+        // clave ausente ensucia el round-trip aunque el renderer la ignore.
+        if (cols.length > 0 || Object.prototype.hasOwnProperty.call(out, 'columnas')) {
+            out.columnas = cols;
+        }
         out.filas = filas;
     }
 
