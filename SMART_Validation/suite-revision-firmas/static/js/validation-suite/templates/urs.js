@@ -53,8 +53,28 @@
      * Para 'tabla' general, NO siempre wrappeamos porque puede ser la tabla
      * gigante de requerimientos (50+ filas) que NO debe ser unbreakable.
      */
+    /** Celda compuesta: su contenido son varios bloques, no una linea de texto. */
+    function _celdaCompuesta(c) {
+        return c && typeof c === 'object' && !Array.isArray(c) &&
+               (Array.isArray(c.stack) || Array.isArray(c.ul) || Array.isArray(c.ol) || Array.isArray(c.bullets));
+    }
+    function _tieneFilasCompuestas(sec) {
+        return (sec.filas || []).some(function (f) {
+            return Array.isArray(f) ? f.some(_celdaCompuesta)
+                 : (f && typeof f === 'object' && Object.keys(f).some(function (k) { return _celdaCompuesta(f[k]); }));
+        });
+    }
+
     function maybeWrapUnbreakable(sec, titleBlock, tableBlocks) {
         const rowCount = (sec.filas || sec.preguntas || []).length;
+
+        // Contar filas es un mal proxy de la altura: una tabla de UNA fila cuyas celdas
+        // son stacks largos supera la pagina. Envuelta en `unbreakable`, pdfMake la
+        // descarta entera y en silencio — asi desaparecia el "Resumen estadistico" del
+        // URS (1 fila, 3 celdas con stacks). Si hay celdas compuestas, no se envuelve.
+        if (_tieneFilasCompuestas(sec)) {
+            return [...titleBlock, ...tableBlocks];
+        }
 
         // tabla-info siempre wrappear si es chica
         if (TABLE_TYPES.includes(sec.tipo) && rowCount > 0 && rowCount <= 4) {

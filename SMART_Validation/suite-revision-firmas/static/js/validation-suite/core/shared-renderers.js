@@ -395,7 +395,19 @@
         // Los sub-headers actuan como contexto en cada pagina.
         const hasSubheaders = filas.some(f => f && typeof f === 'object' && !Array.isArray(f) && f.subheader);
         const wantsHeader = !sec.noHeader && cols.length > 0;
+
         const headerRows = (wantsHeader && !hasSubheaders) ? 1 : 0;
+
+        // Celda "compuesta": su contenido son varios bloques (stack / ul / ol / bullets),
+        // no una linea de texto. Una fila con celdas asi puede ser mas alta que la pagina.
+        const esCompuesta = function (c) {
+            return c && typeof c === 'object' && !Array.isArray(c) &&
+                   (Array.isArray(c.stack) || Array.isArray(c.ul) || Array.isArray(c.ol) || Array.isArray(c.bullets));
+        };
+        const hayFilaCompuesta = filas.some(function (f) {
+            return Array.isArray(f) ? f.some(esCompuesta)
+                 : (f && typeof f === 'object' && Object.keys(f).some(function (k) { return esCompuesta(f[k]); }));
+        });
 
         // Sanitizar: pdfMake crashea con undefined en cualquier celda
         const safeBody = body.map(function (row) {
@@ -406,15 +418,25 @@
         // celdas colSpan (subheaders) — intenta acceder a posiciones undefined en
         // su lógica interna de medición de filas. Para tablas con subheaders usamos
         // false; los subheaders ya actúan como separadores visuales entre páginas.
-        const dontBreak = !hasSubheaders;
+        // Una fila con celdas compuestas puede superar el alto de pagina; si ademas no
+        // puede partirse, pdfMake trunca su contenido.
+        const dontBreak = !hasSubheaders && !hayFilaCompuesta;
 
+        // keepWithHeaderRows NUNCA se activa. Bug verificado de pdfMake: combinado con una
+        // fila mas alta que la pagina, no emite NADA — ni la tabla, ni el titulo, ni error:
+        // la seccion entera desaparece del PDF en silencio. Es la causa de que el "Resumen
+        // estadistico" del URS no apareciera. Medido sobre esa tabla real:
+        //     headerRows 1 + keepWithHeaderRows 1  ->   1.3 KB   (documento vacio)
+        //     headerRows 1 + keepWithHeaderRows 0  ->   8.6 KB   (renderiza, conserva header)
+        //     ademas dontBreakRows false           ->  23.8 KB   (renderiza completo)
+        // Lo que aporta keepWithHeaderRows (que el header no quede huerfano al pie de una
+        // pagina) no justifica el riesgo de perder una seccion entera sin aviso.
         return [{
             table: {
                 widths: widths,
                 body: safeBody,
                 dontBreakRows: dontBreak,
-                headerRows: headerRows,
-                keepWithHeaderRows: headerRows > 0 ? 1 : 0
+                headerRows: headerRows
             },
             layout: tb.vsTableLayout(),
             margin: [0, 0, 0, 14]
