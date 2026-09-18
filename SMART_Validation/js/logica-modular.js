@@ -83,10 +83,17 @@ function saveImageToDB(id, imageData, { upload = true } = {}) {
 
         const request = store.put({ id, data: imageData });
 
-        request.onsuccess = async () => {
+        request.onsuccess = () => {
             // upload=false cuando la imagen YA viene del servidor (evitar re-upload redundante)
+            // Fire-and-forget: NO se espera la subida al servidor para resolver. Antes este
+            // await hacía que cada captura (paste/drop/cámara) bloqueara el re-render y el
+            // "Paso completado" hasta que terminara el round-trip de red completo — con fotos
+            // de varios MB en una red lenta, eso es la latencia percibida al cargar evidencia.
+            // El guardado local en IndexedDB (arriba) ya garantiza que la imagen no se pierde;
+            // la subida sigue en background y storage-server.js ya está pensado como
+            // "write-through" (ver su comentario de cabecera).
             if (upload && window.VS && window.VS.Storage) {
-                await window.VS.Storage.uploadEvidence(id, imageData).catch(() => {});
+                window.VS.Storage.uploadEvidence(id, imageData).catch(() => {});
             }
             resolve();
         };
@@ -306,19 +313,25 @@ async function _pollTestExecutions() {
         for (const exec of data.executions) {
             const test = tests.find(t => t.id === exec.test_id);
             if (!test) continue;
-            // No pisar edición activa del usuario local
-            if (test.id === activeTestId) continue;
-            if (exec.status !== undefined && test.resultado !== exec.status) {
-                test.resultado = exec.status;
-                changed = true;
-            }
-            if (exec.notes !== undefined && test.conclusion !== exec.notes) {
-                test.conclusion = exec.notes;
-                changed = true;
-            }
-            if (exec.finalized !== undefined) {
-                const fin = !!exec.finalized;
-                if (test.finalized !== fin) { test.finalized = fin; changed = true; }
+            // No pisar campos de TEXTO en edición activa del usuario local (resultado,
+            // observaciones, finalizado). Las evidencias (fotos agregadas/borradas por el
+            // OTRO usuario) sí se sincronizan igual más abajo aunque sea la prueba activa —
+            // si no, dos personas mirando la misma prueba nunca se ven las fotos entre sí
+            // hasta que una de las dos cierra y reabre la prueba.
+            const isActiveTest = test.id === activeTestId;
+            if (!isActiveTest) {
+                if (exec.status !== undefined && test.resultado !== exec.status) {
+                    test.resultado = exec.status;
+                    changed = true;
+                }
+                if (exec.notes !== undefined && test.conclusion !== exec.notes) {
+                    test.conclusion = exec.notes;
+                    changed = true;
+                }
+                if (exec.finalized !== undefined) {
+                    const fin = !!exec.finalized;
+                    if (test.finalized !== fin) { test.finalized = fin; changed = true; }
+                }
             }
             // Decodificar metadata de evidencias desde observations (enviado por _syncTestExecution)
             let remoteEvidenceMeta = null;
@@ -698,8 +711,13 @@ document.addEventListener('DOMContentLoaded', async function () {
     _pollTestExecutions();
     setInterval(_pollTestExecutions, 5000);
 
-    // Cross-browser sync: detectar proyectos en el servidor que este browser no tiene activos
-    setTimeout(async () => {
+    // Cross-browser sync: detectar proyectos en el servidor que este browser no tiene activos,
+    // o cambios estructurales (nombres de prueba, carpetas, altas/bajas) del MISMO proyecto
+    // subidos por otro usuario. Antes esto corría UNA SOLA VEZ, 2s después de cargar la
+    // página — si las dos cuentas ya tenían la pestaña abierta cuando una editaba un nombre
+    // o carpeta, la otra nunca se enteraba sin recargar. Ahora se repite cada 15s (además del
+    // primer chequeo a los 2s) para que la colaboración funcione con ambas pestañas abiertas.
+    async function _checkServerProjectUpdates() {
         try {
             if (!window.ValidationSuite || !window.ValidationSuite.projects || !window.VS || !window.VS.Storage) return;
             const localId = window.ValidationSuite.projects.getActiveId();
@@ -747,7 +765,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }
                 return;
             }
-            // Mostrar banner persistente
+            // Mostrar banner persistente (idempotente: sin esto, al pasar a chequeo periódico
+            // se apilaría un banner nuevo en cada tick mientras la condición siga siendo cierta)
+            if (document.getElementById('_serverSyncBanner')) return;
             const banner = document.createElement('div');
             banner.id = '_serverSyncBanner';
             banner.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1A3550;color:#fff;padding:12px 20px;border-radius:8px;display:flex;align-items:center;gap:14px;z-index:99990;box-shadow:0 4px 16px rgba(0,0,0,.35);font-size:13px;max-width:92vw;';
@@ -771,7 +791,9 @@ document.addEventListener('DOMContentLoaded', async function () {
         } catch (e) {
             console.warn('[cross-browser sync]', e);
         }
-    }, 2000);
+    }
+    setTimeout(_checkServerProjectUpdates, 2000);
+    setInterval(_checkServerProjectUpdates, 15000);
 
     // Forzar sync al servidor cuando el usuario oculta la tab (cambia de navegador/pestaña)
     document.addEventListener('visibilitychange', () => {
