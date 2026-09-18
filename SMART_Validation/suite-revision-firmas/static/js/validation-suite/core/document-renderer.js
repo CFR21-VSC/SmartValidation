@@ -128,7 +128,18 @@
         // 4. Contenido específico del tipo de documento
         const specific = renderer(data) || [];
 
-        const content = [...cover, ...controlAndAppr, ...trazabilidadBlock, ...specific];
+        // Clon profundo: los renderers de sección devuelven a menudo referencias directas
+        // a objetos guardados dentro de `data` (el documento editable en memoria, p.ej. el
+        // JSON detrás de "Vista documento"). pdfMake MUTA los nodos que recibe durante el
+        // layout — les agrega _margin, positions, pageBreakCalculated, startPosition, etc.
+        // (ver el comentario más abajo sobre por qué getBlob() se llama una sola vez, por
+        // la misma razón) — y sanitizeContentTree() de acá abajo también modifica en el
+        // lugar. Sin clonar antes de eso, cada preview o descarga iba dejando esa "basura"
+        // interna de pdfMake pegada al documento que se sigue editando, y si se guardaba
+        // así quedaba persistida (se veía como JSON crudo en vez del texto/tabla real).
+        const content = JSON.parse(JSON.stringify(
+            [...cover, ...controlAndAppr, ...trazabilidadBlock, ...specific]
+        ));
 
         // Obtener estado workflow del doc para watermark
         // 'none' = sin watermark cuando no hay proyecto ni estado explícito
