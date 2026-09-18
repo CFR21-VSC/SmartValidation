@@ -50,32 +50,78 @@
      *
      * Uso medido en el corpus real: → 223 veces, ↔ 21, ✓ 1.
      */
+    /**
+     * Solo se sustituye cuando el reemplazo conserva EXACTAMENTE el significado.
+     * Las dos flechas se usan como relacion de cascada ("URS → FRS → DS") y como
+     * trazabilidad bidireccional ("URS ↔ FRS"); `->` y `<->` son su escritura ASCII
+     * habitual y no introducen otro simbolo.
+     *
+     * NO se sustituye U+2713 (✓): no tiene equivalente ASCII que signifique lo mismo.
+     * Cambiarlo por √ (raiz cuadrada) o por » seria alterar el contenido. Queda
+     * declarado en PENDIENTES_SIN_EQUIVALENTE para que el test lo reporte en vez de
+     * ocultarlo; se resuelve embebiendo una fuente con cobertura, no sustituyendo.
+     */
     const GLIFOS_SIN_COBERTURA = {
-        '→': '»',      // →  flecha derecha   → »
-        '↔': '«»',// ↔  flecha doble     → «»
-        '✓': '√'       // ✓  check            → √
+        '→': '->',      // → flecha derecha
+        '↔': '<->'      // ↔ flecha doble
     };
-    const _RE_GLIFOS = /[→↔✓]/g;
+    const PENDIENTES_SIN_EQUIVALENTE = ['✓'];
+    const _RE_GLIFOS = /[→↔]/g;
 
     function sustituirGlifos(s) {
         return s.replace(_RE_GLIFOS, function (c) { return GLIFOS_SIN_COBERTURA[c] || c; });
     }
 
-    /** Recorre todo el árbol y sustituye los glifos sin cobertura en cualquier texto. */
+    /**
+     * Sustituye glifos SOLO en texto visible. Antes recorria todas las propiedades
+     * string del arbol, lo que podia alterar destinos `link`, identificadores o
+     * referencias que contuvieran esos caracteres. Ahora solo entra a:
+     *   - el valor de una propiedad `text` (string, o array/objeto de runs)
+     *   - strings sueltos dentro de ul / ol / stack / columns / table.body,
+     *     que es donde pdfMake los interpreta como texto
+     */
     function sanitizeGlyphs(node) {
-        if (node == null) return node;
-        if (typeof node === 'string') return sustituirGlifos(node);
+        if (node == null || typeof node !== 'object') return node;
+
         if (Array.isArray(node)) {
             for (let i = 0; i < node.length; i++) node[i] = sanitizeGlyphs(node[i]);
             return node;
         }
-        if (typeof node === 'object') {
-            for (const k in node) {
-                if (Object.prototype.hasOwnProperty.call(node, k)) node[k] = sanitizeGlyphs(node[k]);
-            }
-            return node;
+
+        if (typeof node.text === 'string') {
+            node.text = sustituirGlifos(node.text);
+        } else if (node.text != null && typeof node.text === 'object') {
+            node.text = _glifosEnTexto(node.text);
+        }
+
+        ['stack', 'ul', 'ol', 'columns'].forEach(function (k) {
+            if (Array.isArray(node[k])) node[k] = _glifosEnContenedor(node[k]);
+        });
+        if (node.table && Array.isArray(node.table.body)) {
+            node.table.body = node.table.body.map(function (fila) {
+                return Array.isArray(fila) ? _glifosEnContenedor(fila) : fila;
+            });
         }
         return node;
+    }
+
+    /** Un contenedor de contenido: sus strings sueltos SI son texto visible. */
+    function _glifosEnContenedor(arr) {
+        return arr.map(function (n) {
+            if (typeof n === 'string') return sustituirGlifos(n);
+            return sanitizeGlyphs(n);
+        });
+    }
+
+    /** `text` puede ser un array de runs, o un objeto run anidado. */
+    function _glifosEnTexto(t) {
+        if (typeof t === 'string') return sustituirGlifos(t);
+        if (Array.isArray(t)) return t.map(_glifosEnTexto);
+        if (t && typeof t === 'object') {
+            if (t.text != null) t.text = _glifosEnTexto(t.text);
+            return t;
+        }
+        return t;
     }
 
     function sanitizeContentTree(nodes, insideUnbreakable) {
