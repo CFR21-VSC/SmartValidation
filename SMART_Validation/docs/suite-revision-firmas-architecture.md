@@ -102,8 +102,8 @@ Acceso al sistema.
 
 ## 4. Revisión de documentos — la vista
 
-Referencia visual: captura de la Suite Documental, documento HLRA-EMQC-001 (ver conversación
-2026-08-29). Layout de 3 columnas:
+Referencia visual: captura de la Suite Documental, documento HLRA de un proyecto de ejemplo (ver
+conversación 2026-08-29). Layout de 3 columnas:
 
 - **Sidebar "Estructura"** — outline navegable: Metadata, Control & Aprobaciones, Secciones (19).
 - **Panel central** — contenido del documento en modo lectura tipo Word.

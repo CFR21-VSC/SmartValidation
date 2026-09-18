@@ -73,7 +73,7 @@
             <button class="rf-btn-secondary" id="new-project-btn" style="display:none; padding:4px 10px; font-size:11px;">+ Nuevo</button>
         </div>
         <div class="rf-field" id="new-project-form" style="display:none;">
-            <input class="rf-input" id="new-project-input" placeholder="Código de proyecto (ej: EMQC-001)" style="font-size:12px; padding:7px 10px;">
+            <input class="rf-input" id="new-project-input" placeholder="Código de proyecto (ej: PROY-001)" style="font-size:12px; padding:7px 10px;">
             <div style="display:flex; gap:6px; margin-top:6px;">
                 <button class="rf-btn" id="new-project-confirm" style="flex:1; padding:6px; font-size:12px;">Crear</button>
                 <button class="rf-btn-secondary" id="new-project-cancel" style="padding:6px 10px; font-size:12px;">Cancelar</button>
@@ -1229,6 +1229,7 @@ const ENGINE_SCRIPTS = [
     'js/validation-suite/templates/evra.js',
     'js/validation-suite/templates/evprot.js',
     'js/validation-suite/templates/evir.js',
+        'js/validation-suite/templates/release-report.js',
 ];
 function loadScript(src) {
     return new Promise((resolve, reject) => {

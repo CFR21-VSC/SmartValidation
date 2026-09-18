@@ -1417,9 +1417,9 @@
         title.style.cssText = 'font-size:15px;font-weight:700;color:#e8ecf3;';
         title.textContent = '＋ Nuevo proyecto de validación';
 
-        var inpName   = input('Nombre del proyecto (ej: Validación emqc® — EMQC-001)');
-        var inpSys    = input('Sistema a validar (ej: emqc®)');
-        var inpFolder = input('Carpeta base en disco (ej: C:\\Users\\fjbon\\OneDrive\\Escritorio\\EMQC_Emara)');
+        var inpName   = input('Nombre del proyecto (ej: Validación Sistema X — PROY-001)');
+        var inpSys    = input('Sistema a validar (ej: Sistema X)');
+        var inpFolder = input('Carpeta base en disco (ej: C:\\Users\\fjbon\\OneDrive\\Escritorio\\Proyectos)');
 
         var hint = document.createElement('div');
         hint.style.cssText = 'font-size:11px;color:#3a6a8a;background:#091522;border-radius:5px;padding:8px 10px;line-height:1.6;';
@@ -1587,7 +1587,7 @@
         var input = document.createElement('input');
         input.type = 'text';
         input.value = currentPath;
-        input.placeholder = 'C:\\Users\\fjbon\\OneDrive\\Escritorio\\EMQC_Emara\\Proyecto demo 1 - Emara\\ai-docs';
+        input.placeholder = 'C:\\Users\\fjbon\\OneDrive\\Escritorio\\Proyectos\\Proyecto demo 1\\ai-docs';
         input.style.cssText = 'background:#0a1525;color:#c8d8f0;border:1px solid #2a4060;border-radius:6px;padding:9px 12px;font-size:12px;font-family:monospace;width:100%;box-sizing:border-box;outline:none;';
 
         var errMsg = document.createElement('div');

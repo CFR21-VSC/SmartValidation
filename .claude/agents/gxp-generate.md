@@ -1,5 +1,5 @@
 ---
-description: Genera un documento GxP (URS, FRS, RA, POQ, IOQ, MTR, etc.) con coherencia perfecta. Obtiene automáticamente el Context Pack del servidor antes de generar para garantizar que los IDs sean secuenciales y las referencias sean válidas. Invocar con: /gxp-generate [tipo] [project_id]. Ejemplo: /gxp-generate IOQ emqc-001-abc123
+description: Genera un documento GxP (URS, FRS, RA, POQ, IOQ, MTR, etc.) con coherencia perfecta. Obtiene automáticamente el Context Pack del servidor antes de generar para garantizar que los IDs sean secuenciales y las referencias sean válidas. Invocar con: /gxp-generate [tipo] [project_id]. Ejemplo: /gxp-generate IOQ proyecto-001-abc123
 tools:
   - Bash
   - Read

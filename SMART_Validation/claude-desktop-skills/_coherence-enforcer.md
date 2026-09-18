@@ -40,7 +40,7 @@ POST http://localhost:8765/coherence-pack
 Content-Type: application/json
 
 {
-  "projectId": "EMQC-001",
+  "projectId": "PROY-001",
   "documents": { /* los docs del paso 0.1 */ },
   "generatingFor": "IOQ"   ← tipo de doc que vas a generar
 }
@@ -195,7 +195,7 @@ POST http://localhost:8765/analyze
 Content-Type: application/json
 
 {
-  "projectId": "EMQC-001",
+  "projectId": "PROY-001",
   "documents": { /* todos los docs incluyendo el recién importado */ }
 }
 ```
