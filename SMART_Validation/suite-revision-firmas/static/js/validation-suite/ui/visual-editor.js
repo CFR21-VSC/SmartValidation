@@ -541,6 +541,16 @@
         }));
     }
 
+    /** Vista legible de una celda estructurada, sin JSON crudo en pantalla. */
+    function _previewCeldaOpaca(cell) {
+        if (Array.isArray(cell.bullets)) return cell.bullets.map(b => '• ' + String(b)).join('\n');
+        if (Array.isArray(cell.stack)) {
+            return cell.stack.map(n => (n && typeof n === 'object' ? (n.text != null ? String(n.text) : '') : String(n || ''))).filter(Boolean).join('\n');
+        }
+        if (Array.isArray(cell.ul)) return cell.ul.map(b => '• ' + String(b)).join('\n');
+        return '[contenido estructurado]';
+    }
+
     function renderTablaFila(fila, cols) {
         const tr = el('tr');
 
@@ -578,13 +588,24 @@
         tr._rawFila = fila;
         tr.dataset.filaKind = esObjetoPorColumna ? 'objeto' : 'array';
         arr.forEach((cell, idx) => {
-            const cellText = (cell && typeof cell === 'object')
-                ? (cell.text || cell.contenido || JSON.stringify(cell))
-                : (cell || '');
-            const td = el('td', { contentEditable: true, text: cellText, className: 've-td' });
+            const esObj = cell && typeof cell === 'object';
+            // Celda "opaca": objeto SIN `text` ({bullets:[…]}, {stack:[…]}). No tiene una
+            // representación de texto editable. Antes caía en JSON.stringify(cell), se
+            // dibujaba como JSON crudo y al guardar quedaba convertida en ese string para
+            // siempre — hay documentos reales ya dañados así. Ahora se muestra legible, no
+            // se deja editar, y el objeto se preserva intacto.
+            const esOpaca = esObj && cell.text == null && cell.contenido == null;
+            let td;
+            if (esOpaca) {
+                td = el('td', { className: 've-td ve-td-opaca', text: _previewCeldaOpaca(cell) });
+                td.setAttribute('title', 'Contenido estructurado: se conserva tal cual, no se edita desde acá');
+            } else {
+                const cellText = esObj ? (cell.text || cell.contenido || '') : (cell || '');
+                td = el('td', { contentEditable: true, text: cellText, className: 've-td' });
+            }
             // Celda rica ({text, color, bold, fillColor, …}): se conserva el objeto
             // original para reescribir SOLO su texto al serializar y no perder el resto.
-            if (cell && typeof cell === 'object') td._rawCell = cell;
+            if (esObj) td._rawCell = cell;
             td.dataset.cellIdx = String(idx);
             tr.appendChild(td);
         });
@@ -1284,13 +1305,16 @@
 
             const celdas = [];
             tr.querySelectorAll('td:not(.ve-td-actions)').forEach(td => {
-                const texto = readEditableMultiline(td);
-                // Celda rica: se preserva el objeto original y solo se pisa `text`.
-                if (td._rawCell && typeof td._rawCell === 'object') {
-                    celdas.push(Object.assign({}, td._rawCell, { text: texto }));
-                } else {
-                    celdas.push(texto);
+                const raw = td._rawCell;
+                if (raw && typeof raw === 'object') {
+                    // Celda opaca (sin `text`): se devuelve intacta. Escribirle un `text`
+                    // con su propio JSON la corrompería igual que el bug original.
+                    if (raw.text == null && raw.contenido == null) { celdas.push(raw); return; }
+                    // Celda rica: se preserva el objeto y solo se pisa su texto.
+                    celdas.push(Object.assign({}, raw, { text: readEditableMultiline(td) }));
+                    return;
                 }
+                celdas.push(readEditableMultiline(td));
             });
 
             // Fila que venía como objeto {columna: valor}: se reemite como objeto,
