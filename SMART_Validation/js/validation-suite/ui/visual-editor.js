@@ -534,11 +534,40 @@
             // Agregar columna: nueva th + td vacía en cada fila
             const newTh = el('th', { contentEditable: true, text: '', placeholder: 'columna', className: 've-th' });
             headRow.insertBefore(newTh, headRow.lastChild);
+            const nCols = headRow.querySelectorAll('th:not(.ve-th-actions)').length;
             Array.from(tbody.children).forEach(tr => {
+                // Fila de agrupación: ocupa todo el ancho con una sola celda. Hay que
+                // ampliar su colspan, NO agregarle una celda de datos — si se le agrega,
+                // el serializador la ignora y lo que se escriba ahí se pierde.
+                if (tr.dataset.filaKind === 'subheader') {
+                    const tdSub = tr.querySelector('td.ve-td-subheader');
+                    if (tdSub) tdSub.setAttribute('colspan', String(Math.max(nCols, 1)));
+                    return;
+                }
                 const newTd = el('td', { contentEditable: true, text: '', className: 've-td' });
+                newTd.dataset.cellKind = 'primitivo';
                 tr.insertBefore(newTd, tr.lastChild);
             });
         }));
+    }
+
+    /**
+     * Clasifica una celda para decidir cómo se edita y cómo se reemite.
+     *   primitivo : string / número / booleano / null → editable como texto
+     *   text      : {text:"…", …}  → se edita `text`, el resto se preserva
+     *   contenido : {contenido:"…"} → se edita `contenido` (NO se le inventa un `text`)
+     *   opaca     : cualquier otra forma → solo lectura, se preserva intacta
+     */
+    function _claseDeCelda(cell) {
+        if (cell === null || cell === undefined) return { kind: 'primitivo', texto: '' };
+        if (Array.isArray(cell)) return { kind: 'opaca', texto: '' };
+        if (typeof cell === 'object') {
+            if (typeof cell.text === 'string') return { kind: 'text', texto: cell.text };
+            if (typeof cell.contenido === 'string') return { kind: 'contenido', texto: cell.contenido };
+            return { kind: 'opaca', texto: '' };
+        }
+        // string, number, boolean — String(0) y String(false) no deben volverse ''
+        return { kind: 'primitivo', texto: String(cell) };
     }
 
     /** Vista legible de una celda estructurada, sin JSON crudo en pantalla. */
@@ -588,24 +617,21 @@
         tr._rawFila = fila;
         tr.dataset.filaKind = esObjetoPorColumna ? 'objeto' : 'array';
         arr.forEach((cell, idx) => {
-            const esObj = cell && typeof cell === 'object';
-            // Celda "opaca": objeto SIN `text` ({bullets:[…]}, {stack:[…]}). No tiene una
-            // representación de texto editable. Antes caía en JSON.stringify(cell), se
-            // dibujaba como JSON crudo y al guardar quedaba convertida en ese string para
-            // siempre — hay documentos reales ya dañados así. Ahora se muestra legible, no
-            // se deja editar, y el objeto se preserva intacto.
-            const esOpaca = esObj && cell.text == null && cell.contenido == null;
+            const clase = _claseDeCelda(cell);
             let td;
-            if (esOpaca) {
+            if (clase.kind === 'opaca') {
+                // Objeto sin representación de texto editable ({bullets:[…]}, {stack:[…]},
+                // {text:[…]} de rich text). Antes caía en JSON.stringify(cell): se dibujaba
+                // como JSON crudo y al guardar quedaba convertido en ese string PARA SIEMPRE
+                // — hay documentos reales dañados así. Se muestra legible, no se edita, y el
+                // valor original se preserva intacto.
                 td = el('td', { className: 've-td ve-td-opaca', text: _previewCeldaOpaca(cell) });
                 td.setAttribute('title', 'Contenido estructurado: se conserva tal cual, no se edita desde acá');
             } else {
-                const cellText = esObj ? (cell.text || cell.contenido || '') : (cell || '');
-                td = el('td', { contentEditable: true, text: cellText, className: 've-td' });
+                td = el('td', { contentEditable: true, text: clase.texto, className: 've-td' });
             }
-            // Celda rica ({text, color, bold, fillColor, …}): se conserva el objeto
-            // original para reescribir SOLO su texto al serializar y no perder el resto.
-            if (esObj) td._rawCell = cell;
+            td._rawCell = cell;            // siempre, incluso primitivos (0 / false)
+            td.dataset.cellKind = clase.kind;
             td.dataset.cellIdx = String(idx);
             tr.appendChild(td);
         });
@@ -1306,15 +1332,23 @@
             const celdas = [];
             tr.querySelectorAll('td:not(.ve-td-actions)').forEach(td => {
                 const raw = td._rawCell;
-                if (raw && typeof raw === 'object') {
-                    // Celda opaca (sin `text`): se devuelve intacta. Escribirle un `text`
-                    // con su propio JSON la corrompería igual que el bug original.
-                    if (raw.text == null && raw.contenido == null) { celdas.push(raw); return; }
-                    // Celda rica: se preserva el objeto y solo se pisa su texto.
-                    celdas.push(Object.assign({}, raw, { text: readEditableMultiline(td) }));
-                    return;
+                const kind = td.dataset.cellKind;
+
+                // Opaca: se devuelve intacta. Fabricarle un `text` con su propio JSON la
+                // corrompería igual que el bug original.
+                if (kind === 'opaca') { celdas.push(raw); return; }
+
+                const texto = readEditableMultiline(td);
+                if (kind === 'text')      { celdas.push(Object.assign({}, raw, { text: texto })); return; }
+                if (kind === 'contenido') { celdas.push(Object.assign({}, raw, { contenido: texto })); return; }
+
+                // Primitivo no-string (0, false): si el usuario no lo tocó, se devuelve con
+                // su tipo original en vez de convertirlo en string (o peor, en '').
+                if (raw !== null && raw !== undefined && typeof raw !== 'string' && typeof raw !== 'object') {
+                    if (texto === String(raw)) { celdas.push(raw); return; }
                 }
-                celdas.push(readEditableMultiline(td));
+                if (raw === null && texto === '') { celdas.push(null); return; }
+                celdas.push(texto);
             });
 
             // Fila que venía como objeto {columna: valor}: se reemite como objeto,
