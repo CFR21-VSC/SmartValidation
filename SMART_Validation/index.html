@@ -1344,6 +1344,22 @@
                             <input type="text" id="epVersion" class="modal-themed-input">
                         </div>
                     </div>
+                    <div style="grid-column:1/-1;margin-top:18px;padding-top:16px;border-top:1px solid #E0E5EA;">
+                        <label class="wiz-label" style="margin-bottom:6px;">
+                            Logo del Cliente / Sponsor en los PDF <span style="color:#7A8592;font-size:10px;font-weight:400;">(opcional)</span>
+                        </label>
+                        <div style="font-size:11px;color:#7A8592;margin-bottom:10px;">
+                            Si cargás un logo acá, "<span id="epPartnerNamePreview">Cliente / Sponsor</span>" (el campo de
+                            arriba) va a aparecer junto al logo de DRP Assurance en portada, header y pie de TODOS los
+                            PDF del proyecto. Sin logo cargado, los documentos siguen mostrando solo DRP Assurance,
+                            aunque el campo Cliente/Sponsor esté completado.
+                        </div>
+                        <input type="file" id="epPartnerLogoFile" accept="image/png,image/jpeg,image/svg+xml" class="modal-themed-input">
+                        <div id="epPartnerLogoPreview" style="margin-top:8px;display:none;">
+                            <img id="epPartnerLogoImg" style="max-height:40px;max-width:160px;" alt="Logo cliente/partner">
+                            <button type="button" onclick="epRemovePartnerLogo()" class="modal-themed-btn-secondary" style="padding:2px 8px;font-size:11px;margin-left:8px;">Quitar</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div style="display:flex;gap:10px;justify-content:flex-end;padding:14px 22px;background:#F4F6F8;border-top:1px solid #C8D2DC;flex-shrink:0;">

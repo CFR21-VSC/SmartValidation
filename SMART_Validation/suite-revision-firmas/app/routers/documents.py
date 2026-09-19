@@ -222,7 +222,11 @@ def get_document(project_id: str, doc_type: str, user: dict = Depends(get_curren
         (doc["id"],),
     ).fetchall()
     doc["json_data"] = json.loads(doc["json_data"])
-    return {"ok": True, "document": doc, "comments": [dict(c) for c in comments]}
+    proj = db.execute(
+        "SELECT partner_name, partner_logo FROM rf_projects WHERE id=?", (project_id,)
+    ).fetchone()
+    branding = {"name": proj["partner_name"], "logo": proj["partner_logo"]} if proj and proj["partner_name"] else None
+    return {"ok": True, "document": doc, "comments": [dict(c) for c in comments], "partner_branding": branding}
 
 
 @router.get("/{doc_type}/signed-render")
@@ -258,6 +262,14 @@ def get_signed_render(
             })
 
     data = inject_signatures_section(data, firmas)
+    proj = db.execute(
+        "SELECT partner_name, partner_logo FROM rf_projects WHERE id=?", (project_id,)
+    ).fetchone()
+    if proj and proj["partner_name"]:
+        # Solo en esta proyección de render -- nunca se guarda, `data` acá es lo que ya
+        # devuelve inject_signatures_section (firmas incluidas "as of now"), no el documento
+        # editable. template-base.js lee este campo para dibujar el segundo logo/nombre.
+        data["_partnerBranding"] = {"name": proj["partner_name"], "logo": proj["partner_logo"]}
     return {"ok": True, "data": data}
 
 

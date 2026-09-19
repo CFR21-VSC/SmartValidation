@@ -2433,6 +2433,8 @@ async function exportarAex() {
         const fileName = 'AEX-' + sysCode + '-' + new Date().toISOString().split('T')[0] + '.pdf';
 
         showNotification('Generando AEX vía Validation Suite...');
+        aexJson._partnerBranding = typeof VS.fetchPartnerBranding === 'function'
+            ? await VS.fetchPartnerBranding() : null;
         await VS.renderDocument(aexJson, { download: true, fileName: fileName });
         showNotification('AEX generado: ' + fileName);
     } catch (e) {

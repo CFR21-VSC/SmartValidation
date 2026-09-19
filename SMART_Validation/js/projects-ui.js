@@ -477,7 +477,51 @@
 
     // ── Editar proyecto activo ────────────────────────────────────────
 
-    function openEditProject() {
+    // Logo del Cliente/Sponsor en los PDF: el NOMBRE ya existe (epCliente, projects.cliente
+    // -- no hay un campo "partner" separado, ver _api_project_set_branding). Solo el logo es
+    // nuevo. Vive en el servidor (projects.partner_logo), no en el snapshot local -- Firmas
+    // lo necesita también y no tiene acceso al IndexedDB del browser. `undefined` en
+    // _epPartnerLogoBase64 = "todavía no se tocó nada en este modal, mandar lo que ya había";
+    // string vacío/null = "se sacó el logo".
+    let _epPartnerLogoBase64 = undefined;
+
+    function epRemovePartnerLogo() {
+        _epPartnerLogoBase64 = null;
+        document.getElementById('epPartnerLogoPreview').style.display = 'none';
+        document.getElementById('epPartnerLogoFile').value = '';
+    }
+    global.epRemovePartnerLogo = epRemovePartnerLogo;
+
+    function _updatePartnerNamePreview() {
+        const val = document.getElementById('epCliente').value.trim();
+        document.getElementById('epPartnerNamePreview').textContent = val || 'Cliente / Sponsor';
+    }
+
+    function _wirePartnerLogoInput() {
+        const fileInput = document.getElementById('epPartnerLogoFile');
+        const clienteInput = document.getElementById('epCliente');
+        if (fileInput && !fileInput.dataset.wired) {
+            fileInput.dataset.wired = '1';
+            fileInput.addEventListener('change', function () {
+                const file = fileInput.files && fileInput.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    _epPartnerLogoBase64 = e.target.result;
+                    const img = document.getElementById('epPartnerLogoImg');
+                    img.src = _epPartnerLogoBase64;
+                    document.getElementById('epPartnerLogoPreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+        if (clienteInput && !clienteInput.dataset.wiredPreview) {
+            clienteInput.dataset.wiredPreview = '1';
+            clienteInput.addEventListener('input', _updatePartnerNamePreview);
+        }
+    }
+
+    async function openEditProject() {
         const modal = document.getElementById('modalEditProject');
         if (!modal) return;
         const snap     = JSON.parse(localStorage.getItem('vscTestsData_v3') || '{}');
@@ -493,6 +537,34 @@
         document.getElementById('epEmpresa').value     = si.empresa        || '';
         document.getElementById('epProveedor').value   = si.proveedor      || '';
         document.getElementById('epVersion').value     = si.versionSistema || '';
+
+        _wirePartnerLogoInput();
+        _updatePartnerNamePreview();
+        _epPartnerLogoBase64 = undefined;
+        document.getElementById('epPartnerLogoFile').value = '';
+        document.getElementById('epPartnerLogoPreview').style.display = 'none';
+        const activeId = VS.projects.getActiveId ? VS.projects.getActiveId() : null;
+        if (activeId) {
+            try {
+                const resp = await fetch(`/api/projects/${encodeURIComponent(activeId)}`, { credentials: 'include' });
+                const data = await resp.json();
+                if (data && data.ok && data.project) {
+                    // OJO: el nombre (epCliente) NO se pisa acá con lo que devuelva el
+                    // servidor -- se deja el valor local (localStorage), que es lo que ya
+                    // mostraba este modal antes de este cambio. Mezclar "fuente local para
+                    // mostrar" con "fuente servidor para guardar" en el mismo campo es
+                    // exactamente la ambigüedad de dominancia que hay que evitar; el logo en
+                    // cambio no tiene equivalente local, ahí no hay con qué chocar.
+                    // Arranca en el valor ya guardado (no undefined): si el usuario no toca
+                    // el input de logo, el guardado reenvía este mismo valor sin pisarlo.
+                    _epPartnerLogoBase64 = data.project.partner_logo || null;
+                    if (data.project.partner_logo) {
+                        document.getElementById('epPartnerLogoImg').src = data.project.partner_logo;
+                        document.getElementById('epPartnerLogoPreview').style.display = 'block';
+                    }
+                }
+            } catch (e) { console.warn('[editProject] no se pudo leer el logo del cliente:', e); }
+        }
 
         modal.style.display = 'flex';
     }
@@ -519,14 +591,32 @@
 
         // Actualizar nombre del proyecto en IndexedDB
         const newName = document.getElementById('epName').value.trim();
+        const activeId = VS.projects.getActiveId ? VS.projects.getActiveId() : null;
         try {
             await VS.projects.saveCurrentToActive();
-            const activeId = VS.projects.getActiveId();
             if (activeId && newName) {
                 const entry = await VS.projects.get(activeId);
                 if (entry) { entry.name = newName; await VS.projects._dbPut && VS.projects._dbPut(entry); }
             }
         } catch (e) { console.warn('[editProject] saveCurrentToActive falló:', e); }
+
+        // Empuja `cliente` + el logo al servidor de inmediato (antes solo llegaba con "Subir
+        // al servidor") -- es la fuente que usan el render de PDF y Firmas. No hay campo
+        // "partner" separado: es el mismo Cliente/Sponsor de arriba, con logo opcional.
+        if (activeId) {
+            const cliente = si.cliente; // ya trimeado arriba
+            try {
+                const body = { cliente: cliente };
+                if (_epPartnerLogoBase64 !== undefined) body.partner_logo = _epPartnerLogoBase64 || '';
+                const resp = await fetch(`/api/projects/${encodeURIComponent(activeId)}/branding`, {
+                    method: 'POST', credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                const data = await resp.json();
+                if (!data.ok) console.warn('[editProject] no se pudo guardar cliente/logo:', data.error);
+            } catch (e) { console.warn('[editProject] error guardando cliente/logo:', e); }
+        }
 
         closeEditProject();
         if (typeof refreshActiveProjectChip === 'function') setTimeout(refreshActiveProjectChip, 100);

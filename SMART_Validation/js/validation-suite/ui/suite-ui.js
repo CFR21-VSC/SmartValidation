@@ -1836,8 +1836,11 @@
         const startTime = Date.now();
 
         try {
-            // Renderear sin descargar (queremos el blob para el iframe)
-            const blob = await VS.renderDocument(lastValidJSON, { download: false });
+            // Renderear sin descargar (queremos el blob para el iframe). Copia superficial
+            // para no pisar lastValidJSON (el JSON en edición) con el campo de marca.
+            const previewData = Object.assign({}, lastValidJSON);
+            previewData._partnerBranding = await VS.fetchPartnerBranding();
+            const blob = await VS.renderDocument(previewData, { download: false });
 
             // Limpiar URL anterior si existe
             if (lastBlobUrl) {
@@ -1906,6 +1909,7 @@
                     }
                 }
             } catch (_) {}
+            renderData._partnerBranding = await VS.fetchPartnerBranding();
             await VS.renderDocument(renderData, { download: true });
         } catch (err) {
             console.error('Error descargando PDF:', err);
@@ -1936,7 +1940,7 @@
         const ok = [];
         const fail = [];
 
-        // Pre-cargar People Book una sola vez para inyectar firmas en todos los docs
+        // Pre-cargar People Book y marca de partner una sola vez para todos los docs
         let _pbEntries = [];
         try {
             const projId = VS.projects && VS.projects.getActiveId ? VS.projects.getActiveId() : null;
@@ -1945,6 +1949,7 @@
                 if (pb?.ok) _pbEntries = pb.entries || [];
             }
         } catch (_) {}
+        const _partnerBranding = await VS.fetchPartnerBranding();
 
         for (let i = 0; i < docs.length; i++) {
             const doc = docs[i];
@@ -1961,6 +1966,7 @@
                     );
                     if (approvalSigners.length) renderData._sealedSigners = approvalSigners;
                 }
+                renderData._partnerBranding = _partnerBranding;
                 await VS.renderDocument(renderData, { download: true });
                 ok.push(doc.code || doc.type);
             } catch (err) {

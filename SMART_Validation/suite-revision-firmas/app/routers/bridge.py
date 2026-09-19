@@ -7,20 +7,60 @@ este servicio nunca llama de vuelta. Reusa la misma lógica interna que ya usan 
 endpoints de usuario (_upsert_document, _list_comments en documents.py) para no duplicar
 validaciones -- documento sellado, proyecto activo, etc. quedan cubiertas igual acá.
 """
+import time
 from typing import Any
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
+from ..audit import log_system_event
 from ..db import get_db
 from ..deps import require_service_token
 from .documents import _list_comments, _upsert_document
+from .projects import ensure_project
 
 router = APIRouter(prefix="/bridge/projects/{project_id}/documents", tags=["bridge"])
+
+# Sin /documents en el prefijo -- acciones a nivel proyecto, no documento.
+project_router = APIRouter(prefix="/bridge/projects", tags=["bridge"])
+
+
+class EnsureProjectBody(BaseModel):
+    display_name: str | None = None  # nombre legible inicial, solo si el proyecto es nuevo acá
+
+
+@project_router.put("/{project_id}")
+def ensure_project_endpoint(
+    project_id: str, body: EnsureProjectBody, actor: dict = Depends(require_service_token),
+):
+    """Crea la fila del proyecto en Firmas sin necesidad de empujar un documento todavía --
+    para que un proyecto recién creado en la Suite Documental quede vinculado acá desde el
+    principio, no recién cuando llega el primer documento (sección pedida por el usuario
+    2026-09-19). No reemplaza la carga manual de un documento en Firmas bajo cualquier
+    project_id (eso sigue sin requerir que el proyecto exista de antes -- uso real para demos
+    sueltas, confirmado con el usuario): esto es solo el camino AUTOMÁTICO desde Validación.
+
+    display_name solo se aplica si el proyecto es nuevo (created=True) -- si ya existía, puede
+    tener un nombre puesto a mano en Firmas (PATCH /projects/{id}/display-name) que no hay que
+    pisar con cada creación de proyecto en Validación."""
+    db = get_db()
+    created = ensure_project(db, project_id, actor["u"])
+    if created and body.display_name:
+        db.execute("UPDATE rf_projects SET display_name=? WHERE id=?", (body.display_name.strip(), project_id))
+    db.commit()
+    if created:
+        log_system_event(actor, "project_created", f"Proyecto vinculado automáticamente desde la Suite Documental", project_id=project_id)
+    return {"ok": True, "created": created}
+
+
+class BrandingBody(BaseModel):
+    name: str
+    logo: str | None = None
 
 
 class PushDocumentBody(BaseModel):
     json_data: dict[str, Any]
+    branding: BrandingBody | None = None  # empresa partner/cliente del proyecto, opcional
 
 
 @router.put("/{doc_type}")
@@ -28,7 +68,17 @@ def push_document(
     project_id: str, doc_type: str, body: PushDocumentBody, actor: dict = Depends(require_service_token),
 ):
     db = get_db()
-    return _upsert_document(db, project_id, doc_type, body.json_data, actor)
+    result = _upsert_document(db, project_id, doc_type, body.json_data, actor)
+    if body.branding:
+        # El proyecto ya existe en este punto -- _upsert_document lo crea si hacía falta
+        # (ensure_project). Solo actualiza cuando viene un valor no vacío, para no pisar
+        # ediciones más nuevas hechas directo en Firmas con un push de un documento viejo.
+        db.execute(
+            "UPDATE rf_projects SET partner_name=?, partner_logo=?, updated_at=? WHERE id=?",
+            (body.branding.name, body.branding.logo, time.time(), project_id),
+        )
+        db.commit()
+    return result
 
 
 @router.get("/{doc_type}/comments")

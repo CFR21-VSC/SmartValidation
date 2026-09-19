@@ -393,10 +393,37 @@
         }
     }
 
+    /**
+     * Empresa partner/cliente del proyecto activo, si está configurada (opcional).
+     * Solo tiene sentido en la Suite de Validación -- ahí vive /api/projects/{id} y
+     * VS.projects.getActiveId(). En Firmas la marca ya llega embebida en data._partnerBranding
+     * desde el propio backend (bridge de push + endpoints de render), así que esta función
+     * no se usa ahí, aunque el archivo esté vendorizado igual.
+     * Devuelve null si no hay proyecto activo, no está configurada, o falla el fetch --
+     * nunca rompe el render por esto.
+     */
+    async function fetchPartnerBranding() {
+        try {
+            const projId = global.ValidationSuite && global.ValidationSuite.projects
+                && global.ValidationSuite.projects.getActiveId
+                ? global.ValidationSuite.projects.getActiveId() : null;
+            if (!projId) return null;
+            const resp = await fetch(`/api/projects/${encodeURIComponent(projId)}`, { credentials: 'include' });
+            if (!resp.ok) return null;
+            const data = await resp.json();
+            const proj = data && data.project;
+            if (!proj || !proj.partner_name) return null;
+            return { name: proj.partner_name, logo: proj.partner_logo || null };
+        } catch (e) {
+            return null;
+        }
+    }
+
     // Export al global
     VS.renderDocument = renderDocument;
     VS.registerRenderer = registerRenderer;
     VS.validateDocumentJson = validateDocumentJson;
+    VS.fetchPartnerBranding = fetchPartnerBranding;
     VS.tryAutoLoadLogo = tryAutoLoadLogo;
 
 })(window);

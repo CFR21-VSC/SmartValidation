@@ -236,6 +236,7 @@ def init_db() -> None:
     _migrate_legacy_corrections(db)
     _migrate_add_comment_parent_id(db)
     _migrate_add_project_display_name(db)
+    _migrate_add_project_branding(db)
 
 
 def _migrate_add_comment_parent_id(db) -> None:
@@ -271,6 +272,24 @@ def _migrate_add_project_display_name(db) -> None:
         exists = any(c["name"] == "display_name" for c in cols)
     if not exists:
         db.execute("ALTER TABLE rf_projects ADD COLUMN display_name TEXT")
+        db.commit()
+
+
+def _migrate_add_project_branding(db) -> None:
+    """Agrega partner_name/partner_logo a rf_projects (empresa partner/cliente opcional que
+    viaja desde la Suite Documental junto con el push de un documento, 2026-09-19) -- mismo
+    motivo que las migraciones anteriores."""
+    if USE_PG:
+        exists = db.execute(
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_name='rf_projects' AND column_name='partner_name'"
+        ).fetchone()
+    else:
+        cols = db.execute("PRAGMA table_info(rf_projects)").fetchall()
+        exists = any(c["name"] == "partner_name" for c in cols)
+    if not exists:
+        db.execute("ALTER TABLE rf_projects ADD COLUMN partner_name TEXT")
+        db.execute("ALTER TABLE rf_projects ADD COLUMN partner_logo TEXT")
         db.commit()
 
 

@@ -291,6 +291,16 @@
         }
         if (!VS.bookBuilder) { alert('book-builder no disponible.'); return; }
 
+        // Marca de partner del proyecto (opcional): se estampa en la copia de cada doc para
+        // que buildCoverPage/buildPageHeader la muestren en cada capítulo del libro también.
+        const _partnerBranding = typeof VS.fetchPartnerBranding === 'function'
+            ? await VS.fetchPartnerBranding() : null;
+        if (_partnerBranding) {
+            for (let i = 0; i < pkg.length; i++) {
+                pkg[i] = Object.assign({}, pkg[i], { data: Object.assign({}, pkg[i].data, { _partnerBranding }) });
+            }
+        }
+
         // ── Mostrar formulario de portada personalizable ANTES de compilar ──
         const coverCfg = await showBookCoverConfig();
         if (coverCfg === null) return; // usuario canceló

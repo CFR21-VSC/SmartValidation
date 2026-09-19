@@ -269,6 +269,12 @@ def _db_init():
         "ALTER TABLE users ADD COLUMN last_login_ip TEXT",
         # Snapshot del estado completo del proyecto (JSON) para restaurar en otros browsers
         "ALTER TABLE projects ADD COLUMN snapshot_json TEXT",
+        # Logo de la empresa partner/cliente (projects.cliente, ya existente, es el nombre --
+        # no se duplica el campo). Cuando hay logo cargado, sale junto al de DRP Assurance en
+        # portada/header/footer de TODOS los PDF del proyecto (ver template-base.js). Gateado
+        # por la presencia del LOGO (acción explícita), no por `cliente` solo: muchos proyectos
+        # ya tienen cliente cargado como dato informativo sin pedir una segunda marca.
+        "ALTER TABLE projects ADD COLUMN partner_logo TEXT",
         # UNIQUE index en documents(project_id, doc_type) — puede faltar si la tabla
         # se creó antes de que el constraint apareciera en el DDL. Idempotente.
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_doc_proj_type ON documents(project_id, doc_type)",
@@ -316,6 +322,7 @@ _RE_EVIDENCE         = re.compile(r'^/api/evidence/([a-zA-Z0-9_-]{1,300})$')
 _RE_EVIDENCE_BATCH   = re.compile(r'^/api/evidence-batch$')
 _RE_ANALYTICS        = re.compile(r'^/api/analytics(/.+)?$')
 _RE_NOTIFY_DESVIOS   = re.compile(r'^/api/notify-desvios$')
+_RE_PROJ_BRANDING    = re.compile(r'^/api/projects/([^/]+)/branding$')
 _RE_PROJ_FOLDER      = re.compile(r'^/api/projects/([^/]+)/folder$')
 _RE_PROJ_FOLDER_SCAN = re.compile(r'^/api/projects/([^/]+)/folder-scan$')
 _RE_PROJ_FOLDER_IMPORT = re.compile(r'^/api/projects/([^/]+)/folder-import$')
@@ -922,7 +929,12 @@ def _bridge_request(method: str, path: str, payload: dict | None = None) -> dict
 def _bridge_push_document(proj_id: str, doc_type: str) -> dict:
     """Empuja el json_data de un documento propio hacia Firmas. El documento tiene que
     existir localmente -- esta función no valida el proyecto/rol, eso queda del lado
-    del endpoint que la invoque (Fase 4)."""
+    del endpoint que la invoque (Fase 4).
+
+    Viaja junto la empresa partner/cliente del proyecto (si está configurada) -- Firmas
+    la guarda en su propia fila de proyecto y la usa para su vista previa de PDF (mismo
+    renderer que acá). No es push automático: se actualiza en Firmas recién en el
+    próximo envío de un documento, igual que las correcciones."""
     db = _get_db()
     row = db.execute(
         "SELECT json_data FROM documents WHERE project_id=? AND doc_type=?",
@@ -935,8 +947,36 @@ def _bridge_push_document(proj_id: str, doc_type: str) -> dict:
     except Exception:
         return {"ok": False, "error": "json_data corrupto, no se pudo parsear", "status": 500}
 
+    proj_row = db.execute(
+        "SELECT cliente, partner_logo FROM projects WHERE id=?", (proj_id,)
+    ).fetchone()
+    branding = None
+    # Gateado por la presencia del LOGO, no de `cliente` solo -- ver _api_project_set_branding.
+    if proj_row and proj_row["partner_logo"]:
+        branding = {"name": proj_row["cliente"] or "", "logo": proj_row["partner_logo"]}
+
     path = f"/bridge/projects/{quote(proj_id, safe='')}/documents/{quote(doc_type, safe='')}"
-    return _bridge_request("PUT", path, {"json_data": content})
+    body = {"json_data": content}
+    if branding:
+        body["branding"] = branding
+    return _bridge_request("PUT", path, body)
+
+
+def _bridge_ensure_project(proj_id: str, name: str) -> None:
+    """Crea el proyecto en Firmas apenas nace acá, sin esperar al primer documento (pedido
+    del usuario 2026-09-19: "lo creamos en Validation, se crea en Firmas"). Dispara en un
+    thread daemon, mismo patrón que _send_email -- crear un proyecto tiene que seguir siendo
+    instantáneo aunque Firmas esté lenta o caída, a diferencia de _bridge_push_document (acción
+    explícita del usuario, "Enviar a Firmas", que si necesita avisar si falla). Si esto no
+    llega a completarse, el proyecto en Firmas igual va a aparecer solo en cuanto se envíe el
+    primer documento (ensure_project del lado de Firmas es idempotente)."""
+    def _worker():
+        path = f"/bridge/projects/{quote(proj_id, safe='')}"
+        result = _bridge_request("PUT", path, {"display_name": name})
+        if not result.get("ok"):
+            print(f"[bridge] no se pudo crear el proyecto '{proj_id}' en Firmas (no bloqueante): {result.get('error')}")
+
+    threading.Thread(target=_worker, daemon=True).start()
 
 
 def _bridge_pull_comments(proj_id: str, doc_type: str) -> dict:
@@ -1831,13 +1871,15 @@ class SyncHandler(BaseHTTPRequestHandler):
         if role in ("admin", "auditor"):
             rows = db.execute(
                 "SELECT id, name, system_name, system_type, gamp_category, cliente, "
+                "partner_logo, "
                 "status, created_by, created_at, updated_at "
                 "FROM projects ORDER BY updated_at DESC"
             ).fetchall()
         else:
             rows = db.execute("""
                 SELECT p.id, p.name, p.system_name, p.system_type, p.gamp_category,
-                       p.cliente, p.status, p.created_by, p.created_at, p.updated_at,
+                       p.cliente, p.partner_logo,
+                       p.status, p.created_by, p.created_at, p.updated_at,
                        pa.access_level
                 FROM projects p
                 INNER JOIN project_access pa ON pa.project_id = p.id
@@ -1912,6 +1954,7 @@ class SyncHandler(BaseHTTPRequestHandler):
                 pass
             print(f"[DB] Error al crear proyecto: {e}")
             return self._send_json(500, {"ok": False, "error": "Error interno al guardar el proyecto."})
+        _bridge_ensure_project(proj_id, name)
         return self._send_json(201, {"ok": True, "id": proj_id, "name": name, "folder_path": folder_path or None})
 
     def _api_project_get(self, proj_id, user):
@@ -1926,12 +1969,72 @@ class SyncHandler(BaseHTTPRequestHandler):
                 return self._send_json(403, {"ok": False, "error": "Acceso denegado"})
         row = db.execute(
             "SELECT id, name, system_name, system_type, gamp_category, cliente, "
+            "partner_logo, "
             "status, folder_path, created_by, created_at, updated_at FROM projects WHERE id=?",
             (proj_id,)
         ).fetchone()
         if not row:
             return self._send_json(404, {"ok": False, "error": "Proyecto no encontrado"})
         return self._send_json(200, {"ok": True, "project": dict(row)})
+
+    def _api_project_set_branding(self, proj_id, user):
+        """Guarda `cliente` (nombre) y/o `partner_logo` del proyecto, escritura directa e
+        inmediata al servidor. Solo admin -- misma regla que crear/editar proyecto.
+
+        No hay un campo "partner" separado: `cliente` YA es la empresa partner/cliente del
+        proyecto (el mismo "Cliente / Sponsor" que ya existía en el modal). Antes de esto,
+        ese campo solo se guardaba en localStorage y llegaba al servidor recién con "Subir al
+        servidor" (snapshot completo) -- acá se escribe directo, así el logo y el nombre que
+        va a mostrar el PDF nunca quedan desincronizados entre sí. _api_snapshot_save sigue
+        escribiendo `cliente` también (mismo valor de origen, si el usuario no lo cambió entre
+        medio no hay conflicto real, solo dos caminos al mismo destino).
+
+        La marca doble en el PDF se activa con la presencia del LOGO, no de `cliente` solo:
+        muchos proyectos ya tienen cliente cargado como dato informativo sin pedir una segunda
+        marca en portada (ver template-base.js).
+
+        Upsert, no update-only: un proyecto que solo vive en IndexedDB (nunca sincronizado al
+        servidor) todavía no tiene fila en `projects` -- mismo patrón ON CONFLICT que
+        _api_snapshot_save, que es hoy la única otra vía por la que puede aparecer esta fila.
+
+        No se propaga sola a Firmas: viaja junto con el próximo documento que se envíe (ver
+        _bridge_push_document), igual que ya pasa con correcciones de documentos."""
+        if user.get("r") != "admin":
+            return self._send_json(403, {"ok": False, "error": "Solo admin puede editar el proyecto"})
+        data = self._read_json_body()
+        if data is None:
+            return
+        # Ambos genuinamente opcionales en el body -- ausente (clave no mandada) = "no lo
+        # toques"; presente con "" = "vaciarlo". Nunca se confunden.
+        touch_cliente = "cliente" in data
+        cliente = str(data.get("cliente") or "").strip()
+        if len(cliente) > _MAX_FIELD_LEN:
+            return self._send_json(400, {"ok": False, "error": f"cliente demasiado largo (máx {_MAX_FIELD_LEN})"})
+        touch_logo = "partner_logo" in data
+        partner_logo = str(data.get("partner_logo") or "").strip()
+        if partner_logo and not partner_logo.startswith("data:image/"):
+            return self._send_json(400, {"ok": False, "error": "partner_logo debe ser un data URL de imagen"})
+        if len(partner_logo) > 2_000_000:
+            return self._send_json(400, {"ok": False, "error": "El logo es demasiado grande (máx ~1.5MB)"})
+        db = _get_db()
+        now = time.time()
+        db.execute("""
+            INSERT INTO projects (id, name, cliente, partner_logo, status, created_by, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 'in_progress', ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at
+        """, (proj_id, proj_id, cliente or None, partner_logo or None, user.get("u"), now, now))
+        if touch_cliente:
+            db.execute("UPDATE projects SET cliente=? WHERE id=?", (cliente or None, proj_id))
+        if touch_logo:
+            db.execute("UPDATE projects SET partner_logo=? WHERE id=?", (partner_logo or None, proj_id))
+        db.execute("""
+            INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
+            VALUES (?, NULL, ?, 'project_branding_set', ?, ?, ?)
+        """, (proj_id, user.get("u"),
+              f"Actualizó datos de cliente/partner: '{cliente}'" if cliente else "Quitó el cliente/partner",
+              self._get_client_ip(), now))
+        db.commit()
+        return self._send_json(200, {"ok": True})
 
     def _api_project_export(self, proj_id, user):
         """Exporta un proyecto completo (metadata + documentos) como bundle JSON portable."""
@@ -2261,6 +2364,10 @@ class SyncHandler(BaseHTTPRequestHandler):
                 or sys_info.get("nombreSistema") or sys_info.get("systemName") or proj_id)
         package_docs = (snapshot.get("packageDocs") or [])[:50]  # cap: un paquete GxP tiene ≤ 20 tipos
         db = _get_db()
+        # Antes del upsert: si esta es la primera vez que el proyecto llega al servidor (creado
+        # en el wizard, vive solo en IndexedDB hasta ahora), hay que vincularlo en Firmas acá --
+        # _api_projects_create no es el único camino de alta, este upsert también lo es.
+        is_new_project = not db.execute("SELECT 1 FROM projects WHERE id=?", (proj_id,)).fetchone()
         try:
             # Defensive: clear any stale aborted transaction left in the pooled connection.
             # get_transaction_status() == TRANSACTION_STATUS_INERROR means aborted.
@@ -2322,6 +2429,8 @@ class SyncHandler(BaseHTTPRequestHandler):
                 pass
             print(f"[DB] Error al sincronizar documentos: {e}")
             return self._send_json(500, {"ok": False, "error": "Error interno al sincronizar documentos."})
+        if is_new_project:
+            _bridge_ensure_project(proj_id, name)
         return self._send_json(200, {"ok": True, "docs_synced": len(package_docs), "updated_at": now})
 
     def _api_snapshot_get(self, proj_id, user):
@@ -4145,6 +4254,9 @@ class SyncHandler(BaseHTTPRequestHandler):
             return self._api_projects_create(user)
         if path == "/api/projects/import":
             return self._api_project_import(user)
+        m = _RE_PROJ_BRANDING.match(path)
+        if m:
+            return self._api_project_set_branding(m.group(1), user)
         m = _RE_PROJ_FOLDER.match(path)
         if m:
             return self._api_project_set_folder(m.group(1), user)

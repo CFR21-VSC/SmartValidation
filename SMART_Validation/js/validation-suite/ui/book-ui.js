@@ -39,8 +39,17 @@
     // (La vista previa INLINE en el suite la maneja previewBookInline en
     //  book-preview.js, con iframe embebido y loading visual.)
     // ====================================================================
+    /** Copia pkg estampando la marca de partner del proyecto en cada doc.data (opcional) --
+     *  no muta global.packageDocs. Usada por los dos flujos de este archivo. */
+    async function _withPartnerBranding(pkg, VS) {
+        if (typeof VS.fetchPartnerBranding !== 'function') return pkg;
+        const branding = await VS.fetchPartnerBranding();
+        if (!branding) return pkg;
+        return pkg.map(doc => Object.assign({}, doc, { data: Object.assign({}, doc.data, { _partnerBranding: branding }) }));
+    }
+
     global.previewValidationBook = async function () {
-        const pkg = global.packageDocs || [];
+        let pkg = global.packageDocs || [];
         if (!Array.isArray(pkg) || pkg.length === 0) {
             alert('No hay paquete documental cargado para previsualizar el libro.');
             return;
@@ -52,6 +61,7 @@
             global.showNotification('Generando vista previa del libro...');
         }
         try {
+            pkg = await _withPartnerBranding(pkg, VS);
             await VS.bookBuilder.generate(pkg, {
                 decisionGlobal: 'SISTEMA VALIDADO',
                 periodoCiclo: '',
@@ -64,7 +74,7 @@
     };
 
     global.generateValidationBook = async function () {
-        const pkg = global.packageDocs || [];
+        let pkg = global.packageDocs || [];
         if (!Array.isArray(pkg) || pkg.length === 0) {
             alert('No hay paquete documental cargado.\n\nPara generar el libro de validación necesitás cargar primero un paquete completo desde:\n\n  Suite Evidencias → Cargar Paquete');
             return;
@@ -112,6 +122,7 @@
         // Usa el modal de loading con pasos animados si está disponible
         const hasLoadingUI = VS.bookLoading && typeof VS.bookLoading.show === 'function';
         try {
+            pkg = await _withPartnerBranding(pkg, VS);
             if (hasLoadingUI) {
                 VS.bookLoading.show();
                 VS.bookLoading.step('prep', 'Recolectando documentos del paquete...');

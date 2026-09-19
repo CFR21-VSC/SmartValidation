@@ -152,11 +152,30 @@
         const sysVersion = pkg.systemVersion || '';
         const titleEs = doc.titleEs || data.titleEs || '';
         const titleEn = doc.titleEn || data.titleEn || '';
+        // Marca de partner/cliente, opcional -- ver renderDocument() en document-renderer.js,
+        // que la adjunta desde la configuración del proyecto antes de renderizar. Cuando no
+        // hay partner el layout queda idéntico al de siempre (un solo logo, un solo nombre).
+        const branding = data._partnerBranding && data._partnerBranding.logo ? data._partnerBranding : null;
 
         const content = [];
 
-        // ===== Logo =====
-        if (global.VS_LOGO_DATAURL) {
+        // ===== Logo(s) =====
+        if (branding) {
+            content.push({
+                columns: [
+                    {
+                        width: '*',
+                        stack: global.VS_LOGO_DATAURL
+                            ? [{ image: global.VS_LOGO_DATAURL, width: 55, alignment: 'center', margin: [0, 10, 0, 8] }]
+                            : [{ text: '', margin: [0, 35, 0, 0] }]
+                    },
+                    {
+                        width: '*',
+                        stack: [{ image: branding.logo, width: 55, alignment: 'center', margin: [0, 10, 0, 8] }]
+                    }
+                ]
+            });
+        } else if (global.VS_LOGO_DATAURL) {
             content.push({
                 image: global.VS_LOGO_DATAURL,
                 width: 70,
@@ -167,17 +186,43 @@
             content.push({ text: '', margin: [0, 50, 0, 0] });
         }
 
-        // ===== Empresa =====
+        // ===== Empresa(s) =====
         // pkg.consultant = firma consultora (DRP Assurance); pkg.client = organización cliente (va en tablas)
-        content.push({
-            text: (pkg.consultant || 'DRP Assurance').toUpperCase(),
-            fontSize: 20,
-            bold: true,
-            color: VS_COLORS.primary,
-            alignment: 'center',
-            margin: [0, 0, 0, 4],
-            characterSpacing: 1
-        });
+        if (branding) {
+            content.push({
+                columns: [
+                    {
+                        width: '*',
+                        text: (pkg.consultant || 'DRP Assurance').toUpperCase(),
+                        fontSize: 13,
+                        bold: true,
+                        color: VS_COLORS.primary,
+                        alignment: 'center',
+                        characterSpacing: 0.5
+                    },
+                    {
+                        width: '*',
+                        text: (branding.name || '').toUpperCase(),
+                        fontSize: 13,
+                        bold: true,
+                        color: VS_COLORS.primary,
+                        alignment: 'center',
+                        characterSpacing: 0.5
+                    }
+                ],
+                margin: [0, 0, 0, 4]
+            });
+        } else {
+            content.push({
+                text: (pkg.consultant || 'DRP Assurance').toUpperCase(),
+                fontSize: 20,
+                bold: true,
+                color: VS_COLORS.primary,
+                alignment: 'center',
+                margin: [0, 0, 0, 4],
+                characterSpacing: 1
+            });
+        }
 
         // ===== Linea decorativa superior =====
         content.push({
@@ -293,7 +338,8 @@
     function buildBackground(data) {
         const pkg = data.package || {};
         const year = pkg.year || new Date().getFullYear();
-        const company = pkg.consultant || 'DRP Assurance';
+        const branding = data._partnerBranding && data._partnerBranding.logo ? data._partnerBranding : null;
+        const company = (pkg.consultant || 'DRP Assurance') + (branding && branding.name ? ` / ${branding.name}` : '');
         const text = `© ${year} ${company} — Documento Controlado — Distribución Restringida`;
 
         return function (currentPage, pageSize) {
@@ -422,18 +468,30 @@
         const doc = data.document || {};
         const titleShort = doc.headerTitle || doc.titleEs || '';
         const docCode = getDocumentCode(data);
-        const company = (pkg.consultant || 'DRP Assurance').toUpperCase();
+        const branding = data._partnerBranding && data._partnerBranding.logo ? data._partnerBranding : null;
+        const company = (pkg.consultant || 'DRP Assurance').toUpperCase()
+            + (branding && branding.name ? ` · ${branding.name.toUpperCase()}` : '');
 
         return {
             margin: [50, 30, 50, 0],
             stack: [
                 {
                     columns: [
-                        // Logo izq (24x24)
-                        global.VS_LOGO_DATAURL
-                            ? { image: global.VS_LOGO_DATAURL, width: 24, alignment: 'left' }
-                            : { text: '', width: 24 },
-                        // Centro: empresa + titulo doc
+                        // Logo(s) izq -- 24x24 solo, o dos de 20x20 lado a lado con partner
+                        branding
+                            ? {
+                                width: 48,
+                                columns: [
+                                    global.VS_LOGO_DATAURL
+                                        ? { image: global.VS_LOGO_DATAURL, width: 20, alignment: 'left' }
+                                        : { text: '', width: 20 },
+                                    { image: branding.logo, width: 20, alignment: 'left', margin: [4, 0, 0, 0] }
+                                ]
+                            }
+                            : (global.VS_LOGO_DATAURL
+                                ? { image: global.VS_LOGO_DATAURL, width: 24, alignment: 'left' }
+                                : { text: '', width: 24 }),
+                        // Centro: empresa(s) + titulo doc
                         {
                             stack: [
                                 { text: company, fontSize: 9, bold: true, color: VS_COLORS.primary, alignment: 'center' },
@@ -466,7 +524,8 @@
 
         const pkg = data.package || {};
         const doc = data.document || {};
-        const company = pkg.consultant || 'DRP Assurance';
+        const branding = data._partnerBranding && data._partnerBranding.logo ? data._partnerBranding : null;
+        const company = (pkg.consultant || 'DRP Assurance') + (branding && branding.name ? ` / ${branding.name}` : '');
         const docCode = getDocumentCode(data);
         const docVersion = doc.version ? ` v${doc.version}` : '';
         const year = pkg.year || new Date().getFullYear();

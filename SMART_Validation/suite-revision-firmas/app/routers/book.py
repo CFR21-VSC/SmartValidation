@@ -135,10 +135,17 @@ def get_book_package(project_id: str, user: dict = Depends(require_drp)):
     skipped = [r["doc_type"] for r in all_types if not r["locked"]]
 
     firmas_by_doc = collect_signatures_bulk(db, [doc["id"] for doc in docs])
+    proj = db.execute(
+        "SELECT partner_name, partner_logo FROM rf_projects WHERE id=?", (project_id,)
+    ).fetchone()
+    branding = {"name": proj["partner_name"], "logo": proj["partner_logo"]} if proj and proj["partner_name"] else None
+
     package = []
     for doc in docs:
         data = json.loads(doc["json_data"])
         data = inject_signatures_section(data, firmas_by_doc[doc["id"]])
+        if branding:
+            data["_partnerBranding"] = branding
         package.append({"type": doc["doc_type"], "data": data})
 
     return {"ok": True, "documents": package, "skipped_not_sealed": skipped}

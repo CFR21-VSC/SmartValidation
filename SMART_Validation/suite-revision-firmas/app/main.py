@@ -54,6 +54,7 @@ app.include_router(projects.router)
 app.include_router(audit_router)
 app.include_router(book.router)
 app.include_router(bridge.router)
+app.include_router(bridge.project_router)
 app.include_router(me_router)
 
 app.mount("/app", StaticFiles(directory=_STATIC_DIR, html=True), name="app")
