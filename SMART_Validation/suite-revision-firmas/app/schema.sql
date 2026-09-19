@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS rf_users (
     username      TEXT UNIQUE NOT NULL,
     email         TEXT UNIQUE NOT NULL,
     display_name  TEXT,
-    role          TEXT NOT NULL DEFAULT 'cliente',  -- 'drp' | 'cliente'
+    role          TEXT NOT NULL DEFAULT 'cliente',  -- 'drp' | 'partner' | 'cliente'
     is_superadmin INTEGER DEFAULT 0,
     password_hash TEXT,               -- NULL hasta que acepta la invitación
     pin_hash      TEXT,               -- NULL hasta que configura su PIN de firma

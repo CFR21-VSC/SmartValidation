@@ -43,6 +43,16 @@ def test_create_user_rejects_invalid_role(drp_client):
     assert r.status_code == 400
 
 
+def test_create_user_accepts_partner_role(drp_client):
+    """Rol intermedio agregado 2026-09-19 -- una empresa que colabora activamente en el
+    proyecto (ej. EMARA) sin ser DRP."""
+    r = drp_client.post(
+        "/users",
+        json={"username": "partner1", "email": "partner1@example.com", "display_name": "Partner Co", "role": "partner"},
+    )
+    assert r.status_code == 200, r.text
+
+
 def test_create_user_rejects_invalid_username(drp_client):
     r = drp_client.post(
         "/users", json={"username": "a b", "email": "ab@x.com", "display_name": "AB", "role": "cliente"}

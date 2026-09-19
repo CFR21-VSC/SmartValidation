@@ -101,6 +101,15 @@ function escHtml(s) {
     }[c]));
 }
 
+// Tres roles desde el rol intermedio "partner" (2026-09-19): DRP (control total), partner
+// (colaborador con acceso otorgado por documento -- ve el dossier completo del proyecto y
+// puede reabrir sus documentos, sin llegar a las acciones exclusivas de DRP) y cliente (solo
+// lo que se le otorgue puntualmente, igual que antes). Un solo lugar para el label evita que
+// cada pantalla tenga su propio ternario binario drp/cliente que se olvide de partner.
+function roleLabel(role) {
+    return { drp: 'DRP', partner: 'Partner', cliente: 'Cliente' }[role] || role;
+}
+
 function fmtDateTime(epochSeconds) {
     if (!epochSeconds) return '—';
     return new Date(epochSeconds * 1000).toLocaleString('es-AR');

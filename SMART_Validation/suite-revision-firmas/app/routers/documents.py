@@ -367,17 +367,26 @@ class ReopenDocumentBody(BaseModel):
 
 @router.post("/{doc_type}/reopen")
 def reopen_document(
-    project_id: str, doc_type: str, body: ReopenDocumentBody, user: dict = Depends(require_drp),
+    project_id: str, doc_type: str, body: ReopenDocumentBody, user: dict = Depends(get_current_user),
 ):
     """Única vía para volver a editar un documento con firmas (Ronda 18, 2026-09-19). Nunca
     borra una firma -- las marca invalidated_at/invalidated_reason, quedan como evidencia de
     que existieron y de por qué dejaron de valer. Si hay una ronda de aprobación abierta con
     firmantes parciales, se cancela (no queda "medio abierta" sobre contenido que va a
-    cambiar). Requiere motivo explícito, no vacío -- se audita."""
+    cambiar). Requiere motivo explícito, no vacío -- se audita.
+
+    DRP siempre puede reabrir. Partner (rol intermedio, 2026-09-19) puede reabrir solo los
+    documentos donde tiene un grant explícito -- check_document_access ya hace exactamente
+    esa distinción (DRP pasa siempre, cualquier otro rol necesita el grant); cliente queda
+    afuera acá explícitamente, aunque tenga grant, porque reabrir no es parte de lo que
+    puede hacer ese rol."""
+    if user.get("r") not in ("drp", "partner"):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Requiere rol DRP o partner con acceso a este documento")
+    db = get_db()
+    check_document_access(user, project_id, doc_type)
     reason = body.reason.strip()
     if not reason:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "El motivo de reapertura es obligatorio")
-    db = get_db()
     doc = _get_document_or_404(db, project_id, doc_type)
     if doc["locked"]:
         raise HTTPException(

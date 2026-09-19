@@ -25,7 +25,7 @@ class CreateUserBody(BaseModel):
     username: str
     email: EmailStr
     display_name: str
-    role: str  # 'drp' | 'cliente'
+    role: str  # 'drp' | 'partner' | 'cliente'
 
 
 class GrantBody(BaseModel):
@@ -35,8 +35,8 @@ class GrantBody(BaseModel):
 
 @router.post("")
 def create_user(body: CreateUserBody, user: dict = Depends(require_drp)):
-    if body.role not in ("drp", "cliente"):
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "role debe ser 'drp' o 'cliente'")
+    if body.role not in ("drp", "partner", "cliente"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "role debe ser 'drp', 'partner' o 'cliente'")
     username = body.username.strip()
     if not _USERNAME_RE.match(username):
         raise HTTPException(

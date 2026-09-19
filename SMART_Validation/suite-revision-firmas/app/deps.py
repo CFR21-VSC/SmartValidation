@@ -54,8 +54,11 @@ def require_service_token(x_bridge_key: str = Header(default="")) -> dict:
 
 
 def check_document_access(user: dict, project_id: str, doc_type: str) -> None:
-    """DRP ve todo. Cliente solo si tiene un grant explícito para ese documento puntual
-    (sección 3, Capa 2 — habilitación a nivel documento, no a nivel proyecto)."""
+    """DRP ve todo. Partner y cliente solo si tienen un grant explícito para ese documento
+    puntual (sección 3, Capa 2 — habilitación a nivel documento, no a nivel proyecto). Partner
+    se diferencia de cliente en OTROS lugares (dossier completo del proyecto, reopen_document
+    -- ver has_any_grant_in_project más abajo), no en el acceso a un documento puntual: ahí
+    los dos necesitan el mismo grant explícito, igual que siempre."""
     if user.get("r") == "drp":
         return
     db = get_db()
@@ -65,6 +68,19 @@ def check_document_access(user: dict, project_id: str, doc_type: str) -> None:
     ).fetchone()
     if not row:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "No tenés acceso a este documento")
+
+
+def has_any_grant_in_project(db, user_id: str, project_id: str) -> bool:
+    """¿Tiene este usuario AL MENOS UN documento otorgado en este proyecto? Rol "partner"
+    (2026-09-19, pedido del usuario -- una empresa que colabora activamente en el proyecto,
+    ej. EMARA, sin ser DRP): a diferencia de cliente, un partner con acceso a cualquier
+    documento del proyecto ve el dossier/estado COMPLETO de ese proyecto, no solo sus
+    documentos puntuales -- usado por get_dossier (projects.py)."""
+    row = db.execute(
+        "SELECT 1 FROM rf_document_access_grants WHERE user_id=? AND project_id=? LIMIT 1",
+        (user_id, project_id),
+    ).fetchone()
+    return bool(row)
 
 
 def ensure_project_active(db, project_id: str) -> None:

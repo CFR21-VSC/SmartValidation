@@ -383,7 +383,7 @@ async function init() {
     session = await requireSession();
     if (!session) return;
 
-    userBadgeEl.textContent = `${session.display_name} · ${session.role === 'drp' ? 'DRP' : 'Cliente'}`;
+    userBadgeEl.textContent = `${session.display_name} · ${roleLabel(session.role)}`;
     if (session.role === 'drp') {
         usersLinkEl.style.display = '';
         document.getElementById('global-audit-link').style.display = '';
@@ -798,7 +798,7 @@ function renderAccessListInto(docType, grants) {
         ? '<div class="rf-empty" style="padding:8px 0;">Todavía nadie tiene acceso a este documento.</div>'
         : grants.map(g => `
             <div style="display:flex; align-items:center; gap:8px; padding:4px 0; font-size:13px;">
-                <span>${escHtml(g.display_name || g.username)} · ${escHtml(g.email)} · ${g.role === 'drp' ? 'DRP' : 'Cliente'}</span>
+                <span>${escHtml(g.display_name || g.username)} · ${escHtml(g.email)} · ${roleLabel(g.role)}</span>
                 <button class="rf-btn-danger access-revoke-btn" data-grant="${g.id}" data-user="${g.user_id}" data-doctype="${safe}" style="padding:2px 8px; font-size:11px;">Revocar</button>
             </div>
         `).join('');

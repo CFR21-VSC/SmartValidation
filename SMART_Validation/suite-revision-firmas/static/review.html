@@ -1028,11 +1028,14 @@ async function loadDocument() {
 
     lock_badge.style.display = documentRow.locked ? '' : 'none';
     document.getElementById('btn-download-original').style.display = documentRow.original_stored ? '' : 'none';
-    // Reabrir: solo DRP, solo si hay algo que reabrir (edit_locked) y no está sellado del
-    // todo (un documento sellado no se reabre por acá -- eso es un cambio de proceso más
-    // grande, no lo cubre esta pieza).
+    // Reabrir: DRP siempre, o partner si tiene acceso otorgado a este documento (ya tuvo que
+    // pasar check_document_access para llegar a ver este documento, así que si está viendo
+    // esta pantalla como partner, ya calificica -- ver reopen_document en documents.py).
+    // Solo si hay algo que reabrir (edit_locked) y no está sellado del todo (un documento
+    // sellado no se reabre por acá -- eso es un cambio de proceso más grande, no lo cubre
+    // esta pieza).
     document.getElementById('btn-reopen-document').style.display =
-        (session.role === 'drp' && documentRow.edit_locked && !documentRow.locked) ? '' : 'none';
+        ((session.role === 'drp' || session.role === 'partner') && documentRow.edit_locked && !documentRow.locked) ? '' : 'none';
 
     renderOutline();
     renderDocumentPane();

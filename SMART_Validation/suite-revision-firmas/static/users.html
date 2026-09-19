@@ -37,6 +37,7 @@
                 <label class="rf-label" for="new-role">Rol</label>
                 <select class="rf-select" id="new-role">
                     <option value="drp">DRP</option>
+                    <option value="partner">Partner</option>
                     <option value="cliente">Cliente</option>
                 </select>
             </div>
@@ -172,7 +173,7 @@ async function loadUsers() {
             <td>${escHtml(u.username)}</td>
             <td>${escHtml(u.display_name)}</td>
             <td>${escHtml(u.email)}</td>
-            <td>${u.role === 'drp' ? 'DRP' : 'Cliente'}</td>
+            <td>${roleLabel(u.role)}</td>
             <td><span class="rf-status-dot ${u.is_active ? 'on' : 'off'}"></span>${u.is_active ? 'Activo' : 'Inactivo'}</td>
             <td>${u.pin_set ? 'Sí' : 'No'}</td>
             <td>${fmtDateTime(u.last_login)}</td>

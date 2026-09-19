@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from ..audit import log_system_event
 from ..db import get_db
-from ..deps import get_current_user, require_drp
+from ..deps import get_current_user, has_any_grant_in_project, require_drp
 from ..doc_order import sort_docs
 
 
@@ -92,10 +92,17 @@ def get_dossier(project_id: str, user: dict = Depends(get_current_user)):
     """Estado en vivo + KPIs de tiempo por documento (acompañamiento visual del proyecto,
     sección pedida por el usuario 2026-08-31 — inspirado en el "Dossier en vivo" de la Suite
     de Validación, pero con KPIs de ciclo propios: acá sí hay timestamps reales de cada
-    etapa). Mismo alcance de visibilidad que el resto de la suite: DRP ve todos los
-    documentos del proyecto, cliente solo los que tiene habilitados."""
+    etapa). DRP ve todos los documentos del proyecto. Partner (rol intermedio, 2026-09-19 --
+    una empresa que colabora activamente en el proyecto, ej. EMARA, sin ser DRP) ve el
+    dossier COMPLETO del proyecto en cuanto tiene al menos un documento otorgado ahí -- no
+    queda limitado a sus documentos puntuales como cliente, que sigue viendo solo lo que
+    tiene habilitado uno por uno."""
     db = get_db()
-    if user.get("r") == "drp":
+    role = user.get("r")
+    full_visibility = role == "drp" or (
+        role == "partner" and has_any_grant_in_project(db, user.get("uid"), project_id)
+    )
+    if full_visibility:
         docs = db.execute(
             "SELECT id, doc_type, status, locked, created_at, locked_at "
             "FROM rf_documents WHERE project_id=?",
