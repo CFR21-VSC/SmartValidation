@@ -1460,8 +1460,32 @@
     // PUBLIC API
     // ──────────────────────────────────────────────────────────────────
 
-    /** Renderiza data JSON como vista documento editable dentro de container. */
-    function render(data, container) {
+    /** Deja el container montado en modo lectura: saca contenteditable y
+     *  oculta los controles de edición/aprobación, sin tocar el HTML que
+     *  ya armó render() (mismo marcado, mismo _rawSection para serialize). */
+    function applyReadOnly(container) {
+        container.classList.add('ve-readonly');
+        container.querySelectorAll('[contenteditable]').forEach(function (node) {
+            node.removeAttribute('contenteditable');
+        });
+        container.querySelectorAll('button').forEach(function (btn) {
+            btn.style.display = 'none';
+        });
+    }
+
+    /** Oculta solo la barra de "Aprobar sección" -- para hosts (Firmas) que tienen
+     *  su propio flujo de aprobación/firma y no usan el de este editor. */
+    function applyHideApproval(container) {
+        container.querySelectorAll('.ve-section-approval-bar').forEach(function (bar) {
+            bar.style.display = 'none';
+        });
+    }
+
+    /** Renderiza data JSON como vista documento dentro de container.
+     *  opts.readOnly: true → sin edición (para revisores).
+     *  opts.hideApproval: true → sin barra de "Aprobar sección" (host con su propio flujo). */
+    function render(data, container, opts) {
+        opts = opts || {};
         container.innerHTML = '';
         if (!data || typeof data !== 'object') {
             container.appendChild(el('div', { className: 've-empty', text: 'No hay JSON cargado. Cargá un doc desde el dropdown de plantillas o el paquete.' }));
@@ -1473,6 +1497,8 @@
             secs.appendChild(renderSection(sec, idx));
         });
         container.appendChild(secs);
+        if (opts.readOnly) applyReadOnly(container);
+        if (opts.hideApproval) applyHideApproval(container);
     }
 
     /** Reconstruye el objeto JSON desde el HTML editable.

@@ -183,14 +183,13 @@
     .rv-save-ind.rv-err { color: var(--danger); }
     .rv-save-ind.rv-fade { opacity: 0; }
 
-    .rv-pdf-modal { width: min(920px, 95vw); }
-    .rv-pdf-modal iframe {
+    #pdf-pane-body #pdf-iframe {
         width: 100%;
-        height: 72vh;
-        border: 1px solid var(--border);
-        border-radius: 6px;
+        height: 100%;
+        border: 0;
         background: #fff;
     }
+    #pdf-pane-body #pdf-error { padding: 16px; }
 
     /* ============================================================
        Editor visual — vendorizado desde js/validation-suite/ui/visual-editor.js
@@ -597,7 +596,6 @@
 
 <div class="rv-shell">
     <div class="rv-toolbar">
-        <button class="rf-btn-secondary" id="btn-view-pdf">Ver PDF</button>
         <button class="rf-btn-secondary" id="btn-push-validacion" style="display:none;">📤 Enviar a Validación</button>
         <button class="rf-btn" id="btn-sign-review">Firmar revisión</button>
         <div class="rv-signers" id="signers-summary">Cargando firmas…</div>
@@ -613,33 +611,39 @@
                 </div>
             </div>
 
-            <!-- Columna 2: Documento fuente -->
+            <!-- Columna 2: Documento (mismo editor visual que la Suite de Validación;
+                 solo lectura para quien no es drp -- ver renderDocumentPane) -->
             <div class="rf-pane rv-pane-mid">
                 <div class="rf-pane-header">
-                    <span>Documento fuente</span>
+                    <span>Documento</span>
                     <div class="rv-pane-header-actions" id="source-actions" style="display:none;">
-                        <button class="rf-btn-secondary" id="btn-visual-editor">🖊️ Editor visual</button>
                         <button class="rf-btn-secondary" id="btn-load-doc">Cargar</button>
                         <button class="rf-btn-secondary" id="btn-download-doc">Descargar</button>
-                    </div>
-                </div>
-                <div class="rf-pane-body" id="source-body">
-                    <div class="rf-empty">Cargando…</div>
-                </div>
-                <div class="rf-pane-body" id="visual-editor-wrap" style="display:none; flex-direction:column; padding:0;">
-                    <div class="vs-visual-editor" id="visual-editor-body" style="flex:1; overflow-y:auto; padding:20px;"></div>
-                    <div style="padding:10px 20px; border-top:1px solid var(--border); display:flex; gap:10px; align-items:center; flex-shrink:0;">
-                        <span class="rf-error" id="visual-editor-error" style="margin-right:auto;"></span>
-                        <button class="rf-btn-secondary" id="visual-editor-cancel">Cancelar</button>
+                        <button class="rf-btn-secondary" id="visual-editor-cancel">Descartar cambios</button>
                         <button class="rf-btn" id="visual-editor-save">Guardar cambios</button>
                     </div>
                 </div>
+                <span class="rf-error" id="visual-editor-error" style="padding: 8px 16px 0;"></span>
+                <div class="rf-pane-body" id="visual-editor-wrap" style="flex-direction:column; padding:0;">
+                    <div class="vs-visual-editor" id="visual-editor-body" style="flex:1; overflow-y:auto; padding:20px;"></div>
+                </div>
             </div>
 
-            <!-- Columna 3: Comentarios -->
+            <!-- Columna 3: Vista previa del PDF (no descargable), o Comentarios como
+                 superposición en el mismo lugar cuando hay que corregir. -->
             <div class="rf-pane rv-pane-corr">
-                <div class="rf-pane-header"><span>Comentarios</span></div>
-                <div class="rf-pane-body" id="corrections-body">
+                <div class="rf-pane-header">
+                    <span id="right-pane-title">Vista previa</span>
+                    <div class="rv-pane-header-actions">
+                        <button class="rf-btn-secondary" id="btn-toggle-comments">💬 Comentarios</button>
+                    </div>
+                </div>
+                <div class="rf-pane-body" id="pdf-pane-body" style="padding:0; position:relative;" oncontextmenu="return false;">
+                    <div class="rf-empty" id="pdf-loading">Generando vista previa…</div>
+                    <iframe id="pdf-iframe" style="display:none;"></iframe>
+                    <div class="rf-error" id="pdf-error"></div>
+                </div>
+                <div class="rf-pane-body" id="corrections-body" style="display:none;">
                     <div class="rf-empty">Cargando…</div>
                 </div>
             </div>
@@ -675,21 +679,6 @@
         <div style="margin-top:16px; text-align:right; display:flex; gap:10px; justify-content:flex-end;">
             <button class="rf-btn-secondary" id="push-validacion-cancel">Cerrar</button>
             <button class="rf-btn" id="push-validacion-confirm" style="display:none;">Enviar igual</button>
-        </div>
-    </div>
-</div>
-
-<!-- Modal: Ver PDF -->
-<div class="rf-modal-backdrop" id="pdf-backdrop" style="display:none;">
-    <div class="rf-modal rv-pdf-modal">
-        <h3>Vista previa del documento</h3>
-        <div id="pdf-container" oncontextmenu="return false;">
-            <div class="rf-empty" id="pdf-loading">Generando vista previa…</div>
-            <iframe id="pdf-iframe" style="display:none;"></iframe>
-            <div class="rf-error" id="pdf-error"></div>
-        </div>
-        <div style="margin-top:14px; text-align:right;">
-            <button class="rf-btn-secondary" id="pdf-close">Cerrar</button>
         </div>
     </div>
 </div>
@@ -738,7 +727,6 @@ let currentPdfObjectUrl = null;
 const doc_badge = document.getElementById('doc-badge');
 const lock_badge = document.getElementById('lock-badge');
 const outlineBody = document.getElementById('outline-body');
-const sourceBody = document.getElementById('source-body');
 const sourceActions = document.getElementById('source-actions');
 const correctionsBody = document.getElementById('corrections-body');
 const signersSummary = document.getElementById('signers-summary');
@@ -809,100 +797,6 @@ function deriveSections(jsonData) {
         .map(({ s, i }) => ({ key: `sec-${i}`, label: s.titulo || s.title }));
 }
 
-// Nunca renderizamos JSON crudo (llaves/corchetes) en esta suite — el modo "Técnico" es
-// exclusivo de la Suite de Validación interna. Cualquier estructura no reconocida se
-// muestra como tabla/lista legible en su lugar.
-function renderPlainObject(obj) {
-    if (obj === null || obj === undefined || obj === '') return '<div class="rf-empty">Sin contenido.</div>';
-    if (typeof obj !== 'object') return escHtml(String(obj));
-    if (Array.isArray(obj)) {
-        if (!obj.length) return '<div class="rf-empty">Sin contenido.</div>';
-        return '<ul>' + obj.map(item =>
-            `<li>${(item && typeof item === 'object') ? renderPlainObject(item) : escHtml(String(item))}</li>`
-        ).join('') + '</ul>';
-    }
-    const keys = Object.keys(obj);
-    if (!keys.length) return '<div class="rf-empty">Sin contenido.</div>';
-    let html = '<table class="rf-table"><tbody>';
-    keys.forEach(k => {
-        const v = obj[k];
-        const cell = (v && typeof v === 'object') ? renderPlainObject(v) : escHtml(String(v ?? ''));
-        html += `<tr><th style="width:180px;">${escHtml(k)}</th><td>${cell}</td></tr>`;
-    });
-    html += '</tbody></table>';
-    return html;
-}
-
-// Reconoce los patrones de sección más comunes en los documentos reales (mismos nombres de
-// campo que usan los templates de la Suite de Validación: tabla, tabla-info,
-// lista-incluido-excluido) y arma HTML legible. Devuelve null si no reconoce el patrón —
-// el llamador cae entonces a renderPlainObject como último recurso.
-function renderKnownSectionBody(sec) {
-    if (!sec || typeof sec !== 'object') return null;
-
-    if (Array.isArray(sec.columnas) && Array.isArray(sec.filas)) {
-        const cols = sec.columnas;
-        let html = '<table class="rf-table rv-doc-table"><thead><tr>' +
-            cols.map(c => `<th>${escHtml(c)}</th>`).join('') + '</tr></thead><tbody>';
-        sec.filas.forEach(fila => {
-            const cells = Array.isArray(fila) ? fila : cols.map(c => fila?.[c]);
-            html += '<tr>' + cells.map(c => {
-                const v = (c && typeof c === 'object') ? (c.text ?? '') : c;
-                return `<td>${escHtml(v ?? '—')}</td>`;
-            }).join('') + '</tr>';
-        });
-        return html + '</tbody></table>';
-    }
-
-    if (Array.isArray(sec.filas) && sec.filas.every(f => f && typeof f === 'object' && !Array.isArray(f))) {
-        let html = '<table class="rf-table rv-doc-table"><tbody>';
-        sec.filas.forEach(f => {
-            html += `<tr><th style="width:200px;">${escHtml(f.campo ?? f.label ?? '')}</th><td>${escHtml(f.valor ?? f.value ?? '')}</td></tr>`;
-        });
-        return html + '</tbody></table>';
-    }
-
-    if (Array.isArray(sec.incluido) || Array.isArray(sec.excluido)) {
-        let html = '';
-        if (Array.isArray(sec.incluido)) {
-            html += `<div class="rv-inex-label rv-inex-in">${escHtml(sec.subIncluido || 'Incluido')}</div>`;
-            html += '<ul>' + sec.incluido.map(t => `<li>${escHtml(t)}</li>`).join('') + '</ul>';
-        }
-        if (Array.isArray(sec.excluido)) {
-            html += `<div class="rv-inex-label rv-inex-out">${escHtml(sec.subExcluido || 'Excluido')}</div>`;
-            html += '<ul>' + sec.excluido.map(t => `<li>${escHtml(t)}</li>`).join('') + '</ul>';
-        }
-        return html;
-    }
-
-    return null;
-}
-
-function getSectionContentText(sectionObj) {
-    if (!sectionObj || typeof sectionObj !== 'object') return '';
-
-    // Patrón "bloques" (texto/subtítulo/bullets) — el más común en los documentos reales
-    // (mismo esquema que usan los templates de la Suite de Validación, p. ej. hlra.js).
-    if (Array.isArray(sectionObj.bloques)) {
-        const parts = [];
-        sectionObj.bloques.forEach(b => {
-            if (!b || typeof b !== 'object') return;
-            if (b.subtitulo) parts.push(String(b.subtitulo).toUpperCase());
-            if (b.texto) parts.push(String(b.texto));
-            if (Array.isArray(b.bullets)) {
-                b.bullets.forEach(item => parts.push('•  ' + String(item)));
-            }
-        });
-        if (parts.length) return parts.join('\n\n');
-    }
-
-    const val = sectionObj.contenido ?? sectionObj.content ?? sectionObj.texto;
-    if (typeof val === 'string') return val;
-
-    // Nunca devolvemos JSON crudo acá — si nada de lo anterior aplica, el llamador
-    // (renderSource) cae al renderer genérico renderPlainObject sobre la sección completa.
-    return '';
-}
 
 // ---------------------------------------------------------------------------
 // Enviar corrección a Validación — dirección INVERSA del bridge (mismo endpoint y misma
@@ -978,7 +872,6 @@ async function init() {
         document.getElementById('btn-push-validacion').style.display = '';
     }
 
-    document.getElementById('btn-view-pdf').addEventListener('click', openPdfModal);
     document.getElementById('btn-push-validacion').addEventListener('click', pushToValidacion);
     document.getElementById('push-validacion-cancel').addEventListener('click', () => {
         document.getElementById('push-validacion-backdrop').style.display = 'none';
@@ -990,9 +883,9 @@ async function init() {
     document.getElementById('btn-sign-review').addEventListener('click', openSignModal);
     document.getElementById('btn-load-doc').addEventListener('click', openLoadModal);
     document.getElementById('btn-download-doc').addEventListener('click', downloadJson);
-    document.getElementById('btn-visual-editor').addEventListener('click', openVisualEditor);
-    document.getElementById('visual-editor-cancel').addEventListener('click', closeVisualEditor);
+    document.getElementById('visual-editor-cancel').addEventListener('click', () => loadDocument());
     document.getElementById('visual-editor-save').addEventListener('click', saveVisualEditor);
+    document.getElementById('btn-toggle-comments').addEventListener('click', toggleCommentsPane);
 
     document.getElementById('load-cancel').addEventListener('click', closeLoadModal);
     document.getElementById('load-submit').addEventListener('click', submitLoad);
@@ -1002,16 +895,17 @@ async function init() {
         if (e.target.id === 'load-backdrop') closeLoadModal();
     });
 
-    document.getElementById('pdf-close').addEventListener('click', closePdfModal);
-    document.getElementById('pdf-backdrop').addEventListener('click', (e) => {
-        if (e.target.id === 'pdf-backdrop') closePdfModal();
-    });
-
     document.getElementById('sign-cancel').addEventListener('click', closeSignModal);
     document.getElementById('sign-submit').addEventListener('click', submitSignReview);
     document.getElementById('sign-backdrop').addEventListener('click', (e) => {
         if (e.target.id === 'sign-backdrop') closeSignModal();
     });
+
+    try {
+        await ensureVisualEditorLoaded();
+    } catch (e) {
+        showToast('No se pudo cargar el editor de documento', true);
+    }
 
     await loadDocument();
     await loadSignatures();
@@ -1029,7 +923,7 @@ async function loadDocument() {
     if (status !== 200 || !data.ok) {
         const msg = data.error || 'No se pudo cargar el documento.';
         outlineBody.innerHTML = `<div class="rf-empty">${escHtml(msg)}</div>`;
-        sourceBody.innerHTML = `<div class="rf-empty">${escHtml(msg)}</div>`;
+        document.getElementById('visual-editor-body').innerHTML = `<div class="rf-empty">${escHtml(msg)}</div>`;
         correctionsBody.innerHTML = `<div class="rf-empty">${escHtml(msg)}</div>`;
         return;
     }
@@ -1044,8 +938,25 @@ async function loadDocument() {
     lock_badge.style.display = documentRow.locked ? '' : 'none';
 
     renderOutline();
-    renderSource();
+    renderDocumentPane();
     renderComments();
+    renderPdfPreview();
+}
+
+// El mismo motor que usa la Suite de Validación (index.html) para editar -- acá se
+// muestra siempre (no como modo aparte que hay que activar), y sin edición ni "Aprobar
+// sección" para quien no es drp: la aprobación/firma de Firmas es la de "Firmar revisión",
+// no la de este editor.
+function renderDocumentPane() {
+    const container = document.getElementById('visual-editor-body');
+    if (!window.ValidationSuite || !window.ValidationSuite.visualEditor) {
+        container.innerHTML = '<div class="rf-empty">El editor de documento no está disponible.</div>';
+        return;
+    }
+    window.ValidationSuite.visualEditor.render(documentRow.json_data, container, {
+        readOnly: session.role !== 'drp',
+        hideApproval: true,
+    });
 }
 
 async function reloadComments() {
@@ -1096,63 +1007,21 @@ function renderOutline() {
     `).join('');
     outlineBody.querySelectorAll('.rv-outline-item').forEach(el => {
         el.addEventListener('click', () => {
-            const target = document.getElementById(el.dataset.key);
+            // Las claves de sección ('sec-3') coinciden con el data-section-idx que arma
+            // visual-editor.js (mismo índice que usa commentsBySection) -- no hay que
+            // mantener un mapeo aparte entre outline y editor.
+            const idx = el.dataset.key.replace('sec-', '');
+            const target = document.querySelector(`#visual-editor-body .ve-section[data-section-idx="${idx}"]`);
             if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
     });
-}
-
-function renderSource() {
-    const jsonData = documentRow.json_data;
-    let html = '';
-
-    if (jsonData && jsonData.metadata && typeof jsonData.metadata === 'object' && !Array.isArray(jsonData.metadata)) {
-        html += '<table class="rf-table rv-meta-table"><tbody>';
-        Object.keys(jsonData.metadata).forEach(k => {
-            const v = jsonData.metadata[k];
-            const metaCell = (v && typeof v === 'object') ? renderPlainObject(v) : escHtml(String(v ?? ''));
-            html += `<tr><th style="width:180px;">${escHtml(k)}</th><td>${metaCell}</td></tr>`;
-        });
-        html += '</tbody></table>';
-    }
-
-    const arr = getSectionsArray(jsonData);
-    if (arr) {
-        const sectionByKey = {};
-        sections.forEach(s => { sectionByKey[s.key] = s; });
-
-        arr.forEach((raw, i) => {
-            const sec = sectionByKey[`sec-${i}`];
-            const content = getSectionContentText(raw);
-            const known = content ? null : renderKnownSectionBody(raw);
-            const body = content ? escHtml(content) : (known !== null ? known : renderPlainObject(raw));
-            if (sec) {
-                html += `<div class="rv-section" id="${escHtml(sec.key)}">
-                    <h3>${escHtml(sec.label)}</h3>
-                    <div class="rv-section-content">${body}</div>
-                </div>`;
-            } else {
-                // Sin título propio en el documento — se muestra igual, pero como
-                // continuación del bloque anterior, sin encabezado ni número inventado.
-                html += `<div class="rv-section-content rv-untitled-continuation">${body}</div>`;
-            }
-        });
-    } else {
-        html += `<div class="rv-section" id="sec-0">
-            ${renderPlainObject(jsonData)}
-        </div>`;
-    }
-
-    sourceBody.innerHTML = html || '<div class="rf-empty">Documento vacío.</div>';
 }
 
 // ---------------------------------------------------------------------------
 // Editor visual — vendorizado desde la Suite de Validación (js/validation-suite/ui/
 // visual-editor.js tal cual, sin tocar), sección pedida por el usuario 2026-09-03: poder
 // corregir bloques/tablas/listas estructuradas en pantalla, no solo texto plano suelto.
-// Reemplaza el editor simple por sección de antes (que solo cubría el campo
-// contenido/content/texto, un caso que en documentos reales casi no aparece -- las
-// secciones reales tienen tipo:'texto' con bloques[], que este editor sí maneja).
+// Es siempre la vista del documento (ver renderDocumentPane), no un modo aparte.
 // ---------------------------------------------------------------------------
 let visualEditorScriptLoaded = false;
 let visualEditorScriptLoading = null;
@@ -1164,34 +1033,6 @@ function ensureVisualEditorLoaded() {
         visualEditorScriptLoaded = true;
     });
     return visualEditorScriptLoading;
-}
-
-async function openVisualEditor() {
-    const errorEl = document.getElementById('visual-editor-error');
-    errorEl.textContent = '';
-    errorEl.classList.remove('visible');
-
-    try {
-        await ensureVisualEditorLoaded();
-    } catch (e) {
-        showToast('No se pudo cargar el editor visual', true);
-        return;
-    }
-    if (!window.ValidationSuite || !window.ValidationSuite.visualEditor) {
-        showToast('El editor visual no está disponible', true);
-        return;
-    }
-
-    document.getElementById('source-body').style.display = 'none';
-    const wrap = document.getElementById('visual-editor-wrap');
-    wrap.style.display = 'flex';
-    const container = document.getElementById('visual-editor-body');
-    window.ValidationSuite.visualEditor.render(documentRow.json_data, container);
-}
-
-function closeVisualEditor() {
-    document.getElementById('visual-editor-wrap').style.display = 'none';
-    document.getElementById('source-body').style.display = '';
 }
 
 async function saveVisualEditor() {
@@ -1229,7 +1070,6 @@ async function saveVisualEditor() {
 
     if (status === 200 && data.ok) {
         showToast('Documento guardado');
-        closeVisualEditor();
         await loadDocument();
         return;
     }
@@ -1561,8 +1401,7 @@ async function getRenderableDocument() {
     return (status === 200 && data.ok) ? data.data : documentRow.json_data;
 }
 
-async function openPdfModal() {
-    document.getElementById('pdf-backdrop').style.display = 'flex';
+async function renderPdfPreview() {
     const loadingEl = document.getElementById('pdf-loading');
     const iframeEl = document.getElementById('pdf-iframe');
     const errorEl = document.getElementById('pdf-error');
@@ -1600,8 +1439,27 @@ async function openPdfModal() {
     }
 }
 
-function closePdfModal() {
-    document.getElementById('pdf-backdrop').style.display = 'none';
+// La columna 3 alterna entre la vista previa del PDF y Comentarios en el mismo lugar
+// -- no es una columna aparte, es un panel superpuesto que se abre solo cuando hace
+// falta corregir (propuesta del usuario 2026-09-19), así no compite con la lógica de
+// Validación en la columna del documento.
+function toggleCommentsPane() {
+    const pdfPane = document.getElementById('pdf-pane-body');
+    const showingComments = correctionsBody.style.display !== 'none';
+    const btn = document.getElementById('btn-toggle-comments');
+    const title = document.getElementById('right-pane-title');
+
+    if (showingComments) {
+        correctionsBody.style.display = 'none';
+        pdfPane.style.display = '';
+        title.textContent = 'Vista previa';
+        btn.textContent = '💬 Comentarios';
+    } else {
+        pdfPane.style.display = 'none';
+        correctionsBody.style.display = '';
+        title.textContent = 'Comentarios';
+        btn.textContent = '📄 Ver documento';
+    }
 }
 
 // ---------------------------------------------------------------------------
