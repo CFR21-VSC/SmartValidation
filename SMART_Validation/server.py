@@ -950,15 +950,18 @@ def _bridge_push_document(proj_id: str, doc_type: str) -> dict:
     proj_row = db.execute(
         "SELECT cliente, partner_logo FROM projects WHERE id=?", (proj_id,)
     ).fetchone()
-    branding = None
-    # Gateado por la presencia del LOGO, no de `cliente` solo -- ver _api_project_set_branding.
-    if proj_row and proj_row["partner_logo"]:
-        branding = {"name": proj_row["cliente"] or "", "logo": proj_row["partner_logo"]}
+    # Siempre se manda (aunque esté vacío) -- si se omitiera cuando no hay logo, Firmas nunca
+    # se enteraba de que se lo sacó y quedaba con el branding viejo para siempre (encontrado
+    # en revisión de Codex, 2026-09-19: limpiar el logo en Validación no se propagaba). El
+    # gate de si se MUESTRA en el PDF sigue siendo la presencia del logo (ver
+    # _api_project_set_branding y template-base.js), esto es solo la sincronización.
+    branding = {
+        "name": (proj_row["cliente"] or "") if proj_row else "",
+        "logo": (proj_row["partner_logo"] or None) if proj_row else None,
+    }
 
     path = f"/bridge/projects/{quote(proj_id, safe='')}/documents/{quote(doc_type, safe='')}"
-    body = {"json_data": content}
-    if branding:
-        body["branding"] = branding
+    body = {"json_data": content, "branding": branding}
     return _bridge_request("PUT", path, body)
 
 

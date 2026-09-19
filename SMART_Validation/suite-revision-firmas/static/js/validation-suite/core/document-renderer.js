@@ -412,8 +412,14 @@
             if (!resp.ok) return null;
             const data = await resp.json();
             const proj = data && data.project;
-            if (!proj || !proj.partner_name) return null;
-            return { name: proj.partner_name, logo: proj.partner_logo || null };
+            // Gateado por el LOGO, no por el nombre -- projects.cliente YA es el campo de
+            // nombre (no hay un "partner_name" separado, ver _api_project_set_branding en
+            // server.py). Esto estaba desalineado con el backend desde la reconciliación
+            // cliente/partner_name: seguía pidiendo partner_name, que el backend ya no manda
+            // -- encontrado en revisión de Codex, 2026-09-19 (la función siempre devolvía
+            // null en la práctica).
+            if (!proj || !proj.partner_logo) return null;
+            return { name: proj.cliente || '', logo: proj.partner_logo };
         } catch (e) {
             return null;
         }

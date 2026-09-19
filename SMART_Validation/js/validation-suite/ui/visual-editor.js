@@ -434,6 +434,11 @@
             case 'vsr-cronologia-fases':     renderVsrCronologiaFasesBody(sec, body); break;
             case 'vsr-hallazgos-resumen':    renderVsrHallazgosResumenBody(sec, body); break;
             case 'vsr-inventario-paquete':   renderVsrInventarioPaqueteBody(sec, body); break;
+            // EVIR, EVPROT, EVRA
+            case 'tabla-resumen-pruebas':    renderTablaResumenPruebasBody(sec, body); break;
+            case 'caja-estado-validacion':   renderCajaEstadoValidacionBody(sec, body); break;
+            case 'tabla-test-cases':         renderTablaTestCasesBody(sec, body); break;
+            case 'tabla-riesgos':            renderTablaRiesgosBody(sec, body); break;
             // Todo lo demás: smart read-only (muestra datos sin candado)
             default:                         renderSmartFallbackBody(sec, body); break;
         }
@@ -1441,7 +1446,74 @@
         _readOnlyNote(body);
     }
 
-    // Aceptación formal del riesgo residual (aceptacion-riesgo-residual): conclusión + lista
+    // EVIR: resumen de pruebas ya ejecutadas.
+    function renderTablaResumenPruebasBody(sec, body) {
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var cols = [
+            { key: 'id', label: 'ID', width: 6 }, { key: 'descripcion', label: 'Descripción', width: 24 },
+            { key: 'resultadoEsperado', label: 'Resultado esperado', width: 20 }, { key: 'resultadoReal', label: 'Resultado real', width: 20 },
+            { key: 'resultado', label: 'Resultado', width: 10, render: function (t) { return t.resultado ? _badgeSpan(t.resultado, _estadoColor(t.resultado)) : ''; } },
+            { key: 'observaciones', label: 'Observaciones', width: 20 },
+        ];
+        body.appendChild(_buildSmartTable(cols, sec.testCases, 'Sin test cases.'));
+        _readOnlyNote(body);
+    }
+
+    // EVIR: caja de estado final de validación (APROBADA/NO APROBADA/...).
+    function renderCajaEstadoValidacionBody(sec, body) {
+        var estado = sec.estado || 'NO APROBADA';
+        var color = _estadoColor(estado);
+        var box = el('div', { className: 've-decision-box', attrs: { style: 'border-color:' + color + ';color:' + color + ';' } });
+        box.appendChild(el('div', { className: 've-decision-label', text: 'ESTADO DE VALIDACIÓN' }));
+        box.appendChild(el('div', { className: 've-decision-text', text: estado }));
+        body.appendChild(box);
+        if (sec.contenido) body.appendChild(el('div', { className: 've-smart-intro', text: sec.contenido, attrs: { style: 'margin-top:8px;' } }));
+        _readOnlyNote(body);
+    }
+
+    // EVPROT: casos de prueba con procedimiento paso a paso (distinto de tabla-test-case,
+    // singular, que ya tiene su propio renderer con pasos anidados).
+    function renderTablaTestCasesBody(sec, body) {
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var cols = [
+            { key: 'id', label: 'ID', width: 6 },
+            { key: 'desc', label: 'Descripción / Procedimiento', width: 30, render: function (t) {
+                var wrap = el('div');
+                if (t.descripcion) wrap.appendChild(el('div', { text: t.descripcion, attrs: { style: 'font-weight:700;margin-bottom:3px;' } }));
+                if (t.procedimiento) wrap.appendChild(el('div', { text: t.procedimiento, attrs: { style: 'white-space:pre-wrap;color:#666;' } }));
+                return wrap;
+            } },
+            { key: 'entradas', label: 'Entradas', width: 13 }, { key: 'resultadoEsperado', label: 'Resultado esperado', width: 17 },
+            { key: 'resultadoReal', label: 'Resultado real', width: 15 },
+            { key: 'resultado', label: 'P/F', width: 7, render: function (t) { return t.resultado ? _badgeSpan(t.resultado, _estadoColor(t.resultado)) : ''; } },
+            { key: 'observaciones', label: 'Obs.', width: 12 },
+        ];
+        body.appendChild(_buildSmartTable(cols, sec.testCases, 'Sin test cases.'));
+        _readOnlyNote(body);
+    }
+
+    // EVRA: matriz de riesgos de la planilla (distinta de tabla-fmea de RA -- otro esquema
+    // de columnas, P/S/RI/RR en vez de S/P/D/RI/RR, y sin subheaders de módulo).
+    function renderTablaRiesgosBody(sec, body) {
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var cols = [
+            { key: 'id', label: 'ID', width: 6 }, { key: 'categoria', label: 'Categoría', width: 15 },
+            { key: 'desc', label: 'Descripción / Causa / Efecto GxP', width: 30, render: function (r) {
+                var parts = [r.descripcion, r.causa ? ('Causa: ' + r.causa) : '', r.efectoGxP ? ('Efecto GxP: ' + r.efectoGxP) : ''].filter(Boolean);
+                return parts.join(' — ');
+            } },
+            { key: 'probabilidad', label: 'P', width: 5, render: function (r) { return r.probabilidad ? _badgeSpan(r.probabilidad, _nivelColor(r.probabilidad)) : ''; } },
+            { key: 'severidad', label: 'S', width: 5, render: function (r) { return r.severidad ? _badgeSpan(r.severidad, _nivelColor(r.severidad)) : ''; } },
+            { key: 'riesgoInherente', label: 'R.I.', width: 7, render: function (r) { return r.riesgoInherente ? _badgeSpan(r.riesgoInherente, _nivelColor(r.riesgoInherente)) : ''; } },
+            { key: 'control', label: 'Control propuesto', width: 22 },
+            { key: 'riesgoResidual', label: 'R.R.', width: 7, render: function (r) { return r.riesgoResidual ? _badgeSpan(r.riesgoResidual, _nivelColor(r.riesgoResidual)) : ''; } },
+        ];
+        body.appendChild(el('div', { className: 've-smart-note', text: 'P = Probabilidad · S = Severidad · R.I. = Riesgo Inherente · R.R. = Riesgo Residual', attrs: { style: 'border-top:none;padding:0 0 8px;' } }));
+        body.appendChild(_buildSmartTable(cols, sec.riesgos, 'Sin riesgos.'));
+        _readOnlyNote(body);
+    }
+
+    // Aceptación formal del riesgo residual (aceptacion-riesgo-residual): conclusión y lista
     // completa de puntos (el fallback genérico solo mostraba 3 y cortaba el resto).
     function renderAceptacionRiesgoResidualBody(sec, body) {
         if (sec.conclusion) body.appendChild(el('div', { className: 've-smart-intro', text: sec.conclusion }));
@@ -1485,10 +1557,18 @@
     // pendiente, cerrado/abierto, etc.). Mismo criterio de "aproximado y consistente" que
     // ya usa el PDF real en cada template (cada uno con su propia regex).
     function _estadoColor(v) {
+        // Orden crítico -- encontrado por Codex en revisión (2026-09-19): la versión anterior
+        // chequeaba el patrón positivo primero, y "NO APROBADO"/"NO VALIDADO" contienen
+        // "APROB"/"VALID" como substring, así que un estado NEGADO se pintaba de éxito (verde).
+        // No es un detalle visual menor: invierte el significado de una decisión de
+        // aprobación/validación. "NO APLICA" también tiene que resolverse ANTES del chequeo de
+        // negación genérico (es neutral, no una falla) y ANTES del de PEND/APLIC (que matchea
+        // "APLIC" suelto).
         var s = String(v || '').toUpperCase();
-        if (/PASS|APROB|CERR|CUMPL|VERIF|VALID/.test(s)) return '#27AE60';
-        if (/FAIL|ABIERT|CRITIC|RECHAZ|NO\s*PASA|NO\s*APROB/.test(s)) return '#C0392B';
-        if (/OBS|MEDIO|CURSO|APLIC|PEND/.test(s)) return '#E67E22';
+        if (/\bN\/A\b|NO\s+APLICA/.test(s)) return '#717D8A';
+        if (/OBSERVA|\bOBS\b|MEDIO|EN\s*CURSO|\bCURSO\b|PENDIENTE/.test(s)) return '#E67E22';
+        if (/\bNO\s+(APROB\w*|PASA\w*|CUMPL\w*|VALID\w*)|\bFALL\w*|\bFAIL\b|ABIERT\w*|CRITIC\w*|RECHAZ\w*/.test(s)) return '#C0392B';
+        if (/\bPASA\b|\bPASS\b|APROB\w*|CERR\w*|CUMPL\w*|VERIF\w*|VALID\w*/.test(s)) return '#27AE60';
         return '#717D8A';
     }
 
@@ -2246,6 +2326,14 @@
         container.querySelectorAll('button').forEach(function (btn) {
             btn.style.display = 'none';
         });
+        // contenteditable no cubre los campos de header/tabla-info/tarjeta-gap/arbol-gamp/etc.,
+        // que son <input>/<textarea>/<select> reales -- sin esto quedaban editables para
+        // cualquier rol aunque el resto de la sección se viera bloqueada (encontrado en
+        // revisión de Codex, 2026-09-19: 8 inputs habilitados con readOnly:true).
+        container.querySelectorAll('input, textarea, select').forEach(function (field) {
+            field.disabled = true;
+            field.readOnly = true;
+        });
     }
 
     /** Oculta solo la barra de "Aprobar sección" -- para hosts (Firmas) que tienen
@@ -2262,6 +2350,10 @@
     function render(data, container, opts) {
         opts = opts || {};
         container.innerHTML = '';
+        // La clase queda en el contenedor, no en los hijos que innerHTML='' recién borró --
+        // si el mismo contenedor se reusa para un render editable después de uno readOnly,
+        // sin esto quedaba con la clase vieja aunque el contenido ya no lo fuera.
+        container.classList.remove('ve-readonly');
         if (!data || typeof data !== 'object') {
             container.appendChild(el('div', { className: 've-empty', text: 'No hay JSON cargado. Cargá un doc desde el dropdown de plantillas o el paquete.' }));
             return;

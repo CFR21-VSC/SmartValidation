@@ -69,13 +69,16 @@ def push_document(
 ):
     db = get_db()
     result = _upsert_document(db, project_id, doc_type, body.json_data, actor)
-    if body.branding:
-        # El proyecto ya existe en este punto -- _upsert_document lo crea si hacía falta
-        # (ensure_project). Solo actualiza cuando viene un valor no vacío, para no pisar
-        # ediciones más nuevas hechas directo en Firmas con un push de un documento viejo.
+    # server.py manda `branding` en TODOS los push, aunque esté vacío -- es la única forma de
+    # que una limpieza de logo en Validación se propague acá (si se omitiera cuando no hay
+    # logo, esta fila nunca se actualizaba y quedaba con el branding viejo para siempre;
+    # encontrado en revisión de Codex, 2026-09-19). No hay edición de branding directa en
+    # Firmas (no existe ese endpoint/UI acá), así que no hay nada propio que este UPDATE
+    # pueda pisar por accidente.
+    if body.branding is not None:
         db.execute(
             "UPDATE rf_projects SET partner_name=?, partner_logo=?, updated_at=? WHERE id=?",
-            (body.branding.name, body.branding.logo, time.time(), project_id),
+            (body.branding.name or None, body.branding.logo, time.time(), project_id),
         )
         db.commit()
     return result

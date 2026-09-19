@@ -1019,10 +1019,16 @@ function renderDocumentPane() {
         container.innerHTML = '<div class="rf-empty">El editor de documento no está disponible.</div>';
         return;
     }
+    // Sellado bloquea edición para cualquiera, no solo por rol -- el backend igual rechaza el
+    // guardado con 409 (ver saveVisualEditor), pero mostrarlo editable ahí es engañoso: DRP
+    // vería inputs activos para algo que no puede guardar (encontrado en revisión de Codex,
+    // 2026-09-19).
+    const readOnly = session.role !== 'drp' || !!documentRow.locked;
     window.ValidationSuite.visualEditor.render(documentRow.json_data, container, {
-        readOnly: session.role !== 'drp',
+        readOnly: readOnly,
         hideApproval: true,
     });
+    document.getElementById('visual-editor-save').style.display = readOnly ? 'none' : '';
 }
 
 async function reloadComments() {
