@@ -388,12 +388,16 @@
 
     function renderTarjetaGap(sec, tb) {
         const C = tb.VS_COLORS;
-        const sev = (sec.severidad || 'menor').toLowerCase();
+        // Vocabulario canonico de Escala A, normalizado en shared-renderers:
+        // CRITICA / MAYOR / MENOR / OBSERVACION, mas las formas historicas.
+        const sev = (VS.shared && VS.shared.normalizarSeveridadGap)
+            ? VS.shared.normalizarSeveridadGap(sec.severidad)
+            : String(sec.severidad || '').toLowerCase();
         const sevColor = {
             'menor': C.sevMenor,
             'mayor': C.sevMayor,
-            'critico': '#A93226',
-            'info': C.sevInfo
+            'critica': '#A93226',
+            'observacion': C.sevInfo
         }[sev] || C.sevMenor;
 
         const sevLabel = (sec.severidadLabel || sec.severidad || 'NC Menor').toUpperCase();

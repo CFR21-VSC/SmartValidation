@@ -85,6 +85,29 @@
     };
 
     // ====================================================================
+    // NORMALIZADOR DE SEVERIDAD DE GAP (Escala A)
+    // Vocabulario canonico: CRITICA / MAYOR / MENOR / OBSERVACION.
+    //
+    // El mapa de colores de hlra.js solo conocia 'menor'/'mayor'/'critico'/
+    // 'info' en minuscula. Los DOS valores canonicos que no coincidian
+    // -CRITICA (femenino y con acento) y OBSERVACION- caian al color por
+    // defecto, que es el de MENOR, sin avisar: un gap CRITICA se dibujaba
+    // igual que uno menor. Medido en review-documentos/severidad-gap-probe.cjs.
+    //
+    // Se aceptan las formas historicas que ya estan en los documentos
+    // ('critico', 'info', minusculas) para no invalidar lo ya escrito.
+    // ====================================================================
+    VS.shared.normalizarSeveridadGap = function (sev) {
+        const s = String(sev || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+            .trim().toLowerCase();
+        if (s === 'critica' || s === 'critico') return 'critica';
+        if (s === 'mayor') return 'mayor';
+        if (s === 'menor') return 'menor';
+        if (s === 'observacion' || s === 'info') return 'observacion';
+        return '';        // desconocido: lo resuelve quien llama, sin inventar
+    };
+
+    // ====================================================================
     VS.shared.createSectionNumberer = function () {
         let counter = 0;
         return function (sec) {
