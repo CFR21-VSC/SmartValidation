@@ -167,7 +167,7 @@
                 th: 'URS', width: 60, widthDense: 50,
                 thOpts: { alignment: 'center' },
                 render: (tc, o) => {
-                    const ursTxt = Array.isArray(tc.ursVinculados) ? tc.ursVinculados.join(' | ') : (tc.ursVinculados || '—');
+                    const ursTxt = (Array.isArray(tc.ursVinculados) && tc.ursVinculados.length) ? tc.ursVinculados.join(' | ') : '—';
                     return tb.vsTd(ursTxt, { fillColor: o.bg, alignment: 'center', fontSize: o.dense ? 6 : 7, italics: true });
                 }
             },
@@ -343,7 +343,11 @@
         const C = tb.VS_COLORS;
         const niv = getNivelInfo(tc);
         const tipo = tipoTCInfo(tc);
-        const ursTxt = Array.isArray(tc.ursVinculados) ? tc.ursVinculados.join(' | ') : (tc.ursVinculados || '—');
+        // Array vacío (TC sin URS vinculada, legítimo -- ej. checks de infraestructura sin
+        // requisito funcional directo) tiene que mostrar '—', igual que tc.raVinculado más
+        // abajo -- antes [].join(' | ') daba '' y la celda quedaba en blanco, indistinguible
+        // de un error de render (reportado por el usuario, 2026-09-19).
+        const ursTxt = (Array.isArray(tc.ursVinculados) && tc.ursVinculados.length) ? tc.ursVinculados.join(' | ') : '—';
 
         // Decidimos columnas izquierdas según schemaModo
         const isOq = schemaModo === 'procedimiento';
