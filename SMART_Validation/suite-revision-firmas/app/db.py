@@ -240,6 +240,7 @@ def init_db() -> None:
     _migrate_add_signing_integrity(db)
     _migrate_signing_integrity_gaps(db)
     _migrate_add_document_display_order(db)
+    _migrate_add_project_privacy(db)
 
 
 def _migrate_add_comment_parent_id(db) -> None:
@@ -422,6 +423,13 @@ def _migrate_add_document_display_order(db) -> None:
     ya existentes = todavía nadie reordenó nada, cae al orden de cascada GxP por defecto
     (doc_order.py) -- no hace falta backfill."""
     _add_columns_if_missing(db, "rf_documents", {"display_order": "INTEGER"})
+
+
+def _migrate_add_project_privacy(db) -> None:
+    """Proyectos privados (pedido del usuario, 2026-09-19) -- ver comentario en schema.sql.
+    0/NULL en bases existentes = todo lo que ya había sigue siendo "público" (visible para
+    cualquier DRP, comportamiento sin cambios)."""
+    _add_columns_if_missing(db, "rf_projects", {"is_private": "INTEGER DEFAULT 0", "owner_user_id": "TEXT"})
 
 
 def _migrate_legacy_corrections(db) -> None:

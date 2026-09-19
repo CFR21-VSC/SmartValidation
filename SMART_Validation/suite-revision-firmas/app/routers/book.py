@@ -18,7 +18,7 @@ import time
 from fastapi import APIRouter, Depends
 
 from ..db import get_db
-from ..deps import require_drp
+from ..deps import assert_owner_if_private, require_drp
 from ..doc_order import sort_docs
 
 router = APIRouter(prefix="/projects/{project_id}", tags=["book"])
@@ -137,6 +137,7 @@ def get_book_package(project_id: str, user: dict = Depends(require_drp)):
     """Solo documentos SELLADOS — el Libro de Validación es un entregable de
     contenido definitivo y firmado, no de borradores en curso."""
     db = get_db()
+    assert_owner_if_private(db, user, project_id)
     docs = db.execute(
         "SELECT id, doc_type, json_data, branding_name_at_signing, branding_logo_at_signing, "
         "branding_captured_at_signing, display_order "

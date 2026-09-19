@@ -195,15 +195,31 @@ def test_deactivate_cannot_target_self(drp_client):
     assert r.status_code == 400
 
 
-def test_deactivate_blocks_last_active_superadmin(drp_client):
+def test_deactivate_by_non_superadmin_drp_hides_the_superadmin_account(drp_client):
+    """Rol superadmin (2026-09-19, pedido del usuario: "ellos no deberían ver mi usuario
+    superadministrador"): un DRP normal (no superadmin) no puede ni siquiera CONFIRMAR que
+    la cuenta superadmin existe intentando tocarla -- 404, igual que un id inexistente, no el
+    400 "último superadmin" que revelaría que sí existe."""
     from app.db import get_db
     me = get_db().execute("SELECT id FROM rf_users WHERE is_superadmin=1").fetchone()
-    # Otro DRP intenta desactivar al único superadmin -- primero se necesita otro DRP
-    # logueado para no chocar con el bloqueo de auto-desactivación de arriba.
     other_id, other_cli = _invite_and_activate(drp_client, "otrodrp", "otrodrp@example.com", role="drp")
     r = other_cli.patch(f"/users/{me['id']}/deactivate")
-    assert r.status_code == 400
-    assert "superadmin" in r.json()["detail"].lower()
+    assert r.status_code == 404
+
+
+def test_superadmin_can_deactivate_another_superadmin(drp_client):
+    """Un superadmin SÍ puede tocar la cuenta de otro superadmin (a diferencia de un DRP
+    normal, bloqueado arriba con 404) -- _assert_target_not_hidden_superadmin solo protege de
+    quien NO es superadmin."""
+    from app.db import get_db
+    db = get_db()
+    original = db.execute("SELECT id FROM rf_users WHERE is_superadmin=1").fetchone()
+    other_id, other_cli = _invite_and_activate(drp_client, "otrosuper", "otrosuper@example.com", role="drp")
+    db.execute("UPDATE rf_users SET is_superadmin=1 WHERE id=?", (other_id,))
+    db.commit()
+    other_cli.post("/auth/login", json={"username": "otrosuper", "password": "password123"})
+    r = other_cli.patch(f"/users/{original['id']}/deactivate")
+    assert r.status_code == 200, r.text
 
 
 def test_deactivate_unknown_user_404(drp_client):

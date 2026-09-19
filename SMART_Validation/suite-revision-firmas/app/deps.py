@@ -53,21 +53,61 @@ def require_service_token(x_bridge_key: str = Header(default="")) -> dict:
     return {"uid": None, "u": "suite-documental"}
 
 
-def check_document_access(user: dict, project_id: str, doc_type: str) -> None:
-    """DRP ve todo. Partner y cliente solo si tienen un grant explícito para ese documento
-    puntual (sección 3, Capa 2 — habilitación a nivel documento, no a nivel proyecto). Partner
-    se diferencia de cliente en OTROS lugares (dossier completo del proyecto, reopen_document
-    -- ver has_any_grant_in_project más abajo), no en el acceso a un documento puntual: ahí
-    los dos necesitan el mismo grant explícito, igual que siempre."""
-    if user.get("r") == "drp":
-        return
-    db = get_db()
+def is_superadmin_fresh(db, user: dict) -> bool:
+    """Nunca confiar en user['sa'] del token para una decisión de autorización real -- queda
+    en el token tal como estaba al loguearse, hasta 12h, aunque is_superadmin se revoque
+    después en la base (mismo criterio ya establecido para este chequeo puntual en
+    sign_approval, ver signatures.py). Se relee siempre fresco de rf_users."""
+    row = db.execute("SELECT is_superadmin FROM rf_users WHERE id=?", (user.get("uid"),)).fetchone()
+    return bool(row and row["is_superadmin"])
+
+
+def _has_document_grant(db, user_id: str, project_id: str, doc_type: str) -> bool:
     row = db.execute(
         "SELECT id FROM rf_document_access_grants WHERE user_id=? AND project_id=? AND doc_type=?",
-        (user.get("uid"), project_id, doc_type),
+        (user_id, project_id, doc_type),
     ).fetchone()
-    if not row:
+    return bool(row)
+
+
+def check_document_access(user: dict, project_id: str, doc_type: str) -> None:
+    """DRP ve todo -- salvo que el proyecto sea privado y no sea suyo (rol superadmin, pedido
+    del usuario 2026-09-19: "proyectos... que los vea solo yo, ni siquiera otros usuarios
+    DRP"). Partner y cliente solo si tienen un grant explícito para ese documento puntual
+    (sección 3, Capa 2 — habilitación a nivel documento, no a nivel proyecto); ESE grant
+    también es lo que deja entrar a alguien (drp, partner o cliente) a un documento puntual de
+    un proyecto privado ajeno -- es la vía explícita de "compartir para firmar" que el dueño
+    del proyecto usa a propósito, tiene que pesar más que el bypass de rol drp de abajo.
+    404 (no 403) cuando el bloqueo es por privacidad: un 403 confirmaría que el documento
+    existe; alguien sin acceso no tiene por qué poder distinguir "no existe" de "existe pero
+    es privado de otra persona"."""
+    db = get_db()
+    proj = db.execute(
+        "SELECT is_private, owner_user_id FROM rf_projects WHERE id=?", (project_id,)
+    ).fetchone()
+    is_owner = bool(proj) and proj["owner_user_id"] == user.get("uid")
+    if proj and proj["is_private"] and not is_owner:
+        if not _has_document_grant(db, user.get("uid"), project_id, doc_type):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Documento no encontrado")
+        return
+    if user.get("r") == "drp":
+        return
+    if not _has_document_grant(db, user.get("uid"), project_id, doc_type):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "No tenés acceso a este documento")
+
+
+def assert_owner_if_private(db, user: dict, project_id: str) -> None:
+    """Para endpoints exclusivos de DRP a nivel PROYECTO, sin mecanismo de grant propio
+    (renombrar, cerrar/archivar/borrar, marca del partner, audit-log, libro compilado, listado
+    de accesos otorgados, orden de documentos): un proyecto privado es invisible incluso para
+    otro DRP que no sea su dueño. 404, mismo motivo que en check_document_access -- no
+    confirmar existencia. No hay atajo de "grant" acá porque estos endpoints nunca lo tuvieron
+    -- ya eran DRP-only antes de que existiera la privacidad."""
+    row = db.execute(
+        "SELECT is_private, owner_user_id FROM rf_projects WHERE id=?", (project_id,)
+    ).fetchone()
+    if row and row["is_private"] and row["owner_user_id"] != user.get("uid"):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Proyecto no encontrado")
 
 
 def has_any_grant_in_project(db, user_id: str, project_id: str) -> bool:

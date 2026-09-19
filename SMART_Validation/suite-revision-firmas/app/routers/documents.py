@@ -23,7 +23,7 @@ from pydantic import BaseModel
 from .. import config, email_resend, validacion_bridge
 from ..audit import log_event, log_system_event
 from ..db import get_db
-from ..deps import check_document_access, ensure_project_active, get_current_user, require_drp
+from ..deps import assert_owner_if_private, check_document_access, ensure_project_active, get_current_user, require_drp
 from ..doc_order import sort_docs
 from .book import collect_signatures, fecha as _fmt_fecha, iniciales as _fmt_iniciales, inject_signatures_section
 from .projects import ensure_project, has_signature_evidence
@@ -182,6 +182,7 @@ def load_document(project_id: str, doc_type: str, body: LoadDocumentBody, user: 
     """DRP carga (o reemplaza) el JSON fuente. Rechaza si el documento ya está sellado/inmutable
     o si el proyecto está cerrado/archivado."""
     db = get_db()
+    assert_owner_if_private(db, user, project_id)
     return _upsert_document(db, project_id, doc_type, body.json_data, user)
 
 
@@ -192,6 +193,7 @@ def delete_document(project_id: str, doc_type: str, user: dict = Depends(require
     el audit trail de sistema, no en el People Book (ese es del ciclo GxP del documento,
     no de acciones administrativas — sección 5 de la arquitectura)."""
     db = get_db()
+    assert_owner_if_private(db, user, project_id)
     doc = _get_document_or_404(db, project_id, doc_type)
     if doc["locked"]:
         raise HTTPException(status.HTTP_409_CONFLICT, "El documento está sellado — no puede eliminarse")
@@ -223,6 +225,7 @@ def list_document_grants(project_id: str, doc_type: str, user: dict = Depends(re
     del dashboard, para no tener que ir a la pantalla de Usuarios a ver/otorgar accesos
     documento por documento."""
     db = get_db()
+    assert_owner_if_private(db, user, project_id)
     rows = db.execute(
         "SELECT g.id, g.user_id, u.username, u.display_name, u.email, u.role, "
         "g.granted_by, g.granted_at "
@@ -240,9 +243,15 @@ def list_documents(project_id: str, user: dict = Depends(get_current_user)):
     Orden: el que DRP haya elegido a mano para este proyecto (display_order), o si nunca
     reordenó nada, la cascada GxP por defecto -- no alfabético (doc_order.py; pedido del
     usuario 2026-09-19: alfabético mezclaba tipos sin relación con el ciclo de vida real del
-    proyecto, ej. IOQ antes que HLRA, y además quería poder reordenar a mano)."""
+    proyecto, ej. IOQ antes que HLRA, y además quería poder reordenar a mano).
+
+    Privacidad (2026-09-19): un proyecto privado ajeno hace caer a un DRP no-dueño al mismo
+    camino que cliente/partner -- mismo criterio que get_dossier (projects.py)."""
     db = get_db()
-    if user.get("r") == "drp":
+    proj = db.execute("SELECT is_private, owner_user_id FROM rf_projects WHERE id=?", (project_id,)).fetchone()
+    is_owner = bool(proj) and proj["owner_user_id"] == user.get("uid")
+    private_and_not_owner = bool(proj) and proj["is_private"] and not is_owner
+    if user.get("r") == "drp" and not private_and_not_owner:
         rows = db.execute(
             "SELECT id, doc_type, status, locked, created_at, updated_at, display_order "
             "FROM rf_documents WHERE project_id=?",
@@ -272,6 +281,7 @@ def set_documents_order(project_id: str, body: DocumentsOrderBody, user: dict = 
     en este proyecto; cualquier otro valor en la lista se ignora en silencio (defensivo, no
     debería pasar si el frontend manda la lista completa que él mismo mostró)."""
     db = get_db()
+    assert_owner_if_private(db, user, project_id)
     for idx, doc_type in enumerate(body.doc_types):
         db.execute(
             "UPDATE rf_documents SET display_order=? WHERE project_id=? AND doc_type=?",
@@ -304,6 +314,7 @@ def push_to_validacion(
     empujaba Validación -> Firmas. Ver validacion_bridge.py para el detalle del contrato
     (bloqueo por CRITICO nuevo, confirmación por MAYOR/MENOR nuevo)."""
     db = get_db()
+    assert_owner_if_private(db, user, project_id)
     doc = _get_document_or_404(db, project_id, doc_type)
     result = validacion_bridge.push_correction(
         project_id, doc_type, json.loads(doc["json_data"]), user["u"], confirmed=body.confirmed,
@@ -591,6 +602,7 @@ def get_people_book(project_id: str, doc_type: str, user: dict = Depends(require
     """Libro de Validación, sección People — audit trail del documento (sección 6).
     Sin interfaz visual todavía: expone los datos crudos para que DRP los consulte."""
     db = get_db()
+    assert_owner_if_private(db, user, project_id)
     rows = db.execute(
         "SELECT username, event_type, description, created_at FROM rf_people_book_events "
         "WHERE project_id=? AND doc_type=? ORDER BY created_at",

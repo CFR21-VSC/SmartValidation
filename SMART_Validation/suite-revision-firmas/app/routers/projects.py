@@ -6,6 +6,7 @@ vez que se carga un documento bajo ese project_id (ver ensure_project, llamado
 desde documents.load_document). Lo que sí es nuevo acá es que ese proyecto
 implícito ahora tiene estado propio: activo / cerrado / archivado / eliminado.
 """
+import re
 import time
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -13,7 +14,7 @@ from pydantic import BaseModel
 
 from ..audit import log_system_event
 from ..db import get_db
-from ..deps import get_current_user, has_any_grant_in_project, require_drp
+from ..deps import assert_owner_if_private, get_current_user, has_any_grant_in_project, is_superadmin_fresh, require_drp
 from ..doc_order import sort_docs
 
 
@@ -65,21 +66,76 @@ def ensure_project(db, project_id: str, username: str) -> bool:
     return True
 
 
-def _get_project_or_404(db, project_id: str) -> dict:
+def _get_project_or_404(db, project_id: str, user: dict) -> dict:
+    """`user` es obligatorio -- todos los llamadores de esta función son endpoints DRP-only
+    de ciclo de vida del proyecto (close/archive/reopen/rename/branding/delete), exactamente
+    los que necesitan el chequeo de privacidad (pedido del usuario, 2026-09-19: un proyecto
+    privado es invisible incluso para otro DRP que no sea su dueño)."""
     row = db.execute("SELECT * FROM rf_projects WHERE id=?", (project_id,)).fetchone()
     if row:
-        return dict(row)
-    # Migración: proyectos con documentos cargados ANTES de que existiera rf_projects
-    # (fase 5) no tienen fila propia todavía — sin este backfill, close/archive/delete
-    # les devuelven 404 aunque existan de verdad, y el bloqueo por sellado del DELETE
-    # nunca llega a evaluarse (encontrado en QA real 2026-08-30). Self-healing: si tiene
-    # al menos un documento, se lo trata como activo y se crea la fila recién ahora.
-    has_docs = db.execute("SELECT 1 FROM rf_documents WHERE project_id=? LIMIT 1", (project_id,)).fetchone()
-    if not has_docs:
+        proj = dict(row)
+    else:
+        # Migración: proyectos con documentos cargados ANTES de que existiera rf_projects
+        # (fase 5) no tienen fila propia todavía — sin este backfill, close/archive/delete
+        # les devuelven 404 aunque existan de verdad, y el bloqueo por sellado del DELETE
+        # nunca llega a evaluarse (encontrado en QA real 2026-08-30). Self-healing: si tiene
+        # al menos un documento, se lo trata como activo y se crea la fila recién ahora.
+        has_docs = db.execute("SELECT 1 FROM rf_documents WHERE project_id=? LIMIT 1", (project_id,)).fetchone()
+        if not has_docs:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Proyecto no encontrado")
+        ensure_project(db, project_id, "sistema")
+        db.commit()
+        proj = dict(db.execute("SELECT * FROM rf_projects WHERE id=?", (project_id,)).fetchone())
+    if proj["is_private"] and proj["owner_user_id"] != user.get("uid"):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Proyecto no encontrado")
-    ensure_project(db, project_id, "sistema")
+    return proj
+
+
+_ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,120}$")
+
+
+class CreateProjectBody(BaseModel):
+    id: str
+    is_private: bool = False
+
+
+@router.post("")
+def create_project(body: CreateProjectBody, user: dict = Depends(require_drp)):
+    """Creación explícita de un proyecto (pedido del usuario, 2026-09-19) -- antes un
+    proyecto solo "aparecía" al cargar su primer documento (ensure_project, llamado desde
+    _upsert_document), sin ningún momento donde decidir si es privado. Eso sigue funcionando
+    igual para proyectos públicos comunes (no hace falta pasar por acá); esta vía es la única
+    forma de crear uno PRIVADO desde el primer instante, sin una ventana donde exista como
+    público. is_private=true es exclusivo de superadmin -- releído fresco de la base, nunca
+    del token (ver is_superadmin_fresh)."""
+    project_id = body.id.strip()
+    if not project_id or not _ID_RE.match(project_id):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "El id debe tener 1-120 caracteres: letras, números, punto, guión o guión bajo",
+        )
+    db = get_db()
+    existing = db.execute("SELECT id FROM rf_projects WHERE id=?", (project_id,)).fetchone()
+    has_docs = db.execute("SELECT 1 FROM rf_documents WHERE project_id=? LIMIT 1", (project_id,)).fetchone()
+    if existing or has_docs:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Ya existe un proyecto con ese id")
+    if body.is_private and not is_superadmin_fresh(db, user):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo superadmin puede crear proyectos privados")
+
+    now = time.time()
+    owner = user.get("uid") if body.is_private else None
+    db.execute(
+        "INSERT INTO rf_projects (id, status, created_by, created_at, updated_at, is_private, owner_user_id) "
+        "VALUES (?,'active',?,?,?,?,?)",
+        (project_id, user["u"], now, now, int(body.is_private), owner),
+    )
     db.commit()
-    return dict(db.execute("SELECT * FROM rf_projects WHERE id=?", (project_id,)).fetchone())
+    log_system_event(
+        user, "project_created",
+        f"{user['u']} creó el proyecto" + (" (privado)" if body.is_private else ""),
+        project_id=project_id,
+    )
+    return {"ok": True, "id": project_id, "is_private": body.is_private}
 
 
 # Un comentario sin resolver más viejo que esto se marca "atrasado" en el dossier — ayuda
@@ -96,11 +152,16 @@ def get_dossier(project_id: str, user: dict = Depends(get_current_user)):
     una empresa que colabora activamente en el proyecto, ej. EMARA, sin ser DRP) ve el
     dossier COMPLETO del proyecto en cuanto tiene al menos un documento otorgado ahí -- no
     queda limitado a sus documentos puntuales como cliente, que sigue viendo solo lo que
-    tiene habilitado uno por uno."""
+    tiene habilitado uno por uno. Si el proyecto es privado (2026-09-19), el bypass de rol
+    drp NO alcanza para un DRP que no sea el dueño -- cae al mismo camino que partner/cliente,
+    o sea nada a menos que tenga un grant puntual (mismo criterio que check_document_access)."""
     db = get_db()
+    proj = db.execute("SELECT is_private, owner_user_id FROM rf_projects WHERE id=?", (project_id,)).fetchone()
+    is_owner = bool(proj) and proj["owner_user_id"] == user.get("uid")
+    private_and_not_owner = bool(proj) and proj["is_private"] and not is_owner
     role = user.get("r")
-    full_visibility = role == "drp" or (
-        role == "partner" and has_any_grant_in_project(db, user.get("uid"), project_id)
+    full_visibility = (not private_and_not_owner and role == "drp") or (
+        role == "partner" and not private_and_not_owner and has_any_grant_in_project(db, user.get("uid"), project_id)
     )
     if full_visibility:
         docs = db.execute(
@@ -179,12 +240,23 @@ def get_dossier(project_id: str, user: dict = Depends(get_current_user)):
 
 @router.get("")
 def list_projects(include_archived: bool = False, user: dict = Depends(get_current_user)):
-    """DRP ve todos los proyectos con documentos cargados. Cliente solo los que
-    tiene al menos un documento habilitado (sección 3, Capa 2). Los archivados
-    quedan afuera del listado por default (siguen existiendo, solo se ocultan)."""
+    """DRP ve todos los proyectos con documentos cargados, MÁS los creados explícitamente
+    (POST /projects) aunque todavía no tengan ningún documento -- sin el UNION, un proyecto
+    recién creado (típicamente uno privado, que se crea vacío) no aparecía en ningún lado
+    hasta el primer documento. Cliente/partner solo los que tienen al menos un documento
+    habilitado (sección 3, Capa 2). Los archivados quedan afuera del listado por default
+    (siguen existiendo, solo se ocultan).
+
+    Privacidad (2026-09-19): un proyecto privado se excluye del todo para cualquiera que no
+    sea su dueño -- incluido otro DRP -- salvo que tenga al menos un grant ahí (mismo criterio
+    que el resto: "compartir para firmar" pesa más que "sos DRP pero no el dueño")."""
     db = get_db()
     if user.get("r") == "drp":
-        rows = db.execute("SELECT DISTINCT project_id FROM rf_documents ORDER BY project_id").fetchall()
+        rows = db.execute(
+            "SELECT project_id FROM rf_documents "
+            "UNION SELECT id AS project_id FROM rf_projects "
+            "ORDER BY project_id"
+        ).fetchall()
     else:
         rows = db.execute(
             "SELECT DISTINCT project_id FROM rf_document_access_grants WHERE user_id=? ORDER BY project_id",
@@ -196,22 +268,31 @@ def list_projects(include_archived: bool = False, user: dict = Depends(get_curre
     if ids:
         placeholders = ",".join("?" for _ in ids)
         for r in db.execute(
-            f"SELECT id, status, display_name, partner_name, partner_logo FROM rf_projects WHERE id IN ({placeholders})",
+            f"SELECT id, status, display_name, partner_name, partner_logo, is_private, owner_user_id "
+            f"FROM rf_projects WHERE id IN ({placeholders})",
             tuple(ids),
         ):
             meta[r["id"]] = {
                 "status": r["status"], "display_name": r["display_name"],
                 "partner_name": r["partner_name"], "partner_logo": r["partner_logo"],
+                "is_private": r["is_private"], "owner_user_id": r["owner_user_id"],
             }
 
     result = []
     for pid in ids:
-        m = meta.get(pid, {"status": "active", "display_name": None, "partner_name": None, "partner_logo": None})
+        m = meta.get(pid, {
+            "status": "active", "display_name": None, "partner_name": None, "partner_logo": None,
+            "is_private": 0, "owner_user_id": None,
+        })
         if m["status"] == "archived" and not include_archived:
+            continue
+        is_owner = m["owner_user_id"] == user.get("uid")
+        if m["is_private"] and not is_owner and not has_any_grant_in_project(db, user.get("uid"), pid):
             continue
         result.append({
             "id": pid, "status": m["status"], "display_name": m["display_name"],
             "partner_name": m["partner_name"], "partner_logo": m["partner_logo"],
+            "is_private": bool(m["is_private"]), "is_owner": is_owner,
         })
 
     return {"ok": True, "projects": result}
@@ -220,7 +301,7 @@ def list_projects(include_archived: bool = False, user: dict = Depends(get_curre
 @router.patch("/{project_id}/close")
 def close_project(project_id: str, user: dict = Depends(require_drp)):
     db = get_db()
-    proj = _get_project_or_404(db, project_id)
+    proj = _get_project_or_404(db, project_id, user)
     if proj["status"] == "closed":
         raise HTTPException(status.HTTP_409_CONFLICT, "El proyecto ya está cerrado")
     now = time.time()
@@ -233,7 +314,7 @@ def close_project(project_id: str, user: dict = Depends(require_drp)):
 @router.patch("/{project_id}/archive")
 def archive_project(project_id: str, user: dict = Depends(require_drp)):
     db = get_db()
-    proj = _get_project_or_404(db, project_id)
+    proj = _get_project_or_404(db, project_id, user)
     if proj["status"] == "archived":
         raise HTTPException(status.HTTP_409_CONFLICT, "El proyecto ya está archivado")
     now = time.time()
@@ -246,7 +327,7 @@ def archive_project(project_id: str, user: dict = Depends(require_drp)):
 @router.patch("/{project_id}/reopen")
 def reopen_project(project_id: str, user: dict = Depends(require_drp)):
     db = get_db()
-    proj = _get_project_or_404(db, project_id)
+    proj = _get_project_or_404(db, project_id, user)
     if proj["status"] == "active":
         raise HTTPException(status.HTTP_409_CONFLICT, "El proyecto ya está activo")
     now = time.time()
@@ -270,7 +351,7 @@ def rename_project(project_id: str, body: RenameProjectBody, user: dict = Depend
     encontrar este mismo proyecto en cada push. Mandar display_name vacío borra el nombre
     (vuelve a mostrarse el id crudo)."""
     db = get_db()
-    _get_project_or_404(db, project_id)
+    _get_project_or_404(db, project_id, user)
     name = body.display_name.strip() or None
     now = time.time()
     db.execute(
@@ -304,7 +385,7 @@ def set_project_branding(project_id: str, body: ProjectBrandingBody, user: dict 
     mandando SU copia de `branding` (aunque esté vacía) y la va a pisar -- Firmas no
     sincroniza este cambio de vuelta hacia Validación, es una escritura local nada más."""
     db = get_db()
-    _get_project_or_404(db, project_id)
+    _get_project_or_404(db, project_id, user)
 
     partner_logo = body.partner_logo
     if partner_logo is not None:
@@ -343,7 +424,7 @@ def delete_project(project_id: str, user: dict = Depends(require_drp)):
     o no) tiene evidencia de firma electrónica -- la inmutabilidad de un documento firmado
     no se salta borrando el proyecto entero en vez del documento puntual."""
     db = get_db()
-    _get_project_or_404(db, project_id)
+    _get_project_or_404(db, project_id, user)
 
     locked = db.execute(
         "SELECT doc_type FROM rf_documents WHERE project_id=? AND locked=1", (project_id,)
@@ -389,6 +470,7 @@ def delete_project(project_id: str, user: dict = Depends(require_drp)):
 def get_system_audit_log(project_id: str, user: dict = Depends(require_drp)):
     """Audit trail de sistema de UN proyecto (DRP-only) — separado del Libro de Validación."""
     db = get_db()
+    assert_owner_if_private(db, user, project_id)
     rows = db.execute(
         "SELECT username, event_type, project_id, doc_type, description, created_at "
         "FROM rf_system_audit_log WHERE project_id=? ORDER BY created_at",
@@ -400,10 +482,18 @@ def get_system_audit_log(project_id: str, user: dict = Depends(require_drp)):
 @audit_router.get("/audit-log")
 def get_global_audit_log(user: dict = Depends(require_drp)):
     """Audit trail de sistema UNIFICADO — todos los proyectos a la vez, más reciente primero.
-    No requiere estar parado dentro de un proyecto para trazar qué pasó en el sistema."""
+    No requiere estar parado dentro de un proyecto para trazar qué pasó en el sistema.
+
+    Sin el filtro de privacidad, este endpoint solo era un atajo para leer TODO lo que pasa en
+    cualquier proyecto -- incluidos los privados de otra persona, con project_id y descripción
+    en texto plano (encontrado revisando este pedido, 2026-09-19: hubiera dejado sin efecto la
+    privacidad entera de un proyecto secreto)."""
     db = get_db()
     rows = db.execute(
-        "SELECT username, event_type, project_id, doc_type, description, created_at "
-        "FROM rf_system_audit_log ORDER BY created_at DESC LIMIT 500"
+        "SELECT a.username, a.event_type, a.project_id, a.doc_type, a.description, a.created_at "
+        "FROM rf_system_audit_log a LEFT JOIN rf_projects p ON p.id = a.project_id "
+        "WHERE p.id IS NULL OR p.is_private=0 OR p.owner_user_id=? "
+        "ORDER BY a.created_at DESC LIMIT 500",
+        (user.get("uid"),),
     ).fetchall()
     return {"ok": True, "events": [dict(r) for r in rows]}

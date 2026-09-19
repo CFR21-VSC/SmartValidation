@@ -14,7 +14,7 @@ from pydantic import BaseModel, EmailStr
 from .. import config, email_resend, security
 from ..audit import log_system_event
 from ..db import get_db
-from ..deps import require_drp
+from ..deps import is_superadmin_fresh, require_drp
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -83,12 +83,30 @@ def create_user(body: CreateUserBody, user: dict = Depends(require_drp)):
 
 @router.get("")
 def list_users(user: dict = Depends(require_drp)):
+    """Un usuario superadmin (pedido del usuario, 2026-09-19: "ellos no deberían ver mi
+    usuario superadministrador") queda oculto de este listado para cualquier DRP que no sea
+    superadmin él mismo -- ni username, ni email, ni el flag. Antes esta consulta devolvía
+    literalmente todas las filas sin ningún filtro."""
     db = get_db()
-    rows = db.execute(
+    query = (
         "SELECT id, username, email, display_name, role, is_active, is_superadmin, pin_set, "
-        "created_at, last_login FROM rf_users ORDER BY created_at DESC"
-    ).fetchall()
+        "created_at, last_login FROM rf_users"
+    )
+    if not is_superadmin_fresh(db, user):
+        query += " WHERE is_superadmin=0"
+    query += " ORDER BY created_at DESC"
+    rows = db.execute(query).fetchall()
     return {"ok": True, "users": [dict(r) for r in rows]}
+
+
+def _assert_target_not_hidden_superadmin(db, requester: dict, target: dict) -> None:
+    """Ocultar la fila en list_users no alcanza si el ID igual se puede usar a mano contra
+    deactivate/reactivate/reset-credentials -- un DRP que consiga el id de otra forma (o lo
+    adivine) podría desactivar o resetear la cuenta del superadmin sin verla nunca en la
+    lista. 404, no 403, mismo motivo que en todos los demás chequeos de privacidad de esta
+    ronda: no confirmar que existe."""
+    if target["is_superadmin"] and not is_superadmin_fresh(db, requester):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
 
 
 def _revoke_active_sessions(db, username: str) -> None:
@@ -109,15 +127,18 @@ def deactivate_user(user_id: str, user: dict = Depends(require_drp)):
     target = db.execute("SELECT username, display_name, email, is_superadmin, is_active FROM rf_users WHERE id=?", (user_id,)).fetchone()
     if not target:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+    _assert_target_not_hidden_superadmin(db, user, target)
     if target["username"] == user["u"]:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "No podés desactivar tu propia cuenta")
-    if target["is_superadmin"]:
-        others = db.execute(
-            "SELECT COUNT(*) AS n FROM rf_users WHERE is_superadmin=1 AND is_active=1 AND id!=?", (user_id,)
-        ).fetchone()["n"]
-        if others == 0:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, "No se puede desactivar al último superadmin activo")
-
+    # El chequeo de "no desactivar al último superadmin activo" que vivía acá (contar otros
+    # superadmin activos, bloquear si daba 0) quedó como código muerto con el filtro de arriba
+    # (2026-09-19): para llegar hasta acá, quien actúa ya tuvo que pasar
+    # _assert_target_not_hidden_superadmin, o sea YA es superadmin activo y distinto del
+    # target (el self-check de arriba lo garantiza) -- por construcción, ese actor siempre
+    # cuenta como "otro superadmin activo", así que el conteo nunca podía dar 0. La única
+    # combinación que lo hacía disparar en la práctica (un DRP no-superadmin desactivando al
+    # único superadmin) ahora ni siquiera llega hasta acá -- corta antes, oculto como si no
+    # existiera.
     db.execute("UPDATE rf_users SET is_active=0, updated_at=? WHERE id=?", (time.time(), user_id))
     _revoke_active_sessions(db, target["username"])
     db.commit()
@@ -130,9 +151,10 @@ def deactivate_user(user_id: str, user: dict = Depends(require_drp)):
 @router.patch("/{user_id}/reactivate")
 def reactivate_user(user_id: str, user: dict = Depends(require_drp)):
     db = get_db()
-    target = db.execute("SELECT display_name, email FROM rf_users WHERE id=?", (user_id,)).fetchone()
+    target = db.execute("SELECT display_name, email, is_superadmin FROM rf_users WHERE id=?", (user_id,)).fetchone()
     if not target:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+    _assert_target_not_hidden_superadmin(db, user, target)
 
     db.execute("UPDATE rf_users SET is_active=1, updated_at=? WHERE id=?", (time.time(), user_id))
     db.commit()
@@ -152,10 +174,11 @@ def reset_credentials(user_id: str, user: dict = Depends(require_drp)):
     (rf_invites.consumed_at)."""
     db = get_db()
     target = db.execute(
-        "SELECT username, email, display_name FROM rf_users WHERE id=?", (user_id,)
+        "SELECT username, email, display_name, is_superadmin FROM rf_users WHERE id=?", (user_id,)
     ).fetchone()
     if not target:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+    _assert_target_not_hidden_superadmin(db, user, target)
 
     now = time.time()
     db.execute("UPDATE rf_users SET password_hash=NULL, updated_at=? WHERE id=?", (now, user_id))

@@ -107,10 +107,17 @@
         </div>
         <div class="rf-field" id="new-project-form" style="display:none;">
             <input class="rf-input" id="new-project-input" placeholder="Código de proyecto (ej: PROY-001)" style="font-size:12px; padding:7px 10px;">
+            <!-- Privado: exclusivo de superadmin (pedido del usuario, 2026-09-19) -- ni
+                 siquiera otro DRP debería enterarse de que la opción existe, así que el
+                 checkbox entero queda oculto para cualquiera que no sea superadmin. -->
+            <label id="new-project-private-label" style="display:none; align-items:center; gap:6px; margin-top:8px; font-size:11.5px; color:var(--text-muted); cursor:pointer;">
+                <input type="checkbox" id="new-project-private-toggle"> 🔒 Privado (solo vos lo vas a ver)
+            </label>
             <div style="display:flex; gap:6px; margin-top:6px;">
                 <button class="rf-btn" id="new-project-confirm" style="flex:1; padding:6px; font-size:12px;">Crear</button>
                 <button class="rf-btn-secondary" id="new-project-cancel" style="padding:6px 10px; font-size:12px;">Cancelar</button>
             </div>
+            <div class="rf-error" id="new-project-error"></div>
         </div>
         <div id="project-list"></div>
         <label id="include-archived-label" style="display:none; align-items:center; gap:6px; margin-top:12px; font-size:11px; color:var(--text-muted); cursor:pointer;">
@@ -405,7 +412,15 @@ const newProjectInput = document.getElementById('new-project-input');
 
 newProjectBtn.addEventListener('click', () => {
     newProjectForm.style.display = newProjectForm.style.display === 'none' ? '' : 'none';
-    if (newProjectForm.style.display !== 'none') { newProjectInput.value = ''; newProjectInput.focus(); }
+    if (newProjectForm.style.display !== 'none') {
+        newProjectInput.value = '';
+        document.getElementById('new-project-private-toggle').checked = false;
+        document.getElementById('new-project-error').classList.remove('visible');
+        // Privado: exclusivo de superadmin (pedido del usuario, 2026-09-19) -- oculto para
+        // cualquier otro DRP, ni siquiera se entera de que la opción existe.
+        document.getElementById('new-project-private-label').style.display = session.is_superadmin ? 'flex' : 'none';
+        newProjectInput.focus();
+    }
 });
 document.getElementById('new-project-cancel').addEventListener('click', () => {
     newProjectForm.style.display = 'none';
@@ -413,12 +428,27 @@ document.getElementById('new-project-cancel').addEventListener('click', () => {
 document.getElementById('new-project-confirm').addEventListener('click', confirmNewProject);
 newProjectInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); confirmNewProject(); } });
 
-function confirmNewProject() {
+async function confirmNewProject() {
     const projectId = newProjectInput.value.trim();
     if (!projectId) { newProjectInput.focus(); return; }
-    newProjectForm.style.display = 'none';
-    showLoadForm = true;
-    selectProject(projectId, true);
+    const isPrivate = session.is_superadmin && document.getElementById('new-project-private-toggle').checked;
+    const errorBox = document.getElementById('new-project-error');
+    errorBox.classList.remove('visible');
+    const btn = document.getElementById('new-project-confirm');
+    btn.disabled = true;
+    const { status, data } = await apiFetch('/projects', {
+        method: 'POST', body: { id: projectId, is_private: isPrivate },
+    });
+    btn.disabled = false;
+    if (status === 200 && data.ok) {
+        newProjectForm.style.display = 'none';
+        showLoadForm = true;
+        await loadProjects();
+        selectProject(projectId, true);
+        return;
+    }
+    errorBox.textContent = data.error || 'No se pudo crear el proyecto.';
+    errorBox.classList.add('visible');
 }
 document.getElementById('pb-close').addEventListener('click', closePeopleBook);
 document.getElementById('pb-backdrop').addEventListener('click', (e) => {
@@ -571,7 +601,7 @@ function renderProjectList() {
         <div class="rf-project-item" data-project="${escHtml(p.id)}"
              style="padding:10px 12px; border-radius:6px; cursor:pointer; margin-bottom:4px;
                     ${p.id === selectedProject ? 'background:rgba(200,146,26,.15); color:var(--gold);' : 'color:var(--text);'}">
-            ${escHtml(p.display_name || p.id)}<span style="color:var(--text-muted); font-size:11px;">${statusLabel[p.status] || ''}</span>
+            ${p.is_private ? '🔒 ' : ''}${escHtml(p.display_name || p.id)}<span style="color:var(--text-muted); font-size:11px;">${statusLabel[p.status] || ''}</span>
         </div>
     `).join('');
 

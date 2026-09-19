@@ -252,7 +252,15 @@ CREATE TABLE IF NOT EXISTS rf_projects (
     created_at    REAL,
     updated_at    REAL,
     closed_at     REAL,
-    archived_at   REAL
+    archived_at   REAL,
+    -- Proyectos privados (pedido del usuario, 2026-09-19): solo su dueño (owner_user_id) los
+    -- ve -- ni siquiera otro DRP, sea o no superadmin él mismo. is_private=0/owner_user_id
+    -- NULL para todo lo existente (proyectos "públicos" de siempre, sin cambio de
+    -- comportamiento). Ver deps.py (check_document_access, assert_owner_if_private) para
+    -- dónde se hace cumplir esto -- NUNCA basta con ocultarlo de un listado, cada endpoint
+    -- que devuelve datos de un proyecto puntual tiene que rechazar explícitamente.
+    is_private    INTEGER DEFAULT 0,
+    owner_user_id TEXT
 );
 
 -- Audit trail de SISTEMA — acciones administrativas/operativas (alta de usuarios, accesos,
