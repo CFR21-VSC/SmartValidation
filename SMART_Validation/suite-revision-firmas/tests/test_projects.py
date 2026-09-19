@@ -159,6 +159,74 @@ def test_rename_project_requires_drp(cliente):
     assert r.status_code == 403
 
 
+# ─── Branding editable directo desde Firmas (pedido del usuario, 2026-09-19: "agreguemoslo
+# en la suite de firmas así queda todo centralizado" -- antes solo llegaba vía el bridge de
+# Validación) ────────────────────────────────────────────────────────────────────────────
+
+def test_set_project_branding(drp_with_pin):
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    r = drp_with_pin.patch(
+        "/projects/proj-1/branding",
+        json={"partner_name": "EMARA", "partner_logo": "data:image/png;base64,xx"},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json() == {"ok": True, "partner_name": "EMARA", "partner_logo": "data:image/png;base64,xx"}
+
+    listed = next(p for p in drp_with_pin.get("/projects").json()["projects"] if p["id"] == "proj-1")
+    assert listed["partner_name"] == "EMARA"
+    assert listed["partner_logo"] == "data:image/png;base64,xx"
+
+
+def test_set_project_branding_rejects_non_data_url_logo(drp_with_pin):
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    r = drp_with_pin.patch(
+        "/projects/proj-1/branding",
+        json={"partner_name": "EMARA", "partner_logo": "https://evil.example/logo.png"},
+    )
+    assert r.status_code == 400
+
+
+def test_set_project_branding_name_only_keeps_existing_logo(drp_with_pin):
+    """partner_logo omitido (None) = no tocar -- solo se actualiza el nombre."""
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    drp_with_pin.patch(
+        "/projects/proj-1/branding",
+        json={"partner_name": "EMARA", "partner_logo": "data:image/png;base64,xx"},
+    )
+    r = drp_with_pin.patch("/projects/proj-1/branding", json={"partner_name": "EMARA Renombrado"})
+    assert r.status_code == 200, r.text
+    assert r.json()["partner_logo"] == "data:image/png;base64,xx"
+
+
+def test_set_project_branding_empty_logo_removes_it(drp_with_pin):
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    drp_with_pin.patch(
+        "/projects/proj-1/branding",
+        json={"partner_name": "EMARA", "partner_logo": "data:image/png;base64,xx"},
+    )
+    r = drp_with_pin.patch("/projects/proj-1/branding", json={"partner_name": "EMARA", "partner_logo": ""})
+    assert r.status_code == 200, r.text
+    assert r.json()["partner_logo"] is None
+
+
+def test_set_project_branding_requires_drp(cliente):
+    cli, _user_id = cliente
+    r = cli.patch("/projects/proj-1/branding", json={"partner_name": "no debería poder"})
+    assert r.status_code == 403
+
+
+def test_set_project_branding_reflected_in_document_read(drp_with_pin, cliente):
+    """El branding fijado desde acá tiene que aparecer en partner_branding al leer un
+    documento -- mismo campo que ya usa el render/PDF."""
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    drp_with_pin.patch(
+        "/projects/proj-1/branding",
+        json={"partner_name": "EMARA", "partner_logo": "data:image/png;base64,xx"},
+    )
+    doc = drp_with_pin.get("/projects/proj-1/documents/HLRA").json()
+    assert doc["partner_branding"] == {"name": "EMARA", "logo": "data:image/png;base64,xx"}
+
+
 def test_rename_missing_project_404(drp_with_pin):
     r = drp_with_pin.patch("/projects/proj-x/display-name", json={"display_name": "x"})
     assert r.status_code == 404

@@ -40,6 +40,39 @@
     </div>
 </div>
 
+<!-- Modal: marca del partner (DRP-only) -- nombre + logo que aparecen junto al de DRP
+     Assurance en portada/header/pie de los PDF de este proyecto (mismo campo que ya existía
+     del lado de Validación, ahora editable directo acá también -- pedido del usuario,
+     2026-09-19: "agreguemoslo en la suite de firmas así queda todo centralizado"). -->
+<div class="rf-modal-backdrop" id="branding-backdrop" style="display:none;">
+    <div class="rf-modal" style="width:min(440px, 92vw);">
+        <h3>Marca del partner</h3>
+        <div class="rf-label" style="margin-bottom:12px;">
+            Si cargás un logo, el nombre de abajo va a aparecer junto al de DRP Assurance en los
+            PDF de este proyecto. Sin logo, los documentos siguen mostrando solo DRP Assurance
+            aunque el nombre esté completado.
+        </div>
+        <div class="rf-field">
+            <label class="rf-label" for="branding-name-input">Nombre del partner / cliente</label>
+            <input class="rf-input" id="branding-name-input" placeholder="Ej: EMARA">
+        </div>
+        <div class="rf-field">
+            <label class="rf-label">Logo (opcional)</label>
+            <input type="file" id="branding-logo-file" accept="image/png,image/jpeg,image/svg+xml" style="display:none;">
+            <button type="button" class="rf-btn-secondary" id="branding-logo-pick-btn">📂 Elegir imagen</button>
+            <div id="branding-logo-preview" style="margin-top:8px; display:none;">
+                <img id="branding-logo-img" style="max-height:40px; max-width:160px;" alt="Logo partner">
+                <button type="button" class="rf-btn-secondary" id="branding-logo-remove" style="padding:2px 8px; font-size:11px; margin-left:8px;">Quitar</button>
+            </div>
+        </div>
+        <div class="rf-error" id="branding-error"></div>
+        <div style="margin-top:14px; display:flex; justify-content:flex-end; gap:10px;">
+            <button type="button" class="rf-btn-secondary" id="branding-cancel">Cancelar</button>
+            <button type="button" class="rf-btn" id="branding-save">Guardar</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal: cambiar contraseña (cualquier usuario logueado, DRP o cliente) -->
 <div class="rf-modal-backdrop" id="pwd-backdrop" style="display:none;">
     <div class="rf-modal" style="width:min(420px, 92vw);">
@@ -246,6 +279,78 @@ document.getElementById('rename-project-save').addEventListener('click', async (
         return;
     }
     errorBox.textContent = data.error || 'No se pudo actualizar el nombre.';
+    errorBox.classList.add('visible');
+});
+
+// ── Marca del partner (DRP-only) ─────────────────────────────────────────────
+let _brandingLogoBase64 = undefined; // undefined = no tocar; null = quitar; data:... = nuevo
+
+function openBrandingModal() {
+    const proj = projects.find(p => p.id === selectedProject);
+    document.getElementById('branding-name-input').value = (proj && proj.partner_name) || '';
+    document.getElementById('branding-error').classList.remove('visible');
+    _brandingLogoBase64 = undefined;
+    document.getElementById('branding-logo-file').value = '';
+    const preview = document.getElementById('branding-logo-preview');
+    if (proj && proj.partner_logo) {
+        document.getElementById('branding-logo-img').src = proj.partner_logo;
+        preview.style.display = 'block';
+    } else {
+        preview.style.display = 'none';
+    }
+    document.getElementById('branding-backdrop').style.display = 'flex';
+}
+document.getElementById('branding-cancel').addEventListener('click', () => {
+    document.getElementById('branding-backdrop').style.display = 'none';
+});
+document.getElementById('branding-backdrop').addEventListener('click', (e) => {
+    if (e.target.id === 'branding-backdrop') document.getElementById('branding-backdrop').style.display = 'none';
+});
+document.getElementById('branding-logo-pick-btn').addEventListener('click', () => {
+    document.getElementById('branding-logo-file').click();
+});
+document.getElementById('branding-logo-file').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (file.size > 1.5 * 1024 * 1024) {
+        document.getElementById('branding-error').textContent = 'La imagen es muy pesada (máx. ~1.5MB). Elegí un archivo más liviano.';
+        document.getElementById('branding-error').classList.add('visible');
+        e.target.value = '';
+        return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        _brandingLogoBase64 = ev.target.result;
+        document.getElementById('branding-logo-img').src = _brandingLogoBase64;
+        document.getElementById('branding-logo-preview').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+});
+document.getElementById('branding-logo-remove').addEventListener('click', () => {
+    _brandingLogoBase64 = null;
+    document.getElementById('branding-logo-file').value = '';
+    document.getElementById('branding-logo-preview').style.display = 'none';
+});
+document.getElementById('branding-save').addEventListener('click', async () => {
+    const errorBox = document.getElementById('branding-error');
+    errorBox.classList.remove('visible');
+    const name = document.getElementById('branding-name-input').value.trim();
+    const btn = document.getElementById('branding-save');
+    btn.disabled = true;
+    const body = { partner_name: name };
+    if (_brandingLogoBase64 !== undefined) body.partner_logo = _brandingLogoBase64 || '';
+    const { status, data } = await apiFetch(`/projects/${encodeURIComponent(selectedProject)}/branding`, {
+        method: 'PATCH', body,
+    });
+    btn.disabled = false;
+    if (status === 200 && data.ok) {
+        document.getElementById('branding-backdrop').style.display = 'none';
+        showToast('Marca del partner actualizada');
+        await loadProjects();
+        renderMain();
+        return;
+    }
+    errorBox.textContent = data.error || 'No se pudo actualizar la marca.';
     errorBox.classList.add('visible');
 });
 
@@ -529,6 +634,7 @@ function renderMain() {
         <h2 style="margin:0;">${escHtml(projDisplayName)}</h2>
         ${projDisplayName !== selectedProject ? `<span style="font-size:11px; color:var(--text-muted);">(${escHtml(selectedProject)})</span>` : ''}
         ${isDrp ? `<button class="rf-btn-secondary" id="btn-rename-project" style="padding:3px 8px; font-size:11px;">✎ Renombrar</button>` : ''}
+        ${isDrp ? `<button class="rf-btn-secondary" id="btn-project-branding" style="padding:3px 8px; font-size:11px;">🏷️ Marca del partner</button>` : ''}
         ${pstatus !== 'active' ? `<span class="rf-badge">${pstatus === 'closed' ? 'Cerrado' : 'Archivado'}</span>` : ''}
         <div class="rf-spacer"></div>
         <button class="rf-btn-secondary" id="btn-dossier">📊 Estado del proyecto</button>`;
@@ -563,6 +669,7 @@ function renderMain() {
 
     if (isDrp) {
         document.getElementById('btn-rename-project').addEventListener('click', openRenameProjectModal);
+        document.getElementById('btn-project-branding').addEventListener('click', openBrandingModal);
         const toggleBtn = document.getElementById('toggle-load-form');
         if (toggleBtn) toggleBtn.addEventListener('click', () => { showLoadForm = !showLoadForm; prefillDocType = null; renderMain(); });
 

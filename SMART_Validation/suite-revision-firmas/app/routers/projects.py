@@ -196,16 +196,23 @@ def list_projects(include_archived: bool = False, user: dict = Depends(get_curre
     if ids:
         placeholders = ",".join("?" for _ in ids)
         for r in db.execute(
-            f"SELECT id, status, display_name FROM rf_projects WHERE id IN ({placeholders})", tuple(ids)
+            f"SELECT id, status, display_name, partner_name, partner_logo FROM rf_projects WHERE id IN ({placeholders})",
+            tuple(ids),
         ):
-            meta[r["id"]] = {"status": r["status"], "display_name": r["display_name"]}
+            meta[r["id"]] = {
+                "status": r["status"], "display_name": r["display_name"],
+                "partner_name": r["partner_name"], "partner_logo": r["partner_logo"],
+            }
 
     result = []
     for pid in ids:
-        m = meta.get(pid, {"status": "active", "display_name": None})
+        m = meta.get(pid, {"status": "active", "display_name": None, "partner_name": None, "partner_logo": None})
         if m["status"] == "archived" and not include_archived:
             continue
-        result.append({"id": pid, "status": m["status"], "display_name": m["display_name"]})
+        result.append({
+            "id": pid, "status": m["status"], "display_name": m["display_name"],
+            "partner_name": m["partner_name"], "partner_logo": m["partner_logo"],
+        })
 
     return {"ok": True, "projects": result}
 
@@ -277,6 +284,56 @@ def rename_project(project_id: str, body: RenameProjectBody, user: dict = Depend
         project_id=project_id,
     )
     return {"ok": True, "display_name": name}
+
+
+class ProjectBrandingBody(BaseModel):
+    partner_name: str = ""
+    partner_logo: str | None = None  # None = no tocar; "" = quitar; data:image/... = nuevo logo
+
+
+_MAX_LOGO_B64_LEN = 2_000_000  # mismo tope que _api_project_set_branding en la Suite Documental
+
+
+@router.patch("/{project_id}/branding")
+def set_project_branding(project_id: str, body: ProjectBrandingBody, user: dict = Depends(require_drp)):
+    """Marca de partner/cliente editable directamente desde Firmas (pedido del usuario,
+    2026-09-19: "agreguemoslo en la suite de firmas así queda todo centralizado") -- antes
+    solo se podía cargar desde la Suite de Validación y llegaba acá vía el push de un
+    documento (bridge.py, PushDocumentBody.branding). Esta escritura es independiente de esa
+    otra vía: si más tarde alguien empuja un documento nuevo desde Validación, ese push sigue
+    mandando SU copia de `branding` (aunque esté vacía) y la va a pisar -- Firmas no
+    sincroniza este cambio de vuelta hacia Validación, es una escritura local nada más."""
+    db = get_db()
+    _get_project_or_404(db, project_id)
+
+    partner_logo = body.partner_logo
+    if partner_logo is not None:
+        partner_logo = partner_logo.strip()
+        if partner_logo and not partner_logo.startswith("data:image/"):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "partner_logo debe ser un data URL de imagen")
+        if len(partner_logo) > _MAX_LOGO_B64_LEN:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "El logo es demasiado pesado")
+
+    name = body.partner_name.strip()
+    now = time.time()
+    if partner_logo is None:
+        db.execute(
+            "UPDATE rf_projects SET partner_name=?, updated_at=? WHERE id=?",
+            (name or None, now, project_id),
+        )
+    else:
+        db.execute(
+            "UPDATE rf_projects SET partner_name=?, partner_logo=?, updated_at=? WHERE id=?",
+            (name or None, partner_logo or None, now, project_id),
+        )
+    db.commit()
+    log_system_event(
+        user, "project_branding_updated",
+        f"{user['u']} actualizó la marca del partner del proyecto" + (f" a '{name}'" if name else ""),
+        project_id=project_id,
+    )
+    row = db.execute("SELECT partner_name, partner_logo FROM rf_projects WHERE id=?", (project_id,)).fetchone()
+    return {"ok": True, "partner_name": row["partner_name"], "partner_logo": row["partner_logo"]}
 
 
 @router.delete("/{project_id}")
