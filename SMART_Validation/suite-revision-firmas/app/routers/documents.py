@@ -225,7 +225,12 @@ def get_document(project_id: str, doc_type: str, user: dict = Depends(get_curren
     proj = db.execute(
         "SELECT partner_name, partner_logo FROM rf_projects WHERE id=?", (project_id,)
     ).fetchone()
-    branding = {"name": proj["partner_name"], "logo": proj["partner_logo"]} if proj and proj["partner_name"] else None
+    # Gateado por el LOGO, no por el nombre -- mismo criterio que Validación y
+    # template-base.js (un proyecto puede tener logo sin cliente cargado; el nombre es
+    # cosmético, no obligatorio). Estaba desalineado acá: encontrado en segunda revisión de
+    # Codex, 2026-09-19 -- un proyecto con logo y cliente vacío no mostraba nada en Firmas
+    # aunque sí lo mostrara en Validación.
+    branding = {"name": proj["partner_name"] or "", "logo": proj["partner_logo"]} if proj and proj["partner_logo"] else None
     return {"ok": True, "document": doc, "comments": [dict(c) for c in comments], "partner_branding": branding}
 
 
@@ -265,11 +270,12 @@ def get_signed_render(
     proj = db.execute(
         "SELECT partner_name, partner_logo FROM rf_projects WHERE id=?", (project_id,)
     ).fetchone()
-    if proj and proj["partner_name"]:
+    # Gateado por el LOGO, no por el nombre -- ver misma nota en get_document.
+    if proj and proj["partner_logo"]:
         # Solo en esta proyección de render -- nunca se guarda, `data` acá es lo que ya
         # devuelve inject_signatures_section (firmas incluidas "as of now"), no el documento
         # editable. template-base.js lee este campo para dibujar el segundo logo/nombre.
-        data["_partnerBranding"] = {"name": proj["partner_name"], "logo": proj["partner_logo"]}
+        data["_partnerBranding"] = {"name": proj["partner_name"] or "", "logo": proj["partner_logo"]}
     return {"ok": True, "data": data}
 
 

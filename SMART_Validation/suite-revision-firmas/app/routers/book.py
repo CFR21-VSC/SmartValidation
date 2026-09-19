@@ -138,7 +138,8 @@ def get_book_package(project_id: str, user: dict = Depends(require_drp)):
     proj = db.execute(
         "SELECT partner_name, partner_logo FROM rf_projects WHERE id=?", (project_id,)
     ).fetchone()
-    branding = {"name": proj["partner_name"], "logo": proj["partner_logo"]} if proj and proj["partner_name"] else None
+    # Gateado por el LOGO, no por el nombre -- mismo criterio que documents.py y Validación.
+    branding = {"name": proj["partner_name"] or "", "logo": proj["partner_logo"]} if proj and proj["partner_logo"] else None
 
     package = []
     for doc in docs:
