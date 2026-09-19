@@ -237,25 +237,52 @@ def list_document_grants(project_id: str, doc_type: str, user: dict = Depends(re
 def list_documents(project_id: str, user: dict = Depends(get_current_user)):
     """DRP ve todos los documentos del proyecto. Cliente solo los que tiene habilitados.
 
-    Orden por cascada GxP (doc_order.py), no alfabético -- pedido del usuario 2026-09-19:
-    alfabético mezclaba tipos sin relación con el orden real del ciclo de vida del proyecto
-    (ej. IOQ antes que HLRA), confundiendo a quien revisa."""
+    Orden: el que DRP haya elegido a mano para este proyecto (display_order), o si nunca
+    reordenó nada, la cascada GxP por defecto -- no alfabético (doc_order.py; pedido del
+    usuario 2026-09-19: alfabético mezclaba tipos sin relación con el ciclo de vida real del
+    proyecto, ej. IOQ antes que HLRA, y además quería poder reordenar a mano)."""
     db = get_db()
     if user.get("r") == "drp":
         rows = db.execute(
-            "SELECT id, doc_type, status, locked, created_at, updated_at "
+            "SELECT id, doc_type, status, locked, created_at, updated_at, display_order "
             "FROM rf_documents WHERE project_id=?",
             (project_id,),
         ).fetchall()
     else:
         rows = db.execute(
-            "SELECT d.id, d.doc_type, d.status, d.locked, d.created_at, d.updated_at "
+            "SELECT d.id, d.doc_type, d.status, d.locked, d.created_at, d.updated_at, d.display_order "
             "FROM rf_documents d "
             "JOIN rf_document_access_grants g ON g.project_id=d.project_id AND g.doc_type=d.doc_type "
             "WHERE d.project_id=? AND g.user_id=?",
             (project_id, user.get("uid")),
         ).fetchall()
     return {"ok": True, "documents": sort_docs([dict(r) for r in rows])}
+
+
+class DocumentsOrderBody(BaseModel):
+    doc_types: list[str]  # orden deseado, de arriba a abajo
+
+
+@router.patch("/order")
+def set_documents_order(project_id: str, body: DocumentsOrderBody, user: dict = Depends(require_drp)):
+    """Guarda el orden elegido a mano por DRP para los documentos de este proyecto (pedido
+    del usuario, 2026-09-19: "el orden lo doy yo, quiero poder reordenar a piacere y que se
+    guarde"). display_order queda como el índice dentro de `doc_types` -- se pisa entero en
+    cada guardado, no se hace merge con el orden anterior. Solo toca los doc_type que existen
+    en este proyecto; cualquier otro valor en la lista se ignora en silencio (defensivo, no
+    debería pasar si el frontend manda la lista completa que él mismo mostró)."""
+    db = get_db()
+    for idx, doc_type in enumerate(body.doc_types):
+        db.execute(
+            "UPDATE rf_documents SET display_order=? WHERE project_id=? AND doc_type=?",
+            (idx, project_id, doc_type),
+        )
+    db.commit()
+    log_system_event(
+        user, "documents_reordered", f"{user['u']} reordenó los documentos del proyecto",
+        project_id=project_id,
+    )
+    return {"ok": True}
 
 
 def _get_document_or_404(db, project_id: str, doc_type: str) -> dict:

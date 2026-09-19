@@ -109,6 +109,11 @@ CREATE TABLE IF NOT EXISTS rf_documents (
     -- snapshot fijado (sin marca) que no debería pisarse (encontrado en revisión de Codex,
     -- 2026-09-19).
     branding_captured_at_signing INTEGER DEFAULT 0,
+    -- Orden elegido a mano por DRP dentro del proyecto (pedido del usuario, 2026-09-19: "el
+    -- orden lo doy yo, no un orden fijo"). NULL = todavía no se reordenó a mano, cae al orden
+    -- de cascada GxP por defecto (doc_order.py). Se pisa entero cada vez que se guarda un
+    -- reordenamiento nuevo (PATCH .../documents-order) -- ver sort_docs.
+    display_order INTEGER,
     UNIQUE(project_id, doc_type)
 );
 

@@ -139,7 +139,7 @@ def get_book_package(project_id: str, user: dict = Depends(require_drp)):
     db = get_db()
     docs = db.execute(
         "SELECT id, doc_type, json_data, branding_name_at_signing, branding_logo_at_signing, "
-        "branding_captured_at_signing "
+        "branding_captured_at_signing, display_order "
         "FROM rf_documents WHERE project_id=? AND locked=1",
         (project_id,),
     ).fetchall()

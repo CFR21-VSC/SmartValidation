@@ -405,3 +405,56 @@ def test_list_documents_unknown_type_falls_to_end_alphabetically(drp_client):
 
     docs = drp_client.get("/projects/proj-1/documents").json()["documents"]
     assert [d["doc_type"] for d in docs] == ["HLRA", "URS", "AAA-NUEVO", "ZZZ-NUEVO"]
+
+
+def test_drp_can_set_custom_document_order(drp_client):
+    """Pedido explícito del usuario (2026-09-19): "puedo reordenar los documentos a piacere y
+    que esa selección se guarde?" -- un orden elegido a mano tiene que pisar la cascada GxP
+    por defecto, y persistir entre requests (no es un estado solo del cliente)."""
+    for t in ("HLRA", "URS", "RA"):
+        drp_client.put(f"/projects/proj-1/documents/{t}", json={"json_data": {"type": t, "secciones": []}})
+
+    # Orden por defecto (cascada): HLRA, URS, RA.
+    before = drp_client.get("/projects/proj-1/documents").json()["documents"]
+    assert [d["doc_type"] for d in before] == ["HLRA", "URS", "RA"]
+
+    r = drp_client.patch("/projects/proj-1/documents/order", json={"doc_types": ["RA", "HLRA", "URS"]})
+    assert r.status_code == 200, r.text
+
+    after = drp_client.get("/projects/proj-1/documents").json()["documents"]
+    assert [d["doc_type"] for d in after] == ["RA", "HLRA", "URS"]
+
+    # Persiste -- no es un estado de sesión/cliente, otra "sesión" (mismo TestClient, otra
+    # llamada) ve el mismo orden guardado.
+    again = drp_client.get("/projects/proj-1/documents").json()["documents"]
+    assert [d["doc_type"] for d in again] == ["RA", "HLRA", "URS"]
+
+
+def test_custom_order_overwritten_by_a_new_save(drp_client):
+    for t in ("HLRA", "URS", "RA"):
+        drp_client.put(f"/projects/proj-1/documents/{t}", json={"json_data": {"type": t, "secciones": []}})
+    drp_client.patch("/projects/proj-1/documents/order", json={"doc_types": ["RA", "HLRA", "URS"]})
+    drp_client.patch("/projects/proj-1/documents/order", json={"doc_types": ["URS", "RA", "HLRA"]})
+
+    docs = drp_client.get("/projects/proj-1/documents").json()["documents"]
+    assert [d["doc_type"] for d in docs] == ["URS", "RA", "HLRA"]
+
+
+def test_new_document_after_custom_order_falls_back_to_cascade_position(drp_client):
+    """Un documento agregado DESPUÉS de guardar un orden a mano no tiene display_order propio
+    todavía -- cae a su posición de cascada, después de cualquier documento ya reordenado (no
+    se pierde, no rompe, solo no tiene posición fija hasta que DRP lo reordene también)."""
+    for t in ("HLRA", "URS"):
+        drp_client.put(f"/projects/proj-1/documents/{t}", json={"json_data": {"type": t, "secciones": []}})
+    drp_client.patch("/projects/proj-1/documents/order", json={"doc_types": ["URS", "HLRA"]})
+
+    drp_client.put("/projects/proj-1/documents/RA", json={"json_data": {"type": "RA", "secciones": []}})
+
+    docs = drp_client.get("/projects/proj-1/documents").json()["documents"]
+    assert [d["doc_type"] for d in docs] == ["URS", "HLRA", "RA"]
+
+
+def test_custom_order_requires_drp(cliente_client):
+    cli, _user_id = cliente_client
+    r = cli.patch("/projects/proj-1/documents/order", json={"doc_types": ["HLRA"]})
+    assert r.status_code == 403

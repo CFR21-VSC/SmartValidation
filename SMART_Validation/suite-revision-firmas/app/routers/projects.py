@@ -104,13 +104,13 @@ def get_dossier(project_id: str, user: dict = Depends(get_current_user)):
     )
     if full_visibility:
         docs = db.execute(
-            "SELECT id, doc_type, status, locked, created_at, locked_at "
+            "SELECT id, doc_type, status, locked, created_at, locked_at, display_order "
             "FROM rf_documents WHERE project_id=?",
             (project_id,),
         ).fetchall()
     else:
         docs = db.execute(
-            "SELECT d.id, d.doc_type, d.status, d.locked, d.created_at, d.locked_at "
+            "SELECT d.id, d.doc_type, d.status, d.locked, d.created_at, d.locked_at, d.display_order "
             "FROM rf_documents d "
             "JOIN rf_document_access_grants g ON g.project_id=d.project_id AND g.doc_type=d.doc_type "
             "WHERE d.project_id=? AND g.user_id=?",

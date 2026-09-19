@@ -493,6 +493,26 @@ async function loadDocuments() {
     renderMain();
 }
 
+// Reordenar a mano (pedido del usuario, 2026-09-19) -- swap con el vecino y se guarda la
+// lista completa en el servidor (display_order, rf_documents), no queda solo en el navegador.
+async function moveDocument(docType, dir) {
+    const idx = currentDocuments.findIndex(d => d.doc_type === docType);
+    const swapWith = dir === 'up' ? idx - 1 : idx + 1;
+    if (idx < 0 || swapWith < 0 || swapWith >= currentDocuments.length) return;
+
+    const newOrder = currentDocuments.map(d => d.doc_type);
+    [newOrder[idx], newOrder[swapWith]] = [newOrder[swapWith], newOrder[idx]];
+
+    const { status, data } = await apiFetch(`/projects/${encodeURIComponent(selectedProject)}/documents/order`, {
+        method: 'PATCH', body: { doc_types: newOrder },
+    });
+    if (status === 200 && data.ok) {
+        await loadDocuments();
+    } else {
+        showToast((data && data.error) || 'No se pudo reordenar', true);
+    }
+}
+
 function renderMain() {
     if (!selectedProject) {
         mainEl.innerHTML = '<div class="rf-empty">Seleccioná un proyecto de la izquierda.</div>';
@@ -570,6 +590,9 @@ function renderMain() {
         });
         mainEl.querySelectorAll('.access-toggle-btn').forEach(btn => {
             btn.addEventListener('click', () => toggleAccessPanel(btn.dataset.doctype));
+        });
+        mainEl.querySelectorAll('.reorder-btn').forEach(btn => {
+            btn.addEventListener('click', () => moveDocument(btn.dataset.doctype, btn.dataset.dir));
         });
         wireAccessPanel();
 
@@ -659,11 +682,27 @@ function renderDocumentsTable() {
     if (currentDocuments.length === 0) {
         return '<div class="rf-empty">Este proyecto todavía no tiene documentos.</div>';
     }
+    const isDrp = session.role === 'drp';
 
-    const rows = currentDocuments.map(doc => {
+    const rows = currentDocuments.map((doc, idx) => {
         const sealed = !!doc.locked;
         const dotClass = sealed ? 'on' : 'off';
         const statusLabel = sealed ? 'Sellado' : (doc.status || 'draft');
+
+        // Reordenar a mano (pedido del usuario, 2026-09-19: "el orden lo doy yo, quiero poder
+        // reordenar a piacere y que se guarde") -- flechas simples en vez de drag-and-drop,
+        // más confiables sin una librería y sin riesgo de romperse en touch/Windows.
+        let reorderCell = '';
+        if (isDrp) {
+            const upDisabled = idx === 0 ? 'disabled' : '';
+            const downDisabled = idx === currentDocuments.length - 1 ? 'disabled' : '';
+            reorderCell = `<td style="white-space:nowrap;">
+                <button class="rf-btn-secondary reorder-btn" data-doctype="${escHtml(doc.doc_type)}" data-dir="up" ${upDisabled}
+                    style="padding:2px 7px; font-size:11px;" title="Mover arriba">↑</button>
+                <button class="rf-btn-secondary reorder-btn" data-doctype="${escHtml(doc.doc_type)}" data-dir="down" ${downDisabled}
+                    style="padding:2px 7px; font-size:11px;" title="Mover abajo">↓</button>
+            </td>`;
+        }
 
         let actions = `<a href="review.html?project=${encodeURIComponent(selectedProject)}&doc=${encodeURIComponent(doc.doc_type)}" class="rf-btn-secondary" style="text-decoration:none; display:inline-block;">Revisar</a>`;
 
@@ -680,6 +719,7 @@ function renderDocumentsTable() {
 
         const isLast = doc.doc_type === lastDocType && selectedProject === lastDocProject;
         let row = `<tr${isLast ? ' data-last-doc="1" style="background:rgba(200,146,26,.12);"' : ''}>
+            ${reorderCell}
             <td>${escHtml(doc.doc_type)}${isLast ? ' <span style="font-size:10px; color:var(--gold); font-weight:600;">· último abierto</span>' : ''}</td>
             <td><span class="rf-status-dot ${dotClass}"></span>${escHtml(statusLabel)}</td>
             <td>${fmtDateTime(doc.updated_at)}</td>
@@ -687,7 +727,7 @@ function renderDocumentsTable() {
         </tr>`;
 
         if (session.role === 'drp' && expandedAccessDoc === doc.doc_type) {
-            row += `<tr><td colspan="4" style="padding:0;">${renderAccessPanel(doc.doc_type)}</td></tr>`;
+            row += `<tr><td colspan="${isDrp ? 5 : 4}" style="padding:0;">${renderAccessPanel(doc.doc_type)}</td></tr>`;
         }
 
         return row;
@@ -696,7 +736,7 @@ function renderDocumentsTable() {
     return `
     <table class="rf-table">
         <thead>
-            <tr><th>Documento</th><th>Estado</th><th>Actualizado</th><th>Acciones</th></tr>
+            <tr>${isDrp ? '<th style="width:60px;"></th>' : ''}<th>Documento</th><th>Estado</th><th>Actualizado</th><th>Acciones</th></tr>
         </thead>
         <tbody>${rows}</tbody>
     </table>`;

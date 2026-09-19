@@ -239,6 +239,7 @@ def init_db() -> None:
     _migrate_add_project_branding(db)
     _migrate_add_signing_integrity(db)
     _migrate_signing_integrity_gaps(db)
+    _migrate_add_document_display_order(db)
 
 
 def _migrate_add_comment_parent_id(db) -> None:
@@ -413,6 +414,14 @@ def _migrate_signing_integrity_gaps(db) -> None:
     except Exception:
         db.execute("ROLLBACK")
         raise
+
+
+def _migrate_add_document_display_order(db) -> None:
+    """Orden de documentos elegido a mano por DRP dentro de un proyecto (pedido del usuario,
+    2026-09-19: "el orden lo doy yo", no un orden fijo por tipo de documento). NULL en bases
+    ya existentes = todavía nadie reordenó nada, cae al orden de cascada GxP por defecto
+    (doc_order.py) -- no hace falta backfill."""
+    _add_columns_if_missing(db, "rf_documents", {"display_order": "INTEGER"})
 
 
 def _migrate_legacy_corrections(db) -> None:
