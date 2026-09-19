@@ -87,6 +87,21 @@ CREATE TABLE IF NOT EXISTS rf_documents (
     loaded_by     TEXT,
     created_at    REAL,
     updated_at    REAL,
+    -- Ronda 18 (2026-09-19): edit_locked se activa con la PRIMERA firma (revisión o
+    -- aprobación), no solo con el sellado final -- antes de esto un documento con firmas
+    -- parciales seguía totalmente editable. `locked` sigue significando exactamente lo mismo
+    -- que antes (sellado final por el último aprobador). Ver reopen_document en documents.py
+    -- para la única vía de volver a poner esto en 0.
+    edit_locked   INTEGER DEFAULT 0,
+    -- Bytes reales del PDF sellado (antes solo se guardaba el hash, nunca el artefacto) y el
+    -- branding/marca fijados al momento del sellado (antes se releía rf_projects actual en
+    -- cada render, así que cambiar el logo del proyecto alteraba retroactivamente cómo se
+    -- veía un documento ya firmado). original_stored=0 para todo lo sellado antes de esto --
+    -- no se inventa un original que nunca se guardó.
+    original_stored           INTEGER DEFAULT 0,
+    pdf_data                  TEXT,
+    branding_name_at_signing  TEXT,
+    branding_logo_at_signing  TEXT,
     UNIQUE(project_id, doc_type)
 );
 
@@ -153,6 +168,16 @@ CREATE TABLE IF NOT EXISTS rf_review_signatures (
     username      TEXT,
     role_label    TEXT,
     signed_at     REAL,
+    -- Ronda 18: fingerprint del contenido que el firmante vio (sha256 de json_data en el
+    -- momento en que se preparó la firma) -- sign_review rechaza si no coincide con el
+    -- contenido actual al momento de escribir. display_name_at_signing fija el nombre a
+    -- mostrar (antes book.py releía rf_users.display_name actual siempre). invalidated_*
+    -- se llenan solo si un DRP reabre el documento para editar -- la fila NUNCA se borra,
+    -- queda como evidencia de que existió y de por qué se invalidó.
+    content_fingerprint      TEXT,
+    display_name_at_signing  TEXT,
+    invalidated_at    REAL,
+    invalidated_reason TEXT,
     UNIQUE(document_id, user_id)
 );
 
@@ -175,6 +200,11 @@ CREATE TABLE IF NOT EXISTS rf_approval_signers (
     sign_order          INTEGER NOT NULL,
     signed_at           REAL,
     justification_text  TEXT,
+    -- Ronda 18: mismo criterio que rf_review_signatures -- ver esa tabla.
+    content_fingerprint      TEXT,
+    display_name_at_signing  TEXT,
+    invalidated_at    REAL,
+    invalidated_reason TEXT,
     UNIQUE(round_id, user_id),
     UNIQUE(round_id, sign_order)
 );

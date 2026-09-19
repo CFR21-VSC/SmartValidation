@@ -142,6 +142,7 @@ function suggestRoleForName(matrix, fullName) {
 let currentPdfBlob = null;
 let currentPdfUrl = null;
 let modalPdfBase64 = null;
+let signContentFingerprint = null;  // Ronda 18: ver openSignModal
 let vsLoaded = false;
 
 const VS_SCRIPTS = [
@@ -495,6 +496,7 @@ async function onGeneratePreview() {
         if (status !== 200 || !data.ok) {
             throw new Error(data.error || 'No se pudo obtener el documento fuente.');
         }
+        signContentFingerprint = data.content_fingerprint;
         const jsonData = data.data;
         const blob = await window.ValidationSuite.renderDocument(jsonData, { download: false });
         currentPdfBlob = blob;
@@ -528,7 +530,7 @@ function updatePdfNote(text) {
     }
 }
 
-function openSignModal(prefillBase64) {
+async function openSignModal(prefillBase64) {
     document.getElementById('sign-justification').value = '';
     signPinInputs.forEach(i => i.value = '');
     document.getElementById('sign-pdf-file').value = '';
@@ -544,8 +546,14 @@ function openSignModal(prefillBase64) {
         updatePdfNote('');
     }
 
+    // Fingerprint FRESCO al abrir el modal, sin importar si esto vino de "Usar PDF de la
+    // preview" (que ya lo capturó en onGeneratePreview) o del botón directo "Firmar" (que
+    // nunca pasó por ahí) -- toda firma de aprobación lo necesita, no solo la que sella
+    // (Ronda 18). Pisa lo que hubiera con el valor más nuevo.
     document.getElementById('sign-backdrop').style.display = 'flex';
     signPinInputs[0].focus();
+    const { status, data } = await apiFetch(`/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(docType)}`);
+    if (status === 200 && data.ok) signContentFingerprint = data.content_fingerprint;
 }
 
 function closeSignModal() {
@@ -588,8 +596,13 @@ async function onSignSubmit() {
         errorBox.classList.add('visible');
         return;
     }
+    if (!signContentFingerprint) {
+        errorBox.textContent = 'No se pudo verificar el contenido del documento — cerrá y volvé a abrir el modal.';
+        errorBox.classList.add('visible');
+        return;
+    }
 
-    const body = { pin, justification_text: justification };
+    const body = { pin, justification_text: justification, content_fingerprint: signContentFingerprint };
     if (modalPdfBase64) body.pdf_base64 = modalPdfBase64;
 
     const submitBtn = document.getElementById('sign-submit-btn');

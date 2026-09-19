@@ -6,6 +6,7 @@ routers/signatures.py — Firma de Revisión y Firma de Aprobación (sección 5)
     DRP (superadmin) firma último y esa firma sella e inmoviliza el documento
     (hash de JSON siempre; hash de PDF si se adjunta al firmar el sellado).
 """
+import base64
 import hashlib
 import time
 import uuid
@@ -18,6 +19,7 @@ from ..db import get_db
 from ..deps import check_document_access, ensure_project_active, get_current_user, require_drp
 from ..email_resend import send_email
 from ..security import pbkdf2_verify
+from .documents import _content_fingerprint
 
 router = APIRouter(prefix="/projects/{project_id}/documents/{doc_type}", tags=["signatures"])
 
@@ -33,6 +35,7 @@ PIN_LOCKOUT_S = 30 * 60
 class ReviewSignBody(BaseModel):
     pin: str
     role_label: str | None = None
+    content_fingerprint: str  # Ronda 18: sha256 del contenido que el firmante vio al preparar la firma
 
 
 class CreateRoundBody(BaseModel):
@@ -43,6 +46,7 @@ class ApprovalSignBody(BaseModel):
     pin: str
     justification_text: str
     pdf_base64: str | None = None  # obligatorio solo en la firma que sella (última, DRP)
+    content_fingerprint: str  # Ronda 18: mismo criterio que ReviewSignBody
 
 
 def _get_document_or_404(db, project_id: str, doc_type: str) -> dict:
@@ -125,6 +129,15 @@ def sign_review(
     if pending["n"] > 0:
         raise HTTPException(status.HTTP_409_CONFLICT, "Hay comentarios sin resolver")
 
+    # Ronda 18: el contenido que el firmante vio al preparar la firma tiene que seguir siendo
+    # el actual al momento de escribir -- si alguien lo cambió entre medio, se rechaza en vez
+    # de firmar en silencio algo distinto de lo que se mostró.
+    if body.content_fingerprint != _content_fingerprint(doc["json_data"]):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "El contenido del documento cambió desde que se preparó esta firma — recargá y volvé a intentar",
+        )
+
     _verify_pin(db, user["uid"], body.pin)
 
     already = db.execute(
@@ -133,11 +146,19 @@ def sign_review(
     if already:
         raise HTTPException(status.HTTP_409_CONFLICT, "Ya firmaste la revisión de este documento")
 
+    urow = db.execute("SELECT display_name FROM rf_users WHERE id=?", (user["uid"],)).fetchone()
+    display_name_at_signing = (urow["display_name"] if urow else None) or user["u"]
+
     db.execute(
-        "INSERT INTO rf_review_signatures (document_id, user_id, username, role_label, signed_at) "
-        "VALUES (?,?,?,?,?)",
-        (doc["id"], user["uid"], user["u"], body.role_label, time.time()),
+        "INSERT INTO rf_review_signatures "
+        "(document_id, user_id, username, role_label, signed_at, content_fingerprint, display_name_at_signing) "
+        "VALUES (?,?,?,?,?,?,?)",
+        (doc["id"], user["uid"], user["u"], body.role_label, time.time(),
+         body.content_fingerprint, display_name_at_signing),
     )
+    # Ronda 18: bloquea edición desde la PRIMERA firma (antes solo el sellado final de
+    # aprobación lo hacía) -- ver _upsert_document en documents.py.
+    db.execute("UPDATE rf_documents SET edit_locked=1 WHERE id=?", (doc["id"],))
     db.commit()
     log_event(project_id, doc_type, user, "review_signed", f"{user['u']} firmó la revisión de {doc_type}")
     return {"ok": True}
@@ -286,14 +307,23 @@ def sign_approval(
     if earlier_pending:
         raise HTTPException(status.HTTP_409_CONFLICT, "Todavía no te toca firmar — falta un firmante anterior")
 
+    # Ronda 18: mismo chequeo de contenido que sign_review, antes del PIN para no gastar un
+    # intento sobre algo que de todos modos se va a rechazar por desactualizado.
+    if body.content_fingerprint != _content_fingerprint(doc["json_data"]):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "El contenido del documento cambió desde que se preparó esta firma — recargá y volvé a intentar",
+        )
+
     _verify_pin(db, user["uid"], body.pin)
 
     is_last = me["sign_order"] == max(s["sign_order"] for s in signers)
     # No confiar en user["sa"] (viene del token, no cubierto por su firma HMAC -- ver
     # security.py) para una decisión de autorización real. Se relee is_superadmin desde
     # rf_users, igual que ya hace create_round más arriba para el mismo chequeo.
-    urow = db.execute("SELECT is_superadmin FROM rf_users WHERE id=?", (user["uid"],)).fetchone()
+    urow = db.execute("SELECT is_superadmin, display_name FROM rf_users WHERE id=?", (user["uid"],)).fetchone()
     is_superadmin = bool(urow["is_superadmin"]) if urow else False
+    display_name_at_signing = (urow["display_name"] if urow else None) or user["u"]
     if is_last and not is_superadmin:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "El último firmante debe ser DRP (superadmin)")
     if is_last and not body.pdf_base64:
@@ -301,23 +331,54 @@ def sign_approval(
             status.HTTP_400_BAD_REQUEST, "La firma de sellado requiere adjuntar el PDF final (pdf_base64)"
         )
 
+    # Ronda 18: decodificar y validar el PDF ANTES de escribir nada -- un adjunto inválido no
+    # puede dejar la firma del signer parcialmente grabada. hashlib.sha256(pdf_base64.encode())
+    # hasheaba el texto base64, nunca el PDF real, y los bytes nunca se guardaban (Codex,
+    # 2026-09-19). Ahora se decodifica, se valida la firma de archivo %PDF-, se hashea el
+    # binario real, y se guardan los bytes para poder descargar el artefacto original exacto
+    # después (GET .../original).
+    pdf_bytes = None
+    if is_last:
+        try:
+            pdf_bytes = base64.b64decode(body.pdf_base64, validate=True)
+        except Exception:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "pdf_base64 no es base64 válido")
+        if not pdf_bytes.startswith(b"%PDF-"):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "El adjunto no es un PDF válido")
+
     now = time.time()
     db.execute(
-        "UPDATE rf_approval_signers SET signed_at=?, justification_text=? WHERE id=?",
-        (now, body.justification_text, me["id"]),
+        "UPDATE rf_approval_signers SET signed_at=?, justification_text=?, "
+        "content_fingerprint=?, display_name_at_signing=? WHERE id=?",
+        (now, body.justification_text, body.content_fingerprint, display_name_at_signing, me["id"]),
     )
+    # Ronda 18: bloquea edición desde la PRIMERA firma, no solo el sellado final -- si esta es
+    # la primera firma de cualquier tipo sobre el documento, edit_locked todavía puede estar
+    # en 0 (p.ej. nadie firmó como revisor antes). Update idempotente si ya estaba en 1.
+    db.execute("UPDATE rf_documents SET edit_locked=1 WHERE id=?", (doc["id"],))
     log_event(project_id, doc_type, user, "approval_signed", f"{user['u']} firmó la aprobación de {doc_type}")
     sealed = False
 
     if is_last:
-        pdf_hash = hashlib.sha256(body.pdf_base64.encode()).hexdigest()
+        pdf_hash = hashlib.sha256(pdf_bytes).hexdigest()
         json_hash = hashlib.sha256(doc["json_data"].encode()).hexdigest()
+        pdf_data_b64 = base64.b64encode(pdf_bytes).decode("ascii")
+        proj = db.execute(
+            "SELECT partner_name, partner_logo FROM rf_projects WHERE id=?", (project_id,)
+        ).fetchone()
         db.execute(
             "UPDATE rf_approval_rounds SET status='sealed', sealed_at=? WHERE id=?", (now, rnd["id"])
         )
         db.execute(
-            "UPDATE rf_documents SET locked=1, status='locked', locked_at=?, pdf_hash=?, json_hash=? WHERE id=?",
-            (now, pdf_hash, json_hash, doc["id"]),
+            "UPDATE rf_documents SET locked=1, status='locked', locked_at=?, pdf_hash=?, json_hash=?, "
+            "original_stored=1, pdf_data=?, branding_name_at_signing=?, branding_logo_at_signing=? "
+            "WHERE id=?",
+            (
+                now, pdf_hash, json_hash, pdf_data_b64,
+                (proj["partner_name"] or "") if proj else "",
+                (proj["partner_logo"] if proj else None),
+                doc["id"],
+            ),
         )
         sealed = True
         log_event(project_id, doc_type, user, "document_sealed", f"{doc_type} quedó sellado e inmutable")

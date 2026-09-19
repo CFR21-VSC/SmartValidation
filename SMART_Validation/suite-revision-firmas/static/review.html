@@ -663,6 +663,8 @@
 <div class="rv-shell">
     <div class="rv-toolbar">
         <button class="rf-btn-secondary" id="btn-push-validacion" style="display:none;">📤 Enviar a Validación</button>
+        <button class="rf-btn-secondary" id="btn-download-original" style="display:none;">⬇️ Descargar original firmado</button>
+        <button class="rf-btn-secondary" id="btn-reopen-document" style="display:none;">🔓 Reabrir para editar</button>
         <button class="rf-btn" id="btn-sign-review">Firmar revisión</button>
         <div class="rv-signers" id="signers-summary">Cargando firmas…</div>
     </div>
@@ -947,6 +949,8 @@ async function init() {
     });
     document.getElementById('push-validacion-confirm').addEventListener('click', () => doPushToValidacion(true));
     document.getElementById('btn-sign-review').addEventListener('click', openSignModal);
+    document.getElementById('btn-download-original').addEventListener('click', downloadOriginalPdf);
+    document.getElementById('btn-reopen-document').addEventListener('click', reopenDocument);
     document.getElementById('btn-load-doc').addEventListener('click', openLoadModal);
     document.getElementById('btn-download-doc').addEventListener('click', downloadJson);
     document.getElementById('visual-editor-cancel').addEventListener('click', () => loadDocument());
@@ -1002,6 +1006,12 @@ async function loadDocument() {
     sections = deriveSections(documentRow.json_data);
 
     lock_badge.style.display = documentRow.locked ? '' : 'none';
+    document.getElementById('btn-download-original').style.display = documentRow.original_stored ? '' : 'none';
+    // Reabrir: solo DRP, solo si hay algo que reabrir (edit_locked) y no está sellado del
+    // todo (un documento sellado no se reabre por acá -- eso es un cambio de proceso más
+    // grande, no lo cubre esta pieza).
+    document.getElementById('btn-reopen-document').style.display =
+        (session.role === 'drp' && documentRow.edit_locked && !documentRow.locked) ? '' : 'none';
 
     renderOutline();
     renderDocumentPane();
@@ -1019,11 +1029,12 @@ function renderDocumentPane() {
         container.innerHTML = '<div class="rf-empty">El editor de documento no está disponible.</div>';
         return;
     }
-    // Sellado bloquea edición para cualquiera, no solo por rol -- el backend igual rechaza el
-    // guardado con 409 (ver saveVisualEditor), pero mostrarlo editable ahí es engañoso: DRP
-    // vería inputs activos para algo que no puede guardar (encontrado en revisión de Codex,
-    // 2026-09-19).
-    const readOnly = session.role !== 'drp' || !!documentRow.locked;
+    // Sellado, o con firmas registradas (edit_locked -- Ronda 18: bloquea desde la PRIMERA
+    // firma, no solo el sellado final), bloquea edición para cualquiera, no solo por rol -- el
+    // backend igual rechaza el guardado con 409 (ver saveVisualEditor/_upsert_document), pero
+    // mostrarlo editable ahí es engañoso: DRP vería inputs activos para algo que no puede
+    // guardar (encontrado en revisión de Codex, 2026-09-19).
+    const readOnly = session.role !== 'drp' || !!documentRow.locked || !!documentRow.edit_locked;
     window.ValidationSuite.visualEditor.render(documentRow.json_data, container, {
         readOnly: readOnly,
         hideApproval: true,
@@ -1403,6 +1414,55 @@ function downloadJson() {
     setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
+// Ronda 18: bytes exactos del PDF que se selló, servidos tal cual por el backend (nunca
+// regenerados) -- distinto del iframe de vista previa, que sigue siendo una proyección con
+// datos actuales.
+async function downloadOriginalPdf() {
+    const resp = await fetch(
+        `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}/original`,
+        { credentials: 'include' }
+    );
+    if (!resp.ok) {
+        let msg = 'No se pudo descargar el original.';
+        try { msg = (await resp.json()).error || msg; } catch (e) {}
+        showToast(msg, true);
+        return;
+    }
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${DOC_TYPE}_${PROJECT_ID}_original.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+// Ronda 18: única vía para volver a editar un documento con firmas -- invalida (no borra) las
+// firmas existentes, con motivo obligatorio y auditado. Solo DRP.
+async function reopenDocument() {
+    const reason = prompt(
+        'Este documento tiene firmas registradas. Reabrirlo para editar va a invalidarlas '
+        + '(quedan como historial, no se borran) y quien ya firmó va a tener que volver a hacerlo.\n\n'
+        + 'Motivo de la reapertura (obligatorio):'
+    );
+    if (reason === null) return;
+    if (!reason.trim()) { showToast('El motivo es obligatorio', true); return; }
+
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}/reopen`,
+        { method: 'POST', body: { reason: reason.trim() } }
+    );
+    if (status === 200 && data.ok) {
+        showToast('Documento reabierto para editar');
+        await loadDocument();
+        await loadSignatures();
+        return;
+    }
+    showToast(data.error || 'No se pudo reabrir el documento.', true);
+}
+
 // ---------------------------------------------------------------------------
 // Ver PDF — merge de correcciones + render con ValidationSuite
 // ---------------------------------------------------------------------------
@@ -1562,8 +1622,9 @@ function buildPinGrid(container) {
 }
 
 let signPinInputs = [];
+let signContentFingerprint = null;
 
-function openSignModal() {
+async function openSignModal() {
     const err = document.getElementById('sign-error');
     err.textContent = ''; err.classList.remove('visible');
     signPinInputs = buildPinGrid(document.getElementById('sign-pin-grid'));
@@ -1579,6 +1640,15 @@ function openSignModal() {
     } else {
         roleHint.style.display = 'none';
     }
+
+    // Fingerprint FRESCO del contenido justo al abrir el modal, no el que quedó de la última
+    // carga de la pantalla -- si alguien editó el documento mientras esta pestaña estaba
+    // abierta, la firma tiene que rechazarse, no aplicarse en silencio a otra cosa (Ronda 18).
+    signContentFingerprint = null;
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}`
+    );
+    if (status === 200 && data.ok) signContentFingerprint = data.content_fingerprint;
 
     document.getElementById('sign-backdrop').style.display = 'flex';
     signPinInputs[0].focus();
@@ -1599,12 +1669,17 @@ async function submitSignReview() {
     }
 
     const role_label = document.getElementById('sign-role-input').value.trim() || null;
+    if (!signContentFingerprint) {
+        err.textContent = 'No se pudo verificar el contenido del documento — cerrá y volvé a abrir el modal.';
+        err.classList.add('visible');
+        return;
+    }
 
     const btn = document.getElementById('sign-submit');
     btn.disabled = true;
     const { status, data } = await apiFetch(
         `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}/review-signatures`,
-        { method: 'POST', body: { pin, role_label } }
+        { method: 'POST', body: { pin, role_label, content_fingerprint: signContentFingerprint } }
     );
     btn.disabled = false;
 
@@ -1612,6 +1687,7 @@ async function submitSignReview() {
         closeSignModal();
         showToast('Firma de revisión registrada');
         await loadSignatures();
+        await loadDocument();
         return;
     }
     if (status === 401) {

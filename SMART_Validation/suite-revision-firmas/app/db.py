@@ -237,6 +237,7 @@ def init_db() -> None:
     _migrate_add_comment_parent_id(db)
     _migrate_add_project_display_name(db)
     _migrate_add_project_branding(db)
+    _migrate_add_signing_integrity(db)
 
 
 def _migrate_add_comment_parent_id(db) -> None:
@@ -291,6 +292,47 @@ def _migrate_add_project_branding(db) -> None:
         db.execute("ALTER TABLE rf_projects ADD COLUMN partner_name TEXT")
         db.execute("ALTER TABLE rf_projects ADD COLUMN partner_logo TEXT")
         db.commit()
+
+
+def _add_columns_if_missing(db, table: str, columns: dict) -> None:
+    """`columns` es {nombre: definicion_sql_tipo}. Idempotente -- agrega solo las que falten,
+    una ALTER TABLE por columna (SQLite no permite agregar varias en un solo ALTER)."""
+    if USE_PG:
+        existentes = {
+            r["column_name"] for r in db.execute(
+                "SELECT column_name FROM information_schema.columns WHERE table_name=?", (table,)
+            ).fetchall()
+        }
+    else:
+        existentes = {c["name"] for c in db.execute(f"PRAGMA table_info({table})").fetchall()}
+    tocado = False
+    for nombre, tipo in columns.items():
+        if nombre not in existentes:
+            db.execute(f"ALTER TABLE {table} ADD COLUMN {nombre} {tipo}")
+            tocado = True
+    if tocado:
+        db.commit()
+
+
+def _migrate_add_signing_integrity(db) -> None:
+    """Ronda 18 (2026-09-19): edit_locked (bloqueo desde la PRIMERA firma, no solo el sellado
+    final), artefacto PDF real guardado al sellar (antes solo se guardaba el hash), branding/
+    nombre del firmante fijados al momento de firmar (antes se releían siempre en vivo). Ver
+    docs-privados/ronda-18-revision-firma-artefacto-inmutable.md para el diseño completo."""
+    _add_columns_if_missing(db, "rf_documents", {
+        "edit_locked": "INTEGER DEFAULT 0",
+        "original_stored": "INTEGER DEFAULT 0",
+        "pdf_data": "TEXT",
+        "branding_name_at_signing": "TEXT",
+        "branding_logo_at_signing": "TEXT",
+    })
+    for tabla in ("rf_review_signatures", "rf_approval_signers"):
+        _add_columns_if_missing(db, tabla, {
+            "content_fingerprint": "TEXT",
+            "display_name_at_signing": "TEXT",
+            "invalidated_at": "REAL",
+            "invalidated_reason": "TEXT",
+        })
 
 
 def _migrate_legacy_corrections(db) -> None:

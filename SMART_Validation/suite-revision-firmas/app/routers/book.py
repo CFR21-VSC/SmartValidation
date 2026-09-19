@@ -37,31 +37,39 @@ def fecha(epoch: float | None) -> str:
 def collect_signatures(db, document_id: str) -> list[dict]:
     """Firmas YA registradas (revisión + aprobación) para un documento. Reusado por el
     paquete del libro y por el render de un documento suelto (Ver PDF) — ambos necesitan
-    la misma sección tabla-firmas-final, con la misma forma exacta."""
+    la misma sección tabla-firmas-final, con la misma forma exacta.
+
+    Ronda 18 (2026-09-19): excluye firmas invalidadas (documento reabierto para editar --
+    esas firmas ya no valen, no se muestran como si aprobaran el contenido actual) y prefiere
+    display_name_at_signing sobre el display_name ACTUAL de rf_users -- antes, cambiar el
+    nombre de un usuario alteraba retroactivamente cómo se veía una firma ya registrada.
+    Firmas viejas sin ese campo (previas a esta ronda) siguen cayendo al nombre actual, único
+    dato que existe para ellas."""
     firmas = []
     rows = db.execute(
-        "SELECT rs.role_label, rs.signed_at, u.display_name, u.username "
+        "SELECT rs.role_label, rs.signed_at, rs.display_name_at_signing, u.display_name, u.username "
         "FROM rf_review_signatures rs JOIN rf_users u ON u.id = rs.user_id "
-        "WHERE rs.document_id=? ORDER BY rs.signed_at",
+        "WHERE rs.document_id=? AND rs.invalidated_at IS NULL ORDER BY rs.signed_at",
         (document_id,),
     ).fetchall()
     for r in rows:
-        nombre = r["display_name"] or r["username"]
+        nombre = r["display_name_at_signing"] or r["display_name"] or r["username"]
         firmas.append({
             "rol": r["role_label"] or "Revisor", "nombre": nombre,
             "iniciales": iniciales(nombre), "fecha": fecha(r["signed_at"]),
         })
 
     rows = db.execute(
-        "SELECT sig.role_label, sig.signed_at, u.display_name, u.username "
+        "SELECT sig.role_label, sig.signed_at, sig.display_name_at_signing, u.display_name, u.username "
         "FROM rf_approval_signers sig "
         "JOIN rf_approval_rounds rnd ON rnd.id = sig.round_id "
         "JOIN rf_users u ON u.id = sig.user_id "
-        "WHERE rnd.document_id=? AND sig.signed_at IS NOT NULL ORDER BY sig.sign_order",
+        "WHERE rnd.document_id=? AND sig.signed_at IS NOT NULL AND sig.invalidated_at IS NULL "
+        "ORDER BY sig.sign_order",
         (document_id,),
     ).fetchall()
     for r in rows:
-        nombre = r["display_name"] or r["username"]
+        nombre = r["display_name_at_signing"] or r["display_name"] or r["username"]
         firmas.append({
             "rol": r["role_label"] or "Aprobador", "nombre": nombre,
             "iniciales": iniciales(nombre), "fecha": fecha(r["signed_at"]),
@@ -73,33 +81,37 @@ def collect_signatures_bulk(db, document_ids: list[str]) -> dict[str, list[dict]
     """Igual que collect_signatures() pero para varios documentos a la vez: 2 queries
     agrupadas por document_id en vez de 2*N -- usado por el paquete del Libro, que puede
     incluir todos los documentos sellados del proyecto de una sola apertura (N+1 real que
-    tenía get_book_package antes, un SELECT x2 por documento en un loop)."""
+    tenía get_book_package antes, un SELECT x2 por documento en un loop). Ver docstring de
+    collect_signatures para el criterio de invalidadas/display_name_at_signing (Ronda 18)."""
     result: dict[str, list[dict]] = {doc_id: [] for doc_id in document_ids}
     if not document_ids:
         return result
     placeholders = ",".join("?" for _ in document_ids)
 
     for r in db.execute(
-        f"SELECT rs.document_id, rs.role_label, rs.signed_at, u.display_name, u.username "
+        f"SELECT rs.document_id, rs.role_label, rs.signed_at, rs.display_name_at_signing, "
+        f"u.display_name, u.username "
         f"FROM rf_review_signatures rs JOIN rf_users u ON u.id = rs.user_id "
-        f"WHERE rs.document_id IN ({placeholders}) ORDER BY rs.signed_at",
+        f"WHERE rs.document_id IN ({placeholders}) AND rs.invalidated_at IS NULL ORDER BY rs.signed_at",
         tuple(document_ids),
     ):
-        nombre = r["display_name"] or r["username"]
+        nombre = r["display_name_at_signing"] or r["display_name"] or r["username"]
         result[r["document_id"]].append({
             "rol": r["role_label"] or "Revisor", "nombre": nombre,
             "iniciales": iniciales(nombre), "fecha": fecha(r["signed_at"]),
         })
 
     for r in db.execute(
-        f"SELECT rnd.document_id, sig.role_label, sig.signed_at, u.display_name, u.username "
+        f"SELECT rnd.document_id, sig.role_label, sig.signed_at, sig.display_name_at_signing, "
+        f"u.display_name, u.username "
         f"FROM rf_approval_signers sig "
         f"JOIN rf_approval_rounds rnd ON rnd.id = sig.round_id "
         f"JOIN rf_users u ON u.id = sig.user_id "
-        f"WHERE rnd.document_id IN ({placeholders}) AND sig.signed_at IS NOT NULL ORDER BY sig.sign_order",
+        f"WHERE rnd.document_id IN ({placeholders}) AND sig.signed_at IS NOT NULL "
+        f"AND sig.invalidated_at IS NULL ORDER BY sig.sign_order",
         tuple(document_ids),
     ):
-        nombre = r["display_name"] or r["username"]
+        nombre = r["display_name_at_signing"] or r["display_name"] or r["username"]
         result[r["document_id"]].append({
             "rol": r["role_label"] or "Aprobador", "nombre": nombre,
             "iniciales": iniciales(nombre), "fecha": fecha(r["signed_at"]),
@@ -125,7 +137,8 @@ def get_book_package(project_id: str, user: dict = Depends(require_drp)):
     contenido definitivo y firmado, no de borradores en curso."""
     db = get_db()
     docs = db.execute(
-        "SELECT id, doc_type, json_data FROM rf_documents WHERE project_id=? AND locked=1 ORDER BY doc_type",
+        "SELECT id, doc_type, json_data, branding_name_at_signing, branding_logo_at_signing "
+        "FROM rf_documents WHERE project_id=? AND locked=1 ORDER BY doc_type",
         (project_id,),
     ).fetchall()
 
@@ -135,18 +148,24 @@ def get_book_package(project_id: str, user: dict = Depends(require_drp)):
     skipped = [r["doc_type"] for r in all_types if not r["locked"]]
 
     firmas_by_doc = collect_signatures_bulk(db, [doc["id"] for doc in docs])
+    # Branding actual del proyecto, SOLO como respaldo para documentos sellados ANTES de la
+    # Ronda 18 (branding_name_at_signing es NULL para esos -- no existía el campo). Para todo
+    # lo sellado después, cada documento usa el branding fijado al momento de SU sellado, no
+    # el actual del proyecto -- cambiar el logo del proyecto ya no altera retroactivamente el
+    # libro de documentos ya firmados.
     proj = db.execute(
         "SELECT partner_name, partner_logo FROM rf_projects WHERE id=?", (project_id,)
     ).fetchone()
-    # Gateado por el LOGO, no por el nombre -- mismo criterio que documents.py y Validación.
-    branding = {"name": proj["partner_name"] or "", "logo": proj["partner_logo"]} if proj and proj["partner_logo"] else None
+    branding_actual = {"name": proj["partner_name"] or "", "logo": proj["partner_logo"]} if proj and proj["partner_logo"] else None
 
     package = []
     for doc in docs:
         data = json.loads(doc["json_data"])
         data = inject_signatures_section(data, firmas_by_doc[doc["id"]])
-        if branding:
-            data["_partnerBranding"] = branding
+        if doc["branding_logo_at_signing"]:
+            data["_partnerBranding"] = {"name": doc["branding_name_at_signing"] or "", "logo": doc["branding_logo_at_signing"]}
+        elif branding_actual:
+            data["_partnerBranding"] = branding_actual
         package.append({"type": doc["doc_type"], "data": data})
 
     return {"ok": True, "documents": package, "skipped_not_sealed": skipped}

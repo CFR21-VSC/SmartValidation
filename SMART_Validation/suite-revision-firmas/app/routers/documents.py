@@ -9,13 +9,15 @@ con el contenido en ninguna vista previa (confirmado con el usuario
 2026-08-31: "Ver PDF" siempre muestra el original). Ambos requieren
 habilitación granular por documento (excepto DRP, que ve todo).
 """
+import base64
+import hashlib
 import json
 import time
 import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 
 from .. import config, email_resend, validacion_bridge
@@ -83,17 +85,51 @@ class PushToValidacionBody(BaseModel):
     confirmed: bool = False
 
 
+def _branding_for_document(db, project_id: str, doc: dict) -> dict | None:
+    """Marca de partner/cliente a mostrar para ESTE documento. Si está sellado y tiene
+    branding fijado al momento de firmar (Ronda 18), usa ESE -- no el actual del proyecto,
+    que puede haber cambiado desde entonces. Si no (documento sin sellar, o sellado antes de
+    que existiera este campo), cae al branding actual del proyecto, gateado por logo -- mismo
+    criterio que get_book_package."""
+    if doc.get("locked") and doc.get("branding_logo_at_signing"):
+        return {"name": doc.get("branding_name_at_signing") or "", "logo": doc["branding_logo_at_signing"]}
+    proj = db.execute(
+        "SELECT partner_name, partner_logo FROM rf_projects WHERE id=?", (project_id,)
+    ).fetchone()
+    if proj and proj["partner_logo"]:
+        return {"name": proj["partner_name"] or "", "logo": proj["partner_logo"]}
+    return None
+
+
+def _content_fingerprint(json_data_str: str) -> str:
+    """sha256 del JSON tal como está guardado (el string exacto, no un re-serializado) --
+    tiene que ser el MISMO valor que ve el cliente al leer el documento y el que se
+    recalcula acá al firmar/guardar, o el chequeo de contenido cambiado da falso positivo."""
+    return hashlib.sha256(json_data_str.encode("utf-8")).hexdigest()
+
+
 def _upsert_document(db, project_id: str, doc_type: str, json_data: dict, actor: dict) -> dict:
     """Carga o reemplaza el JSON fuente de un documento. Rechaza si el documento ya está
-    sellado/inmutable o si el proyecto está cerrado/archivado. Compartida entre la carga
-    manual (`load_document`, sesión DRP) y el bridge de servicio (push automático desde la
-    Suite Documental) -- `actor` es el dict a loguear, solo necesita la clave "u"."""
+    sellado/inmutable, si ya tiene alguna firma (revisión o aprobación, no solo el sellado
+    final -- Ronda 18, 2026-09-19: antes un documento con 3 de 4 aprobadores firmados seguía
+    totalmente editable y las firmas ya grabadas quedaban apuntando a contenido reemplazado),
+    o si el proyecto está cerrado/archivado. Compartida entre la carga manual (`load_document`,
+    sesión DRP) y el bridge de servicio (push automático desde la Suite Documental) -- `actor`
+    es el dict a loguear, solo necesita la clave "u". Para volver a editar un documento con
+    firmas, ver reopen_document -- es la única vía, invalida las firmas explícitamente en vez
+    de dejarlas silenciosamente desactualizadas."""
     ensure_project_active(db, project_id)
     existing = db.execute(
-        "SELECT id, locked FROM rf_documents WHERE project_id=? AND doc_type=?", (project_id, doc_type)
+        "SELECT id, locked, edit_locked FROM rf_documents WHERE project_id=? AND doc_type=?",
+        (project_id, doc_type)
     ).fetchone()
     if existing and existing["locked"]:
         raise HTTPException(status.HTTP_409_CONFLICT, "El documento está sellado — no puede modificarse")
+    if existing and existing["edit_locked"]:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "El documento ya tiene firmas registradas — un DRP tiene que reabrirlo explícitamente antes de poder editarlo",
+        )
 
     now = time.time()
     if existing:
@@ -221,17 +257,16 @@ def get_document(project_id: str, doc_type: str, user: dict = Depends(get_curren
         "FROM rf_section_comments WHERE document_id=? ORDER BY section_key, created_at",
         (doc["id"],),
     ).fetchall()
+    # content_fingerprint ANTES de parsear json_data -- tiene que ser el hash del string
+    # exacto guardado, no de un re-serializado (Ronda 18: el cliente lo guarda tal cual y lo
+    # reenvía al firmar/guardar; el backend recalcula del mismo string al recibirlo).
+    content_fingerprint = _content_fingerprint(doc["json_data"])
+    branding = _branding_for_document(db, project_id, doc)
     doc["json_data"] = json.loads(doc["json_data"])
-    proj = db.execute(
-        "SELECT partner_name, partner_logo FROM rf_projects WHERE id=?", (project_id,)
-    ).fetchone()
-    # Gateado por el LOGO, no por el nombre -- mismo criterio que Validación y
-    # template-base.js (un proyecto puede tener logo sin cliente cargado; el nombre es
-    # cosmético, no obligatorio). Estaba desalineado acá: encontrado en segunda revisión de
-    # Codex, 2026-09-19 -- un proyecto con logo y cliente vacío no mostraba nada en Firmas
-    # aunque sí lo mostrara en Validación.
-    branding = {"name": proj["partner_name"] or "", "logo": proj["partner_logo"]} if proj and proj["partner_logo"] else None
-    return {"ok": True, "document": doc, "comments": [dict(c) for c in comments], "partner_branding": branding}
+    return {
+        "ok": True, "document": doc, "comments": [dict(c) for c in comments],
+        "partner_branding": branding, "content_fingerprint": content_fingerprint,
+    }
 
 
 @router.get("/{doc_type}/signed-render")
@@ -249,6 +284,9 @@ def get_signed_render(
     check_document_access(user, project_id, doc_type)
     db = get_db()
     doc = _get_document_or_404(db, project_id, doc_type)
+    # Del contenido REAL guardado, no de esta proyección (que ya trae firmas/branding
+    # inyectados) -- es lo que sign_review/sign_approval van a recalcular para comparar.
+    content_fingerprint = _content_fingerprint(doc["json_data"])
     data = json.loads(doc["json_data"])
     firmas = collect_signatures(db, doc["id"])
 
@@ -267,16 +305,89 @@ def get_signed_render(
             })
 
     data = inject_signatures_section(data, firmas)
-    proj = db.execute(
-        "SELECT partner_name, partner_logo FROM rf_projects WHERE id=?", (project_id,)
-    ).fetchone()
-    # Gateado por el LOGO, no por el nombre -- ver misma nota en get_document.
-    if proj and proj["partner_logo"]:
-        # Solo en esta proyección de render -- nunca se guarda, `data` acá es lo que ya
-        # devuelve inject_signatures_section (firmas incluidas "as of now"), no el documento
-        # editable. template-base.js lee este campo para dibujar el segundo logo/nombre.
-        data["_partnerBranding"] = {"name": proj["partner_name"] or "", "logo": proj["partner_logo"]}
-    return {"ok": True, "data": data}
+    # Si está sellado, usa el branding FIJADO al sellar (Ronda 18) -- no el actual del
+    # proyecto. Solo en esta proyección de render -- nunca se guarda, `data` acá es lo que ya
+    # devuelve inject_signatures_section (firmas incluidas "as of now"), no el documento
+    # editable. template-base.js lee este campo para dibujar el segundo logo/nombre.
+    branding = _branding_for_document(db, project_id, doc)
+    if branding:
+        data["_partnerBranding"] = branding
+    # is_original=False siempre acá -- esta es una proyección regenerada con datos actuales
+    # (firmas "as of now", branding actual), nunca el artefacto exacto que se selló. Ver
+    # GET .../original para los bytes reales del PDF sellado, cuando existen.
+    return {"ok": True, "data": data, "content_fingerprint": content_fingerprint, "is_original": False}
+
+
+class ReopenDocumentBody(BaseModel):
+    reason: str
+
+
+@router.post("/{doc_type}/reopen")
+def reopen_document(
+    project_id: str, doc_type: str, body: ReopenDocumentBody, user: dict = Depends(require_drp),
+):
+    """Única vía para volver a editar un documento con firmas (Ronda 18, 2026-09-19). Nunca
+    borra una firma -- las marca invalidated_at/invalidated_reason, quedan como evidencia de
+    que existieron y de por qué dejaron de valer. Si hay una ronda de aprobación abierta con
+    firmantes parciales, se cancela (no queda "medio abierta" sobre contenido que va a
+    cambiar). Requiere motivo explícito, no vacío -- se audita."""
+    reason = body.reason.strip()
+    if not reason:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "El motivo de reapertura es obligatorio")
+    db = get_db()
+    doc = _get_document_or_404(db, project_id, doc_type)
+    if doc["locked"]:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "El documento está sellado (aprobación completa) — no se puede reabrir",
+        )
+    if not doc["edit_locked"]:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "El documento no tiene firmas, no hace falta reabrirlo")
+
+    now = time.time()
+    db.execute(
+        "UPDATE rf_review_signatures SET invalidated_at=?, invalidated_reason=? "
+        "WHERE document_id=? AND invalidated_at IS NULL",
+        (now, reason, doc["id"]),
+    )
+    open_rounds = db.execute(
+        "SELECT id FROM rf_approval_rounds WHERE document_id=? AND status='open'", (doc["id"],)
+    ).fetchall()
+    for rnd in open_rounds:
+        db.execute(
+            "UPDATE rf_approval_signers SET invalidated_at=?, invalidated_reason=? "
+            "WHERE round_id=? AND invalidated_at IS NULL",
+            (now, reason, rnd["id"]),
+        )
+        db.execute("UPDATE rf_approval_rounds SET status='cancelled' WHERE id=?", (rnd["id"],))
+    db.execute("UPDATE rf_documents SET edit_locked=0, updated_at=? WHERE id=?", (now, doc["id"]))
+    db.commit()
+    log_system_event(
+        user, "document_reopened", f"{user['u']} reabrió {doc_type} para editar — motivo: {reason}",
+        project_id=project_id, doc_type=doc_type,
+    )
+    return {"ok": True}
+
+
+@router.get("/{doc_type}/original")
+def get_original_pdf(project_id: str, doc_type: str, user: dict = Depends(get_current_user)):
+    """Bytes exactos del PDF que se selló, tal cual se guardaron -- nunca regenerado. Distinto
+    de /signed-render, que siempre arma una proyección con datos actuales. 404 explícito (no
+    un PDF inventado) para lo sellado antes de que original_stored existiera (Ronda 18)."""
+    check_document_access(user, project_id, doc_type)
+    db = get_db()
+    doc = _get_document_or_404(db, project_id, doc_type)
+    if not doc["original_stored"] or not doc["pdf_data"]:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "Este documento se selló antes de que se empezara a guardar el artefacto original — "
+            "solo se conserva su hash, no se puede descargar el PDF original exacto.",
+        )
+    pdf_bytes = base64.b64decode(doc["pdf_data"])
+    return Response(
+        content=pdf_bytes, media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{doc_type}-original.pdf"'},
+    )
 
 
 @router.post("/{doc_type}/sections/{section_key}/comments")
