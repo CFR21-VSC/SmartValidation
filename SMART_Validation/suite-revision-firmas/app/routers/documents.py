@@ -415,10 +415,18 @@ def reopen_document(
 def get_original_pdf(project_id: str, doc_type: str, user: dict = Depends(get_current_user)):
     """Bytes exactos del PDF que se selló, tal cual se guardaron -- nunca regenerado. Distinto
     de /signed-render, que siempre arma una proyección con datos actuales. 404 explícito (no
-    un PDF inventado) para lo sellado antes de que original_stored existiera (Ronda 18)."""
+    un PDF inventado), con un mensaje que distingue el motivo real -- documento que todavía
+    no se selló, de uno sellado antes de que original_stored existiera (revisión de Codex,
+    2026-09-19: antes ambos casos mostraban el mismo texto de "se selló antes de...", lo cual
+    es directamente falso para un borrador que nunca se selló)."""
     check_document_access(user, project_id, doc_type)
     db = get_db()
     doc = _get_document_or_404(db, project_id, doc_type)
+    if not doc["locked"]:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "Este documento todavía no está sellado — no existe un PDF original que descargar.",
+        )
     if not doc["original_stored"] or not doc["pdf_data"]:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,

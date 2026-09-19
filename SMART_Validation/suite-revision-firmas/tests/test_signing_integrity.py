@@ -315,7 +315,22 @@ def test_original_pdf_download_returns_exact_stored_bytes(drp_with_pin):
     assert r.headers["content-type"] == "application/pdf"
 
 
-def test_original_pdf_404_when_never_stored(drp_with_pin):
+def test_original_pdf_404_message_distinguishes_never_sealed_from_sealed_without_original(drp_with_pin):
+    """Codex (hallazgo #6): el 404 usaba el mismo texto ("se selló antes de...") para un
+    documento que nunca se selló y para uno sellado antes de original_stored -- directamente
+    falso para el primer caso."""
     drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
-    r = drp_with_pin.get("/projects/proj-1/documents/HLRA/original")
-    assert r.status_code == 404
+    never_sealed = drp_with_pin.get("/projects/proj-1/documents/HLRA/original")
+    assert never_sealed.status_code == 404
+    assert "todavía no está sellado" in never_sealed.json()["detail"]
+
+    from app.db import get_db
+    db = get_db()
+    doc_id = db.execute("SELECT id FROM rf_documents WHERE project_id='proj-1' AND doc_type='HLRA'").fetchone()["id"]
+    # Simula un documento sellado ANTES de que original_stored existiera (Ronda 18) --
+    # locked=1 pero sin pdf_data guardado.
+    db.execute("UPDATE rf_documents SET locked=1 WHERE id=?", (doc_id,))
+    db.commit()
+    sealed_no_original = drp_with_pin.get("/projects/proj-1/documents/HLRA/original")
+    assert sealed_no_original.status_code == 404
+    assert "se selló antes de que se empezara a guardar" in sealed_no_original.json()["detail"]
