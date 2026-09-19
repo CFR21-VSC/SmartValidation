@@ -1,0 +1,68 @@
+{
+  "generado": "2026-09-19T08:23:38",
+  "canonicoSegun": "SMART_Validation/claude-desktop-skills/urs-generator.md, seccion 11",
+  "_comoAplicar": "Estas son PROPUESTAS detectadas, no aprobaciones. Para aplicar una, poner \"aprobada\": true en esa entrada. --aplicar ignora todo lo demas.",
+  "propuestas": [
+    {
+      "archivo": "C:\\Users\\fjbon\\OneDrive\\Escritorio\\SMART Validation\\Proyecto_Prueba_2026_RECOVERED.json",
+      "sha256": "9e1f9f705dbeea7071d02f85271e00cf160c2ddfc612edc759a84c7c150d93c1",
+      "ruta": ".project.snapshot.packageDocs[2].data.data.secciones[15].filas[0][0].stack[4].canvas[0]",
+      "valorPrevio": {
+        "type": "line",
+        "x1": 50,
+        "y1": 677.625,
+        "x2": 180,
+        "y2": 677.625,
+        "lineWidth": 0.5,
+        "lineColor": "#D0D5DB"
+      },
+      "valorPropuesto": {
+        "type": "line",
+        "x1": 0,
+        "y1": 0,
+        "x2": 130,
+        "y2": 0,
+        "lineWidth": 0.5,
+        "lineColor": "#D0D5DB"
+      },
+      "estadoDocumento": "borrador",
+      "estadoSegun": "document.status = \"Borrador\"",
+      "motivos": [
+        "rastro de pdfMake en el nodo o su contenedor: _margin, _maxWidth, _minWidth, nodeInfo, positions",
+        "el valor propuesto es identico al que declara urs-generator.md"
+      ],
+      "aprobada": false
+    },
+    {
+      "archivo": "C:\\Users\\fjbon\\OneDrive\\Escritorio\\EMQC_Emara\\Proyecto demo 1 - Emara\\ai-docs\\URS-EMQC-001.json",
+      "sha256": "dacb921f888046b51db784df32ff0fa1a07c2f63451402db1a3f2879b2f33edb",
+      "ruta": ".secciones[15].filas[0][0].stack[4].canvas[0]",
+      "valorPrevio": {
+        "type": "line",
+        "x1": 200,
+        "y1": 2710.5,
+        "x2": 330,
+        "y2": 2710.5,
+        "lineWidth": 0.5,
+        "lineColor": "#D0D5DB"
+      },
+      "valorPropuesto": {
+        "type": "line",
+        "x1": 0,
+        "y1": 0,
+        "x2": 130,
+        "y2": 0,
+        "lineWidth": 0.5,
+        "lineColor": "#D0D5DB"
+      },
+      "estadoDocumento": "borrador",
+      "estadoSegun": "document.status = \"Borrador\"",
+      "motivos": [
+        "el valor propuesto es identico al que declara urs-generator.md",
+        "y=2710.5 no cabe en una pagina A4 (heuristica, no prueba universal)"
+      ],
+      "aprobada": false
+    }
+  ],
+  "paraRevisionHumana": []
+}

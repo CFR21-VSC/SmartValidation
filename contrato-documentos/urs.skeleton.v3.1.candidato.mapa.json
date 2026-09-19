@@ -1,0 +1,593 @@
+{
+  "fixture": {
+    "archivo": "SMART_Validation/js/validation-suite/fixtures/urs-drp-sis-001.json",
+    "asignaciones": {
+      "proposito": {
+        "indice": 0,
+        "evidencia": [
+          "tipo=texto",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "PROPÓSITO",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "alcance": {
+        "indice": 1,
+        "evidencia": [
+          "tipo=lista-incluido-excluido (unico en el contrato)",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "ALCANCE",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "responsabilidades": {
+        "indice": 2,
+        "evidencia": [
+          "tipo=tabla",
+          "2 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "RESPONSABILIDADES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "definiciones": {
+        "indice": 3,
+        "evidencia": [
+          "tipo=tabla",
+          "2 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "DEFINICIONES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "contexto": {
+        "indice": 4,
+        "evidencia": [
+          "tipo=texto",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "CONTEXTO DEL SISTEMA",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "contexto.general": {
+        "indice": 5,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "5.1 DESCRIPCIÓN GENERAL",
+        "padre": "contexto",
+        "padreVerificado": "porOrden"
+      },
+      "contexto.usuarios": {
+        "indice": 6,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "5.2 USUARIOS DEL SISTEMA",
+        "padre": "contexto",
+        "padreVerificado": "porOrden"
+      },
+      "contexto.usuarios.tabla": {
+        "indice": 7,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada"
+        ],
+        "tituloOrigen": "",
+        "padre": "contexto.usuarios",
+        "padreVerificado": "porOrden"
+      },
+      "contexto.integraciones": {
+        "indice": 8,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "5.3 INTEGRACIONES CON OTROS SISTEMAS",
+        "padre": "contexto",
+        "padreVerificado": "porOrden"
+      },
+      "leyenda": {
+        "indice": 9,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "LEYENDA DE LA TABLA DE REQUERIMIENTOS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "leyenda.criticidad": {
+        "indice": 10,
+        "evidencia": [
+          "tipo=tabla",
+          "contenido declarado presente"
+        ],
+        "tituloOrigen": "",
+        "padre": "leyenda",
+        "padreVerificado": "porOrden"
+      },
+      "requerimientos.funcionales": {
+        "indice": 11,
+        "evidencia": [
+          "tipo=tabla",
+          "5 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "REQUERIMIENTOS FUNCIONALES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "requerimientos.noFuncionales": {
+        "indice": 12,
+        "evidencia": [
+          "tipo=tabla",
+          "5 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "REQUERIMIENTOS NO FUNCIONALES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "exclusiones": {
+        "indice": 13,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "EXCLUSIONES EXPLÍCITAS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "criteriosAceptacion": {
+        "indice": 14,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "CRITERIOS DE ACEPTACIÓN DEL URS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "resumen": {
+        "indice": 15,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "RESUMEN ESTADÍSTICO DE REQUERIMIENTOS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "referencias": {
+        "indice": 16,
+        "evidencia": [
+          "tipo=tabla",
+          "2 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "REFERENCIAS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "firmas": {
+        "indice": 17,
+        "evidencia": [
+          "tipo=tabla-firmas-final (unico en el contrato)",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "FIRMAS DE EJECUCIÓN",
+        "padre": null,
+        "padreVerificado": true
+      }
+    },
+    "faltantes": [],
+    "ambiguedades": [],
+    "otros": []
+  },
+  "real": {
+    "archivo": "C:/Users/fjbon/OneDrive/Escritorio/EMQC_Emara/Proyecto demo 1 - Emara/ai-docs/URS-EMQC-001.json",
+    "asignaciones": {
+      "proposito": {
+        "indice": 0,
+        "evidencia": [
+          "tipo=texto",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "PROPÓSITO",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "alcance": {
+        "indice": 1,
+        "evidencia": [
+          "tipo=lista-incluido-excluido (unico en el contrato)",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "ALCANCE",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "responsabilidades": {
+        "indice": 2,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "RESPONSABILIDADES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "definiciones": {
+        "indice": 3,
+        "evidencia": [
+          "tipo=tabla",
+          "2 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "DEFINICIONES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "contexto": {
+        "indice": 4,
+        "evidencia": [
+          "tipo=texto",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "CONTEXTO DEL SISTEMA",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "contexto.general": {
+        "indice": 5,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "5.1 Descripción General",
+        "padre": "contexto",
+        "padreVerificado": "porOrden"
+      },
+      "contexto.usuarios": {
+        "indice": 6,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "5.2 Usuarios del Sistema",
+        "padre": "contexto",
+        "padreVerificado": "porOrden"
+      },
+      "contexto.usuarios.tabla": {
+        "indice": 7,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada"
+        ],
+        "tituloOrigen": "",
+        "padre": "contexto.usuarios",
+        "padreVerificado": "porOrden"
+      },
+      "contexto.integraciones": {
+        "indice": 8,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "5.3 Integraciones con Otros Sistemas",
+        "padre": "contexto",
+        "padreVerificado": "porOrden"
+      },
+      "leyenda": {
+        "indice": 9,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "LEYENDA DE LA TABLA DE REQUERIMIENTOS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "leyenda.criticidad": {
+        "indice": 10,
+        "evidencia": [
+          "tipo=tabla",
+          "contenido declarado presente"
+        ],
+        "tituloOrigen": "",
+        "padre": "leyenda",
+        "padreVerificado": "porOrden"
+      },
+      "requerimientos.funcionales": {
+        "indice": 11,
+        "evidencia": [
+          "tipo=tabla",
+          "5 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "REQUERIMIENTOS FUNCIONALES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "requerimientos.noFuncionales": {
+        "indice": 12,
+        "evidencia": [
+          "tipo=tabla",
+          "5 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "REQUERIMIENTOS NO FUNCIONALES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "exclusiones": {
+        "indice": 13,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "EXCLUSIONES EXPLÍCITAS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "criteriosAceptacion": {
+        "indice": 14,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "CRITERIOS DE ACEPTACIÓN DEL URS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "resumen": {
+        "indice": 15,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "RESUMEN ESTADÍSTICO DE REQUERIMIENTOS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "referencias": {
+        "indice": 16,
+        "evidencia": [
+          "tipo=tabla",
+          "2 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "REFERENCIAS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "firmas": {
+        "indice": 17,
+        "evidencia": [
+          "tipo=tabla-firmas-final (unico en el contrato)",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "CONFORMIDAD DE REVISIÓN Y APROBACIÓN",
+        "padre": null,
+        "padreVerificado": true
+      }
+    },
+    "faltantes": [],
+    "ambiguedades": [],
+    "otros": []
+  },
+  "plantilla": {
+    "archivo": "SMART_Validation/js/validation-suite/fixtures/urs-template-vacio.json",
+    "asignaciones": {
+      "proposito": {
+        "indice": 0,
+        "evidencia": [
+          "tipo=texto",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "PROPÓSITO",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "alcance": {
+        "indice": 1,
+        "evidencia": [
+          "tipo=lista-incluido-excluido (unico en el contrato)",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "ALCANCE",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "responsabilidades": {
+        "indice": 2,
+        "evidencia": [
+          "tipo=tabla",
+          "2 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "RESPONSABILIDADES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "definiciones": {
+        "indice": 3,
+        "evidencia": [
+          "tipo=tabla",
+          "2 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "DEFINICIONES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "contexto": {
+        "indice": 4,
+        "evidencia": [
+          "tipo=texto",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "CONTEXTO DEL SISTEMA",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "contexto.general": {
+        "indice": 5,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "5.1 Descripción General",
+        "padre": "contexto",
+        "padreVerificado": "porOrden"
+      },
+      "contexto.usuarios": {
+        "indice": 6,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "5.2 Usuarios del Sistema",
+        "padre": "contexto",
+        "padreVerificado": "porOrden"
+      },
+      "contexto.usuarios.tabla": {
+        "indice": 7,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada"
+        ],
+        "tituloOrigen": "",
+        "padre": "contexto.usuarios",
+        "padreVerificado": "porOrden"
+      },
+      "contexto.integraciones": {
+        "indice": 8,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "5.3 Integraciones con Otros Sistemas",
+        "padre": "contexto",
+        "padreVerificado": "porOrden"
+      },
+      "leyenda": {
+        "indice": 9,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "LEYENDA DE LA TABLA DE REQUERIMIENTOS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "leyenda.criticidad": {
+        "indice": 10,
+        "evidencia": [
+          "tipo=tabla",
+          "contenido declarado presente"
+        ],
+        "tituloOrigen": "",
+        "padre": "leyenda",
+        "padreVerificado": "porOrden"
+      },
+      "requerimientos.funcionales": {
+        "indice": 11,
+        "evidencia": [
+          "tipo=tabla",
+          "5 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "REQUERIMIENTOS FUNCIONALES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "requerimientos.noFuncionales": {
+        "indice": 12,
+        "evidencia": [
+          "tipo=tabla",
+          "5 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "REQUERIMIENTOS NO FUNCIONALES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "exclusiones": {
+        "indice": 13,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "EXCLUSIONES EXPLÍCITAS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "criteriosAceptacion": {
+        "indice": 14,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "CRITERIOS DE ACEPTACIÓN DEL URS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "resumen": {
+        "indice": 15,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "RESUMEN ESTADÍSTICO DE REQUERIMIENTOS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "referencias": {
+        "indice": 16,
+        "evidencia": [
+          "tipo=tabla",
+          "2 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "REFERENCIAS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "firmas": {
+        "indice": 17,
+        "evidencia": [
+          "tipo=tabla-firmas-final (unico en el contrato)",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "FIRMAS DE EJECUCIÓN",
+        "padre": null,
+        "padreVerificado": true
+      }
+    },
+    "faltantes": [],
+    "ambiguedades": [],
+    "otros": []
+  }
+}

@@ -1,0 +1,815 @@
+{
+  "contrato": "3.1",
+  "inmutable": true,
+  "compatibilidad": {
+    "campoTipoEnInstancia": "type",
+    "_nota": "Se conserva `type` (no `tipoDocumento`) porque es el que ya leen document-renderer.js y los 11 extractores Python. Introducir un alias obligaria a tocarlos sin ganancia.",
+    "formaDeInstancia": "sin cambios respecto de v1/v2",
+    "reglasDeForma": [
+      "`filas` vive en la seccion (sec.filas), NUNCA bajo sec.tabla: tracer.py y coherence_pack.py leen sec.get('filas').",
+      "Las filas de tablas con IDs son ARRAYS: tracer._extract_urs_rows descarta filas que no sean list.",
+      "Las celdas pueden ser string u objeto rico; ambos extractores ya resuelven el texto (_text/_cell).",
+      "PROHIBIDO fila-objeto con ID rico: coherence_pack._ids_urs hace str(fila['ursId']) y un dict no matchea el regex."
+    ],
+    "camposDesconocidos": {
+      "politica": "preservar",
+      "_nota": "Nunca se descarta un campo no reconocido. El nivel de diagnostico lo fija la version del contrato de la instancia, no una fecha global."
+    }
+  },
+  "numeracion": {
+    "origen": "derivada del arbol (clase + padre + orden)",
+    "numeroEnInstancia": {
+      "entero": "admitido: fija y resincroniza el contador",
+      "null": "admitido: no numera",
+      "string": "RECHAZADO en contrato 3.0",
+      "_notaLegacy": "Documentos <3.0 conservan su interpretacion historica (el string se ignora y cae al contador). No se coerciona: un `numero: \"9\"` que hoy muestra 1 pasaria a mostrar 9 y cambiaria el render de un documento existente."
+    }
+  },
+  "celdas": {
+    "formas": {
+      "texto": "string",
+      "rica": {
+        "requiere": [
+          "text"
+        ],
+        "opcionales": [
+          "color",
+          "bold",
+          "fillColor",
+          "italics",
+          "alignment",
+          "fontSize"
+        ]
+      }
+    },
+    "reglasDePreservacion": [
+      "Al editar una celda rica se reescribe SOLO `text`; el resto de las propiedades se conserva intacto.",
+      "Prohibido colapsar una celda rica a string.",
+      "Las propiedades no listadas en `opcionales` tambien se preservan (politica camposDesconocidos)."
+    ]
+  },
+  "agrupaciones": {
+    "claveLegacy": "subheader",
+    "_notaHotfix": "El hotfix de preservacion NO renombra esta clave: shared-renderers.js:362 lee `subheader` y renombrarla seria una migracion que los renderers actuales no entienden.",
+    "migracionFutura": {
+      "clave": "agrupacion",
+      "forma": {
+        "titulo": "string sin numero",
+        "numero": "derivado"
+      },
+      "estado": "NO aplicada. Requiere migracion coordinada de renderers + datos."
+    },
+    "numeracion": "En 3.0 el texto de la agrupacion se conserva literal (incluye su numero manual). Derivarlo es parte de la migracion futura, no de este contrato."
+  },
+  "estadosDeSeccion": {
+    "presente": "existe y tiene contenido",
+    "vacia": "existe sin contenido; es ERROR si obligatoriedad=requerida y el documento esta 'listo para aprobar'",
+    "noAplica": {
+      "forma": {
+        "justificacion": "string no vacio"
+      },
+      "soloEn": "secciones con admiteNoAplica=true",
+      "incompatibleCon": "tener filas/contenido activo simultaneamente"
+    },
+    "_nota": "Ausente, vacia y noAplica son tres estados distintos y auditables. Un borrador puede tener secciones vacias; 'listo para aprobar' no."
+  },
+  "reglasDeArbol": [
+    "`id` unico dentro del documento y estable entre revisiones.",
+    "`padre` debe existir y ser de clase 'seccion'.",
+    "Prohibidas autorreferencias y ciclos.",
+    "Un elemento clase 'bloque' DEBE tener padre; no puede ser padre de nadie.",
+    "El orden de hermanos lo da el orden del array `secciones`; los bloques se renderizan en esa posicion relativa.",
+    "La profundidad no determina por si sola la numeracion: la determina clase + cadena de padres + orden."
+  ],
+  "reproduccionHistorica": {
+    "guardaArtefacto": true,
+    "_nota": "El hash verifica identidad pero no permite reconstruir. Se archiva el esqueleto aprobado junto al documento firmado, mas las versiones de renderer, fuentes y estilos usadas.",
+    "fija": [
+      "esqueleto (copia integra)",
+      "version de renderer",
+      "fuentes",
+      "hoja de estilos"
+    ]
+  },
+  "firmados": {
+    "payloadIntacto": true,
+    "_nota": "El payload firmado no se modifica JAMAS: ni un marcador, ni schemaVersion. La clasificacion de esquema vive FUERA (columna en la fila de la base).",
+    "normalizacion": "La normalizacion de envoltorio es EN MEMORIA para lectura. Nunca se reescribe el original de un documento firmado.",
+    "migracion": "Los firmados no se migran. Coexisten dos caminos de render."
+  },
+  "tipoDocumento": "VP",
+  "fasesDeAdopcion": {
+    "_nota": "La adopcion del contrato tiene DOS fases separadas. Confundirlas fue el error de la primera propuesta.",
+    "fase1_aditiva": {
+      "estado": "propuesta, verificable hoy",
+      "cambia": "SOLO agrega id, clase y padre a cada elemento. No toca tipo, titulo, filas ni ningun campo existente.",
+      "compatibilidad": "El renderer y el numerador actuales, que no conocen clase ni padre, producen EXACTAMENTE la misma salida. Verificado con contrato-documentos/numeracion-test.cjs sobre URS y VP reales.",
+      "habilita": "Identidad estable por elemento, jerarquia explicita, y validacion de arbol/IDs/obligatoriedad."
+    },
+    "fase2_numeracion_derivada": {
+      "estado": "NO aplicada",
+      "cambia": "Quita el numero manual del titulo de las subsecciones y deriva la numeracion del arbol.",
+      "requiere": "Un renderer consciente del contrato. Con el renderer actual la numeracion se corre (en el VP, el item 27 pasaba de 14 a 19).",
+      "precondicion": "No migrar datos a fase 2 hasta tener ese renderer y una proyeccion legacy probada."
+    },
+    "precedencia_de_numeracion": {
+      "_nota": "Mientras coexistan ambas fases, la regla es explicita y no ambigua:",
+      "orden": [
+        "numero entero en la instancia (fija y resincroniza)",
+        "numero null (suprime)",
+        "fase 2: derivada del arbol",
+        "fase 1 / legacy: contador por titulo, subseccion no consume"
+      ],
+      "limite": "Con overrides enteros presentes, 'no puede haber saltos' NO es una garantia del sistema: es responsabilidad de quien los escribe. La validacion los reporta, no los corrige."
+    }
+  },
+  "idPolicy": {
+    "definidosAqui": [],
+    "_nota": "El VP no define IDs propios; referencia los de otros documentos.",
+    "valorSemantico": "Si la celda es objeto, el valor validado es celda.text; si es string, el string. La validacion NUNCA opera sobre el objeto serializado.",
+    "unicidad": {
+      "alcance": "proyecto + conjunto de revisiones vigentes",
+      "_nota": "URS-001 es la MISMA identidad a traves de revisiones sucesivas del mismo documento. La unicidad no se aplica al archivo historico completo.",
+      "distingue": {
+        "definicion": "la fila que crea el ID",
+        "referencia": "menciones desde FRS/RA/TC"
+      }
+    }
+  },
+  "secciones": [
+    {
+      "id": "proposito",
+      "clase": "seccion",
+      "tipo": "texto",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "PROPOSITO",
+        "OBJETIVO"
+      ],
+      "admiteNoAplica": false
+    },
+    {
+      "id": "alcance",
+      "clase": "seccion",
+      "tipo": "lista-incluido-excluido",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "ALCANCE"
+      ],
+      "admiteNoAplica": false
+    },
+    {
+      "id": "responsabilidades",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "RESPONSABILIDADES"
+      ],
+      "admiteNoAplica": false,
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": false,
+        "minFilasDatos": 0,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "c1",
+                "celda": "texto",
+                "ancho": 120,
+                "label": "Rol"
+              },
+              {
+                "key": "c2",
+                "celda": "texto",
+                "ancho": 130,
+                "label": "Nombre"
+              },
+              {
+                "key": "c3",
+                "celda": "texto",
+                "ancho": 205,
+                "label": "Responsabilidad principal"
+              }
+            ]
+          },
+          {
+            "columnas": [
+              {
+                "key": "c1",
+                "celda": "texto",
+                "ancho": 120,
+                "label": "Rol"
+              },
+              {
+                "label": "Responsabilidad en este VP",
+                "key": "responsabilidad"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "definiciones",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "DEFINICIONES"
+      ],
+      "admiteNoAplica": false,
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": false,
+        "minFilasDatos": 0,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "c1",
+                "celda": "texto",
+                "ancho": 110,
+                "label": "Término"
+              },
+              {
+                "key": "c2",
+                "celda": "texto",
+                "ancho": 345,
+                "label": "Definición"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "hlra",
+      "clase": "seccion",
+      "tipo": "tabla-info",
+      "obligatoriedad": "opcional",
+      "titulosPermitidos": [
+        "REFERENCIA AL HLRA — ESTRATEGIA BASADA EN RIESGO",
+        "REFERENCIA AL HLRA"
+      ],
+      "admiteNoAplica": true
+    },
+    {
+      "id": "documentos",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "DOCUMENTOS DEL PROYECTO DE VALIDACION"
+      ],
+      "admiteNoAplica": true,
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": false,
+        "minFilasDatos": 0,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "c1",
+                "celda": "texto",
+                "ancho": 25,
+                "label": "#"
+              },
+              {
+                "key": "c2",
+                "celda": "texto",
+                "ancho": 130,
+                "label": "Código"
+              },
+              {
+                "key": "c3",
+                "celda": "texto",
+                "ancho": 175,
+                "label": "Documento"
+              },
+              {
+                "key": "c4",
+                "celda": "texto",
+                "ancho": 125,
+                "label": "Responsable"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "documentos.nota",
+      "clase": "bloque",
+      "tipo": "caja-nota",
+      "obligatoriedad": "opcional",
+      "padre": "documentos",
+      "titulosPermitidos": [
+        "Notas sobre el paquete documental"
+      ],
+      "admiteNoAplica": true
+    },
+    {
+      "id": "cronograma",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "obligatoriedad": "opcional",
+      "titulosPermitidos": [
+        "CRONOGRAMA DEL PROYECTO"
+      ],
+      "admiteNoAplica": true,
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": false,
+        "minFilasDatos": 0,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "c1",
+                "celda": "texto",
+                "ancho": 50,
+                "label": "Semana"
+              },
+              {
+                "key": "c2",
+                "celda": "texto",
+                "ancho": 175,
+                "label": "Actividades"
+              },
+              {
+                "key": "c3",
+                "celda": "texto",
+                "ancho": 130,
+                "label": "Documentos generados"
+              },
+              {
+                "key": "c4",
+                "celda": "texto",
+                "ancho": 100,
+                "label": "Hito de cierre"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "cronograma.nota",
+      "clase": "bloque",
+      "tipo": "caja-nota",
+      "obligatoriedad": "opcional",
+      "padre": "cronograma",
+      "admiteNoAplica": true,
+      "contieneTexto": [
+        "cronograma"
+      ]
+    },
+    {
+      "id": "calificacion",
+      "clase": "seccion",
+      "tipo": "texto",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "ALCANCE DE CALIFICACION IQ / OQ",
+        "ALCANCE DE CALIFICACION"
+      ],
+      "admiteNoAplica": true
+    },
+    {
+      "id": "calificacion.iq",
+      "clase": "seccion",
+      "tipo": "subseccion",
+      "obligatoriedad": "requerida",
+      "padre": "calificacion",
+      "titulosPermitidos": [
+        "Installation Qualification (IQ)"
+      ],
+      "admiteNoAplica": true
+    },
+    {
+      "id": "calificacion.iq.tabla",
+      "clase": "bloque",
+      "tipo": "tabla",
+      "obligatoriedad": "opcional",
+      "padre": "calificacion.iq",
+      "admiteNoAplica": true,
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": false,
+        "minFilasDatos": 0,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "c1",
+                "celda": "texto",
+                "ancho": 140,
+                "label": "Área de verificación IQ"
+              },
+              {
+                "key": "c2",
+                "celda": "texto",
+                "ancho": 195,
+                "label": "Qué se verifica"
+              },
+              {
+                "key": "c3",
+                "celda": "texto",
+                "ancho": 120,
+                "label": "Criterio de aceptación"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "calificacion.iq.criterio",
+      "clase": "bloque",
+      "tipo": "caja-nota",
+      "obligatoriedad": "opcional",
+      "padre": "calificacion.iq",
+      "titulosPermitidos": [
+        "Criterio de aceptación IQ"
+      ],
+      "admiteNoAplica": true
+    },
+    {
+      "id": "calificacion.oq",
+      "clase": "seccion",
+      "tipo": "subseccion",
+      "obligatoriedad": "requerida",
+      "padre": "calificacion",
+      "titulosPermitidos": [
+        "Operational Qualification (OQ)"
+      ],
+      "admiteNoAplica": true
+    },
+    {
+      "id": "calificacion.oq.tabla",
+      "clase": "bloque",
+      "tipo": "tabla",
+      "obligatoriedad": "opcional",
+      "padre": "calificacion.oq",
+      "admiteNoAplica": true,
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": false,
+        "minFilasDatos": 0,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "c1",
+                "celda": "texto",
+                "ancho": 150,
+                "label": "Área funcional OQ"
+              },
+              {
+                "key": "c2",
+                "celda": "texto",
+                "ancho": 230,
+                "label": "Qué se verifica"
+              },
+              {
+                "key": "c3",
+                "celda": "texto",
+                "ancho": 75,
+                "label": "Prioridad"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "calificacion.oq.criterio",
+      "clase": "bloque",
+      "tipo": "caja-nota",
+      "obligatoriedad": "opcional",
+      "padre": "calificacion.oq",
+      "titulosPermitidos": [
+        "Criterio de aceptación OQ",
+        "Ratio TC/URS y criterio de aceptación OQ"
+      ]
+    },
+    {
+      "id": "calificacion.pq",
+      "clase": "seccion",
+      "tipo": "subseccion",
+      "obligatoriedad": "opcional",
+      "padre": "calificacion",
+      "titulosPermitidos": [
+        "Performance Qualification (PQ) — No Aplica",
+        "Performance Qualification (PQ)"
+      ],
+      "admiteNoAplica": true
+    },
+    {
+      "id": "calificacion.pq.justificacion",
+      "clase": "bloque",
+      "tipo": "caja-justificacion",
+      "obligatoriedad": "opcional",
+      "padre": "calificacion.pq",
+      "titulosPermitidos": [
+        "Justificación de exclusión de PQ"
+      ],
+      "admiteNoAplica": true
+    },
+    {
+      "id": "decisiones.intro",
+      "clase": "seccion",
+      "tipo": "subseccion",
+      "obligatoriedad": "opcional",
+      "titulosPermitidos": [
+        "Decisiones de ejecución — Criterios de resultado"
+      ]
+    },
+    {
+      "id": "decisiones",
+      "clase": "seccion",
+      "tipo": "tabla-decisiones-tc",
+      "obligatoriedad": "opcional",
+      "titulosPermitidos": [
+        "DECISIONES DE EJECUCION — CRITERIOS DE RESULTADO",
+        "DECISIONES DE EJECUCION",
+        ""
+      ],
+      "admiteNoAplica": true
+    },
+    {
+      "id": "desviaciones",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "GESTION DE DESVIACIONES Y NO CONFORMIDADES"
+      ],
+      "admiteNoAplica": true,
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": false,
+        "minFilasDatos": 0,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "c1",
+                "celda": "texto",
+                "ancho": 80,
+                "label": "Severidad"
+              },
+              {
+                "key": "c2",
+                "celda": "texto",
+                "ancho": 215,
+                "label": "Definición"
+              },
+              {
+                "key": "c3",
+                "celda": "texto",
+                "ancho": 160,
+                "label": "Acción requerida"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "desviaciones.documentacion",
+      "clase": "seccion",
+      "tipo": "subseccion",
+      "obligatoriedad": "opcional",
+      "padre": "desviaciones",
+      "titulosPermitidos": [
+        "Documentación de No Conformidades",
+        "Proceso de documentación y cierre"
+      ],
+      "admiteNoAplica": true
+    },
+    {
+      "id": "desviaciones.documentacion.campos",
+      "clase": "bloque",
+      "tipo": "tabla-info",
+      "obligatoriedad": "opcional",
+      "padre": "desviaciones.documentacion",
+      "admiteNoAplica": true
+    },
+    {
+      "id": "cambios",
+      "clase": "seccion",
+      "tipo": "texto",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "GESTION DE CAMBIOS"
+      ],
+      "admiteNoAplica": true
+    },
+    {
+      "id": "cambios.postValidacion",
+      "clase": "seccion",
+      "tipo": "subseccion",
+      "obligatoriedad": "opcional",
+      "padre": "cambios",
+      "titulosPermitidos": [
+        "Post-validación",
+        "Post-validación (sistema en producción)",
+        "Sistema en producción (post-validación)"
+      ],
+      "admiteNoAplica": true
+    },
+    {
+      "id": "cambios.postValidacion.tabla",
+      "clase": "bloque",
+      "tipo": "tabla",
+      "obligatoriedad": "opcional",
+      "padre": "cambios.postValidacion",
+      "admiteNoAplica": true,
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": false,
+        "minFilasDatos": 0,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "c1",
+                "celda": "texto",
+                "ancho": 180,
+                "label": "Tipo de cambio"
+              },
+              {
+                "key": "c2",
+                "celda": "texto",
+                "ancho": 160,
+                "label": "Procedimiento aplicable"
+              },
+              {
+                "key": "c3",
+                "celda": "texto",
+                "ancho": 115,
+                "label": "Responsable"
+              }
+            ]
+          },
+          {
+            "columnas": [
+              {
+                "key": "c1",
+                "celda": "texto",
+                "ancho": 180,
+                "label": "Tipo de cambio"
+              },
+              {
+                "label": "Evaluación requerida",
+                "key": "procedimiento"
+              },
+              {
+                "label": "Posible acción",
+                "key": "responsable"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "criterioValidado",
+      "clase": "seccion",
+      "tipo": "caja-criterio",
+      "obligatoriedad": "opcional",
+      "titulosPermitidos": [
+        "El sistema se considera VALIDADO cuando se cumplen TODOS los siguientes criterios"
+      ]
+    },
+    {
+      "id": "criteriosAceptacion",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "CRITERIOS DE ACEPTACION GENERALES"
+      ],
+      "admiteNoAplica": true,
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": false,
+        "minFilasDatos": 0,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "c1",
+                "celda": "texto",
+                "ancho": 25,
+                "label": "#"
+              },
+              {
+                "key": "c2",
+                "celda": "texto",
+                "ancho": 270,
+                "label": "Criterio"
+              },
+              {
+                "key": "c3",
+                "celda": "texto",
+                "ancho": 160,
+                "label": "Verificación"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "referencias",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "REFERENCIAS"
+      ],
+      "admiteNoAplica": false,
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": false,
+        "minFilasDatos": 0,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "c1",
+                "celda": "texto",
+                "ancho": 180,
+                "label": "Código / Referencia"
+              },
+              {
+                "key": "c2",
+                "celda": "texto",
+                "ancho": 275,
+                "label": "Título"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "firmas",
+      "clase": "seccion",
+      "tipo": "tabla-firmas-final",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "CONFORMIDAD DE REVISION Y APROBACION",
+        "FIRMAS DE EJECUCION"
+      ],
+      "admiteNoAplica": false
+    }
+  ],
+  "_estado": "CANDIDATO — no publicado. El 3.0 sigue vigente sin cambios.",
+  "_cambiosRespectoDe30": [
+    "los id de seccion son claves canonicas asignadas, no slugs del titulo",
+    "los padre usan esas claves",
+    "las tablas declaran variantes de columnas, cada una con sus roles",
+    "los titulos permitidos se declaran por seccion"
+  ],
+  "identidad": {
+    "version": "3.0",
+    "orden": [
+      "proposito",
+      "alcance",
+      "responsabilidades",
+      "definiciones",
+      "hlra",
+      "documentos",
+      "documentos.nota",
+      "cronograma",
+      "cronograma.nota",
+      "calificacion",
+      "calificacion.iq",
+      "calificacion.iq.tabla",
+      "calificacion.iq.criterio",
+      "calificacion.oq",
+      "calificacion.oq.tabla",
+      "calificacion.oq.criterio",
+      "calificacion.pq",
+      "calificacion.pq.justificacion",
+      "decisiones.intro",
+      "decisiones",
+      "desviaciones",
+      "desviaciones.documentacion",
+      "desviaciones.documentacion.campos",
+      "cambios",
+      "cambios.postValidacion",
+      "cambios.postValidacion.tabla",
+      "criterioValidado",
+      "criteriosAceptacion",
+      "referencias",
+      "firmas"
+    ]
+  }
+}

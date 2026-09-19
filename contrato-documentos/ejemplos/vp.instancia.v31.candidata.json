@@ -1,0 +1,975 @@
+{
+  "schemaVersion": "1.0",
+  "type": "VP",
+  "package": {
+    "code": "EMQC-001",
+    "systemName": "emqc®",
+    "systemVersion": "3.3",
+    "systemSubtitle": "Sistema de Monitoreo Ambiental y de Calidad de Aguas para entornos GxP",
+    "client": "Emara SRL",
+    "vendor": "EMARA (Enlace Molecular SRL)",
+    "qmsLabel": "Sistema de Gestión de Calidad GxP",
+    "normativeFramework": "ANMAT 4159/2023 Anexo VI | 21 CFR Part 11 | EU GMP Annex 11 | GAMP 5 2da Ed. (2022) | ICH Q9 R1 (2023)",
+    "year": 2026
+  },
+  "document": {
+    "code": "VP-EMQC-001",
+    "titleEs": "PLAN DE VALIDACIÓN",
+    "titleEn": "VALIDATION PLAN (VP)",
+    "headerTitle": "Plan de Validación (VP)",
+    "version": "1.0",
+    "issueDate": "Agosto 2026",
+    "status": "Borrador",
+    "processOwner": "Luciana Muñoz",
+    "gampCategory": "GAMP 4 — Software Configurado (perspectiva del laboratorio usuario)",
+    "normativeFramework": "ANMAT 4159/2023 Anexo VI | 21 CFR Part 11 | EU GMP Annex 11 | GAMP 5 2da Ed. (2022) | ICH Q9 R1 (2023)",
+    "extras": {
+      "Documento base (HLRA)": "HLRA-EMQC-001 v1.0",
+      "Tipo de Validación": "Concurrente — el sistema se encuentra en operación en el entorno del laboratorio sin validación formal previa"
+    }
+  },
+  "controlCambios": [
+    {
+      "version": "1.0",
+      "fecha": "Ago 2026",
+      "autor": "Federico Bongiovanni",
+      "descripcion": "Versión inicial"
+    }
+  ],
+  "matrizAprobaciones": [
+    {
+      "rol": "Redactor (Validador Líder)",
+      "nombre": "Federico Bongiovanni",
+      "iniciales": "FB",
+      "fecha": "24/08/2026"
+    },
+    {
+      "rol": "Revisor (Key User)",
+      "nombre": "Marysol Vera",
+      "iniciales": "MV",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Process Owner)",
+      "nombre": "Luciana Muñoz",
+      "iniciales": "LM",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Directora de Calidad / CEO)",
+      "nombre": "Luciana Muñoz",
+      "iniciales": "LM",
+      "fecha": ""
+    }
+  ],
+  "trazabilidad": {
+    "recibeDe": [
+      "HLRA"
+    ],
+    "alimentaA": [
+      "URS",
+      "RA",
+      "IRA",
+      "RRM",
+      "MTR",
+      "PIQ",
+      "POQ"
+    ]
+  },
+  "validationScope": {
+    "iq": true,
+    "oq": true,
+    "pq": false
+  },
+  "secciones": [
+    {
+      "id": "proposito",
+      "clase": "seccion",
+      "tipo": "texto",
+      "titulo": "PROPÓSITO",
+      "bloques": [
+        {
+          "texto": "El presente Plan de Validación (VP) establece la estrategia, alcance, responsabilidades, documentos a generar, cronograma y criterios de aceptación para la validación del sistema emqc® versión 3.3 (módulos AMBIENTE y AGUAS), propiedad de EMARA (Enlace Molecular SRL), conforme a GAMP 5 Segunda Edición (2022), ANMAT 4159/2023 Anexo VI, 21 CFR Part 11, EU GMP Annex 11 e ICH Q9 R1 (2023)."
+        },
+        {
+          "texto": "Este documento toma como input el Análisis de Calificación y Criticidad GxP (HLRA-EMQC-001 v1.0), que determinó la categoría GAMP 4 — Software Configurado (perspectiva del laboratorio usuario) y un Índice de Riesgo Operativo (IRO) de 216 (nivel ALTO), y lo traduce en un plan de acción concreto, ejecutable y auditable para el Proyecto Demo 1 — Emara."
+        }
+      ]
+    },
+    {
+      "id": "alcance",
+      "clase": "seccion",
+      "tipo": "lista-incluido-excluido",
+      "titulo": "ALCANCE",
+      "subIncluido": "2.1 Incluido en este Plan",
+      "incluido": [
+        "Sistema: emqc® v3.3 — Módulo AMBIENTE y Módulo AGUAS — Acceso vía navegador Google Chrome (aplicación web, compatible con tablets)",
+        "Organización: EMARA (Enlace Molecular SRL) — Mercado regulatorio: ANMAT 4159/2023 Anexo VI, con equivalencias mapeadas a 21 CFR Part 11 y EU GMP Annex 11",
+        "Fases cubiertas: Especificación (URS/FRS/DS) → Análisis de riesgos (RA/IRA) → Cumplimiento normativo (RRM) → Trazabilidad (MTR) → Calificación (IQ/OQ) → Cierre (VSR)",
+        "Tipo de validación: Concurrente — el sistema emqc® v3.3 se encuentra en operación en el entorno productivo del laboratorio sin validación formal previa"
+      ],
+      "subExcluido": "2.2 Excluido de este Plan",
+      "excluido": [
+        "Infraestructura cloud subyacente de AWS — calificada mediante IRA y respaldada por certificaciones ISO 9001, ISO 27001, ISO 27017 e ISO 27018 del proveedor AWS",
+        "Validación desde la perspectiva del desarrollador de emqc® (ciclo de vida interno del vendor: Bitbucket, Jenkins, Selenium) — corresponde a GAMP 5 interno de EMARA",
+        "Performance Qualification (PQ/PPQ/IPQ/RPQ): No aplica en este ciclo — excluida del alcance contractual del Proyecto Demo 1, aunque técnicamente recomendable a futuro dado el IRO ALTO (216)"
+      ]
+    },
+    {
+      "id": "responsabilidades",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "titulo": "RESPONSABILIDADES",
+      "columnas": [
+        "Rol",
+        "Nombre",
+        "Responsabilidad principal"
+      ],
+      "widths": [
+        120,
+        130,
+        205
+      ],
+      "filas": [
+        [
+          "Validador Líder / Redactor",
+          "Federico Bongiovanni (DRP Assurance)",
+          "Liderar el proyecto de validación. Redactar y mantener todos los documentos del paquete. Coordinar la ejecución del ciclo conforme a este VP."
+        ],
+        [
+          "Ejecutor de Protocolos (IQ/OQ)",
+          "Lucas (DRP Assurance)",
+          "Ejecutar los protocolos PIQ y POQ. Registrar evidencias en el Gestor de Evidencias GxP y reportar hallazgos al Validador Líder."
+        ],
+        [
+          "Process Owner / Aprobador",
+          "Luciana Muñoz (CEO EMARA / Directora de Calidad)",
+          "Revisar y aprobar todos los documentos del paquete. Proveer información técnica y funcional del sistema. Aceptar riesgos residuales y GAPs."
+        ],
+        [
+          "Key User / Revisora",
+          "Marysol Vera (EMARA)",
+          "Revisar documentos, validar requerimientos funcionales desde la operación diaria y participar en la ejecución de test cases."
+        ]
+      ]
+    },
+    {
+      "id": "definiciones",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "titulo": "DEFINICIONES",
+      "columnas": [
+        "Término",
+        "Definición"
+      ],
+      "widths": [
+        110,
+        345
+      ],
+      "filas": [
+        [
+          "Validación",
+          "Proceso documentado que proporciona evidencia objetiva de que un sistema cumple consistentemente sus requerimientos y especificaciones previstas."
+        ],
+        [
+          "IQ — Installation Qualification",
+          "Calificación de Instalación — verificación documentada de que la instalación y configuración base de emqc® en el entorno del laboratorio es correcta."
+        ],
+        [
+          "OQ — Operational Qualification",
+          "Calificación Operacional — verificación documentada de que las funciones GxP de emqc® operan conforme a lo especificado bajo la configuración del laboratorio."
+        ],
+        [
+          "PQ — Performance Qualification",
+          "Calificación de Performance — verificación de desempeño bajo condiciones reales de producción. No aplica en este ciclo (ver Sección 8.3)."
+        ],
+        [
+          "URS",
+          "User Requirements Specification — Especificación de Requerimientos de Usuario, base de todos los test cases y de la trazabilidad del proyecto."
+        ],
+        [
+          "TC — Test Case",
+          "Caso de prueba — unidad ejecutable de verificación con criterios de aceptación definidos, ejecutada durante IQ u OQ."
+        ],
+        [
+          "GAMP 4",
+          "Software Configurado (COTS) — producto comercial preexistente que se parametriza (no se programa) por el usuario. Categoría aplicable a emqc® desde la perspectiva del laboratorio."
+        ],
+        [
+          "GAMP 5",
+          "Good Automated Manufacturing Practice — Guía de la ISPE (2da Ed., 2022) para la validación basada en riesgo de sistemas computarizados en entornos GxP."
+        ],
+        [
+          "NC — No Conformidad",
+          "Incumplimiento de un criterio de aceptación detectado durante la ejecución de un test case de IQ u OQ."
+        ],
+        [
+          "CAPA",
+          "Corrective and Preventive Action — Acción Correctiva y Preventiva, aplicada para resolver la causa raíz de una NC y prevenir su recurrencia."
+        ],
+        [
+          "Desviación",
+          "Incumplimiento de un procedimiento o especificación establecida, gestionado y documentado conforme a la Sección 10 de este VP."
+        ],
+        [
+          "RRM",
+          "Risk Register Matrix — registro de riesgos, controles y cumplimiento normativo; mapea ANMAT 4159/21 CFR Part 11/EU Annex 11 contra URS y RA."
+        ],
+        [
+          "IRO",
+          "Índice de Riesgo Operativo — calculado en el HLRA como producto de 6 factores (P×G×D×I×PR×S). Para emqc® v3.3: 216 (nivel ALTO)."
+        ],
+        [
+          "IRA",
+          "Infrastructure Risk Assessment — análisis de riesgo de los componentes de infraestructura (AWS EC2, SQL Server, S3, red)."
+        ],
+        [
+          "NCR",
+          "Non-Conformance Report — Reporte de Hallazgos y Plan de Acción, gestión de no conformidades detectadas durante la ejecución de IQ/OQ."
+        ],
+        [
+          "RIQ/ROQ",
+          "Reporte de Decisión IQ/OQ — dictamen formal de liberación por fase de calificación, emitido por el Validador Líder."
+        ],
+        [
+          "VSR",
+          "Validation Summary Report — Informe Final de Validación; dictamen y cierre del ciclo de validación de emqc® v3.3."
+        ]
+      ]
+    },
+    {
+      "id": "hlra",
+      "clase": "seccion",
+      "tipo": "tabla-info",
+      "titulo": "REFERENCIA AL HLRA — ESTRATEGIA BASADA EN RIESGO",
+      "intro": "Este Plan de Validación se basa íntegramente en los hallazgos del documento HLRA-EMQC-001 v1.0. Los datos clave que guían las decisiones de este VP son:",
+      "labelWidth": 170,
+      "filas": [
+        {
+          "campo": "Categoría GAMP",
+          "valor": "GAMP 4 — Software Configurado (perspectiva del laboratorio usuario)"
+        },
+        {
+          "campo": "IRO Calculado",
+          "valor": "216 — Nivel ALTO (rango 201-486)"
+        },
+        {
+          "campo": "Fórmula IRO aplicada",
+          "valor": "P(3) × G(2) × D(3) × I(3) × PR(2) × S(2) = 216"
+        },
+        {
+          "campo": "Tipo de validación",
+          "valor": "Concurrente — el sistema se encuentra en operación en el entorno del laboratorio sin validación formal previa"
+        },
+        {
+          "campo": "GAPs identificados",
+          "valor": "2 GAPs (GAP-001 NC Menor — discrepancia de versión en Procedimiento de Uso; GAP-002 Observación — denominación EMARA vs Enlace Molecular en 2 SOPs del vendor) — Ninguno bloqueante"
+        },
+        {
+          "campo": "Funciones críticas",
+          "valor": "10 funciones críticas/altas identificadas en HLRA — todas verificadas en OQ"
+        },
+        {
+          "campo": "PPQ",
+          "valor": "No aplica — excluida del alcance contractual del Proyecto Demo 1, recomendada a futuro dado el IRO ALTO"
+        }
+      ]
+    },
+    {
+      "id": "documentos",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "titulo": "DOCUMENTOS DEL PROYECTO DE VALIDACIÓN",
+      "intro": "El paquete documental completo para GAMP 4 con IRO 216 (ALTO), conforme al alcance contractual pactado del Proyecto Demo 1, comprende los siguientes 17 documentos. La secuencia refleja dependencias: cada documento hace referencia al anterior.",
+      "columnas": [
+        "#",
+        "Código",
+        "Documento",
+        "Responsable"
+      ],
+      "widths": [
+        25,
+        130,
+        175,
+        125
+      ],
+      "filas": [
+        [
+          "1",
+          "HLRA-EMQC-001",
+          "High Level Risk Assessment",
+          "Federico Bongiovanni"
+        ],
+        [
+          "2",
+          "VP-EMQC-001",
+          "Plan de Validación",
+          "Federico Bongiovanni"
+        ],
+        [
+          "3",
+          "URS-EMQC-001",
+          "User Requirements Specification",
+          "Federico Bongiovanni"
+        ],
+        [
+          "4",
+          "FRS-EMQC-001",
+          "Functional Requirements Specification",
+          "Federico Bongiovanni"
+        ],
+        [
+          "5",
+          "DS-EMQC-001",
+          "Design Specification",
+          "Federico Bongiovanni"
+        ],
+        [
+          "6",
+          "RA-EMQC-001",
+          "Risk Assessment",
+          "Federico Bongiovanni"
+        ],
+        [
+          "7",
+          "IRA-EMQC-001",
+          "Infrastructure Risk Assessment",
+          "Federico Bongiovanni"
+        ],
+        [
+          "8",
+          "RRM-EMQC-001",
+          "Risk Register Matrix",
+          "Federico Bongiovanni"
+        ],
+        [
+          "9",
+          "MTR-EMQC-001",
+          "Master Traceability Report",
+          "Federico Bongiovanni"
+        ],
+        [
+          "10",
+          "PIQ-EMQC-001",
+          "Protocolo de Calificación de Instalación",
+          "Lucas (DRP Assurance)"
+        ],
+        [
+          "11",
+          "IIQ-EMQC-001",
+          "Informe de Calificación de Instalación",
+          "Lucas (DRP Assurance)"
+        ],
+        [
+          "12",
+          "RIQ-EMQC-001",
+          "Reporte de Decisión IQ",
+          "Federico Bongiovanni"
+        ],
+        [
+          "13",
+          "POQ-EMQC-001",
+          "Protocolo de Calificación Operacional",
+          "Lucas (DRP Assurance)"
+        ],
+        [
+          "14",
+          "IOQ-EMQC-001",
+          "Informe de Calificación Operacional",
+          "Lucas (DRP Assurance)"
+        ],
+        [
+          "15",
+          "ROQ-EMQC-001",
+          "Reporte de Decisión OQ",
+          "Federico Bongiovanni"
+        ],
+        [
+          "16",
+          "NCR-EMQC-001",
+          "Non-Conformance Reports",
+          "Federico Bongiovanni"
+        ],
+        [
+          "17",
+          "VSR-EMQC-001",
+          "Validation Summary Report",
+          "Federico Bongiovanni"
+        ]
+      ]
+    },
+    {
+      "id": "documentos.nota",
+      "clase": "bloque",
+      "padre": "documentos",
+      "tipo": "caja-nota",
+      "numero": null,
+      "titulo": "Notas sobre el paquete documental",
+      "parrafos": [
+        "Al momento de aprobación de este Plan, todos los documentos del paquete (excepto HLRA y este VP) están en estado Pendiente por avance natural del desarrollo. La completitud y aprobación de cada uno se verifica al momento del cierre del VSR.",
+        "Documentos NO aplicables para este ciclo: PPQ, IPQ y RPQ (Calificación de Performance) — excluidos del alcance contractual del Proyecto Demo 1, justificado en HLRA-EMQC-001 Sección 8 (Implicaciones para la Validación) y reflejado en validationScope.pq=false de este VP."
+      ]
+    },
+    {
+      "id": "cronograma",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "titulo": "CRONOGRAMA DEL PROYECTO",
+      "intro": "Estimación basada en GAMP 4 — IRO ALTO (216). Tiempo total estimado: 8 semanas calendario desde la aprobación de este VP.",
+      "columnas": [
+        "Semana",
+        "Actividades",
+        "Documentos generados",
+        "Hito de cierre"
+      ],
+      "widths": [
+        50,
+        175,
+        130,
+        100
+      ],
+      "filas": [
+        [
+          "S1",
+          "{\"bullets\":[\"Aprobación del VP\",\"Kickoff del proyecto\",\"Redacción de la URS\",\"Inicio de la FRS (especificación funcional de la configuración)\"]}",
+          "{\"bullets\":[\"VP-EMQC-001\",\"URS-EMQC-001\",\"FRS-EMQC-001 (borrador)\"]}",
+          "VP aprobado por Process Owner"
+        ],
+        [
+          "S2",
+          "{\"bullets\":[\"Finalización de la FRS\",\"Redacción del DS (arquitectura y configuración de la instancia)\",\"Revisión con Key User\"]}",
+          "{\"bullets\":[\"FRS-EMQC-001\",\"DS-EMQC-001\"]}",
+          "URS aprobado por Process Owner"
+        ],
+        [
+          "S3",
+          "{\"bullets\":[\"Análisis de riesgo funcional (RA) — FMEA S×P×D\",\"Análisis de riesgo de infraestructura (IRA)\"]}",
+          "{\"bullets\":[\"RA-EMQC-001\",\"IRA-EMQC-001\"]}",
+          "FRS y DS aprobados"
+        ],
+        [
+          "S4",
+          "{\"bullets\":[\"Elaboración del RRM (mapeo ANMAT 4159 / 21 CFR Part 11 / EU Annex 11)\",\"Cierre de GAP-001 (actualización del Procedimiento de Uso)\"]}",
+          "{\"bullets\":[\"RRM-EMQC-001\"]}",
+          "RA e IRA aprobados; GAP-001 cerrado"
+        ],
+        [
+          "S5",
+          "{\"bullets\":[\"Elaboración del MTR (trazabilidad URS → FRS → RA → TC-OQ)\",\"Redacción del PIQ\"]}",
+          "{\"bullets\":[\"MTR-EMQC-001\",\"PIQ-EMQC-001\"]}",
+          "RRM aprobado — sin GAPs bloqueantes"
+        ],
+        [
+          "S6",
+          "{\"bullets\":[\"Ejecución del IQ (PIQ → IIQ)\",\"Redacción del RIQ\",\"Redacción del POQ\"]}",
+          "{\"bullets\":[\"IIQ-EMQC-001\",\"RIQ-EMQC-001\",\"POQ-EMQC-001\"]}",
+          "IQ cerrado — habilitación para OQ"
+        ],
+        [
+          "S7",
+          "{\"bullets\":[\"Ejecución del OQ (POQ → IOQ)\",\"Gestión de NCs si surgen durante la ejecución\"]}",
+          "{\"bullets\":[\"IOQ-EMQC-001\"]}",
+          "OQ ejecutado — ≥95% TC PASA"
+        ],
+        [
+          "S8",
+          "{\"bullets\":[\"Cierre del ROQ\",\"Consolidación de NCR (si aplica)\",\"Redacción y aprobación del VSR\"]}",
+          "{\"bullets\":[\"ROQ-EMQC-001\",\"NCR-EMQC-001 (si aplica)\",\"VSR-EMQC-001\"]}",
+          "VSR aprobado — sistema declarado VALIDADO"
+        ]
+      ]
+    },
+    {
+      "id": "cronograma.nota",
+      "clase": "bloque",
+      "padre": "cronograma",
+      "tipo": "caja-nota",
+      "parrafos": [
+        "Nota: El cronograma puede ajustarse si se identifican desviaciones o NCs durante la ejecución que requieran investigación y CAPA antes del cierre."
+      ],
+      "titulo": ""
+    },
+    {
+      "id": "calificacion",
+      "clase": "seccion",
+      "tipo": "texto",
+      "titulo": "ALCANCE DE CALIFICACIÓN IQ / OQ",
+      "bloques": [
+        {
+          "texto": "Esta sección define el alcance funcional de las calificaciones IQ y OQ para emqc® v3.3. La Calificación de Performance (PQ) no aplica a este ciclo por exclusión contractual del Proyecto Demo 1; su justificación se desarrolla en la Sección 8.3."
+        }
+      ]
+    },
+    {
+      "id": "calificacion.iq",
+      "clase": "seccion",
+      "padre": "calificacion",
+      "tipo": "subseccion",
+      "titulo": "8.1 Installation Qualification (IQ)",
+      "intro": "El IQ verifica que la instalación y configuración base de emqc® v3.3 en el entorno del laboratorio (accesibilidad, versión desplegada, seguridad de acceso, roles y respaldo) esté correctamente implementada conforme a lo especificado en el DS y en el IRA."
+    },
+    {
+      "id": "calificacion.iq.tabla",
+      "clase": "bloque",
+      "padre": "calificacion.iq",
+      "tipo": "tabla",
+      "columnas": [
+        "Área de verificación IQ",
+        "Qué se verifica",
+        "Criterio de aceptación"
+      ],
+      "widths": [
+        140,
+        195,
+        120
+      ],
+      "filas": [
+        [
+          "Accesibilidad",
+          "URL/entorno accesible vía Google Chrome desde la red del laboratorio",
+          "Acceso exitoso sin errores"
+        ],
+        [
+          "Versión del sistema",
+          "Versión desplegada = emqc® v3.3 (AMBIENTE MU-000001 v5 / AGUAS MU-000002 v4)",
+          "Coincide con la versión validada"
+        ],
+        [
+          "Autenticación",
+          "Login usuario/contraseña + 2FA opcional habilitado",
+          "Acceso solo con credenciales válidas"
+        ],
+        [
+          "Sesión",
+          "Timeout de sesión por inactividad configurado",
+          "Cierre automático conforme al parámetro configurado"
+        ],
+        [
+          "Bloqueo de cuenta",
+          "Política de intentos fallidos y bloqueo de cuenta",
+          "Bloqueo tras N intentos conforme a configuración"
+        ],
+        [
+          "Roles y permisos",
+          "Roles asignados (Analysis, Review, ReOpen, Configuration, UsersAdmin)",
+          "Coinciden con la matriz de roles del laboratorio"
+        ],
+        [
+          "SLA / Infraestructura",
+          "RTO < 4 h / RPO < 24 h — instancia AWS operativa (EC2, SQL Server, S3)",
+          "Conforme a IRA-EMQC-001 y SOP-000007"
+        ],
+        [
+          "Backup",
+          "Backup diario automático a S3 con retención de 15 años",
+          "Job de backup ejecutado y verificado"
+        ],
+        [
+          "Documentación",
+          "MU v5/v4, DIT v5 y SOPs del vendor vigentes y disponibles",
+          "Documentación completa y accesible"
+        ]
+      ],
+      "titulo": ""
+    },
+    {
+      "id": "calificacion.iq.criterio",
+      "clase": "bloque",
+      "padre": "calificacion.iq",
+      "tipo": "caja-nota",
+      "numero": null,
+      "titulo": "Criterio de aceptación IQ",
+      "parrafos": [
+        "100% de TCs con resultado PASA o PASA CON OBSERVACIONES. Cualquier NO PASA detiene la ejecución y abre una NC."
+      ]
+    },
+    {
+      "id": "calificacion.oq",
+      "clase": "seccion",
+      "padre": "calificacion",
+      "tipo": "subseccion",
+      "titulo": "8.2 Operational Qualification (OQ)",
+      "intro": "El OQ verifica que las funciones GxP críticas de emqc® AMBIENTE y AGUAS operan conforme a lo especificado, bajo la configuración GxP aplicada por el laboratorio (normativa de límites, clases de áreas, parámetros fisicoquímicos y microbiológicos, roles)."
+    },
+    {
+      "id": "calificacion.oq.tabla",
+      "clase": "bloque",
+      "padre": "calificacion.oq",
+      "tipo": "tabla",
+      "columnas": [
+        "Área funcional OQ",
+        "Qué se verifica",
+        "Prioridad"
+      ],
+      "widths": [
+        150,
+        230,
+        75
+      ],
+      "filas": [
+        [
+          "Control de acceso y autenticación",
+          "Login usuario/contraseña + 2FA, identificación única de usuario conforme a 21 CFR Part 11 §11.200",
+          "Crítica"
+        ],
+        [
+          "Audit Trail",
+          "Registro automático e inalterable de todas las acciones, incluye cambios de configuración GxP",
+          "Crítica"
+        ],
+        [
+          "Registro y cierre de resultados de monitoreo",
+          "Verificación de usuario al cerrar registros; reapertura (ReOpen) controlada y auditada",
+          "Crítica"
+        ],
+        [
+          "Detección y notificación de OOS/OOT",
+          "Alertas automáticas por email según tipo de resultado (alerta/acción/especificación/tendencia)",
+          "Crítica"
+        ],
+        [
+          "Gestión de roles y permisos",
+          "Segregación de funciones: Analysis, Review, ReOpen, Configuration, UsersAdmin",
+          "Alta"
+        ],
+        [
+          "Integridad de datos y backup",
+          "Restauración de backup verificada; retención de 15 años",
+          "Alta"
+        ],
+        [
+          "Planificación y alertas de vencimiento",
+          "Dashboard de áreas vencidas, próximas a vencer y en plazo",
+          "Alta"
+        ],
+        [
+          "Reportes GxP (CRR, revisión de lote, histórico)",
+          "Generación correcta de reportes de soporte a decisiones regulatorias",
+          "Alta"
+        ],
+        [
+          "Historial y caducidad de contraseñas",
+          "Historial de las últimas 10 contraseñas; prohibición de reutilización",
+          "Media"
+        ],
+        [
+          "Control de cambios de configuración GxP",
+          "Cambios en normativa, áreas o límites quedan registrados en audit trail",
+          "Media"
+        ]
+      ],
+      "titulo": ""
+    },
+    {
+      "id": "calificacion.pq",
+      "clase": "seccion",
+      "padre": "calificacion",
+      "tipo": "subseccion",
+      "titulo": "8.3 Performance Qualification (PQ) — No Aplica"
+    },
+    {
+      "id": "calificacion.pq.justificacion",
+      "clase": "bloque",
+      "padre": "calificacion.pq",
+      "tipo": "caja-justificacion",
+      "numero": null,
+      "titulo": "Justificación de exclusión de PQ",
+      "parrafos": [
+        "emqc® es un sistema de monitoreo ambiental y de calidad de aguas para el laboratorio; no controla procesos de manufactura ni genera datos de producto en el sentido de un MES/LIMS de producción, por lo que no posee KPIs de performance de proceso productivo con impacto GxP directo evaluables mediante PQ.",
+        "La exclusión de PQ (PPQ/IPQ/RPQ) para el presente ciclo responde además a un acuerdo contractual explícito del Proyecto Demo 1 con DRP Assurance Solutions, documentado en HLRA-EMQC-001 Sección 8 (Implicaciones para la Validación). Esto se refleja en validationScope.pq=false de este VP.",
+        "No obstante, dado el IRO ALTO (216) calculado en el HLRA — impulsado por el impacto directo del sistema en decisiones de calidad de producto (P=3, I=3) y la criticidad de los datos gestionados (D=3) — se recomienda evaluar la incorporación de PQ en un ciclo de validación completo posterior, conforme a GAMP 5 Sección 8.4 y la guía ISPE para GAMP 4."
+      ]
+    },
+    {
+      "id": "decisiones",
+      "clase": "seccion",
+      "tipo": "tabla-decisiones-tc",
+      "titulo": "DECISIONES DE EJECUCIÓN — CRITERIOS DE RESULTADO",
+      "intro": "Cada test case ejecutado durante el IQ y el OQ de emqc® v3.3 produce uno de los siguientes 4 resultados posibles. La acción derivada de cada resultado es definitoria para el avance o detención de la fase de calificación."
+    },
+    {
+      "id": "desviaciones",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "titulo": "GESTIÓN DE DESVIACIONES Y NO CONFORMIDADES",
+      "intro": "10.1 Clasificación de severidad",
+      "columnas": [
+        "Severidad",
+        "Definición",
+        "Acción requerida"
+      ],
+      "widths": [
+        80,
+        215,
+        160
+      ],
+      "filas": [
+        [
+          "CRÍTICA",
+          "Afecta integridad GxP, autenticación o integridad de datos (ej.: falla en audit trail, bypass de autenticación, corrupción de resultados de monitoreo).",
+          "Detiene la fase de calificación. Investigación de causa raíz. CAPA obligatoria antes de continuar."
+        ],
+        [
+          "MAYOR",
+          "Función importante pero no crítica (ej.: reporte con formato incorrecto, alerta con demora fuera de SLA no crítico).",
+          "No detiene la fase pero requiere CAPA con plazo definido, cerrada antes del cierre del ROQ/RIQ correspondiente."
+        ],
+        [
+          "MENOR",
+          "Baja criticidad o desviación procedimental sin impacto en integridad de datos ni en la operación GxP.",
+          "Se documenta y se resuelve en un plazo razonable, sin bloquear la fase en curso."
+        ]
+      ]
+    },
+    {
+      "id": "desviaciones.documentacion",
+      "clase": "seccion",
+      "padre": "desviaciones",
+      "tipo": "subseccion",
+      "titulo": "10.2 Documentación de No Conformidades"
+    },
+    {
+      "id": "desviaciones.documentacion.campos",
+      "clase": "bloque",
+      "padre": "desviaciones.documentacion",
+      "tipo": "tabla-info",
+      "labelWidth": 170,
+      "filas": [
+        {
+          "campo": "NC-ID",
+          "valor": "Identificador único correlativo, formato NC-XXX"
+        },
+        {
+          "campo": "TC referenciado",
+          "valor": "Test case (TC-IQ-XXX / TC-OQ-XXX) que originó el hallazgo"
+        },
+        {
+          "campo": "Descripción del fallo",
+          "valor": "Descripción objetiva del resultado obtenido vs. el esperado"
+        },
+        {
+          "campo": "Severidad",
+          "valor": "CRÍTICA / MAYOR / MENOR — según clasificación de la Sección 10.1"
+        },
+        {
+          "campo": "Causa raíz",
+          "valor": "Análisis de causa raíz documentado"
+        },
+        {
+          "campo": "CAPA",
+          "valor": "Acción correctiva y/o preventiva, responsable y plazo"
+        },
+        {
+          "campo": "Resultado re-test",
+          "valor": "PASA / NO PASA tras aplicar la CAPA"
+        },
+        {
+          "campo": "Estado / Cierre",
+          "valor": "Abierta / En tratamiento / Cerrada — fecha de cierre"
+        }
+      ],
+      "titulo": ""
+    },
+    {
+      "id": "cambios",
+      "clase": "seccion",
+      "tipo": "texto",
+      "titulo": "GESTIÓN DE CAMBIOS",
+      "bloques": [
+        {
+          "subtitulo": "11.1 Durante la validación",
+          "texto": "Cualquier cambio a los documentos aprobados del paquete o a la configuración de emqc® durante el ciclo de validación se gestiona conforme al siguiente procedimiento:",
+          "bullets": [
+            "Todo cambio a un documento ya aprobado requiere una nueva versión con justificación registrada en su control de cambios",
+            "Cambios de configuración GxP en producción durante el ciclo (normativa de límites, clases de áreas, roles) quedan registrados en audit trail y referenciados en el documento afectado",
+            "Cambios que impacten el alcance, cronograma o criterios de aceptación de este VP requieren re-aprobación del VP por el Process Owner",
+            "SOP-000015 (Control de Cambios de Aplicaciones en Clientes) del vendor aplica a cambios de la aplicación emqc® ocurridos durante el ciclo"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cambios.postValidacion",
+      "clase": "seccion",
+      "padre": "cambios",
+      "tipo": "subseccion",
+      "titulo": "11.2 Post-validación"
+    },
+    {
+      "id": "cambios.postValidacion.tabla",
+      "clase": "bloque",
+      "padre": "cambios.postValidacion",
+      "tipo": "tabla",
+      "columnas": [
+        "Tipo de cambio",
+        "Procedimiento aplicable",
+        "Responsable"
+      ],
+      "widths": [
+        180,
+        160,
+        115
+      ],
+      "filas": [
+        [
+          "Cambio de configuración GxP (límites, áreas, normativa)",
+          "SOP-000015 — Control de Cambios de Aplicaciones en Clientes",
+          "Process Owner (EMARA)"
+        ],
+        [
+          "Actualización de versión de emqc®",
+          "SOP-000012 — Liberación y Despliegue de Aplicaciones con Impacto GxP",
+          "Vendor (EMARA) + Process Owner"
+        ],
+        [
+          "Cambio con impacto en documentos validados",
+          "Evaluación de impacto y re-validación parcial si corresponde",
+          "Validador Líder + Process Owner"
+        ]
+      ],
+      "titulo": ""
+    },
+    {
+      "id": "criteriosAceptacion",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "titulo": "CRITERIOS DE ACEPTACIÓN GENERALES",
+      "intro": "El sistema se considera VALIDADO cuando se cumplen TODOS los siguientes criterios:",
+      "columnas": [
+        "#",
+        "Criterio",
+        "Verificación"
+      ],
+      "widths": [
+        25,
+        270,
+        160
+      ],
+      "filas": [
+        [
+          "1",
+          "IQ: 100% de test cases con resultado PASA (incluye PASA CON OBSERVACIONES)",
+          "Informe IIQ-EMQC-001 / Reporte RIQ-EMQC-001"
+        ],
+        [
+          "2",
+          "OQ: ≥ 95% de test cases con resultado PASA (incluye PASA CON OBSERVACIONES)",
+          "Informe IOQ-EMQC-001 / Reporte ROQ-EMQC-001"
+        ],
+        [
+          "3",
+          "0 NCs críticas abiertas al momento del cierre",
+          "Registro de NCs en ROQ-EMQC-001 / RIQ-EMQC-001"
+        ],
+        [
+          "4",
+          "100% de NCs mayores cerradas con CAPA aprobada",
+          "Sección de NCs en VSR-EMQC-001"
+        ],
+        [
+          "5",
+          "100% de URS trazados a al menos un TC-OQ con resultado PASA",
+          "MTR-EMQC-001 / Matriz de trazabilidad en VSR-EMQC-001"
+        ],
+        [
+          "6",
+          "Ambos GAPs documentados en HLRA (GAP-001, GAP-002) tienen control compensatorio cerrado o aceptado",
+          "RRM-EMQC-001"
+        ],
+        [
+          "7",
+          "VSR-EMQC-001 firmado por Process Owner y Directora de Calidad",
+          "VSR-EMQC-001"
+        ]
+      ]
+    },
+    {
+      "id": "referencias",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "titulo": "REFERENCIAS",
+      "columnas": [
+        "Código / Referencia",
+        "Título"
+      ],
+      "widths": [
+        180,
+        275
+      ],
+      "filas": [
+        [
+          "HLRA-EMQC-001 v1.0",
+          "Análisis de Calificación y Criticidad GxP — DRP Assurance Solutions, Agosto 2026"
+        ],
+        [
+          "MU-000001 v5",
+          "Manual de Usuario emqc® AMBIENTE — Sistema v3.3. EMARA, Julio 2026"
+        ],
+        [
+          "MU-000002 v4",
+          "Manual de Usuario emqc® AGUAS — Sistema v3.3. EMARA, Julio 2026"
+        ],
+        [
+          "DIT-000001 v5",
+          "Características Técnicas del Cloud Server para las aplicaciones de Emara. EMARA, Enero 2026"
+        ],
+        [
+          "SOP-000007 v2",
+          "Plan de Recuperación ante Desastres. EMARA, Marzo 2026"
+        ],
+        [
+          "SOP-000012 v2",
+          "Liberación y Despliegue de Aplicaciones con Impacto GxP. EMARA, Abril 2026"
+        ],
+        [
+          "SOP-000015 v1",
+          "Control de Cambios de Aplicaciones en Clientes. EMARA, Junio 2024"
+        ],
+        [
+          "SOP-000025 v1",
+          "Política de Backups y Restore de Base de Datos. EMARA, Marzo 2026"
+        ],
+        [
+          "ANMAT 4159/2023 Anexo VI",
+          "Guía de Buenas Prácticas de Sistemas Informatizados — ANMAT (Argentina)"
+        ],
+        [
+          "GAMP 5 — 2da Ed. 2022",
+          "Risk-Based Approach to Compliant GxP Computerized Systems — ISPE"
+        ],
+        [
+          "ICH Q9 R1 (2023)",
+          "Quality Risk Management — ICH"
+        ],
+        [
+          "21 CFR Part 11",
+          "Electronic Records; Electronic Signatures — FDA (EE.UU.)"
+        ],
+        [
+          "EU GMP Annex 11",
+          "Computerised Systems — EMA / EU GMP (revisión vigente)"
+        ]
+      ]
+    },
+    {
+      "id": "firmas",
+      "clase": "seccion",
+      "tipo": "tabla-firmas-final",
+      "titulo": "CONFORMIDAD DE REVISIÓN Y APROBACIÓN",
+      "intro": "Las personas indicadas acreditan haber revisado el presente documento y conformado con su contenido. Las firmas se consignan de manera manuscrita sobre la copia impresa del paquete de validación.",
+      "firmas": [],
+      "rolesPlaceholder": [
+        "Redactor (Validador Líder)",
+        "Revisor (Key User)",
+        "Aprobador (Process Owner)",
+        "Aprobador (Directora de Calidad / CEO)"
+      ]
+    }
+  ],
+  "contratoVersion": "3.1-identidad-canonica",
+  "esqueleto": {
+    "tipo": "VP",
+    "version": "3.1",
+    "archivo": "vp.skeleton.v3.1.candidato.json"
+  }
+}

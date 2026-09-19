@@ -1,0 +1,1007 @@
+{
+  "contrato": "3.1",
+  "tipoDocumento": "URS",
+  "fasesDeAdopcion": {
+    "_nota": "La adopcion del contrato tiene DOS fases separadas. Confundirlas fue el error de la primera propuesta.",
+    "fase1_aditiva": {
+      "estado": "propuesta, verificable hoy",
+      "cambia": "SOLO agrega id, clase y padre a cada elemento. No toca tipo, titulo, filas ni ningun campo existente.",
+      "compatibilidad": "El renderer y el numerador actuales, que no conocen clase ni padre, producen EXACTAMENTE la misma salida. Verificado con contrato-documentos/numeracion-test.cjs sobre URS y VP reales.",
+      "habilita": "Identidad estable por elemento, jerarquia explicita, y validacion de arbol/IDs/obligatoriedad."
+    },
+    "fase2_numeracion_derivada": {
+      "estado": "NO aplicada",
+      "cambia": "Quita el numero manual del titulo de las subsecciones y deriva la numeracion del arbol.",
+      "requiere": "Un renderer consciente del contrato. Con el renderer actual la numeracion se corre (en el VP, el item 27 pasaba de 14 a 19).",
+      "precondicion": "No migrar datos a fase 2 hasta tener ese renderer y una proyeccion legacy probada."
+    },
+    "precedencia_de_numeracion": {
+      "_nota": "Mientras coexistan ambas fases, la regla es explicita y no ambigua:",
+      "orden": [
+        "numero entero en la instancia (fija y resincroniza)",
+        "numero null (suprime)",
+        "fase 2: derivada del arbol",
+        "fase 1 / legacy: contador por titulo, subseccion no consume"
+      ],
+      "limite": "Con overrides enteros presentes, 'no puede haber saltos' NO es una garantia del sistema: es responsabilidad de quien los escribe. La validacion los reporta, no los corrige."
+    }
+  },
+  "inmutable": true,
+  "_nota": "Artefacto INMUTABLE. Un cambio publica 3.1; nunca se edita esta version. Las instancias lo referencian por {tipo, version}.",
+  "compatibilidad": {
+    "campoTipoEnInstancia": "type",
+    "_nota": "Se conserva `type` (no `tipoDocumento`) porque es el que ya leen document-renderer.js y los 11 extractores Python. Introducir un alias obligaria a tocarlos sin ganancia.",
+    "formaDeInstancia": "sin cambios respecto de v1/v2",
+    "reglasDeForma": [
+      "`filas` vive en la seccion (sec.filas), NUNCA bajo sec.tabla: tracer.py y coherence_pack.py leen sec.get('filas').",
+      "Las filas de tablas con IDs son ARRAYS: tracer._extract_urs_rows descarta filas que no sean list.",
+      "Las celdas pueden ser string u objeto rico; ambos extractores ya resuelven el texto (_text/_cell).",
+      "PROHIBIDO fila-objeto con ID rico: coherence_pack._ids_urs hace str(fila['ursId']) y un dict no matchea el regex."
+    ],
+    "camposDesconocidos": {
+      "politica": "preservar",
+      "_nota": "Nunca se descarta un campo no reconocido. El nivel de diagnostico lo fija la version del contrato de la instancia, no una fecha global."
+    }
+  },
+  "idPolicy": {
+    "definidosAqui": [
+      "URS",
+      "URS-NF"
+    ],
+    "patrones": {
+      "URS": "^URS-[0-9]{3,4}$",
+      "URS-NF": "^URS-NF-[0-9]{3,4}$"
+    },
+    "prohibidos": [
+      "URS-000",
+      "URS-NF-000"
+    ],
+    "_notaRango": "3 o 4 digitos. Aceptar URS-1000 NO reescribe ni invalida los URS-001 ya firmados: solo amplia el conjunto admitido hacia adelante.",
+    "valorSemantico": "Si la celda es objeto, el valor validado es celda.text; si es string, el string. La validacion NUNCA opera sobre el objeto serializado.",
+    "unicidad": {
+      "alcance": "proyecto + conjunto de revisiones vigentes",
+      "_nota": "URS-001 es la MISMA identidad a traves de revisiones sucesivas del mismo documento. La unicidad no se aplica al archivo historico completo.",
+      "distingue": {
+        "definicion": "la fila que crea el ID",
+        "referencia": "menciones desde FRS/RA/TC"
+      }
+    },
+    "anchoMinimo": 3,
+    "_notaCanonica": "Los patrones admiten 3 o 4 digitos para que URS-1000 sea posible. Eso deja dos grafias para el mismo numero (URS-001 y URS-0001), que aguas abajo son dos identidades. La forma canonica es: ceros a la izquierda solo hasta anchoMinimo."
+  },
+  "numeracion": {
+    "origen": "derivada del arbol (clase + padre + orden)",
+    "numeroEnInstancia": {
+      "entero": "admitido: fija y resincroniza el contador",
+      "null": "admitido: no numera",
+      "string": "RECHAZADO en contrato 3.0",
+      "_notaLegacy": "Documentos <3.0 conservan su interpretacion historica (el string se ignora y cae al contador). No se coerciona: un `numero: \"9\"` que hoy muestra 1 pasaria a mostrar 9 y cambiaria el render de un documento existente."
+    }
+  },
+  "celdas": {
+    "formas": {
+      "texto": "string",
+      "rica": {
+        "requiere": [
+          "text"
+        ],
+        "opcionales": [
+          "color",
+          "bold",
+          "fillColor",
+          "italics",
+          "alignment",
+          "fontSize"
+        ]
+      }
+    },
+    "reglasDePreservacion": [
+      "Al editar una celda rica se reescribe SOLO `text`; el resto de las propiedades se conserva intacto.",
+      "Prohibido colapsar una celda rica a string.",
+      "Las propiedades no listadas en `opcionales` tambien se preservan (politica camposDesconocidos)."
+    ]
+  },
+  "agrupaciones": {
+    "claveLegacy": "subheader",
+    "_notaHotfix": "El hotfix de preservacion NO renombra esta clave: shared-renderers.js:362 lee `subheader` y renombrarla seria una migracion que los renderers actuales no entienden.",
+    "migracionFutura": {
+      "clave": "agrupacion",
+      "forma": {
+        "titulo": "string sin numero",
+        "numero": "derivado"
+      },
+      "estado": "NO aplicada. Requiere migracion coordinada de renderers + datos."
+    },
+    "numeracion": "En 3.0 el texto de la agrupacion se conserva literal (incluye su numero manual). Derivarlo es parte de la migracion futura, no de este contrato."
+  },
+  "estadosDeSeccion": {
+    "presente": "existe y tiene contenido",
+    "vacia": "existe sin contenido; es ERROR si obligatoriedad=requerida y el documento esta 'listo para aprobar'",
+    "noAplica": {
+      "forma": {
+        "justificacion": "string no vacio"
+      },
+      "soloEn": "secciones con admiteNoAplica=true",
+      "incompatibleCon": "tener filas/contenido activo simultaneamente"
+    },
+    "_nota": "Ausente, vacia y noAplica son tres estados distintos y auditables. Un borrador puede tener secciones vacias; 'listo para aprobar' no."
+  },
+  "reglasDeArbol": [
+    "`id` unico dentro del documento y estable entre revisiones.",
+    "`padre` debe existir y ser de clase 'seccion'.",
+    "Prohibidas autorreferencias y ciclos.",
+    "Un elemento clase 'bloque' DEBE tener padre; no puede ser padre de nadie.",
+    "El orden de hermanos lo da el orden del array `secciones`; los bloques se renderizan en esa posicion relativa.",
+    "La profundidad no determina por si sola la numeracion: la determina clase + cadena de padres + orden."
+  ],
+  "reproduccionHistorica": {
+    "guardaArtefacto": true,
+    "_nota": "El hash verifica identidad pero no permite reconstruir. Se archiva el esqueleto aprobado junto al documento firmado, mas las versiones de renderer, fuentes y estilos usadas.",
+    "fija": [
+      "esqueleto (copia integra)",
+      "version de renderer",
+      "fuentes",
+      "hoja de estilos"
+    ]
+  },
+  "firmados": {
+    "payloadIntacto": true,
+    "_nota": "El payload firmado no se modifica JAMAS: ni un marcador, ni schemaVersion. La clasificacion de esquema vive FUERA (columna en la fila de la base).",
+    "normalizacion": "La normalizacion de envoltorio es EN MEMORIA para lectura. Nunca se reescribe el original de un documento firmado.",
+    "migracion": "Los firmados no se migran. Coexisten dos caminos de render."
+  },
+  "secciones": [
+    {
+      "id": "proposito",
+      "clase": "seccion",
+      "tipo": "texto",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "PROPOSITO",
+        "OBJETIVO"
+      ],
+      "admiteNoAplica": false
+    },
+    {
+      "id": "alcance",
+      "clase": "seccion",
+      "tipo": "lista-incluido-excluido",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "ALCANCE"
+      ],
+      "admiteNoAplica": false
+    },
+    {
+      "id": "responsabilidades",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "RESPONSABILIDADES"
+      ],
+      "admiteNoAplica": false,
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": false,
+        "minFilasDatos": 1,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "rol",
+                "celda": "texto",
+                "ancho": 160,
+                "label": "Rol"
+              },
+              {
+                "key": "responsabilidad",
+                "celda": "texto",
+                "ancho": 295,
+                "label": "Responsabilidad en este URS"
+              }
+            ]
+          },
+          {
+            "columnas": [
+              {
+                "key": "rol",
+                "celda": "texto",
+                "ancho": 160,
+                "label": "Rol"
+              },
+              {
+                "label": "Nombre",
+                "key": "nombre"
+              },
+              {
+                "key": "responsabilidad",
+                "celda": "texto",
+                "ancho": 295,
+                "label": "Responsabilidad principal"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "definiciones",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "DEFINICIONES"
+      ],
+      "admiteNoAplica": false,
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": false,
+        "minFilasDatos": 1,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "termino",
+                "celda": "texto",
+                "ancho": 125,
+                "label": "Término"
+              },
+              {
+                "key": "definicion",
+                "celda": "texto",
+                "ancho": 330,
+                "label": "Definición"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "contexto",
+      "clase": "seccion",
+      "tipo": "texto",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "CONTEXTO DEL SISTEMA"
+      ],
+      "admiteNoAplica": false
+    },
+    {
+      "id": "contexto.general",
+      "clase": "seccion",
+      "tipo": "subseccion",
+      "obligatoriedad": "requerida",
+      "padre": "contexto",
+      "titulosPermitidos": [
+        "DESCRIPCION GENERAL"
+      ]
+    },
+    {
+      "id": "contexto.usuarios",
+      "clase": "seccion",
+      "tipo": "subseccion",
+      "obligatoriedad": "requerida",
+      "padre": "contexto",
+      "titulosPermitidos": [
+        "USUARIOS DEL SISTEMA"
+      ]
+    },
+    {
+      "id": "contexto.usuarios.tabla",
+      "clase": "bloque",
+      "tipo": "tabla",
+      "obligatoriedad": "opcional",
+      "padre": "contexto.usuarios",
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": false,
+        "minFilasDatos": 0,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "rol",
+                "celda": "texto",
+                "ancho": 110,
+                "label": "Rol"
+              },
+              {
+                "key": "perfil",
+                "celda": "texto",
+                "ancho": 165,
+                "label": "Perfil"
+              },
+              {
+                "key": "acciones",
+                "celda": "texto",
+                "ancho": 180,
+                "label": "Acciones principales"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "contexto.integraciones",
+      "clase": "seccion",
+      "tipo": "subseccion",
+      "obligatoriedad": "opcional",
+      "padre": "contexto",
+      "titulosPermitidos": [
+        "INTEGRACIONES CON OTROS SISTEMAS"
+      ],
+      "admiteNoAplica": true
+    },
+    {
+      "id": "leyenda",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "LEYENDA DE LA TABLA DE REQUERIMIENTOS"
+      ],
+      "admiteNoAplica": false,
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": false,
+        "minFilasDatos": 1,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "campo",
+                "celda": "texto",
+                "ancho": 85,
+                "label": "Campo"
+              },
+              {
+                "key": "valores",
+                "celda": "texto",
+                "ancho": 175,
+                "label": "Valores posibles"
+              },
+              {
+                "key": "significado",
+                "celda": "texto",
+                "ancho": 195,
+                "label": "Significado"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "leyenda.criticidad",
+      "clase": "bloque",
+      "tipo": "tabla",
+      "obligatoriedad": "opcional",
+      "padre": "leyenda",
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": false,
+        "minFilasDatos": 0,
+        "sinColumnas": true,
+        "columnas": [
+          {
+            "key": "nivel",
+            "celda": "rica",
+            "ancho": 120
+          },
+          {
+            "key": "detalle",
+            "celda": "texto",
+            "ancho": 335
+          }
+        ]
+      },
+      "contieneTexto": [
+        "Criticidad CRITICA",
+        "Criticidad ALTA",
+        "Criticidad MEDIA"
+      ]
+    },
+    {
+      "id": "requerimientos.funcionales",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "REQUERIMIENTOS FUNCIONALES"
+      ],
+      "admiteNoAplica": false,
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": true,
+        "minFilasDatos": 1,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "ursId",
+                "rol": "idDefinicion",
+                "idClase": "URS",
+                "celda": "rica",
+                "ancho": 50,
+                "requerido": true,
+                "label": "URS-ID"
+              },
+              {
+                "key": "fuente",
+                "celda": "rica",
+                "ancho": 80,
+                "label": "Fuente"
+              },
+              {
+                "key": "enunciado",
+                "celda": "texto",
+                "ancho": 220,
+                "requerido": true,
+                "label": "El sistema DEBERÁ..."
+              },
+              {
+                "key": "tipo",
+                "celda": "rica",
+                "ancho": 30,
+                "enum": [
+                  "M",
+                  "D"
+                ],
+                "label": "Tipo"
+              },
+              {
+                "key": "criticidad",
+                "celda": "rica",
+                "ancho": 75,
+                "enum": [
+                  "CRÍTICO",
+                  "ALTO",
+                  "MEDIO"
+                ],
+                "label": "Criticidad"
+              }
+            ]
+          },
+          {
+            "columnas": [
+              {
+                "key": "ursId",
+                "rol": "idDefinicion",
+                "idClase": "URS",
+                "celda": "rica",
+                "ancho": 50,
+                "requerido": true,
+                "label": "URS-ID"
+              },
+              {
+                "key": "fuente",
+                "celda": "rica",
+                "ancho": 80,
+                "label": "Fuente"
+              },
+              {
+                "key": "enunciado",
+                "celda": "texto",
+                "ancho": 220,
+                "requerido": true,
+                "label": "El sistema/proveedor DEBERÁ..."
+              },
+              {
+                "key": "tipo",
+                "celda": "rica",
+                "ancho": 30,
+                "enum": [
+                  "M",
+                  "D"
+                ],
+                "label": "Tipo"
+              },
+              {
+                "key": "criticidad",
+                "celda": "rica",
+                "ancho": 75,
+                "enum": [
+                  "CRÍTICO",
+                  "ALTO",
+                  "MEDIO"
+                ],
+                "label": "Criticidad"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "requerimientos.noFuncionales",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "REQUERIMIENTOS NO FUNCIONALES"
+      ],
+      "admiteNoAplica": false,
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": true,
+        "minFilasDatos": 0,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "ursId",
+                "rol": "idDefinicion",
+                "idClase": "URS-NF",
+                "celda": "rica",
+                "ancho": 55,
+                "requerido": true,
+                "label": "URS-ID"
+              },
+              {
+                "key": "fuente",
+                "celda": "rica",
+                "ancho": 80,
+                "label": "Fuente"
+              },
+              {
+                "key": "enunciado",
+                "celda": "texto",
+                "ancho": 215,
+                "requerido": true,
+                "label": "El sistema DEBERÁ..."
+              },
+              {
+                "key": "tipo",
+                "celda": "rica",
+                "ancho": 30,
+                "enum": [
+                  "M",
+                  "D"
+                ],
+                "label": "Tipo"
+              },
+              {
+                "key": "criticidad",
+                "celda": "rica",
+                "ancho": 75,
+                "enum": [
+                  "CRÍTICO",
+                  "ALTO",
+                  "MEDIO"
+                ],
+                "label": "Criticidad"
+              }
+            ]
+          },
+          {
+            "columnas": [
+              {
+                "key": "ursId",
+                "rol": "idDefinicion",
+                "idClase": "URS-NF",
+                "celda": "rica",
+                "ancho": 55,
+                "requerido": true,
+                "label": "URS-ID"
+              },
+              {
+                "key": "fuente",
+                "celda": "rica",
+                "ancho": 80,
+                "label": "Fuente"
+              },
+              {
+                "key": "enunciado",
+                "celda": "texto",
+                "ancho": 215,
+                "requerido": true,
+                "label": "El sistema/proveedor DEBERÁ..."
+              },
+              {
+                "key": "tipo",
+                "celda": "rica",
+                "ancho": 30,
+                "enum": [
+                  "M",
+                  "D"
+                ],
+                "label": "Tipo"
+              },
+              {
+                "key": "criticidad",
+                "celda": "rica",
+                "ancho": 75,
+                "enum": [
+                  "CRÍTICO",
+                  "ALTO",
+                  "MEDIO"
+                ],
+                "label": "Criticidad"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "exclusiones",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "obligatoriedad": "opcional",
+      "titulosPermitidos": [
+        "EXCLUSIONES EXPLICITAS"
+      ],
+      "admiteNoAplica": true,
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": false,
+        "minFilasDatos": 0,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "funcionalidad",
+                "celda": "texto",
+                "ancho": 165,
+                "label": "Funcionalidad excluida"
+              },
+              {
+                "key": "justificacion",
+                "celda": "texto",
+                "ancho": 200,
+                "label": "Justificación"
+              },
+              {
+                "key": "referencia",
+                "celda": "texto",
+                "ancho": 90,
+                "label": "Referencia"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "criteriosAceptacion",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "CRITERIOS DE ACEPTACION DEL URS"
+      ],
+      "admiteNoAplica": false,
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": false,
+        "minFilasDatos": 1,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "n",
+                "celda": "texto",
+                "ancho": 25,
+                "label": "#"
+              },
+              {
+                "key": "criterio",
+                "celda": "texto",
+                "ancho": 290,
+                "label": "Criterio"
+              },
+              {
+                "key": "verificacion",
+                "celda": "texto",
+                "ancho": 140,
+                "label": "Verificación"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "resumen",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "obligatoriedad": "opcional",
+      "titulosPermitidos": [
+        "RESUMEN ESTADISTICO DE REQUERIMIENTOS"
+      ],
+      "admiteNoAplica": false,
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": false,
+        "minFilasDatos": 0,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "porTipo",
+                "celda": "texto",
+                "ancho": 140,
+                "label": "Por tipo"
+              },
+              {
+                "key": "porCriticidad",
+                "celda": "texto",
+                "ancho": 120,
+                "label": "Por criticidad"
+              },
+              {
+                "key": "porModulo",
+                "celda": "texto",
+                "ancho": 195,
+                "label": "Por módulo"
+              }
+            ]
+          },
+          {
+            "columnas": [
+              {
+                "key": "porTipo",
+                "celda": "texto",
+                "ancho": 140,
+                "label": "Por tipo"
+              },
+              {
+                "key": "porCriticidad",
+                "celda": "texto",
+                "ancho": 120,
+                "label": "Por criticidad"
+              },
+              {
+                "key": "porModulo",
+                "celda": "texto",
+                "ancho": 195,
+                "label": "Por módulo/categoría"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "referencias",
+      "clase": "seccion",
+      "tipo": "tabla",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "REFERENCIAS"
+      ],
+      "admiteNoAplica": false,
+      "tabla": {
+        "filaForma": "array",
+        "permiteAgrupacion": false,
+        "minFilasDatos": 1,
+        "variantes": [
+          {
+            "columnas": [
+              {
+                "key": "codigo",
+                "celda": "texto",
+                "ancho": 180,
+                "label": "Código / Referencia"
+              },
+              {
+                "key": "titulo",
+                "celda": "texto",
+                "ancho": 275,
+                "label": "Título"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "firmas",
+      "clase": "seccion",
+      "tipo": "tabla-firmas-final",
+      "obligatoriedad": "requerida",
+      "titulosPermitidos": [
+        "FIRMAS DE EJECUCION",
+        "CONFORMIDAD DE REVISION Y APROBACION"
+      ],
+      "admiteNoAplica": false
+    }
+  ],
+  "resumenRequerido": {
+    "_fuente": "claude-desktop-skills/urs-generator.md — 'requirementsSummary es OBLIGATORIO en el root del JSON'",
+    "_nota": "Es la fuente de verdad que usan RA, RRM, MTR y PIQ/POQ para referenciar los requerimientos sin recontarlos: si miente, mienten todos los documentos aguas abajo.",
+    "obligatorio": true,
+    "campos": [
+      {
+        "nombre": "total",
+        "tipo": "entero"
+      },
+      {
+        "nombre": "functional",
+        "tipo": "entero"
+      },
+      {
+        "nombre": "nonFunctional",
+        "tipo": "entero"
+      },
+      {
+        "nombre": "mandatory",
+        "tipo": "entero"
+      },
+      {
+        "nombre": "desirable",
+        "tipo": "entero"
+      },
+      {
+        "nombre": "critical",
+        "tipo": "entero"
+      },
+      {
+        "nombre": "high",
+        "tipo": "entero"
+      },
+      {
+        "nombre": "medium",
+        "tipo": "entero"
+      },
+      {
+        "nombre": "functionalIds",
+        "tipo": "listaIds"
+      },
+      {
+        "nombre": "nonFunctionalIds",
+        "tipo": "listaIds"
+      }
+    ],
+    "sumas": [
+      {
+        "total": "total",
+        "partes": [
+          "functional",
+          "nonFunctional"
+        ]
+      },
+      {
+        "total": "total",
+        "partes": [
+          "mandatory",
+          "desirable"
+        ]
+      },
+      {
+        "total": "total",
+        "partes": [
+          "critical",
+          "high",
+          "medium"
+        ]
+      }
+    ],
+    "listas": [
+      {
+        "lista": "functionalIds",
+        "contador": "functional"
+      },
+      {
+        "lista": "nonFunctionalIds",
+        "contador": "nonFunctional"
+      }
+    ],
+    "derivado": {
+      "_nota": "El generador dice que los conteos se hacen contando la tabla. Aca se declara de que filas sale cada campo, para poder recontarlo y comparar.",
+      "campos": {
+        "functional": {
+          "secciones": [
+            "requerimientos.funcionales"
+          ],
+          "modo": "conteoFilas"
+        },
+        "nonFunctional": {
+          "secciones": [
+            "requerimientos.noFuncionales"
+          ],
+          "modo": "conteoFilas"
+        },
+        "total": {
+          "secciones": [
+            "requerimientos.funcionales",
+            "requerimientos.noFuncionales"
+          ],
+          "modo": "conteoFilas"
+        },
+        "mandatory": {
+          "secciones": [
+            "requerimientos.funcionales",
+            "requerimientos.noFuncionales"
+          ],
+          "modo": "conteoValor",
+          "col": "tipo",
+          "valor": "M"
+        },
+        "desirable": {
+          "secciones": [
+            "requerimientos.funcionales",
+            "requerimientos.noFuncionales"
+          ],
+          "modo": "conteoValor",
+          "col": "tipo",
+          "valor": "D"
+        },
+        "critical": {
+          "secciones": [
+            "requerimientos.funcionales",
+            "requerimientos.noFuncionales"
+          ],
+          "modo": "conteoValor",
+          "col": "criticidad",
+          "valor": "CRÍTICO"
+        },
+        "high": {
+          "secciones": [
+            "requerimientos.funcionales",
+            "requerimientos.noFuncionales"
+          ],
+          "modo": "conteoValor",
+          "col": "criticidad",
+          "valor": "ALTO"
+        },
+        "medium": {
+          "secciones": [
+            "requerimientos.funcionales",
+            "requerimientos.noFuncionales"
+          ],
+          "modo": "conteoValor",
+          "col": "criticidad",
+          "valor": "MEDIO"
+        },
+        "functionalIds": {
+          "secciones": [
+            "requerimientos.funcionales"
+          ],
+          "modo": "listaValores",
+          "col": "ursId"
+        },
+        "nonFunctionalIds": {
+          "secciones": [
+            "requerimientos.noFuncionales"
+          ],
+          "modo": "listaValores",
+          "col": "ursId"
+        }
+      }
+    }
+  },
+  "_estado": "CANDIDATO — no publicado. El 3.0 sigue vigente sin cambios.",
+  "_cambiosRespectoDe30": [
+    "los id de seccion son claves canonicas asignadas, no slugs del titulo",
+    "los padre usan esas claves",
+    "las tablas declaran variantes de columnas, cada una con sus roles",
+    "los titulos permitidos se declaran por seccion"
+  ],
+  "identidad": {
+    "version": "3.0",
+    "orden": [
+      "proposito",
+      "alcance",
+      "responsabilidades",
+      "definiciones",
+      "contexto",
+      "contexto.general",
+      "contexto.usuarios",
+      "contexto.usuarios.tabla",
+      "contexto.integraciones",
+      "leyenda",
+      "leyenda.criticidad",
+      "requerimientos.funcionales",
+      "requerimientos.noFuncionales",
+      "exclusiones",
+      "criteriosAceptacion",
+      "resumen",
+      "referencias",
+      "firmas"
+    ]
+  }
+}

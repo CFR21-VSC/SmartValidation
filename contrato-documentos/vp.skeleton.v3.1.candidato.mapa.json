@@ -1,0 +1,900 @@
+{
+  "real": {
+    "archivo": "contrato-documentos/ejemplos/vp.instancia.valida.json",
+    "asignaciones": {
+      "proposito": {
+        "indice": 0,
+        "evidencia": [
+          "id explicito del documento",
+          "tipo=texto",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "PROPÓSITO",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "alcance": {
+        "indice": 1,
+        "evidencia": [
+          "id explicito del documento",
+          "tipo=lista-incluido-excluido (unico en el contrato)",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "ALCANCE",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "responsabilidades": {
+        "indice": 2,
+        "evidencia": [
+          "id explicito del documento",
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "RESPONSABILIDADES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "definiciones": {
+        "indice": 3,
+        "evidencia": [
+          "id explicito del documento",
+          "tipo=tabla",
+          "2 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "DEFINICIONES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "hlra": {
+        "indice": 4,
+        "evidencia": [
+          "tipo=tabla-info",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "REFERENCIA AL HLRA — ESTRATEGIA BASADA EN RIESGO",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "documentos": {
+        "indice": 5,
+        "evidencia": [
+          "tipo=tabla",
+          "4 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "DOCUMENTOS DEL PROYECTO DE VALIDACIÓN",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "documentos.nota": {
+        "indice": 6,
+        "evidencia": [
+          "tipo=caja-nota",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "Notas sobre el paquete documental",
+        "padre": "documentos",
+        "padreVerificado": true
+      },
+      "cronograma": {
+        "indice": 7,
+        "evidencia": [
+          "tipo=tabla",
+          "4 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "CRONOGRAMA DEL PROYECTO",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "cronograma.nota": {
+        "indice": 8,
+        "evidencia": [
+          "tipo=caja-nota",
+          "contenido declarado presente"
+        ],
+        "tituloOrigen": "",
+        "padre": "cronograma",
+        "padreVerificado": true
+      },
+      "calificacion": {
+        "indice": 9,
+        "evidencia": [
+          "tipo=texto",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "ALCANCE DE CALIFICACIÓN IQ / OQ",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "calificacion.iq": {
+        "indice": 10,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "8.1 Installation Qualification (IQ)",
+        "padre": "calificacion",
+        "padreVerificado": true
+      },
+      "calificacion.iq.tabla": {
+        "indice": 11,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada"
+        ],
+        "tituloOrigen": "",
+        "padre": "calificacion.iq",
+        "padreVerificado": true
+      },
+      "calificacion.iq.criterio": {
+        "indice": 12,
+        "evidencia": [
+          "tipo=caja-nota",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "Criterio de aceptación IQ",
+        "padre": "calificacion.iq",
+        "padreVerificado": true
+      },
+      "calificacion.oq": {
+        "indice": 13,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "8.2 Operational Qualification (OQ)",
+        "padre": "calificacion",
+        "padreVerificado": true
+      },
+      "calificacion.oq.tabla": {
+        "indice": 14,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada"
+        ],
+        "tituloOrigen": "",
+        "padre": "calificacion.oq",
+        "padreVerificado": true
+      },
+      "calificacion.pq": {
+        "indice": 15,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "8.3 Performance Qualification (PQ) — No Aplica",
+        "padre": "calificacion",
+        "padreVerificado": true
+      },
+      "calificacion.pq.justificacion": {
+        "indice": 16,
+        "evidencia": [
+          "tipo=caja-justificacion (unico en el contrato)",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "Justificación de exclusión de PQ",
+        "padre": "calificacion.pq",
+        "padreVerificado": true
+      },
+      "decisiones": {
+        "indice": 17,
+        "evidencia": [
+          "tipo=tabla-decisiones-tc (unico en el contrato)",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "DECISIONES DE EJECUCIÓN — CRITERIOS DE RESULTADO",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "desviaciones": {
+        "indice": 18,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "GESTIÓN DE DESVIACIONES Y NO CONFORMIDADES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "desviaciones.documentacion": {
+        "indice": 19,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "10.2 Documentación de No Conformidades",
+        "padre": "desviaciones",
+        "padreVerificado": true
+      },
+      "desviaciones.documentacion.campos": {
+        "indice": 20,
+        "evidencia": [
+          "tipo=tabla-info",
+          "sin titulo, unico asi en su tipo"
+        ],
+        "tituloOrigen": "",
+        "padre": "desviaciones.documentacion",
+        "padreVerificado": true
+      },
+      "cambios": {
+        "indice": 21,
+        "evidencia": [
+          "tipo=texto",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "GESTIÓN DE CAMBIOS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "cambios.postValidacion": {
+        "indice": 22,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "11.2 Post-validación",
+        "padre": "cambios",
+        "padreVerificado": true
+      },
+      "cambios.postValidacion.tabla": {
+        "indice": 23,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada"
+        ],
+        "tituloOrigen": "",
+        "padre": "cambios.postValidacion",
+        "padreVerificado": true
+      },
+      "criteriosAceptacion": {
+        "indice": 24,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "CRITERIOS DE ACEPTACIÓN GENERALES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "referencias": {
+        "indice": 25,
+        "evidencia": [
+          "id explicito del documento",
+          "tipo=tabla",
+          "2 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "REFERENCIAS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "firmas": {
+        "indice": 26,
+        "evidencia": [
+          "tipo=tabla-firmas-final (unico en el contrato)",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "CONFORMIDAD DE REVISIÓN Y APROBACIÓN",
+        "padre": null,
+        "padreVerificado": true
+      }
+    },
+    "faltantes": [],
+    "ambiguedades": [],
+    "otros": []
+  },
+  "drp-sis": {
+    "archivo": "SMART_Validation/js/validation-suite/fixtures/vp-drp-sis-001.json",
+    "asignaciones": {
+      "proposito": {
+        "indice": 0,
+        "evidencia": [
+          "tipo=texto",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "PROPÓSITO",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "alcance": {
+        "indice": 1,
+        "evidencia": [
+          "tipo=lista-incluido-excluido (unico en el contrato)",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "ALCANCE",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "responsabilidades": {
+        "indice": 2,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "RESPONSABILIDADES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "definiciones": {
+        "indice": 3,
+        "evidencia": [
+          "tipo=tabla",
+          "2 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "DEFINICIONES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "hlra": {
+        "indice": 4,
+        "evidencia": [
+          "tipo=tabla-info",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "REFERENCIA AL HLRA — ESTRATEGIA BASADA EN RIESGO",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "documentos": {
+        "indice": 5,
+        "evidencia": [
+          "tipo=tabla",
+          "4 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "DOCUMENTOS DEL PROYECTO DE VALIDACIÓN",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "documentos.nota": {
+        "indice": 6,
+        "evidencia": [
+          "tipo=caja-nota",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "Notas sobre el paquete documental",
+        "padre": "documentos",
+        "padreVerificado": "porOrden"
+      },
+      "cronograma": {
+        "indice": 7,
+        "evidencia": [
+          "tipo=tabla",
+          "4 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "CRONOGRAMA DEL PROYECTO",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "cronograma.nota": {
+        "indice": 8,
+        "evidencia": [
+          "tipo=caja-nota",
+          "contenido declarado presente"
+        ],
+        "tituloOrigen": "",
+        "padre": "cronograma",
+        "padreVerificado": "porOrden"
+      },
+      "calificacion": {
+        "indice": 9,
+        "evidencia": [
+          "tipo=texto",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "ALCANCE DE CALIFICACIÓN IQ / OQ",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "calificacion.iq": {
+        "indice": 10,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "8.1 Installation Qualification (IQ)",
+        "padre": "calificacion",
+        "padreVerificado": "porOrden"
+      },
+      "calificacion.iq.tabla": {
+        "indice": 11,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada"
+        ],
+        "tituloOrigen": "",
+        "padre": "calificacion.iq",
+        "padreVerificado": "porOrden"
+      },
+      "calificacion.iq.criterio": {
+        "indice": 12,
+        "evidencia": [
+          "tipo=caja-nota",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "Criterio de aceptación IQ",
+        "padre": "calificacion.iq",
+        "padreVerificado": "porOrden"
+      },
+      "calificacion.oq": {
+        "indice": 13,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "8.2 Operational Qualification (OQ)",
+        "padre": "calificacion",
+        "padreVerificado": "porOrden"
+      },
+      "calificacion.oq.tabla": {
+        "indice": 14,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada"
+        ],
+        "tituloOrigen": "",
+        "padre": "calificacion.oq",
+        "padreVerificado": "porOrden"
+      },
+      "calificacion.oq.criterio": {
+        "indice": 15,
+        "evidencia": [
+          "tipo=caja-nota",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "Ratio TC/URS y criterio de aceptación OQ",
+        "padre": "calificacion.oq",
+        "padreVerificado": "porOrden"
+      },
+      "calificacion.pq": {
+        "indice": 16,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "8.3 Performance Qualification (PQ) — No Aplica",
+        "padre": "calificacion",
+        "padreVerificado": "porOrden"
+      },
+      "calificacion.pq.justificacion": {
+        "indice": 17,
+        "evidencia": [
+          "tipo=caja-justificacion (unico en el contrato)",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "Justificación de exclusión de PQ",
+        "padre": "calificacion.pq",
+        "padreVerificado": "porOrden"
+      },
+      "decisiones.intro": {
+        "indice": 19,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "9.1 Decisiones de ejecución — Criterios de resultado",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "decisiones": {
+        "indice": 20,
+        "evidencia": [
+          "tipo=tabla-decisiones-tc (unico en el contrato)"
+        ],
+        "tituloOrigen": "",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "desviaciones": {
+        "indice": 18,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "GESTIÓN DE DESVIACIONES Y NO CONFORMIDADES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "desviaciones.documentacion": {
+        "indice": 21,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "9.2 Proceso de documentación y cierre",
+        "padre": "desviaciones",
+        "padreVerificado": "porOrden"
+      },
+      "desviaciones.documentacion.campos": {
+        "indice": 22,
+        "evidencia": [
+          "tipo=tabla-info",
+          "sin titulo, unico asi en su tipo"
+        ],
+        "tituloOrigen": "",
+        "padre": "desviaciones.documentacion",
+        "padreVerificado": "porOrden"
+      },
+      "cambios": {
+        "indice": 23,
+        "evidencia": [
+          "tipo=texto",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "GESTIÓN DE CAMBIOS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "cambios.postValidacion": {
+        "indice": 24,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "10.1 Sistema en producción (post-validación)",
+        "padre": "cambios",
+        "padreVerificado": "porOrden"
+      },
+      "cambios.postValidacion.tabla": {
+        "indice": 25,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada"
+        ],
+        "tituloOrigen": "",
+        "padre": "cambios.postValidacion",
+        "padreVerificado": "porOrden"
+      },
+      "criterioValidado": {
+        "indice": 26,
+        "evidencia": [
+          "tipo=caja-criterio (unico en el contrato)",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "El sistema se considera VALIDADO cuando se cumplen TODOS los siguientes criterios",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "criteriosAceptacion": {
+        "indice": 27,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "CRITERIOS DE ACEPTACIÓN GENERALES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "referencias": {
+        "indice": 28,
+        "evidencia": [
+          "tipo=tabla",
+          "2 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "REFERENCIAS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "firmas": {
+        "indice": 29,
+        "evidencia": [
+          "tipo=tabla-firmas-final (unico en el contrato)",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "FIRMAS DE EJECUCIÓN",
+        "padre": null,
+        "padreVerificado": true
+      }
+    },
+    "faltantes": [],
+    "ambiguedades": [],
+    "otros": []
+  },
+  "plantilla": {
+    "archivo": "SMART_Validation/js/validation-suite/fixtures/vp-template-vacio.json",
+    "asignaciones": {
+      "proposito": {
+        "indice": 0,
+        "evidencia": [
+          "tipo=texto",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "PROPÓSITO",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "alcance": {
+        "indice": 1,
+        "evidencia": [
+          "tipo=lista-incluido-excluido (unico en el contrato)",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "ALCANCE",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "responsabilidades": {
+        "indice": 2,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "RESPONSABILIDADES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "definiciones": {
+        "indice": 3,
+        "evidencia": [
+          "tipo=tabla",
+          "2 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "DEFINICIONES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "hlra": {
+        "indice": 4,
+        "evidencia": [
+          "tipo=tabla-info",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "REFERENCIA AL HLRA — ESTRATEGIA BASADA EN RIESGO",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "documentos": {
+        "indice": 5,
+        "evidencia": [
+          "tipo=tabla",
+          "4 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "DOCUMENTOS DEL PROYECTO DE VALIDACIÓN",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "documentos.nota": {
+        "indice": 6,
+        "evidencia": [
+          "tipo=caja-nota",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "Notas sobre el paquete documental",
+        "padre": "documentos",
+        "padreVerificado": "porOrden"
+      },
+      "cronograma": {
+        "indice": 7,
+        "evidencia": [
+          "tipo=tabla",
+          "4 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "CRONOGRAMA DEL PROYECTO",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "calificacion": {
+        "indice": 8,
+        "evidencia": [
+          "tipo=texto",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "ALCANCE DE CALIFICACIÓN IQ / OQ",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "calificacion.iq": {
+        "indice": 9,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "8.1 Installation Qualification (IQ)",
+        "padre": "calificacion",
+        "padreVerificado": "porOrden"
+      },
+      "calificacion.iq.tabla": {
+        "indice": 10,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada"
+        ],
+        "tituloOrigen": "",
+        "padre": "calificacion.iq",
+        "padreVerificado": "porOrden"
+      },
+      "calificacion.iq.criterio": {
+        "indice": 11,
+        "evidencia": [
+          "tipo=caja-nota",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "Criterio de aceptación IQ",
+        "padre": "calificacion.iq",
+        "padreVerificado": "porOrden"
+      },
+      "calificacion.oq": {
+        "indice": 12,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "8.2 Operational Qualification (OQ)",
+        "padre": "calificacion",
+        "padreVerificado": "porOrden"
+      },
+      "calificacion.oq.tabla": {
+        "indice": 13,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada"
+        ],
+        "tituloOrigen": "",
+        "padre": "calificacion.oq",
+        "padreVerificado": "porOrden"
+      },
+      "calificacion.oq.criterio": {
+        "indice": 14,
+        "evidencia": [
+          "tipo=caja-nota",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "Criterio de aceptación OQ",
+        "padre": "calificacion.oq",
+        "padreVerificado": "porOrden"
+      },
+      "calificacion.pq": {
+        "indice": 15,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "8.3 Performance Qualification (PQ)",
+        "padre": "calificacion",
+        "padreVerificado": "porOrden"
+      },
+      "calificacion.pq.justificacion": {
+        "indice": 16,
+        "evidencia": [
+          "tipo=caja-justificacion (unico en el contrato)"
+        ],
+        "tituloOrigen": "",
+        "padre": "calificacion.pq",
+        "padreVerificado": "porOrden"
+      },
+      "decisiones": {
+        "indice": 17,
+        "evidencia": [
+          "tipo=tabla-decisiones-tc (unico en el contrato)",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "DECISIONES DE EJECUCIÓN — CRITERIOS DE RESULTADO",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "desviaciones": {
+        "indice": 18,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "GESTIÓN DE DESVIACIONES Y NO CONFORMIDADES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "desviaciones.documentacion": {
+        "indice": 19,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "10.2 Proceso de documentación y cierre",
+        "padre": "desviaciones",
+        "padreVerificado": "porOrden"
+      },
+      "desviaciones.documentacion.campos": {
+        "indice": 20,
+        "evidencia": [
+          "tipo=tabla-info",
+          "sin titulo, unico asi en su tipo"
+        ],
+        "tituloOrigen": "",
+        "padre": "desviaciones.documentacion",
+        "padreVerificado": "porOrden"
+      },
+      "cambios": {
+        "indice": 21,
+        "evidencia": [
+          "tipo=texto",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "GESTIÓN DE CAMBIOS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "cambios.postValidacion": {
+        "indice": 22,
+        "evidencia": [
+          "tipo=subseccion",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "11.2 Post-validación (sistema en producción)",
+        "padre": "cambios",
+        "padreVerificado": "porOrden"
+      },
+      "cambios.postValidacion.tabla": {
+        "indice": 23,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada"
+        ],
+        "tituloOrigen": "",
+        "padre": "cambios.postValidacion",
+        "padreVerificado": "porOrden"
+      },
+      "criterioValidado": {
+        "indice": 24,
+        "evidencia": [
+          "tipo=caja-criterio (unico en el contrato)",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "El sistema se considera VALIDADO cuando se cumplen TODOS los siguientes criterios",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "criteriosAceptacion": {
+        "indice": 25,
+        "evidencia": [
+          "tipo=tabla",
+          "3 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "CRITERIOS DE ACEPTACIÓN GENERALES",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "referencias": {
+        "indice": 26,
+        "evidencia": [
+          "tipo=tabla",
+          "2 columnas, variante declarada",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "REFERENCIAS",
+        "padre": null,
+        "padreVerificado": true
+      },
+      "firmas": {
+        "indice": 27,
+        "evidencia": [
+          "tipo=tabla-firmas-final (unico en el contrato)",
+          "titulo declarado"
+        ],
+        "tituloOrigen": "FIRMAS DE EJECUCIÓN",
+        "padre": null,
+        "padreVerificado": true
+      }
+    },
+    "faltantes": [],
+    "ambiguedades": [],
+    "otros": []
+  }
+}

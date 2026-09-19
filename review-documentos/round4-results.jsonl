@@ -1,0 +1,10 @@
+{"kind":"validation","name":"wrongSkeletonType","errors":[]}
+{"kind":"validation","name":"wrongSectionType","errors":[]}
+{"kind":"validation","name":"wrongParent","errors":[]}
+{"kind":"validation","name":"emptyPurpose","errors":[]}
+{"kind":"validation","name":"changedColumnLabels","errors":[]}
+{"kind":"validation","name":"missingColumns","errors":[]}
+{"kind":"validation","name":"badSummary","errors":[]}
+{"kind":"validation","name":"zeroFourDigits","errors":[]}
+{"kind":"editor","editor":"SMART_Validation/js/validation-suite/ui/visual-editor.js","results":[{"before":{"text":"","bold":true},"after":{"text":"{\"text\":\"\",\"bold\":true}","bold":true}},{"before":{"stack":[{"text":"A"}]},"after":{"stack":[{"text":"A"}],"text":"{\"stack\":[{\"text\":\"A\"}]}"}},{"before":{"text":[{"text":"A","bold":true},"B"]},"after":{"text":"[object Object],B"}},{"before":{"contenido":"A"},"after":{"contenido":"A","text":"A"}},{"before":0,"after":""},{"before":false,"after":""},{"addColumn":{"groupColspan":2,"groupCells":3,"headers":3}}]}
+{"kind":"editor","editor":"SMART_Validation/suite-revision-firmas/static/js/validation-suite/ui/visual-editor.js","results":[{"before":{"text":"","bold":true},"after":{"text":"{\"text\":\"\",\"bold\":true}","bold":true}},{"before":{"stack":[{"text":"A"}]},"after":{"stack":[{"text":"A"}],"text":"{\"stack\":[{\"text\":\"A\"}]}"}},{"before":{"text":[{"text":"A","bold":true},"B"]},"after":{"text":"[object Object],B"}},{"before":{"contenido":"A"},"after":{"contenido":"A","text":"A"}},{"before":0,"after":""},{"before":false,"after":""},{"addColumn":{"groupColspan":2,"groupCells":3,"headers":3}}]}

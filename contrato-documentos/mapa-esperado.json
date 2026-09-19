@@ -1,0 +1,309 @@
+{
+  "_nota": "Mapa ESPERADO, escrito a mano leyendo cada documento. NO se genera con el asignador: si se generara con el, el test compararia el algoritmo consigo mismo y no probaria nada. Cada entrada es indice de seccion en el documento -> clave canonica del contrato.",
+  "_comoSeReviso": "Se listo cada documento con tipo, titulo (o subtitulo) y columnas, y se asigno la clave leyendo el contenido. Las tres listas estan en el dialogo, rondas 12 y 14.",
+  "fixture URS": {
+    "archivo": "SMART_Validation/js/validation-suite/fixtures/urs-drp-sis-001.json",
+    "tipo": "URS",
+    "mapa": {
+      "0": "proposito",
+      "1": "alcance",
+      "2": "responsabilidades",
+      "3": "definiciones",
+      "4": "contexto",
+      "5": "contexto.general",
+      "6": "contexto.usuarios",
+      "7": "contexto.usuarios.tabla",
+      "8": "contexto.integraciones",
+      "9": "leyenda",
+      "10": "leyenda.criticidad",
+      "11": "requerimientos.funcionales",
+      "12": "requerimientos.noFuncionales",
+      "13": "exclusiones",
+      "14": "criteriosAceptacion",
+      "15": "resumen",
+      "16": "referencias",
+      "17": "firmas"
+    },
+    "esperaErrores": {
+      "_por_que": "El fixture trae requirementsSummary vacio: es anterior a que el skill generador lo declarara obligatorio. El rechazo es correcto y es el unico esperado; cualquier otro error es una regresion.",
+      "reglas": [
+        "resumen"
+      ]
+    }
+  },
+  "URS real": {
+    "archivo": "C:/Users/fjbon/OneDrive/Escritorio/EMQC_Emara/Proyecto demo 1 - Emara/ai-docs/URS-EMQC-001.json",
+    "tipo": "URS",
+    "_diferenciasConElFixture": [
+      "la tabla final se titula CONFORMIDAD DE REVISION Y APROBACION, no FIRMAS DE EJECUCION",
+      "las subsecciones 5.1/5.2/5.3 traen el titulo en `subtitulo`, no en `titulo`",
+      "responsabilidades tiene 3 columnas donde el fixture tiene 2",
+      "el enunciado se titula 'El sistema/proveedor DEBERA...'",
+      "el resumen se titula 'Por modulo/categoria'"
+    ],
+    "mapa": {
+      "0": "proposito",
+      "1": "alcance",
+      "2": "responsabilidades",
+      "3": "definiciones",
+      "4": "contexto",
+      "5": "contexto.general",
+      "6": "contexto.usuarios",
+      "7": "contexto.usuarios.tabla",
+      "8": "contexto.integraciones",
+      "9": "leyenda",
+      "10": "leyenda.criticidad",
+      "11": "requerimientos.funcionales",
+      "12": "requerimientos.noFuncionales",
+      "13": "exclusiones",
+      "14": "criteriosAceptacion",
+      "15": "resumen",
+      "16": "referencias",
+      "17": "firmas"
+    },
+    "esperaErrores": {
+      "reglas": []
+    }
+  },
+  "VP real": {
+    "archivo": "contrato-documentos/ejemplos/vp.instancia.valida.json",
+    "tipo": "VP",
+    "_parentesco": "OQ y PQ cuelgan de `calificacion`, NO de la caja de criterio de IQ. Cada caja cuelga de la subseccion que la introduce.",
+    "mapa": {
+      "0": "proposito",
+      "1": "alcance",
+      "2": "responsabilidades",
+      "3": "definiciones",
+      "4": "hlra",
+      "5": "documentos",
+      "6": "documentos.nota",
+      "7": "cronograma",
+      "8": "cronograma.nota",
+      "9": "calificacion",
+      "10": "calificacion.iq",
+      "11": "calificacion.iq.tabla",
+      "12": "calificacion.iq.criterio",
+      "13": "calificacion.oq",
+      "14": "calificacion.oq.tabla",
+      "15": "calificacion.pq",
+      "16": "calificacion.pq.justificacion",
+      "17": "decisiones",
+      "18": "desviaciones",
+      "19": "desviaciones.documentacion",
+      "20": "desviaciones.documentacion.campos",
+      "21": "cambios",
+      "22": "cambios.postValidacion",
+      "23": "cambios.postValidacion.tabla",
+      "24": "criteriosAceptacion",
+      "25": "referencias",
+      "26": "firmas"
+    },
+    "esperaErrores": {
+      "reglas": []
+    }
+  },
+  "URS plantilla": {
+    "archivo": "SMART_Validation/js/validation-suite/fixtures/urs-template-vacio.json",
+    "tipo": "URS",
+    "_leido": "mismo esqueleto que el fixture, con los titulos en minuscula y sin contenido",
+    "mapa": {
+      "0": "proposito",
+      "1": "alcance",
+      "2": "responsabilidades",
+      "3": "definiciones",
+      "4": "contexto",
+      "5": "contexto.general",
+      "6": "contexto.usuarios",
+      "7": "contexto.usuarios.tabla",
+      "8": "contexto.integraciones",
+      "9": "leyenda",
+      "10": "leyenda.criticidad",
+      "11": "requerimientos.funcionales",
+      "12": "requerimientos.noFuncionales",
+      "13": "exclusiones",
+      "14": "criteriosAceptacion",
+      "15": "resumen",
+      "16": "referencias",
+      "17": "firmas"
+    },
+    "esperaErrores": {
+      "_por_que": "plantilla vacia: no trae requirementsSummary ni filas",
+      "reglas": [
+        "resumen",
+        "vacia",
+        "minFilas"
+      ]
+    }
+  },
+  "VP drp-sis": {
+    "archivo": "SMART_Validation/js/validation-suite/fixtures/vp-drp-sis-001.json",
+    "tipo": "VP",
+    "_leido": "decisiones viene como subseccion 9.1 + tabla sin titulo; post-validacion como 10.1 \"Sistema en produccion\"; incluye caja-criterio de cierre",
+    "mapa": {
+      "0": "proposito",
+      "1": "alcance",
+      "2": "responsabilidades",
+      "3": "definiciones",
+      "4": "hlra",
+      "5": "documentos",
+      "6": "documentos.nota",
+      "7": "cronograma",
+      "8": "cronograma.nota",
+      "9": "calificacion",
+      "10": "calificacion.iq",
+      "11": "calificacion.iq.tabla",
+      "12": "calificacion.iq.criterio",
+      "13": "calificacion.oq",
+      "14": "calificacion.oq.tabla",
+      "15": "calificacion.oq.criterio",
+      "16": "calificacion.pq",
+      "17": "calificacion.pq.justificacion",
+      "18": "desviaciones",
+      "19": "decisiones.intro",
+      "20": "decisiones",
+      "21": "desviaciones.documentacion",
+      "22": "desviaciones.documentacion.campos",
+      "23": "cambios",
+      "24": "cambios.postValidacion",
+      "25": "cambios.postValidacion.tabla",
+      "26": "criterioValidado",
+      "27": "criteriosAceptacion",
+      "28": "referencias",
+      "29": "firmas"
+    },
+    "esperaErrores": {
+      "reglas": []
+    }
+  },
+  "VP plantilla": {
+    "archivo": "SMART_Validation/js/validation-suite/fixtures/vp-template-vacio.json",
+    "tipo": "VP",
+    "_leido": "sin caja de nota del cronograma; decisiones como tabla titulada; post-validacion como 11.2; caja-justificacion sin titulo",
+    "mapa": {
+      "0": "proposito",
+      "1": "alcance",
+      "2": "responsabilidades",
+      "3": "definiciones",
+      "4": "hlra",
+      "5": "documentos",
+      "6": "documentos.nota",
+      "7": "cronograma",
+      "8": "calificacion",
+      "9": "calificacion.iq",
+      "10": "calificacion.iq.tabla",
+      "11": "calificacion.iq.criterio",
+      "12": "calificacion.oq",
+      "13": "calificacion.oq.tabla",
+      "14": "calificacion.oq.criterio",
+      "15": "calificacion.pq",
+      "16": "calificacion.pq.justificacion",
+      "17": "decisiones",
+      "18": "desviaciones",
+      "19": "desviaciones.documentacion",
+      "20": "desviaciones.documentacion.campos",
+      "21": "cambios",
+      "22": "cambios.postValidacion",
+      "23": "cambios.postValidacion.tabla",
+      "24": "criterioValidado",
+      "25": "criteriosAceptacion",
+      "26": "referencias",
+      "27": "firmas"
+    },
+    "esperaErrores": {
+      "_por_que": "plantilla vacia: secciones requeridas sin contenido",
+      "reglas": [
+        "vacia"
+      ]
+    }
+  },
+  "HLRA real": {
+    "archivo": "C:/Users/fjbon/OneDrive/Escritorio/EMQC_Emara/Proyecto demo 1 - Emara/ai-docs/HLRA-EMQC-001.json",
+    "tipo": "HLRA",
+    "_leido": "2 tarjetas de gap; firmas titulada CONFORMIDAD DE REVISION Y APROBACION",
+    "mapa": {
+      "0": "proposito",
+      "1": "alcance",
+      "2": "responsabilidades",
+      "3": "definiciones",
+      "4": "sistema",
+      "5": "gamp",
+      "6": "gamp.resultado",
+      "7": "gamp.implicaciones",
+      "8": "criticidad",
+      "9": "criticidad.resultado",
+      "10": "procesos",
+      "11": "funciones",
+      "12": "gaps",
+      "13": "gaps",
+      "14": "estrategia",
+      "15": "estrategia.documentos",
+      "16": "conclusion",
+      "17": "referencias",
+      "18": "firmas"
+    },
+    "sinEsqueleto": true,
+    "esperaErrores": {
+      "reglas": []
+    }
+  },
+  "HLRA drp-sis": {
+    "archivo": "SMART_Validation/js/validation-suite/fixtures/hlra-drp-sis-001.json",
+    "tipo": "HLRA",
+    "_leido": "4 tarjetas de gap; responsabilidades con 2 columnas; firmas titulada FIRMAS DE EJECUCION",
+    "mapa": {
+      "0": "proposito",
+      "1": "alcance",
+      "2": "responsabilidades",
+      "3": "definiciones",
+      "4": "sistema",
+      "5": "gamp",
+      "6": "gamp.resultado",
+      "7": "gamp.implicaciones",
+      "8": "criticidad",
+      "9": "criticidad.resultado",
+      "10": "procesos",
+      "11": "funciones",
+      "12": "gaps",
+      "13": "gaps",
+      "14": "gaps",
+      "15": "gaps",
+      "16": "estrategia",
+      "17": "estrategia.documentos",
+      "18": "conclusion",
+      "19": "referencias",
+      "20": "firmas"
+    },
+    "sinEsqueleto": true,
+    "esperaErrores": {
+      "reglas": []
+    }
+  },
+  "HLRA plantilla": {
+    "archivo": "SMART_Validation/js/validation-suite/fixtures/hlra-template-vacio.json",
+    "tipo": "HLRA",
+    "_leido": "sin tarjetas de gap; caja-resultado sin titulo (el titulo lleva la categoria GAMP, que es dato)",
+    "mapa": {
+      "0": "proposito",
+      "1": "alcance",
+      "2": "responsabilidades",
+      "3": "definiciones",
+      "4": "sistema",
+      "5": "gamp",
+      "6": "gamp.resultado",
+      "7": "gamp.implicaciones",
+      "8": "criticidad",
+      "9": "criticidad.resultado",
+      "10": "procesos",
+      "11": "funciones",
+      "12": "estrategia",
+      "13": "estrategia.documentos",
+      "14": "conclusion",
+      "15": "referencias",
+      "16": "firmas"
+    },
+    "sinEsqueleto": true,
+    "esperaErrores": {
+      "reglas": []
+    }
+  }
+}
