@@ -102,6 +102,13 @@ CREATE TABLE IF NOT EXISTS rf_documents (
     pdf_data                  TEXT,
     branding_name_at_signing  TEXT,
     branding_logo_at_signing  TEXT,
+    -- branding_captured_at_signing distingue "se selló SIN marca, a propósito" de "se selló
+    -- antes de que este campo existiera, no se sabe qué marca regía" -- sin este flag,
+    -- ambos casos se ven igual (branding_logo_at_signing NULL) y el código cae al branding
+    -- ACTUAL del proyecto en los dos, incluyendo el caso donde en realidad ya había un
+    -- snapshot fijado (sin marca) que no debería pisarse (encontrado en revisión de Codex,
+    -- 2026-09-19).
+    branding_captured_at_signing INTEGER DEFAULT 0,
     UNIQUE(project_id, doc_type)
 );
 
@@ -177,8 +184,17 @@ CREATE TABLE IF NOT EXISTS rf_review_signatures (
     content_fingerprint      TEXT,
     display_name_at_signing  TEXT,
     invalidated_at    REAL,
-    invalidated_reason TEXT,
-    UNIQUE(document_id, user_id)
+    invalidated_reason TEXT
+    -- Antes: UNIQUE(document_id, user_id) sobre TODA fila -- una firma invalidada por
+    -- reapertura seguía ocupando esa clave, así que el mismo revisor nunca podía volver a
+    -- firmar después de reabrir (encontrado en revisión de Codex, 2026-09-19). Reemplazado
+    -- por un índice único PARCIAL, creado por _migrate_signing_integrity_gaps (db.py) --
+    -- NO acá: en una base vieja sin la columna invalidated_at todavía, un CREATE INDEX
+    -- incondicional acá (que corre ANTES de que la migración pueda agregar la columna) rompe
+    -- init_db() entero con "no such column: invalidated_at" (encontrado probando la migración
+    -- contra una copia de la base de datos real de desarrollo, 2026-09-19). La migración es la
+    -- única dueña de este índice, en sus tres casos (Postgres, SQLite nueva, SQLite legada que
+    -- necesita reconstruir la tabla).
 );
 
 -- 5.2 Firma de Aprobación: con orden, texto justificativo obligatorio, DRP firma último y sella.

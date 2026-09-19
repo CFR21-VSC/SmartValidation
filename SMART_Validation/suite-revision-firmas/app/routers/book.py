@@ -137,7 +137,8 @@ def get_book_package(project_id: str, user: dict = Depends(require_drp)):
     contenido definitivo y firmado, no de borradores en curso."""
     db = get_db()
     docs = db.execute(
-        "SELECT id, doc_type, json_data, branding_name_at_signing, branding_logo_at_signing "
+        "SELECT id, doc_type, json_data, branding_name_at_signing, branding_logo_at_signing, "
+        "branding_captured_at_signing "
         "FROM rf_documents WHERE project_id=? AND locked=1 ORDER BY doc_type",
         (project_id,),
     ).fetchall()
@@ -162,8 +163,14 @@ def get_book_package(project_id: str, user: dict = Depends(require_drp)):
     for doc in docs:
         data = json.loads(doc["json_data"])
         data = inject_signatures_section(data, firmas_by_doc[doc["id"]])
-        if doc["branding_logo_at_signing"]:
-            data["_partnerBranding"] = {"name": doc["branding_name_at_signing"] or "", "logo": doc["branding_logo_at_signing"]}
+        # Mismo criterio que _branding_for_document (documents.py, Ronda 18 2da vuelta):
+        # si el snapshot fue capturado al sellar, se usa TAL CUAL -- incluso "sin marca" a
+        # propósito, sin caer al branding actual del proyecto. Solo lo nunca-capturado
+        # (sellado antes de que existiera este campo) cae al branding actual.
+        if doc["branding_captured_at_signing"]:
+            if doc["branding_logo_at_signing"]:
+                data["_partnerBranding"] = {"name": doc["branding_name_at_signing"] or "", "logo": doc["branding_logo_at_signing"]}
+            # si no hay logo en el snapshot, no se fija _partnerBranding -- sellado sin marca a propósito
         elif branding_actual:
             data["_partnerBranding"] = branding_actual
         package.append({"type": doc["doc_type"], "data": data})

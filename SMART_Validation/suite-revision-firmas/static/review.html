@@ -1707,13 +1707,22 @@ async function loadSignatures() {
         signersSummary.textContent = 'No se pudieron cargar las firmas.';
         return;
     }
-    const sigs = data.signatures || [];
+    // Ronda 18: la API ahora devuelve también las firmas invalidadas por una reapertura
+    // (campo `active`) -- para "quién firmó" y "ya firmé" solo cuentan las activas, si no
+    // el botón quedaba bloqueado para siempre después de reabrir aunque el backend ya
+    // permitiera volver a firmar.
+    const allSigs = data.signatures || [];
+    const sigs = allSigs.filter(s => s.active);
+    const invalidatedSigs = allSigs.filter(s => !s.active);
     if (sigs.length === 0) {
         signersSummary.innerHTML = '<span>Todavía nadie firmó la revisión.</span>';
     } else {
         signersSummary.innerHTML = '<strong>Firmaron:</strong> ' + sigs.map(s =>
             `${escHtml(s.username)}${s.role_label ? ' (' + escHtml(s.role_label) + ')' : ''} — ${fmtDateTime(s.signed_at)}`
         ).join(' &nbsp;|&nbsp; ');
+    }
+    if (invalidatedSigs.length) {
+        signersSummary.innerHTML += ` <span style="opacity:.6;font-style:italic;">(+ ${invalidatedSigs.length} firma(s) invalidada(s) por reapertura)</span>`;
     }
 
     // Ya firmé (comparo por username, la sesión no expone mi propio user_id) — bloqueo el

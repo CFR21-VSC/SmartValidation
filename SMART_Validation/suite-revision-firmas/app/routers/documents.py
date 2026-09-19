@@ -86,13 +86,19 @@ class PushToValidacionBody(BaseModel):
 
 
 def _branding_for_document(db, project_id: str, doc: dict) -> dict | None:
-    """Marca de partner/cliente a mostrar para ESTE documento. Si está sellado y tiene
-    branding fijado al momento de firmar (Ronda 18), usa ESE -- no el actual del proyecto,
-    que puede haber cambiado desde entonces. Si no (documento sin sellar, o sellado antes de
-    que existiera este campo), cae al branding actual del proyecto, gateado por logo -- mismo
-    criterio que get_book_package."""
-    if doc.get("locked") and doc.get("branding_logo_at_signing"):
-        return {"name": doc.get("branding_name_at_signing") or "", "logo": doc["branding_logo_at_signing"]}
+    """Marca de partner/cliente a mostrar para ESTE documento. Si está sellado y tiene un
+    snapshot fijado al momento de firmar (Ronda 18: branding_captured_at_signing=True), usa
+    ESE snapshot tal cual -- incluso si es "sin marca" (se selló sin partner a propósito), sin
+    caer al branding actual del proyecto. Antes se inferían las dos cosas ("nunca se capturó"
+    vs "se capturó vacío") de lo mismo -- branding_logo_at_signing NULL -- así que un documento
+    sellado SIN marca terminaba mostrando la marca ACTUAL si alguien la cargaba después
+    (encontrado en segunda revisión de Codex, 2026-09-19). Solo cuando no hay snapshot en
+    absoluto (documento sin sellar, o sellado antes de que existiera este campo) cae al
+    branding actual del proyecto, gateado por logo -- mismo criterio que get_book_package."""
+    if doc.get("locked") and doc.get("branding_captured_at_signing"):
+        if doc.get("branding_logo_at_signing"):
+            return {"name": doc.get("branding_name_at_signing") or "", "logo": doc["branding_logo_at_signing"]}
+        return None  # snapshot fijado explícitamente SIN marca -- no es lo mismo que "desconocido"
     proj = db.execute(
         "SELECT partner_name, partner_logo FROM rf_projects WHERE id=?", (project_id,)
     ).fetchone()
@@ -133,10 +139,27 @@ def _upsert_document(db, project_id: str, doc_type: str, json_data: dict, actor:
 
     now = time.time()
     if existing:
-        db.execute(
-            "UPDATE rf_documents SET json_data=?, loaded_by=?, updated_at=? WHERE id=?",
+        # Ronda 18, segunda vuelta (revisión de Codex, 2026-09-19): el chequeo de arriba y
+        # este UPDATE eran dos pasos separados -- una firma podía colarse justo entre medio
+        # (demostrado por Codex intercalando esta función dentro de sign_review). La condición
+        # WHERE hace que el propio UPDATE sea el chequeo: si alguien puso edit_locked=1 o
+        # locked=1 entre el SELECT de arriba y acá, esta sentencia no toca ninguna fila
+        # (rowcount=0) en vez de pisar el guardia silenciosamente -- una sola sentencia SQL es
+        # atómica en sí misma en SQLite y en Postgres, sin necesitar una transacción explícita
+        # para esto en particular.
+        cur = db.execute(
+            "UPDATE rf_documents SET json_data=?, loaded_by=?, updated_at=? "
+            "WHERE id=? AND locked=0 AND edit_locked=0",
             (json.dumps(json_data), actor["u"], now, existing["id"]),
         )
+        if cur.rowcount == 0:
+            fresh = db.execute("SELECT locked, edit_locked FROM rf_documents WHERE id=?", (existing["id"],)).fetchone()
+            if fresh and fresh["locked"]:
+                raise HTTPException(status.HTTP_409_CONFLICT, "El documento está sellado — no puede modificarse")
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "El documento ya tiene firmas registradas — un DRP tiene que reabrirlo explícitamente antes de poder editarlo",
+            )
         doc_id = existing["id"]
     else:
         doc_id = str(uuid.uuid4())
@@ -171,8 +194,27 @@ def delete_document(project_id: str, doc_type: str, user: dict = Depends(require
     doc = _get_document_or_404(db, project_id, doc_type)
     if doc["locked"]:
         raise HTTPException(status.HTTP_409_CONFLICT, "El documento está sellado — no puede eliminarse")
+    # Ronda 18, segunda vuelta (revisión de Codex, 2026-09-19): antes solo miraba `locked` --
+    # un documento con una firma de revisión (edit_locked=1, pero locked sigue en 0 porque
+    # nunca llegó a sellarse) se borraba igual, y la cascada de la FK se llevaba puesta la
+    # firma con él. El bloqueo tiene que depender de que EXISTA evidencia de firma, activa o
+    # invalidada -- no del flag de edición actual, que un DRP puede volver a poner en 0 al
+    # reabrir sin que eso implique que la historia dejó de importar.
+    has_review_sig = db.execute(
+        "SELECT 1 FROM rf_review_signatures WHERE document_id=? LIMIT 1", (doc["id"],)
+    ).fetchone()
+    has_approval_sig = db.execute(
+        "SELECT 1 FROM rf_approval_signers sig JOIN rf_approval_rounds rnd ON rnd.id = sig.round_id "
+        "WHERE rnd.document_id=? LIMIT 1", (doc["id"],)
+    ).fetchone()
+    if has_review_sig or has_approval_sig:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "El documento tiene firmas registradas (activas o invalidadas) — no se puede eliminar, "
+            "conserva evidencia de firma electrónica",
+        )
 
-    db.execute("DELETE FROM rf_documents WHERE id=?", (doc["id"],))  # cascada: corrections/firmas
+    db.execute("DELETE FROM rf_documents WHERE id=?", (doc["id"],))  # cascada: corrections/comentarios
     db.commit()
     log_system_event(user, "document_deleted", f"{user['u']} eliminó {doc_type}", project_id=project_id, doc_type=doc_type)
     return {"ok": True}

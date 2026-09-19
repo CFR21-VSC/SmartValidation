@@ -33,9 +33,16 @@ def _seal_document(drp_with_pin, cliente_tuple, project_id="proj-1", doc_type="H
     drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": project_id, "doc_type": doc_type})
     drp_id = drp_with_pin.get("/users").json()["users"]
     drp_id = [u["id"] for u in drp_id if u["is_superadmin"]][0]
+    fp = drp_with_pin.get(f"/projects/{project_id}/documents/{doc_type}").json()["content_fingerprint"]
 
-    cli.post(f"/projects/{project_id}/documents/{doc_type}/review-signatures", json={"pin": "1234"})
-    drp_with_pin.post(f"/projects/{project_id}/documents/{doc_type}/review-signatures", json={"pin": "9999"})
+    cli.post(
+        f"/projects/{project_id}/documents/{doc_type}/review-signatures",
+        json={"pin": "1234", "content_fingerprint": fp},
+    )
+    drp_with_pin.post(
+        f"/projects/{project_id}/documents/{doc_type}/review-signatures",
+        json={"pin": "9999", "content_fingerprint": fp},
+    )
 
     drp_with_pin.post(
         f"/projects/{project_id}/documents/{doc_type}/approval-round",
@@ -46,11 +53,14 @@ def _seal_document(drp_with_pin, cliente_tuple, project_id="proj-1", doc_type="H
     )
     cli.post(
         f"/projects/{project_id}/documents/{doc_type}/approval-round/sign",
-        json={"pin": "1234", "justification_text": "ok"},
+        json={"pin": "1234", "justification_text": "ok", "content_fingerprint": fp},
     )
     drp_with_pin.post(
         f"/projects/{project_id}/documents/{doc_type}/approval-round/sign",
-        json={"pin": "9999", "justification_text": "ok", "pdf_base64": "ZmFrZQ=="},
+        json={
+            "pin": "9999", "justification_text": "ok", "pdf_base64": "JVBERi0xLjQgZmFrZSB0ZXN0IHBkZg==",
+            "content_fingerprint": fp,
+        },
     )
     return drp_id
 
@@ -477,10 +487,17 @@ def test_dossier_flags_open_approval_round_until_sealed(drp_with_pin, cliente):
     mid = drp_with_pin.get("/projects/proj-1/dossier").json()["documents"][0]
     assert mid["has_open_approval_round"] is True
 
-    cli.post("/projects/proj-1/documents/HLRA/approval-round/sign", json={"pin": "1234", "justification_text": "ok"})
+    fp = drp_with_pin.get("/projects/proj-1/documents/HLRA").json()["content_fingerprint"]
+    cli.post(
+        "/projects/proj-1/documents/HLRA/approval-round/sign",
+        json={"pin": "1234", "justification_text": "ok", "content_fingerprint": fp},
+    )
     drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round/sign",
-        json={"pin": "9999", "justification_text": "ok", "pdf_base64": "ZmFrZQ=="},
+        json={
+            "pin": "9999", "justification_text": "ok", "pdf_base64": "JVBERi0xLjQgZmFrZSB0ZXN0IHBkZg==",
+            "content_fingerprint": fp,
+        },
     )
     after = drp_with_pin.get("/projects/proj-1/dossier").json()["documents"][0]
     assert after["has_open_approval_round"] is False

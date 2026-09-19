@@ -238,6 +238,7 @@ def init_db() -> None:
     _migrate_add_project_display_name(db)
     _migrate_add_project_branding(db)
     _migrate_add_signing_integrity(db)
+    _migrate_signing_integrity_gaps(db)
 
 
 def _migrate_add_comment_parent_id(db) -> None:
@@ -333,6 +334,85 @@ def _migrate_add_signing_integrity(db) -> None:
             "invalidated_at": "REAL",
             "invalidated_reason": "TEXT",
         })
+
+
+def _migrate_signing_integrity_gaps(db) -> None:
+    """Ronda 18, segunda vuelta (revisión de Codex sobre el commit 89909cf, 2026-09-19):
+
+    1. branding_captured_at_signing distingue "se selló sin marca, a propósito" de "se selló
+       antes de que este campo existiera" -- antes ambos casos se veían igual (logo NULL) y
+       caían al branding actual del proyecto en los dos, incluyendo el que en realidad ya
+       tenía un snapshot fijado (sin marca) que no debería pisarse.
+    2. UNIQUE(document_id, user_id) en rf_review_signatures (TODA fila, no solo las activas)
+       impedía volver a firmar después de una reapertura -- la fila invalidada seguía
+       ocupando esa clave. Reemplazado por un índice único parcial, solo sobre firmas
+       activas. SQLite no permite alterar un UNIQUE inline sin reconstruir la tabla."""
+    _add_columns_if_missing(db, "rf_documents", {"branding_captured_at_signing": "INTEGER DEFAULT 0"})
+    # Backfill: todo lo que ya tiene original_stored=1 se selló con la lógica de branding-al-
+    # sellar ya activa (aunque haya sido con marca vacía) -- se marca como capturado.
+    db.execute("UPDATE rf_documents SET branding_captured_at_signing=1 WHERE original_stored=1 AND branding_captured_at_signing=0")
+    db.commit()
+
+    if USE_PG:
+        db.execute("ALTER TABLE rf_review_signatures DROP CONSTRAINT IF EXISTS rf_review_signatures_document_id_user_id_key")
+        db.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_rf_review_sig_active_unique "
+            "ON rf_review_signatures(document_id, user_id) WHERE invalidated_at IS NULL"
+        )
+        db.commit()
+        return
+
+    row = db.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='rf_review_signatures'"
+    ).fetchone()
+    if not row or "UNIQUE(document_id, user_id)" not in (row["sql"] or ""):
+        # Ya reconstruida en una corrida anterior, o tabla nueva (ya nace sin el constraint).
+        db.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_rf_review_sig_active_unique "
+            "ON rf_review_signatures(document_id, user_id) WHERE invalidated_at IS NULL"
+        )
+        db.commit()
+        return
+
+    # Reconstrucción in-place: renombrar, crear la tabla nueva (sin el UNIQUE inline), copiar
+    # filas, borrar la vieja. Todo en una transacción -- o se completa entero, o no se toca
+    # nada (confirmado con el usuario: no hay firmas reales en la base local hoy, pero el
+    # camino de migración tiene que ser seguro para cuando sí las haya).
+    db.execute("BEGIN IMMEDIATE")
+    try:
+        db.execute("ALTER TABLE rf_review_signatures RENAME TO rf_review_signatures_old_ronda18")
+        db.execute("""
+            CREATE TABLE rf_review_signatures (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                document_id   TEXT NOT NULL REFERENCES rf_documents(id) ON DELETE CASCADE,
+                user_id       TEXT NOT NULL,
+                username      TEXT,
+                role_label    TEXT,
+                signed_at     REAL,
+                content_fingerprint      TEXT,
+                display_name_at_signing  TEXT,
+                invalidated_at    REAL,
+                invalidated_reason TEXT
+            )
+        """)
+        db.execute("""
+            INSERT INTO rf_review_signatures
+                (id, document_id, user_id, username, role_label, signed_at,
+                 content_fingerprint, display_name_at_signing, invalidated_at, invalidated_reason)
+            SELECT id, document_id, user_id, username, role_label, signed_at,
+                   content_fingerprint, display_name_at_signing, invalidated_at, invalidated_reason
+            FROM rf_review_signatures_old_ronda18
+        """)
+        db.execute("DROP TABLE rf_review_signatures_old_ronda18")
+        db.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_rf_review_sig_active_unique "
+            "ON rf_review_signatures(document_id, user_id) WHERE invalidated_at IS NULL"
+        )
+        db.execute("CREATE INDEX IF NOT EXISTS idx_rf_review_sig_doc ON rf_review_signatures(document_id)")
+        db.execute("COMMIT")
+    except Exception:
+        db.execute("ROLLBACK")
+        raise
 
 
 def _migrate_legacy_corrections(db) -> None:

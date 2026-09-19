@@ -91,7 +91,10 @@ def test_client_with_grant_in_one_project_cannot_see_a_different_project(drp_cli
 
     # Y no puede comentar ni firmar ahí.
     assert cli.post("/projects/proj-2/documents/HLRA/sections/x/comments", json={"content": "no debería"}).status_code == 403
-    assert cli.post("/projects/proj-2/documents/HLRA/review-signatures", json={"pin": "1234"}).status_code == 403
+    assert cli.post(
+        "/projects/proj-2/documents/HLRA/review-signatures",
+        json={"pin": "1234", "content_fingerprint": "x"},
+    ).status_code == 403
 
 
 def test_client_cannot_load_document(cliente_client):

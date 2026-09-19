@@ -27,6 +27,15 @@ def drp_with_pin(drp_client):
     return drp_client
 
 
+def _fp(drp, project_id="proj-1", doc_type="HLRA"):
+    """content_fingerprint vigente del documento -- Ronda 18: review-signatures y
+    approval-round/sign lo exigen y lo comparan contra el string guardado. Se usa `drp`
+    (superadmin) para leerlo porque siempre tiene acceso, sin depender de grants de cada
+    test. Los tests no modifican el documento entre el PUT inicial y las firmas, así que
+    un solo fetch alcanza."""
+    return drp.get(f"/projects/{project_id}/documents/{doc_type}").json()["content_fingerprint"]
+
+
 def _superadmin_id(drp_client):
     # El propio DRP no aparece en /users (esa lista es de invitados creados) — lo resolvemos
     # via /auth/session + una consulta indirecta no expuesta; en su lugar los tests usan el uid
@@ -43,7 +52,10 @@ def test_review_sign_happy_path(drp_with_pin, cliente):
     cli, user_id = cliente
     drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
 
-    r = cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "1234", "role_label": "Revisor"})
+    r = cli.post(
+        "/projects/proj-1/documents/HLRA/review-signatures",
+        json={"pin": "1234", "role_label": "Revisor", "content_fingerprint": _fp(drp_with_pin)},
+    )
     assert r.status_code == 200, r.text
 
     listed = cli.get("/projects/proj-1/documents/HLRA/review-signatures").json()["signatures"]
@@ -58,11 +70,17 @@ def test_review_sign_blocked_by_unresolved_comment(drp_with_pin, cliente):
     created = cli.post("/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "corregir esto"})
     comment_id = created.json()["comment"]["id"]
 
-    r = cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "1234"})
+    r = cli.post(
+        "/projects/proj-1/documents/HLRA/review-signatures",
+        json={"pin": "1234", "content_fingerprint": _fp(drp_with_pin)},
+    )
     assert r.status_code == 409
 
     drp_with_pin.patch(f"/projects/proj-1/documents/HLRA/sections/proposito/comments/{comment_id}/resolve")
-    r2 = cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "1234"})
+    r2 = cli.post(
+        "/projects/proj-1/documents/HLRA/review-signatures",
+        json={"pin": "1234", "content_fingerprint": _fp(drp_with_pin)},
+    )
     assert r2.status_code == 200
 
 
@@ -81,7 +99,10 @@ def test_review_sign_not_blocked_by_a_reply_on_a_resolved_thread(drp_with_pin, c
     )
     drp_with_pin.patch(f"/projects/proj-1/documents/HLRA/sections/proposito/comments/{comment_id}/resolve")
 
-    r = cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "1234"})
+    r = cli.post(
+        "/projects/proj-1/documents/HLRA/review-signatures",
+        json={"pin": "1234", "content_fingerprint": _fp(drp_with_pin)},
+    )
     assert r.status_code == 200, r.text
 
 
@@ -89,7 +110,10 @@ def test_review_sign_wrong_pin(drp_with_pin, cliente):
     drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     cli, user_id = cliente
     drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
-    r = cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "0000"})
+    r = cli.post(
+        "/projects/proj-1/documents/HLRA/review-signatures",
+        json={"pin": "0000", "content_fingerprint": _fp(drp_with_pin)},
+    )
     assert r.status_code == 401
 
 
@@ -97,12 +121,19 @@ def test_pin_locks_out_after_five_failed_attempts(drp_with_pin, cliente):
     drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     cli, user_id = cliente
     drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+    fp = _fp(drp_with_pin)
 
     for _ in range(5):
-        r = cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "0000"})
+        r = cli.post(
+            "/projects/proj-1/documents/HLRA/review-signatures",
+            json={"pin": "0000", "content_fingerprint": fp},
+        )
         assert r.status_code == 401
 
-    locked = cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "1234"})  # PIN correcto
+    locked = cli.post(
+        "/projects/proj-1/documents/HLRA/review-signatures",
+        json={"pin": "1234", "content_fingerprint": fp},
+    )  # PIN correcto
     assert locked.status_code == 429
     assert "intentos" in locked.json()["detail"].lower()
 
@@ -112,11 +143,18 @@ def test_pin_lockout_is_scoped_per_user(drp_with_pin, cliente):
     drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     cli, user_id = cliente
     drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+    fp = _fp(drp_with_pin)
     for _ in range(5):
-        cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "0000"})
+        cli.post(
+            "/projects/proj-1/documents/HLRA/review-signatures",
+            json={"pin": "0000", "content_fingerprint": fp},
+        )
 
     # DRP (otro usuario, PIN propio) sigue pudiendo firmar sin problema.
-    r = drp_with_pin.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "9999"})
+    r = drp_with_pin.post(
+        "/projects/proj-1/documents/HLRA/review-signatures",
+        json={"pin": "9999", "content_fingerprint": fp},
+    )
     assert r.status_code == 200, r.text
 
 
@@ -124,10 +162,17 @@ def test_pin_attempts_reset_after_success(drp_with_pin, cliente):
     drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     cli, user_id = cliente
     drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+    fp = _fp(drp_with_pin)
 
     for _ in range(4):  # justo por debajo del límite (5)
-        cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "0000"})
-    ok = cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "1234"})
+        cli.post(
+            "/projects/proj-1/documents/HLRA/review-signatures",
+            json={"pin": "0000", "content_fingerprint": fp},
+        )
+    ok = cli.post(
+        "/projects/proj-1/documents/HLRA/review-signatures",
+        json={"pin": "1234", "content_fingerprint": fp},
+    )
     assert ok.status_code == 200
 
 
@@ -135,8 +180,15 @@ def test_review_sign_duplicate_rejected(drp_with_pin, cliente):
     drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     cli, user_id = cliente
     drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
-    cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "1234"})
-    r = cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "1234"})
+    fp = _fp(drp_with_pin)
+    cli.post(
+        "/projects/proj-1/documents/HLRA/review-signatures",
+        json={"pin": "1234", "content_fingerprint": fp},
+    )
+    r = cli.post(
+        "/projects/proj-1/documents/HLRA/review-signatures",
+        json={"pin": "1234", "content_fingerprint": fp},
+    )
     assert r.status_code == 409
 
 
@@ -184,7 +236,10 @@ def test_approval_sign_last_signer_superadmin_checked_live(drp_with_pin, cliente
 
     r = cli.post(
         "/projects/proj-1/documents/HLRA/approval-round/sign",
-        json={"pin": "1234", "justification_text": "Apruebo", "pdf_base64": "ZmFrZS1wZGY="},
+        json={
+            "pin": "1234", "justification_text": "Apruebo", "pdf_base64": "JVBERi0xLjQgZmFrZSB0ZXN0IHBkZg==",
+            "content_fingerprint": _fp(drp_with_pin),
+        },
     )
     assert r.status_code == 403
     assert "DRP" in r.text
@@ -219,18 +274,22 @@ def test_full_approval_flow_seals_document(drp_with_pin, cliente):
         ]},
     )
     assert created.status_code == 200, created.text
+    fp = _fp(drp_with_pin)
 
     # El firmante 2 (DRP) no puede firmar todavía — falta el firmante 1.
     early = drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round/sign",
-        json={"pin": "9999", "justification_text": "Conforme", "pdf_base64": "ZmFrZS1wZGY="},
+        json={
+            "pin": "9999", "justification_text": "Conforme", "pdf_base64": "JVBERi0xLjQgZmFrZSB0ZXN0IHBkZg==",
+            "content_fingerprint": fp,
+        },
     )
     assert early.status_code == 409
 
     # Firmante 1 (cliente) firma.
     r1 = cli.post(
         "/projects/proj-1/documents/HLRA/approval-round/sign",
-        json={"pin": "1234", "justification_text": "De acuerdo con el contenido"},
+        json={"pin": "1234", "justification_text": "De acuerdo con el contenido", "content_fingerprint": fp},
     )
     assert r1.status_code == 200, r1.text
     assert r1.json()["sealed"] is False
@@ -238,14 +297,17 @@ def test_full_approval_flow_seals_document(drp_with_pin, cliente):
     # DRP firma último sin adjuntar PDF -> rechazado.
     missing_pdf = drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round/sign",
-        json={"pin": "9999", "justification_text": "Apruebo"},
+        json={"pin": "9999", "justification_text": "Apruebo", "content_fingerprint": fp},
     )
     assert missing_pdf.status_code == 400
 
     # DRP firma último con PDF -> sella.
     r2 = drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round/sign",
-        json={"pin": "9999", "justification_text": "Apruebo", "pdf_base64": "ZmFrZS1wZGY="},
+        json={
+            "pin": "9999", "justification_text": "Apruebo", "pdf_base64": "JVBERi0xLjQgZmFrZSB0ZXN0IHBkZg==",
+            "content_fingerprint": fp,
+        },
     )
     assert r2.status_code == 200, r2.text
     assert r2.json()["sealed"] is True
@@ -276,7 +338,10 @@ def test_approval_sign_out_of_turn_rejected(drp_with_pin, cliente):
     )
     r = drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round/sign",
-        json={"pin": "9999", "justification_text": "x", "pdf_base64": "eA=="},
+        json={
+            "pin": "9999", "justification_text": "x", "pdf_base64": "eA==",
+            "content_fingerprint": _fp(drp_with_pin),
+        },
     )
     assert r.status_code == 409
 
@@ -294,14 +359,15 @@ def test_approval_sign_twice_rejected(drp_with_pin, cliente):
             {"user_id": drp_id, "role_label": "Aprobador", "sign_order": 2},
         ]},
     )
+    fp = _fp(drp_with_pin)
     first = cli.post(
         "/projects/proj-1/documents/HLRA/approval-round/sign",
-        json={"pin": "1234", "justification_text": "De acuerdo"},
+        json={"pin": "1234", "justification_text": "De acuerdo", "content_fingerprint": fp},
     )
     assert first.status_code == 200
     second = cli.post(
         "/projects/proj-1/documents/HLRA/approval-round/sign",
-        json={"pin": "1234", "justification_text": "De nuevo"},
+        json={"pin": "1234", "justification_text": "De nuevo", "content_fingerprint": fp},
     )
     assert second.status_code == 409
     assert "Ya firmaste" in second.text
@@ -314,7 +380,10 @@ def test_people_book_records_full_trail(drp_with_pin, cliente):
     created = cli.post("/projects/proj-1/documents/HLRA/sections/proposito/comments", json={"content": "sugerencia"})
     comment_id = created.json()["comment"]["id"]
     drp_with_pin.patch(f"/projects/proj-1/documents/HLRA/sections/proposito/comments/{comment_id}/resolve")
-    cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "1234"})
+    cli.post(
+        "/projects/proj-1/documents/HLRA/review-signatures",
+        json={"pin": "1234", "content_fingerprint": _fp(drp_with_pin)},
+    )
 
     events = drp_with_pin.get("/projects/proj-1/documents/HLRA/people-book").json()["events"]
     event_types = [e["event_type"] for e in events]
@@ -357,7 +426,10 @@ def test_signed_render_shows_review_signature_immediately(drp_with_pin, cliente)
     drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     cli, user_id = cliente
     drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
-    cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "1234", "role_label": "Revisor"})
+    cli.post(
+        "/projects/proj-1/documents/HLRA/review-signatures",
+        json={"pin": "1234", "role_label": "Revisor", "content_fingerprint": _fp(drp_with_pin)},
+    )
 
     r = cli.get("/projects/proj-1/documents/HLRA/signed-render")
     tff = next(s for s in r.json()["data"]["secciones"] if s.get("tipo") == "tabla-firmas-final")
@@ -370,7 +442,10 @@ def test_signed_render_does_not_persist_injection_into_source(drp_with_pin, clie
     drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     cli, user_id = cliente
     drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
-    cli.post("/projects/proj-1/documents/HLRA/review-signatures", json={"pin": "1234"})
+    cli.post(
+        "/projects/proj-1/documents/HLRA/review-signatures",
+        json={"pin": "1234", "content_fingerprint": _fp(drp_with_pin)},
+    )
     drp_with_pin.get("/projects/proj-1/documents/HLRA/signed-render")
 
     doc = drp_with_pin.get("/projects/proj-1/documents/HLRA").json()["document"]
@@ -394,7 +469,7 @@ def test_signed_render_include_pending_adds_own_unsigned_signature(drp_with_pin,
     )
     cli.post(
         "/projects/proj-1/documents/HLRA/approval-round/sign",
-        json={"pin": "1234", "justification_text": "ok"},
+        json={"pin": "1234", "justification_text": "ok", "content_fingerprint": _fp(drp_with_pin)},
     )
 
     without_pending = drp_with_pin.get("/projects/proj-1/documents/HLRA/signed-render")
