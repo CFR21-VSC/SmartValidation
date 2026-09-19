@@ -5,8 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mapeo GxP Multidimensional</title>
 <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAO7SURBVHhe7Zu/axNhHMYzdnTTXoSId/UHDvdWUXSQFIQigtBBcOgi4iBOHR37D4ggBStCCyI4OLTgoJtbtVgJiFi3gKiVIpS6WKeT5+p7pM9d7PXu+30voXngA6H5Js3nuR85wnu12iCD5MrB4+GRehBOeYF5DeqBadcDE/UI7Y7PdXf42JkT/PkLp+6HY55v3mT8097GN61hP5xgn9xpNJpD9cAspN64z8DGazTCA+z33+AFaJDfrI9peyOhYc/MxFteWf7oqXPRvQez0dLbdzEzs3PRydMXU3OSeIFZw3mMfVPxAvOSXywJ5D9++hxx1td/RubCpdS8JNuHQ3OInZPgpMEvkubx/FN2T7L44lVqXp5wir2TaO/6IGvr22xu/krNS4NDIXMvwHcnD2vw5es39k6ytfUnNa/BYX/0Mvvj+36aBzXAbt4tOCHyvBLz7I+TH66ieFCc880r8ZbOyrXJW6l5FXyzyv44/ldTg0o0xyd2HArf135EkzfvpOa08AKzwf7YAzZ4UBNcB9jgMT+vDfvXeECbfV/AzKO5pAA85ue1YX+nBeCyF1d+NnisfSnMsL+zAiCadTGEv7ksgf2dFNBN3sZlCeyvXsBu8jauSmB/1QLyytu4KIH91QrYq7yNdgnsr1JAUXkbzRLYX7yAsvI2WiWwv2gBUvI2GiWwv1gB0vI20iWwv0gBWvI2kiWwf+kCtOVtpEpg/1IFuJK3kSiB/QsX4FrepmwJ7F+ogKrkbcqUwP6FChi/ej3+Kbuq4H/jM/DnygP7FyoAVFVCGXnA/oULAK5LKCsP2L9UAcBVCRLygP1LFwC0S5CSB+wvUgDQKkFSHrC/WAFAugRpecD+ogUAqRI05AH7ixcAypagJQ/YX6UAULQETXnA/moFgL2WoC0P2F+1AJC3BBfygP3VCwC7leBKHrC/kwJAtxJcygP2d1YAgGjnKhE8dikP2N9pAeDJs+dJAXjMz2vD/s4L6LkFEl5gfvOQJj1XgMv1/1guu7S8khSwvNIq/NNWEbCx2d/ZMrkq1wp30GZ/LJN7mDEoTvVrhWMW2D++MyRjUJysrW+DawGe18AbCW+wfxwsJOZhaapeK4zjv+sdJFhKzi+Qpuq1wp5v7rN3kn/3Cal+G1S5Vnh7qfzZQ+y9I1g2r71sFmuFsbVt3rc+qK8Vjq9z/HCMfTOD9fTaJbim64mvW3CXlfbh4IJ4Q+bd8pzt2+fC6X7cG7DL44S36zGfJ3gT7EL9cCMl7nrzgtHbIuKD7IP8BUa6+Yai7+lnAAAAAElFTkSuQmCC">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+<!-- Vendorizados localmente (igual que index.html) -- la CSP del servidor (script-src 'self')
+     bloqueaba estos dos scripts cargados desde cdnjs.cloudflare.com, tumbando pdfMake entero
+     y, con eso, cualquier código que corriera después en el mismo bloque de inicialización
+     (reportado por el usuario, 2026-09-19: botones sin responder, guías ausentes, "mil
+     errores de JS" -- confirmado con Playwright: "Loading the script ... violates ... CSP"
+     seguido de un pageerror no capturado que cortaba el resto del setup). -->
+<script src="lib/pdfmake.min.js"></script>
+<script src="lib/vfs_fonts.js"></script>
 <style>
   :root{
     --bg: #F4F5F7;
@@ -2556,15 +2562,29 @@ document.getElementById('btnAddSystem').addEventListener('click', ()=> openAddMo
 document.getElementById('btnCancelModal').addEventListener('click', ()=> modalBackdrop.classList.remove('open'));
 modalBackdrop.addEventListener('click', (e)=>{ if(e.target===modalBackdrop) modalBackdrop.classList.remove('open'); });
 
-/* ======================= MODAL (carátula) ======================= */
+/* ======================= MODAL (carátula) =======================
+   btnDocMeta y todo el HTML de este modal (metaModalBackdrop, metaForm, m_empresa,
+   m_proceso, m_codigo, m_ubicacion, m_areas, m_colorFondo, m_logo, logoPreview,
+   btnRemoveLogo, btnCancelMeta) se perdieron en la reescritura de process-map.html
+   (commit 786e942) -- el JS de abajo quedó intacto pero apuntando a elementos que ya no
+   existen. `document.getElementById(...).addEventListener(...)` sobre null tiraba un
+   TypeError no capturado en la carga inicial de la página, que -- al ser código de nivel
+   superior del script, no dentro de una función -- cortaba TODO lo que venía después en el
+   mismo bloque (undo/redo, conectar figuras, exportar/importar mapeo, exportar PDF, etc.),
+   exactamente el "tira mil errores de JS, los botones no andan" reportado por el usuario
+   (2026-09-19). Todo este bloque queda guardado detrás de un chequeo de existencia -- el
+   código de la funcionalidad no se borra, pero no vuelve a tumbar el resto de la página
+   hasta que se decida si se reconstruye el HTML del modal o se remueve esta feature entera. */
 const metaModalBackdrop = document.getElementById('metaModalBackdrop');
 const metaForm = document.getElementById('metaForm');
 let pendingLogoDataUrl = null; // null = sin cambios; '' = se pidió quitar el logo
 function updateLogoPreview(url){
   const img = document.getElementById('logoPreview');
+  if(!img) return;
   if(url){ img.src = url; img.style.display = 'inline-block'; }
   else { img.src = ''; img.style.display = 'none'; }
 }
+if (metaModalBackdrop && metaForm && document.getElementById('btnDocMeta')) {
 document.getElementById('btnDocMeta').addEventListener('click', ()=>{
   document.getElementById('m_empresa').value = docMeta.empresa || '';
   document.getElementById('m_proceso').value = docMeta.proceso || '';
@@ -2614,12 +2634,15 @@ metaForm.addEventListener('submit', (e)=>{
   metaModalBackdrop.classList.remove('open');
   scheduleSave();
 });
+} // fin guard carátula
 
-/* ======================= MODAL (hoja de firmas) ======================= */
+/* ======================= MODAL (hoja de firmas) =======================
+   Mismo problema que el modal de carátula de arriba -- ver ese comentario. */
 const firmantesModalBackdrop = document.getElementById('firmantesModalBackdrop');
 const firmantesList = document.getElementById('firmantesList');
 let firmantesDraft = [];
 function renderFirmantesDraft(){
+  if(!firmantesList) return;
   firmantesList.innerHTML = '';
   firmantesDraft.forEach((nombre, idx)=>{
     const row = document.createElement('div');
@@ -2640,6 +2663,7 @@ function renderFirmantesDraft(){
     });
   });
 }
+if (firmantesModalBackdrop && document.getElementById('btnFirmantes')) {
 document.getElementById('btnFirmantes').addEventListener('click', ()=>{
   firmantesDraft = [...firmantes];
   renderFirmantesDraft();
@@ -2656,6 +2680,7 @@ document.getElementById('btnSaveFirmantes').addEventListener('click', ()=>{
   firmantesModalBackdrop.classList.remove('open');
   scheduleSave();
 });
+} // fin guard firmantes
 
 sysForm.addEventListener('submit', (e)=>{
   e.preventDefault();
@@ -3380,9 +3405,16 @@ async function apiSave(){
   if(!_projectId) return;
   setAutosaveStatus('Guardando…','saving');
   try{
-    const body = { type:'MAPEO', mapeo: collectState(), package:{code:_projectId, systemName:_projectName} };
-    const r = await fetch(`/api/projects/${encodeURIComponent(_projectId)}/documents/MAPEO`,{
-      method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+    // El endpoint real para MapeoGxP es /api/mapeo/projects/{id} (POST, no PUT) -- antes
+    // esto pegaba a /api/projects/{id}/documents/MAPEO, la ruta genérica de documentos GxP
+    // (HLRA/URS/etc.), que valida "MAPEO" como si fuera un tipo de documento real y
+    // reventaba con 500 adentro de _upsert_document_row al no encontrar la forma esperada.
+    // Confirmado en vivo con Playwright, 2026-09-19 (reporte del usuario: "tira mil errores
+    // de JS" -- este 500 en cada autosave era parte de eso, junto con el crash de
+    // btnDocMeta/btnFirmantes de más arriba).
+    const body = { name: _projectName, state: collectState() };
+    const r = await fetch(`/api/mapeo/projects/${encodeURIComponent(_projectId)}`,{
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
     });
     if(r.ok) setAutosaveStatus('Guardado · '+new Date().toLocaleTimeString(),'saved');
     else      setAutosaveStatus('⚠ Error al guardar','error');
@@ -3394,12 +3426,12 @@ async function apiSave(){
 async function apiLoad(){
   if(!_projectId) return;
   try{
-    const r = await fetch(`/api/projects/${encodeURIComponent(_projectId)}/documents/MAPEO`);
+    const r = await fetch(`/api/mapeo/projects/${encodeURIComponent(_projectId)}`);
     if(!r.ok) return; // 404 = nuevo proyecto, estado vacío es correcto
     const data = await r.json();
-    const raw = data.document && data.document.content;
-    if(raw && raw.mapeo) applyProjectState(raw.mapeo);
-    if(raw && raw.package && raw.package.systemName) _projectName = raw.package.systemName;
+    const proj = data.project;
+    if(proj && proj.state) applyProjectState(proj.state);
+    if(proj && proj.name) _projectName = proj.name;
   }catch(e){
     console.warn('No se pudo cargar el mapeo desde la API:', e);
   }
