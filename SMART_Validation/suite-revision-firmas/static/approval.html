@@ -244,6 +244,14 @@ async function init() {
     projectId = params.get('project') || '';
     docType = params.get('doc') || '';
 
+    // Mismo criterio que review.html: recuerda el último documento abierto para que
+    // dashboard.html pueda reabrirlo automáticamente (pedido del usuario, 2026-09-19).
+    try {
+        if (projectId && docType) {
+            localStorage.setItem('rf_last_doc', JSON.stringify({ project: projectId, doc: docType }));
+        }
+    } catch (e) {}
+
     if (!projectId || !docType) {
         document.getElementById('doc-badge').textContent = 'Faltan parámetros';
         document.getElementById('right-body').innerHTML =

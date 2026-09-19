@@ -3057,6 +3057,18 @@
             .ve-tc-pill { font-size: 10px; padding: 1px 7px; border-radius: 10px; font-weight: 600; }
             .ve-tc-pill-urs { background: #f0ebff; color: #5b3a8c; border: 1px solid #c9b8f0; }
             .ve-tc-pill-ra  { background: #fff0e6; color: #c05a00; border: 1px solid #f0c89a; }
+            /* Metadata (Componente/IRA-ID/RA Score/Tipo-Profund o Grupo funcional/RPN/Severidad)
+               -- mismos campos que el motor pdfMake (_iq-shared.js), antes ausentes en la vista
+               de edición (reportado por el usuario, 2026-09-19: PIQ/POQ). */
+            .ve-tc-meta {
+                display: grid; grid-template-columns: repeat(2, auto 1fr);
+                gap: 2px 10px; margin: 6px 0; padding: 6px 8px;
+                background: #f4f6f9; border-radius: 4px; font-size: 11px;
+            }
+            .ve-tc-meta-row { display: contents; }
+            .ve-tc-meta-label { font-weight: 700; color: #777; white-space: nowrap; }
+            .ve-tc-meta-val { color: #333; word-break: break-word; }
+            .ve-tc-list-block { margin: 4px 0; }
             .ve-tc-objetivo { font-size: 11px; color: #444; margin: 4px 0; line-height: 1.4; }
             .ve-tc-criterio { font-size: 11px; color: #444; margin: 4px 0; line-height: 1.4; }
             .ve-tc-pasos-wrap { margin-top: 6px; }

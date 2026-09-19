@@ -198,6 +198,10 @@ let selectedProject = null;
 let currentDocuments = [];
 let showLoadForm = false;
 let expandedAccessDoc = null;
+let lastDocType = null;     // último doc_type visto en review.html/approval.html -- se resalta en la tabla
+let lastDocProject = null;  // proyecto al que pertenece ese doc_type -- sin esto, dos proyectos
+                             // con un documento del mismo tipo (ej. ambos con "HLRA") resaltarían
+                             // la fila equivocada en el proyecto que no es
 let allUsersCache = null;
 
 const projectListEl = document.getElementById('project-list');
@@ -388,7 +392,22 @@ async function init() {
     }
 
     await loadProjects();
+    await restoreLastDocument();
     await checkPendingCommentsAlert();
+}
+
+// Reabre automáticamente el proyecto (y resalta el documento) que se estaba revisando antes
+// de tocar "Volver al panel" en review.html/approval.html -- pedido del usuario (2026-09-19):
+// "al volver al panel, vuelve al test en el que estoy trabajando". Sin esto, el panel siempre
+// arrancaba sin proyecto seleccionado, sin importar de dónde volviera.
+async function restoreLastDocument() {
+    let last = null;
+    try { last = JSON.parse(localStorage.getItem('rf_last_doc') || 'null'); } catch (e) {}
+    if (!last || !last.project) return;
+    if (!projects.some(p => p.id === last.project)) return; // ya no existe / no visible
+    lastDocType = last.doc || null;
+    lastDocProject = last.project;
+    await selectProject(last.project, true);
 }
 
 // ---------------------------------------------------------------------------
@@ -516,6 +535,9 @@ function renderMain() {
     html += renderDocumentsTable();
 
     mainEl.innerHTML = html;
+
+    const lastRow = mainEl.querySelector('tr[data-last-doc="1"]');
+    if (lastRow) lastRow.scrollIntoView({ block: 'center', behavior: 'auto' });
 
     document.getElementById('btn-dossier').addEventListener('click', () => openDossierPanel(selectedProject));
 
@@ -656,8 +678,9 @@ function renderDocumentsTable() {
             }
         }
 
-        let row = `<tr>
-            <td>${escHtml(doc.doc_type)}</td>
+        const isLast = doc.doc_type === lastDocType && selectedProject === lastDocProject;
+        let row = `<tr${isLast ? ' data-last-doc="1" style="background:rgba(200,146,26,.12);"' : ''}>
+            <td>${escHtml(doc.doc_type)}${isLast ? ' <span style="font-size:10px; color:var(--gold); font-weight:600;">· último abierto</span>' : ''}</td>
             <td><span class="rf-status-dot ${dotClass}"></span>${escHtml(statusLabel)}</td>
             <td>${fmtDateTime(doc.updated_at)}</td>
             <td style="white-space:nowrap;">${actions}</td>

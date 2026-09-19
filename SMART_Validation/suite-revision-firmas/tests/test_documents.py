@@ -385,3 +385,23 @@ def test_document_grants_requires_drp(cliente_client):
     cli, _user_id = cliente_client
     r = cli.get("/projects/proj-1/documents/HLRA/grants")
     assert r.status_code == 403
+
+
+def test_list_documents_ordered_by_gxp_cascade_not_alphabetical(drp_client):
+    """Pedido del usuario (2026-09-19): el orden alfabético confunde -- IOQ quedaba antes que
+    HLRA, por ejemplo. doc_order.py define el orden real del ciclo de vida del proyecto."""
+    for t in ("IOQ", "URS", "HLRA", "RA", "VSR", "PIQ"):
+        drp_client.put(f"/projects/proj-1/documents/{t}", json={"json_data": {"type": t, "secciones": []}})
+
+    docs = drp_client.get("/projects/proj-1/documents").json()["documents"]
+    assert [d["doc_type"] for d in docs] == ["HLRA", "URS", "RA", "PIQ", "IOQ", "VSR"]
+
+
+def test_list_documents_unknown_type_falls_to_end_alphabetically(drp_client):
+    """Un tipo no reconocido en doc_order.py no se pierde -- cae al final, ordenado
+    alfabéticamente entre sí, no rompe ni desaparece del listado."""
+    for t in ("URS", "ZZZ-NUEVO", "HLRA", "AAA-NUEVO"):
+        drp_client.put(f"/projects/proj-1/documents/{t}", json={"json_data": {"type": t, "secciones": []}})
+
+    docs = drp_client.get("/projects/proj-1/documents").json()["documents"]
+    assert [d["doc_type"] for d in docs] == ["HLRA", "URS", "AAA-NUEVO", "ZZZ-NUEVO"]

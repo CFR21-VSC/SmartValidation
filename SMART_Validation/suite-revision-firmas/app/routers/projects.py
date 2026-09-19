@@ -14,6 +14,7 @@ from pydantic import BaseModel
 from ..audit import log_system_event
 from ..db import get_db
 from ..deps import get_current_user, require_drp
+from ..doc_order import sort_docs
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -72,7 +73,7 @@ def get_dossier(project_id: str, user: dict = Depends(get_current_user)):
     if user.get("r") == "drp":
         docs = db.execute(
             "SELECT id, doc_type, status, locked, created_at, locked_at "
-            "FROM rf_documents WHERE project_id=? ORDER BY doc_type",
+            "FROM rf_documents WHERE project_id=?",
             (project_id,),
         ).fetchall()
     else:
@@ -80,9 +81,11 @@ def get_dossier(project_id: str, user: dict = Depends(get_current_user)):
             "SELECT d.id, d.doc_type, d.status, d.locked, d.created_at, d.locked_at "
             "FROM rf_documents d "
             "JOIN rf_document_access_grants g ON g.project_id=d.project_id AND g.doc_type=d.doc_type "
-            "WHERE d.project_id=? AND g.user_id=? ORDER BY d.doc_type",
+            "WHERE d.project_id=? AND g.user_id=?",
             (project_id, user.get("uid")),
         ).fetchall()
+    # Orden por cascada GxP (doc_order.py), no alfabético -- ver list_documents en documents.py.
+    docs = sort_docs([dict(d) for d in docs])
 
     now = time.time()
     stale_cutoff = now - STALE_COMMENT_DAYS * 86400

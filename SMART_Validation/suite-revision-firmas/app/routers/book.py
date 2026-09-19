@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends
 
 from ..db import get_db
 from ..deps import require_drp
+from ..doc_order import sort_docs
 
 router = APIRouter(prefix="/projects/{project_id}", tags=["book"])
 
@@ -139,9 +140,13 @@ def get_book_package(project_id: str, user: dict = Depends(require_drp)):
     docs = db.execute(
         "SELECT id, doc_type, json_data, branding_name_at_signing, branding_logo_at_signing, "
         "branding_captured_at_signing "
-        "FROM rf_documents WHERE project_id=? AND locked=1 ORDER BY doc_type",
+        "FROM rf_documents WHERE project_id=? AND locked=1",
         (project_id,),
     ).fetchall()
+    # Orden por cascada GxP (doc_order.py), no alfabético -- el Libro de Validación tiene que
+    # listar los documentos en el orden real del ciclo de vida, ver list_documents en
+    # documents.py para el mismo criterio.
+    docs = sort_docs([dict(d) for d in docs])
 
     all_types = db.execute(
         "SELECT doc_type, locked FROM rf_documents WHERE project_id=?", (project_id,)

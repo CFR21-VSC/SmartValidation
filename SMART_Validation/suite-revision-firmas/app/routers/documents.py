@@ -24,6 +24,7 @@ from .. import config, email_resend, validacion_bridge
 from ..audit import log_event, log_system_event
 from ..db import get_db
 from ..deps import check_document_access, ensure_project_active, get_current_user, require_drp
+from ..doc_order import sort_docs
 from .book import collect_signatures, fecha as _fmt_fecha, iniciales as _fmt_iniciales, inject_signatures_section
 from .projects import ensure_project
 
@@ -238,12 +239,16 @@ def list_document_grants(project_id: str, doc_type: str, user: dict = Depends(re
 
 @router.get("")
 def list_documents(project_id: str, user: dict = Depends(get_current_user)):
-    """DRP ve todos los documentos del proyecto. Cliente solo los que tiene habilitados."""
+    """DRP ve todos los documentos del proyecto. Cliente solo los que tiene habilitados.
+
+    Orden por cascada GxP (doc_order.py), no alfabético -- pedido del usuario 2026-09-19:
+    alfabético mezclaba tipos sin relación con el orden real del ciclo de vida del proyecto
+    (ej. IOQ antes que HLRA), confundiendo a quien revisa."""
     db = get_db()
     if user.get("r") == "drp":
         rows = db.execute(
             "SELECT id, doc_type, status, locked, created_at, updated_at "
-            "FROM rf_documents WHERE project_id=? ORDER BY doc_type",
+            "FROM rf_documents WHERE project_id=?",
             (project_id,),
         ).fetchall()
     else:
@@ -251,10 +256,10 @@ def list_documents(project_id: str, user: dict = Depends(get_current_user)):
             "SELECT d.id, d.doc_type, d.status, d.locked, d.created_at, d.updated_at "
             "FROM rf_documents d "
             "JOIN rf_document_access_grants g ON g.project_id=d.project_id AND g.doc_type=d.doc_type "
-            "WHERE d.project_id=? AND g.user_id=? ORDER BY d.doc_type",
+            "WHERE d.project_id=? AND g.user_id=?",
             (project_id, user.get("uid")),
         ).fetchall()
-    return {"ok": True, "documents": [dict(r) for r in rows]}
+    return {"ok": True, "documents": sort_docs([dict(r) for r in rows])}
 
 
 def _get_document_or_404(db, project_id: str, doc_type: str) -> dict:

@@ -805,8 +805,60 @@
         return row;
     }
 
+    // Nivel/color de un TC -- prioriza tc.nivel explícito (OQ/PQ) y cae a nivelIraScore(tc.raScore)
+    // (legacy IQ), MISMO criterio que getNivelInfo/nivelIraScore en el motor pdfMake
+    // (js/validation-suite/templates/_iq-shared.js) -- para que RA Score y Tipo/Profund. se vean
+    // con el mismo color/etiqueta acá que en el PDF final.
+    function _tcNivelInfo(tc) {
+        if (tc && tc.nivel) {
+            var s = String(tc.nivel).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+            if (s.indexOf('CRITIC') >= 0) return { nivel: 'CRÍTICO', color: '#7B1F1F', verif: 'Exhaustiva' };
+            if (s.indexOf('ALTO') >= 0) return { nivel: 'ALTO', color: '#C0392B', verif: 'Exhaustiva' };
+            if (s.indexOf('MEDIO') >= 0) return { nivel: 'MEDIO', color: '#E67E22', verif: 'Estándar' };
+            if (s.indexOf('BAJO') >= 0) return { nivel: 'BAJO', color: '#27AE60', verif: 'Básica' };
+        }
+        var n = parseInt(tc && tc.raScore, 10);
+        if (isNaN(n) || n < 1) return { nivel: '—', color: '#717D8A', verif: '—' };
+        if (n <= 4) return { nivel: 'BAJO', color: '#27AE60', verif: 'Básica' };
+        if (n <= 8) return { nivel: 'MEDIO', color: '#E67E22', verif: 'Estándar' };
+        return { nivel: 'ALTO', color: '#C0392B', verif: 'Exhaustiva' };
+    }
+
+    function _tcMetaRow(label, value, color) {
+        var row = el('div', { className: 've-tc-meta-row' });
+        row.appendChild(el('span', { className: 've-tc-meta-label', text: label }));
+        row.appendChild(el('span', {
+            className: 've-tc-meta-val', text: value || '—',
+            attrs: color ? { style: 'color:' + color + ';font-weight:700;' } : {},
+        }));
+        return row;
+    }
+
+    function _tcListBlock(label, items) {
+        if (!Array.isArray(items) || !items.length) return null;
+        var wrap = el('div', { className: 've-tc-list-block' });
+        wrap.appendChild(el('div', { className: 've-tc-traz-label', text: label + ':' }));
+        var ul = el('ul', { className: 've-tc-pasos' });
+        items.forEach(function (it) { ul.appendChild(el('li', { text: it })); });
+        wrap.appendChild(ul);
+        return wrap;
+    }
+
+    function _tcTextBlock(label, text) {
+        if (!text) return null;
+        var wrap = el('div', { className: 've-tc-criterio' });
+        wrap.appendChild(el('span', { className: 've-tc-traz-label', text: label + ': ' }));
+        wrap.appendChild(document.createTextNode(text));
+        return wrap;
+    }
+
     function renderTablaTCBody(sec, body) {
         const tcs = Array.isArray(sec.tcs) ? sec.tcs : [];
+        // Mismo default que sec.schemaModo en el motor pdfMake (_iq-shared.js linea ~735):
+        // 'criterios' (IQ, criterios[] + evidenciaEsperada) | 'procedimiento' (OQ, pasos +
+        // criterioAceptacion). Determina qué campos de metadata mostrar por tarjeta.
+        const schemaModo = sec.schemaModo || 'criterios';
+        const isOq = schemaModo === 'procedimiento';
         if (sec.intro) {
             const intro = el('p', { className: 've-tc-intro', text: sec.intro });
             body.appendChild(intro);
@@ -849,6 +901,25 @@
                 card.appendChild(traz);
             }
 
+            // Metadata: mismos campos que renderTcMetadataTable en el motor pdfMake (Componente/
+            // IRA-ID/RA Score/Tipo-Profund para IQ, Grupo funcional/RPN-Nivel/Severidad para OQ) --
+            // antes NO se mostraban acá, así que la vista de edición ocultaba datos que el PDF sí
+            // muestra (reportado por el usuario, 2026-09-19, sobre PIQ/POQ).
+            const niv = _tcNivelInfo(tc);
+            const meta = el('div', { className: 've-tc-meta' });
+            if (isOq) {
+                meta.appendChild(_tcMetaRow('Grupo funcional', tc.grupoFuncional || tc.grupo || '—'));
+                meta.appendChild(_tcMetaRow('RPN / Nivel', (tc.raScore != null ? String(tc.raScore) + ' — ' : '') + niv.nivel, niv.color));
+                meta.appendChild(_tcMetaRow('Severidad', tc.profundidad || niv.verif, niv.color));
+            } else {
+                meta.appendChild(_tcMetaRow('Componente', tc.componenteDesc || tc.componente || '—'));
+                meta.appendChild(_tcMetaRow('IRA-ID', tc.componente || '—'));
+                meta.appendChild(_tcMetaRow('RA Score', (tc.raScore != null ? String(tc.raScore) + ' — ' : '') + niv.nivel, niv.color));
+                meta.appendChild(_tcMetaRow('Tipo / Profund.', tc.profundidad || niv.verif, niv.color));
+                if (tc.grupo) meta.appendChild(_tcMetaRow('Grupo', tc.grupo));
+            }
+            card.appendChild(meta);
+
             // Objetivo + criterio (colapsable)
             if (tc.objetivo) {
                 card.appendChild(el('p', { className: 've-tc-objetivo', text: tc.objetivo }));
@@ -859,6 +930,10 @@
                 crit.appendChild(document.createTextNode(tc.criterioAceptacion));
                 card.appendChild(crit);
             }
+
+            // Precondiciones -- común a IQ y OQ, antes no se mostraba en absoluto.
+            const precond = _tcListBlock('Precondiciones', tc.precondiciones);
+            if (precond) card.appendChild(precond);
 
             // Procedimiento (pasos) — colapsable, solo lectura
             const pasos = Array.isArray(tc.procedimiento) ? tc.procedimiento : [];
@@ -875,6 +950,19 @@
                 pasosWrap.appendChild(ol);
                 card.appendChild(pasosWrap);
             }
+
+            // Criterios de verificación + evidencia esperada -- solo esquema 'criterios' (IQ),
+            // antes no se mostraban en absoluto (el PDF sí los muestra siempre).
+            if (!isOq) {
+                const criteriosBlock = _tcListBlock('Criterios de verificación', tc.criterios);
+                if (criteriosBlock) card.appendChild(criteriosBlock);
+                const evidenciaBlock = _tcTextBlock('Evidencia esperada', tc.evidenciaEsperada);
+                if (evidenciaBlock) card.appendChild(evidenciaBlock);
+            }
+
+            // Notas -- opcional, común a ambos esquemas.
+            const notasBlock = _tcTextBlock('Notas', tc.notas);
+            if (notasBlock) card.appendChild(notasBlock);
 
             // ── Panel de ejecución ──────────────────────────────────────────
             const exec = el('div', { className: 've-tc-ejecucion', dataset: { role: 'ejecucion' } });
