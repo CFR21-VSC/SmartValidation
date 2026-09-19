@@ -26,7 +26,7 @@ from ..db import get_db
 from ..deps import check_document_access, ensure_project_active, get_current_user, require_drp
 from ..doc_order import sort_docs
 from .book import collect_signatures, fecha as _fmt_fecha, iniciales as _fmt_iniciales, inject_signatures_section
-from .projects import ensure_project
+from .projects import ensure_project, has_signature_evidence
 
 router = APIRouter(prefix="/projects/{project_id}/documents", tags=["documents"])
 
@@ -200,15 +200,11 @@ def delete_document(project_id: str, doc_type: str, user: dict = Depends(require
     # nunca llegó a sellarse) se borraba igual, y la cascada de la FK se llevaba puesta la
     # firma con él. El bloqueo tiene que depender de que EXISTA evidencia de firma, activa o
     # invalidada -- no del flag de edición actual, que un DRP puede volver a poner en 0 al
-    # reabrir sin que eso implique que la historia dejó de importar.
-    has_review_sig = db.execute(
-        "SELECT 1 FROM rf_review_signatures WHERE document_id=? LIMIT 1", (doc["id"],)
-    ).fetchone()
-    has_approval_sig = db.execute(
-        "SELECT 1 FROM rf_approval_signers sig JOIN rf_approval_rounds rnd ON rnd.id = sig.round_id "
-        "WHERE rnd.document_id=? LIMIT 1", (doc["id"],)
-    ).fetchone()
-    if has_review_sig or has_approval_sig:
+    # reabrir sin que eso implique que la historia dejó de importar. has_signature_evidence
+    # (projects.py, compartida con delete_project) también excluye designaciones de ronda sin
+    # firmar todavía (signed_at IS NULL) -- eso no es evidencia de firma electrónica (tercera
+    # devolución de Codex).
+    if has_signature_evidence(db, doc["id"]):
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             "El documento tiene firmas registradas (activas o invalidadas) — no se puede eliminar, "
@@ -392,23 +388,35 @@ def reopen_document(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "El documento no tiene firmas, no hace falta reabrirlo")
 
     now = time.time()
-    db.execute(
-        "UPDATE rf_review_signatures SET invalidated_at=?, invalidated_reason=? "
-        "WHERE document_id=? AND invalidated_at IS NULL",
-        (now, reason, doc["id"]),
-    )
-    open_rounds = db.execute(
-        "SELECT id FROM rf_approval_rounds WHERE document_id=? AND status='open'", (doc["id"],)
-    ).fetchall()
-    for rnd in open_rounds:
+    # Codex (tercera devolución, 2026-09-19): inyectando un fallo en el UPDATE final
+    # (edit_locked=0) con estos como statements sueltos en autocommit (ver db.py), las firmas
+    # ya quedaban invalidadas -- committeadas cada una por su cuenta -- mientras edit_locked
+    # seguía en 1: reapertura fallida a medias, firmas invalidadas sin poder volver a editar
+    # ni reintentar limpio. db.commit() al final no agrupaba nada retroactivamente, cada
+    # execute() ya se había confirmado solo. Mismo patrón que sign_review/sign_approval:
+    # invalidar + cancelar + desbloquear, todo en una sola transacción real.
+    db.execute("BEGIN IMMEDIATE")
+    try:
         db.execute(
-            "UPDATE rf_approval_signers SET invalidated_at=?, invalidated_reason=? "
-            "WHERE round_id=? AND invalidated_at IS NULL",
-            (now, reason, rnd["id"]),
+            "UPDATE rf_review_signatures SET invalidated_at=?, invalidated_reason=? "
+            "WHERE document_id=? AND invalidated_at IS NULL",
+            (now, reason, doc["id"]),
         )
-        db.execute("UPDATE rf_approval_rounds SET status='cancelled' WHERE id=?", (rnd["id"],))
-    db.execute("UPDATE rf_documents SET edit_locked=0, updated_at=? WHERE id=?", (now, doc["id"]))
-    db.commit()
+        open_rounds = db.execute(
+            "SELECT id FROM rf_approval_rounds WHERE document_id=? AND status='open'", (doc["id"],)
+        ).fetchall()
+        for rnd in open_rounds:
+            db.execute(
+                "UPDATE rf_approval_signers SET invalidated_at=?, invalidated_reason=? "
+                "WHERE round_id=? AND invalidated_at IS NULL",
+                (now, reason, rnd["id"]),
+            )
+            db.execute("UPDATE rf_approval_rounds SET status='cancelled' WHERE id=?", (rnd["id"],))
+        db.execute("UPDATE rf_documents SET edit_locked=0, updated_at=? WHERE id=?", (now, doc["id"]))
+        db.execute("COMMIT")
+    except Exception:
+        db.execute("ROLLBACK")
+        raise
     log_system_event(
         user, "document_reopened", f"{user['u']} reabrió {doc_type} para editar — motivo: {reason}",
         project_id=project_id, doc_type=doc_type,
@@ -420,10 +428,12 @@ def reopen_document(
 def get_original_pdf(project_id: str, doc_type: str, user: dict = Depends(get_current_user)):
     """Bytes exactos del PDF que se selló, tal cual se guardaron -- nunca regenerado. Distinto
     de /signed-render, que siempre arma una proyección con datos actuales. 404 explícito (no
-    un PDF inventado), con un mensaje que distingue el motivo real -- documento que todavía
-    no se selló, de uno sellado antes de que original_stored existiera (revisión de Codex,
-    2026-09-19: antes ambos casos mostraban el mismo texto de "se selló antes de...", lo cual
-    es directamente falso para un borrador que nunca se selló)."""
+    un PDF inventado), con un mensaje que distingue el motivo real entre TRES estados
+    (revisión de Codex, 2026-09-19, segunda y tercera devolución): documento que todavía no se
+    selló; sellado antes de que original_stored existiera (histórico esperado, sin PDF por
+    diseño); y original_stored=1 sin pdf_data (inconsistencia de ALMACENAMIENTO -- el sellado
+    creyó haber guardado el PDF y no está, un bug o una pérdida de datos, no un documento
+    "anterior a la funcionalidad" -- antes los dos últimos casos compartían el mismo mensaje)."""
     check_document_access(user, project_id, doc_type)
     db = get_db()
     doc = _get_document_or_404(db, project_id, doc_type)
@@ -432,7 +442,20 @@ def get_original_pdf(project_id: str, doc_type: str, user: dict = Depends(get_cu
             status.HTTP_404_NOT_FOUND,
             "Este documento todavía no está sellado — no existe un PDF original que descargar.",
         )
-    if not doc["original_stored"] or not doc["pdf_data"]:
+    if doc["original_stored"] and not doc["pdf_data"]:
+        log_system_event(
+            user, "original_pdf_missing_inconsistency",
+            f"{user['u']} pidió el PDF original de {doc_type}: original_stored=1 pero sin pdf_data "
+            "(inconsistencia de almacenamiento, no un documento histórico)",
+            project_id=project_id, doc_type=doc_type,
+        )
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            "Este documento debería tener el PDF original guardado pero no está disponible — "
+            "es una inconsistencia de almacenamiento, no un documento sellado antes de esta "
+            "función. Contactá a soporte, no reintentar el sellado.",
+        )
+    if not doc["original_stored"]:
         raise HTTPException(
             status.HTTP_404_NOT_FOUND,
             "Este documento se selló antes de que se empezara a guardar el artefacto original — "

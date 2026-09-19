@@ -16,6 +16,31 @@ from ..db import get_db
 from ..deps import get_current_user, require_drp
 from ..doc_order import sort_docs
 
+
+def has_signature_evidence(db, document_id: str) -> bool:
+    """¿Existe alguna firma real (activa o invalidada) para este documento? Compartida entre
+    delete_document (documents.py) y delete_project (acá abajo) -- Codex encontró (tercera
+    devolución, 2026-09-19) que delete_project no aplicaba esta protección en absoluto, solo
+    chequeaba `locked`, así que un proyecto con un documento con firma de revisión activa se
+    borraba entero y la cascada se llevaba la firma puesta.
+
+    rf_review_signatures: toda fila representa una firma YA emitida (sign_review solo inserta
+    al firmar, nunca antes) -- no necesita filtro extra. rf_approval_signers es distinto: una
+    fila existe desde que se DESIGNA un firmante al crear la ronda, con signed_at NULL hasta
+    que esa persona realmente firma -- una ronda configurada pero sin firmar todavía no es
+    evidencia de firma electrónica y no debe bloquear el borrado (precisión pedida por Codex
+    en la misma devolución)."""
+    has_review_sig = db.execute(
+        "SELECT 1 FROM rf_review_signatures WHERE document_id=? LIMIT 1", (document_id,)
+    ).fetchone()
+    if has_review_sig:
+        return True
+    has_approval_sig = db.execute(
+        "SELECT 1 FROM rf_approval_signers sig JOIN rf_approval_rounds rnd ON rnd.id = sig.round_id "
+        "WHERE rnd.document_id=? AND sig.signed_at IS NOT NULL LIMIT 1", (document_id,)
+    ).fetchone()
+    return bool(has_approval_sig)
+
 router = APIRouter(prefix="/projects", tags=["projects"])
 
 # Sin prefijo /projects — es el audit trail de sistema UNIFICADO, cruzando todos los
@@ -250,8 +275,9 @@ def rename_project(project_id: str, body: RenameProjectBody, user: dict = Depend
 @router.delete("/{project_id}")
 def delete_project(project_id: str, user: dict = Depends(require_drp)):
     """Elimina el proyecto y todo su contenido (documentos, correcciones, firmas,
-    accesos). Bloqueado si algún documento ya está sellado — la inmutabilidad
-    de un documento firmado no se salta borrando el proyecto entero."""
+    accesos). Bloqueado si algún documento ya está sellado, o si algún documento (sellado
+    o no) tiene evidencia de firma electrónica -- la inmutabilidad de un documento firmado
+    no se salta borrando el proyecto entero en vez del documento puntual."""
     db = get_db()
     _get_project_or_404(db, project_id)
 
@@ -265,9 +291,20 @@ def delete_project(project_id: str, user: dict = Depends(require_drp)):
             f"No se puede eliminar: tiene documento(s) sellado(s) ({types})",
         )
 
-    doc_count = db.execute(
-        "SELECT COUNT(*) AS n FROM rf_documents WHERE project_id=?", (project_id,)
-    ).fetchone()["n"]
+    all_docs = db.execute(
+        "SELECT id, doc_type FROM rf_documents WHERE project_id=?", (project_id,)
+    ).fetchall()
+    con_firmas = [d["doc_type"] for d in all_docs if has_signature_evidence(db, d["id"])]
+    if con_firmas:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "No se puede eliminar: documento(s) con firmas registradas (" + ", ".join(con_firmas) + ") "
+            "-- conservan evidencia de firma electrónica, el proyecto entero no se puede borrar "
+            "mientras existan (tampoco eliminándolos uno por uno: delete_document aplica el mismo "
+            "bloqueo)",
+        )
+
+    doc_count = len(all_docs)
 
     db.execute("DELETE FROM rf_documents WHERE project_id=?", (project_id,))  # cascada: corrections/firmas
     db.execute("DELETE FROM rf_document_access_grants WHERE project_id=?", (project_id,))

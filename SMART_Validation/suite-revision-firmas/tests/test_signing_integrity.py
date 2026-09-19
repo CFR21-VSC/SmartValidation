@@ -156,6 +156,115 @@ def test_delete_allowed_with_no_signatures(drp_with_pin):
     assert r.status_code == 200
 
 
+def test_delete_not_blocked_by_merely_designated_unsigned_round(drp_with_pin):
+    """Precisión pedida por Codex (tercera devolución, 2026-09-19): una fila de
+    rf_approval_signers con signed_at IS NULL es una DESIGNACIÓN (alguien fue nombrado
+    firmante al crear la ronda), no una firma emitida -- no debe bloquear el borrado por sí
+    sola. Acá la ronda existe (DRP designado como único firmante, válido porque el último
+    firmante tiene que ser superadmin) pero NADIE firmó todavía."""
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    drp_id = [u["id"] for u in drp_with_pin.get("/users").json()["users"] if u["is_superadmin"]][0]
+    r = drp_with_pin.post(
+        "/projects/proj-1/documents/HLRA/approval-round",
+        json={"signers": [{"user_id": drp_id, "role_label": "Aprobador", "sign_order": 1}]},
+    )
+    assert r.status_code == 200, r.text
+
+    delete = drp_with_pin.delete("/projects/proj-1/documents/HLRA")
+    assert delete.status_code == 200, delete.text
+
+
+# ─── ALTA #4 (tercera devolución): delete_project no aplicaba la misma protección ─────
+
+def test_delete_project_blocked_with_signature_evidence(drp_with_pin, cliente):
+    """Codex reprodujo (tercera devolución, 2026-09-19) borrar el proyecto entero con un
+    documento que tiene firma de revisión activa -- delete_project solo miraba `locked`, la
+    cascada se llevaba la firma puesta. Mismo criterio que delete_document ahora, vía
+    has_signature_evidence compartida (projects.py)."""
+    drp_with_pin.put("/projects/delete-proj-r18/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente
+    drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "delete-proj-r18", "doc_type": "HLRA"})
+    fp = drp_with_pin.get("/projects/delete-proj-r18/documents/HLRA").json()["content_fingerprint"]
+    r = cli.post(
+        "/projects/delete-proj-r18/documents/HLRA/review-signatures",
+        json={"pin": "1234", "content_fingerprint": fp},
+    )
+    assert r.status_code == 200, r.text
+
+    delete = drp_with_pin.delete("/projects/delete-proj-r18")
+    assert delete.status_code == 409
+    assert "firma" in delete.text.lower()
+
+    from app.db import get_db
+    remaining = get_db().execute(
+        "SELECT COUNT(*) c FROM rf_review_signatures rs JOIN rf_documents d ON d.id = rs.document_id "
+        "WHERE d.project_id='delete-proj-r18'"
+    ).fetchone()["c"]
+    assert remaining == 1  # nada se borró
+
+
+def test_delete_project_allowed_with_only_unsigned_documents(drp_with_pin):
+    drp_with_pin.put("/projects/delete-proj-r18b/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    delete = drp_with_pin.delete("/projects/delete-proj-r18b")
+    assert delete.status_code == 200, delete.text
+
+
+# ─── ALTA #2 (tercera devolución): reopen_document sin transacción real ───────────────
+
+def test_reopen_rolls_back_completely_on_mid_write_failure(drp_with_pin, cliente, monkeypatch):
+    """Codex inyectó un fallo en el UPDATE final (edit_locked=0) e inyectando después de
+    invalidar la firma de revisión -- encontró la firma invalidada PERSISTIDA con
+    edit_locked todavía en 1 (reapertura fallida a medias). reopen_document no tenía
+    BEGIN/COMMIT/ROLLACK -- cada UPDATE se confirmaba solo (autocommit, ver db.py). Ahora
+    todo corre en una transacción real: si algo falla a mitad de camino, nada de lo que
+    escribió esta llamada queda aplicado."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente
+    drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+    fp = _fp(drp_with_pin)
+    cli.post(
+        "/projects/proj-1/documents/HLRA/review-signatures",
+        json={"pin": "1234", "content_fingerprint": fp},
+    )
+
+    from app.db import get_db
+    from app.routers import documents as documents_module
+
+    class _FailingConnProxy:
+        """sqlite3.Connection es un tipo de C inmutable -- no se puede parchear ni en la
+        instancia ni en la clase. En cambio, se parchea el símbolo get_db() importado dentro
+        de documents.py para que devuelva este proxy, que delega todo salvo el UPDATE que
+        Codex usó para inyectar el fallo."""
+        def __init__(self, real):
+            self._real = real
+        def execute(self, sql, *args, **kwargs):
+            if "edit_locked=0" in sql:
+                raise RuntimeError("fallo inyectado -- simula un crash a mitad de la reapertura")
+            return self._real.execute(sql, *args, **kwargs)
+        def __getattr__(self, name):
+            return getattr(self._real, name)
+
+    real_conn = get_db()
+    monkeypatch.setattr(documents_module, "get_db", lambda: _FailingConnProxy(real_conn))
+
+    crashy_client = TestClient(app, raise_server_exceptions=False)
+    crashy_client.cookies = drp_with_pin.cookies
+    r = crashy_client.post("/projects/proj-1/documents/HLRA/reopen", json={"reason": "corregir"})
+    assert r.status_code == 500
+
+    monkeypatch.undo()  # restaurar antes de leer -- si no, el propio GET de verificación fallaría
+
+    doc = drp_with_pin.get("/projects/proj-1/documents/HLRA").json()["document"]
+    assert doc["edit_locked"] == 1  # NO quedó en 0 a medias
+
+    sigs = drp_with_pin.get("/projects/proj-1/documents/HLRA/review-signatures").json()["signatures"]
+    assert len(sigs) == 1
+    assert sigs[0]["active"] is True  # la firma NO quedó invalidada a medias
+
+
 # ─── ALTA #5: ausencia de branding fijada, en las dos direcciones ──────────────
 
 def _seal_solo(drp_with_pin, project_id="proj-1", doc_type="HLRA"):
@@ -334,3 +443,26 @@ def test_original_pdf_404_message_distinguishes_never_sealed_from_sealed_without
     sealed_no_original = drp_with_pin.get("/projects/proj-1/documents/HLRA/original")
     assert sealed_no_original.status_code == 404
     assert "se selló antes de que se empezara a guardar" in sealed_no_original.json()["detail"]
+
+
+def test_original_pdf_404_message_distinguishes_storage_inconsistency(drp_with_pin):
+    """Codex (tercera devolución, 2026-09-19): un tercer estado -- original_stored=1 pero SIN
+    pdf_data -- es una inconsistencia de almacenamiento (el sellado creyó haber guardado el
+    PDF y no está), no un documento histórico "anterior a la funcionalidad". El mensaje tiene
+    que decir eso, no reciclar el texto de "se selló antes de..."."""
+    from app.db import get_db
+    db = get_db()
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    doc_id = db.execute("SELECT id FROM rf_documents WHERE project_id='proj-1' AND doc_type='HLRA'").fetchone()["id"]
+    db.execute("UPDATE rf_documents SET locked=1, original_stored=1, pdf_data=NULL WHERE id=?", (doc_id,))
+    db.commit()
+
+    r = drp_with_pin.get("/projects/proj-1/documents/HLRA/original")
+    assert r.status_code == 404
+    assert "inconsistencia de almacenamiento" in r.json()["detail"]
+    assert "se selló antes de que se empezara a guardar" not in r.json()["detail"]
+
+    last_event = db.execute(
+        "SELECT event_type FROM rf_system_audit_log WHERE doc_type='HLRA' ORDER BY id DESC LIMIT 1"
+    ).fetchone()
+    assert last_event["event_type"] == "original_pdf_missing_inconsistency"
