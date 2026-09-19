@@ -404,6 +404,36 @@
             case 'tarjeta-gap':
             case 'tarjeta-gap-rrm':          renderTarjetaGapBody(sec, body); break;
             case 'tabla-firmas-final':        renderTablaFirmasFinalBody(sec, body); break;
+            // matriz-tc: IIQ, IOQ, IPQ, PIQ, POQ, PPQ
+            case 'matriz-tc':                renderMatrizTcBody(sec, body); break;
+            // release-*: RIQ, ROQ, RPQ (+ release-resumen-ejecutivo también en VSR)
+            case 'release-portada-decision': renderReleasePortadaDecisionBody(sec, body); break;
+            case 'release-resumen-ejecutivo': renderReleaseResumenEjecutivoBody(sec, body); break;
+            case 'release-trazabilidad-cierre': renderReleaseTrazabilidadCierreBody(sec, body); break;
+            case 'release-condicionantes':   renderReleaseCondicionantesBody(sec, body); break;
+            case 'release-decision-formal':  renderReleaseDecisionFormalBody(sec, body); break;
+            // ncr-*: NCR
+            case 'ncr-workflow-indicator':   renderNcrWorkflowIndicatorBody(sec, body); break;
+            case 'ncr-registro-hallazgos':   renderNcrRegistroHallazgosBody(sec, body); break;
+            case 'ncr-analisis-causa':       renderNcrAnalisisCausaBody(sec, body); break;
+            case 'ncr-plan-capa':            renderNcrPlanCapaBody(sec, body); break;
+            case 'ncr-cierre-aprobacion':    renderNcrCierreAprobacionBody(sec, body); break;
+            // IIQ, IOQ, IPQ
+            case 'hallazgos-consolidados':   renderHallazgosConsolidadosBody(sec, body); break;
+            case 'resumen-ejecucion-iq':     renderResumenEjecucionIqBody(sec, body); break;
+            case 'resumen-ejecucion-oq':     renderResumenEjecucionOqBody(sec, body); break;
+            case 'resumen-ejecucion-pq':     renderResumenEjecucionPqBody(sec, body); break;
+            // Sueltos
+            case 'escalas-ira':              renderEscalasIraBody(sec, body); break;
+            case 'aex-registro-tc':          renderAexRegistroTcBody(sec, body); break;
+            case 'diagrama-arquitectura':    renderDiagramaArquitecturaBody(sec, body); break;
+            case 'flujo-logico':             renderFlujoLogicoBody(sec, body); break;
+            case 'box-resultado-rai':        renderBoxResultadoRaiBody(sec, body); break;
+            case 'formula-rai':              renderFormulaRaiBody(sec, body); break;
+            case 'tabla-decisiones-tc':      renderTablaDecisionesTcBody(sec, body); break;
+            case 'vsr-cronologia-fases':     renderVsrCronologiaFasesBody(sec, body); break;
+            case 'vsr-hallazgos-resumen':    renderVsrHallazgosResumenBody(sec, body); break;
+            case 'vsr-inventario-paquete':   renderVsrInventarioPaqueteBody(sec, body); break;
             // Todo lo demás: smart read-only (muestra datos sin candado)
             default:                         renderSmartFallbackBody(sec, body); break;
         }
@@ -1184,12 +1214,13 @@
             + '<span class="ve-fmea-score-nivel" style="color:' + n.color + '">' + n.nivel + '</span>';
     }
 
-    // Escalas de puntuación FMEA (escalas-fmea): 3 mini-tablas S/P/D + niveles de riesgo + nota.
-    function renderEscalasFmeaBody(sec, body) {
+    // Escalas de puntuación (escalas-fmea en RA, escalas-ira en IRA): N mini-tablas de
+    // valor/nivel/descripción + tabla de niveles de riesgo + nota. Genérica sobre los nombres
+    // de campo porque ambos tipos comparten exactamente esta forma con distintas claves.
+    function _renderEscalasGenericas(sec, body, escalaDefs, nivelesCols) {
         if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
-        var ESCALAS = [['escalaS', 'Severidad (S)'], ['escalaP', 'Probabilidad (P)'], ['escalaD', 'Detectabilidad (D)']];
         var grid = el('div', { className: 've-escalas-grid' });
-        ESCALAS.forEach(function (pair) {
+        escalaDefs.forEach(function (pair) {
             var arr = sec[pair[0]];
             if (!Array.isArray(arr) || !arr.length) return;
             var col = el('div', { className: 've-escala-col' });
@@ -1211,28 +1242,203 @@
         });
         if (grid.children.length) body.appendChild(grid);
 
-        var niveles = sec.niveles;
-        if (Array.isArray(niveles) && niveles.length) {
-            body.appendChild(el('div', { className: 've-escala-titulo', text: 'Niveles de riesgo (rango del producto)', attrs: { style: 'margin-top:14px;' } }));
-            var tbl2 = el('table', { className: 've-tabla ve-tabla-smart' });
-            var thead2 = el('thead'), hr = el('tr');
-            ['Rango', 'Nivel', 'Acción'].forEach(function (h) { hr.appendChild(el('th', { className: 've-th', text: h })); });
-            thead2.appendChild(hr);
-            tbl2.appendChild(thead2);
-            var tbody2 = el('tbody');
-            niveles.forEach(function (n) {
-                var tr = el('tr');
-                tr.appendChild(el('td', { className: 've-td', text: n.rango || '' }));
-                tr.appendChild(el('td', { className: 've-td', text: n.nivel || '' }));
-                tr.appendChild(el('td', { className: 've-td', text: n.accion || '' }));
-                tbody2.appendChild(tr);
-            });
-            tbl2.appendChild(tbody2);
-            body.appendChild(el('div', { className: 've-tabla-wrap' }, [tbl2]));
+        if (Array.isArray(sec.niveles) && sec.niveles.length) {
+            body.appendChild(el('div', { className: 've-escala-titulo', text: 'Niveles de riesgo', attrs: { style: 'margin-top:14px;' } }));
+            var cols = nivelesCols.map(function (c) { return { key: c[0], label: c[1], width: 1 }; });
+            body.appendChild(_buildSmartTable(cols, sec.niveles));
         }
-
         if (sec.nota) body.appendChild(el('div', { className: 've-smart-intro', text: sec.nota, attrs: { style: 'margin-top:10px;' } }));
-        body.appendChild(el('div', { className: 've-smart-note', text: 'Vista de solo lectura — editá en modo JSON para modificar esta sección.' }));
+        _readOnlyNote(body);
+    }
+    function renderEscalasFmeaBody(sec, body) {
+        _renderEscalasGenericas(sec, body,
+            [['escalaS', 'Severidad (S)'], ['escalaP', 'Probabilidad (P)'], ['escalaD', 'Detectabilidad (D)']],
+            [['rango', 'Rango'], ['nivel', 'Nivel'], ['accion', 'Acción']]);
+    }
+    function renderEscalasIraBody(sec, body) {
+        _renderEscalasGenericas(sec, body,
+            [['escalaP', 'Probabilidad (P)'], ['escalaG', 'Gravedad (G)'], ['escalaI', 'Impacto GxP (I)']],
+            [['rango', 'Rango'], ['nivel', 'Nivel'], ['verificacion', 'Verificación']]);
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // Tipos sueltos: uno por tipo de documento, sin reuso entre sí.
+    // ──────────────────────────────────────────────────────────────────
+    function renderAexRegistroTcBody(sec, body) {
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var tests = Array.isArray(sec.tests) ? sec.tests : [];
+        if (!tests.length) { body.appendChild(_emptyBanner('Sin tests registrados.')); _readOnlyNote(body); return; }
+        if (tests.length > 5) {
+            var cols = [
+                { key: 'tcId', label: 'TC-ID', width: 12 }, { key: 'titulo', label: 'Título', width: 34 }, { key: 'grupo', label: 'Grupo', width: 20 },
+                { key: 'estado', label: 'Resultado', width: 20, render: function (t) { var e = t.resultado && t.resultado.estado; return e ? _badgeSpan(e, _estadoColor(e)) : ''; } },
+                { key: 'evid', label: 'Evid.', width: 8, render: function (t) { return Array.isArray(t.evidencias) ? String(t.evidencias.length) : '0'; } },
+            ];
+            body.appendChild(_buildSmartTable(cols, tests));
+        }
+        var byGrupo = {}, order = [];
+        tests.forEach(function (t) {
+            var g = t.grupo || 'Sin grupo';
+            if (!byGrupo[g]) { byGrupo[g] = []; order.push(g); }
+            byGrupo[g].push(t);
+        });
+        order.forEach(function (g) {
+            body.appendChild(el('div', { className: 've-escala-titulo', text: g, attrs: { style: 'margin-top:14px;' } }));
+            byGrupo[g].forEach(function (t) {
+                var card = el('div', { className: 've-ncr-card' });
+                var head = el('div', { className: 've-ncr-card-title', text: (t.tcId || '') + ' — ' + (t.titulo || '') + ' ' });
+                var estado = t.resultado && t.resultado.estado;
+                if (estado) head.appendChild(_badgeSpan(estado, _estadoColor(estado)));
+                card.appendChild(head);
+                var traz = t.trazabilidad || {};
+                var pills = [];
+                if (Array.isArray(traz.urs) && traz.urs.length) pills.push('URS: ' + traz.urs.join(', '));
+                if (traz.ra) pills.push('RA: ' + traz.ra);
+                if (traz.ira) pills.push('IRA: ' + traz.ira);
+                if (traz.componente) pills.push('Componente: ' + traz.componente);
+                if (pills.length) card.appendChild(el('div', { className: 've-smart-intro', text: pills.join(' · '), attrs: { style: 'font-size:11px;padding:4px 8px;' } }));
+                if (t.criterioAceptacion) card.appendChild(el('div', { className: 've-smart-kv' }, [el('span', { className: 've-smart-key', text: 'Criterio:' }), el('span', { className: 've-smart-val', text: t.criterioAceptacion })]));
+                if (t.procedimientoResumen) card.appendChild(el('div', { className: 've-smart-kv' }, [el('span', { className: 've-smart-key', text: 'Procedimiento:' }), el('span', { className: 've-smart-val', text: t.procedimientoResumen })]));
+                if (t.resultado) {
+                    var r = t.resultado, rtext = [r.ejecutor, r.fecha, r.criterioObservado].filter(Boolean).join(' · ');
+                    if (rtext) card.appendChild(el('div', { className: 've-smart-kv' }, [el('span', { className: 've-smart-key', text: 'Resultado:' }), el('span', { className: 've-smart-val', text: rtext })]));
+                }
+                body.appendChild(card);
+            });
+        });
+        _readOnlyNote(body);
+    }
+
+    function renderDiagramaArquitecturaBody(sec, body) {
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var capas = Array.isArray(sec.capas) ? sec.capas : [];
+        var COLORS = { primary: '#0B2341', secondary: '#1a56a0', accent: '#C8921A' };
+        capas.forEach(function (c, i) {
+            var color = COLORS[c.color] || c.color || '#717D8A';
+            var box = el('div', { className: 've-capa-box' });
+            var head = el('div', { className: 've-capa-head', attrs: { style: 'background:' + color + ';' } });
+            head.appendChild(el('span', { text: c.nombre || '', attrs: { style: 'font-weight:700;' } }));
+            if (c.tecnologia) head.appendChild(el('span', { text: ' — ' + c.tecnologia, attrs: { style: 'font-style:italic;font-weight:400;' } }));
+            box.appendChild(head);
+            if (Array.isArray(c.componentes) && c.componentes.length) {
+                var ul = el('ul', { className: 've-capa-componentes' });
+                c.componentes.forEach(function (comp) { ul.appendChild(el('li', { text: comp })); });
+                box.appendChild(ul);
+            }
+            body.appendChild(box);
+            if (i < capas.length - 1) body.appendChild(el('div', { className: 've-capa-arrow', text: '▼' }));
+        });
+        if (sec.nota) body.appendChild(el('div', { className: 've-smart-intro', text: sec.nota, attrs: { style: 'margin-top:10px;' } }));
+        _readOnlyNote(body);
+    }
+
+    function renderFlujoLogicoBody(sec, body) {
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var algos = Array.isArray(sec.algoritmos) ? sec.algoritmos : [];
+        algos.forEach(function (a) {
+            var card = el('div', { className: 've-ncr-card' });
+            card.appendChild(el('div', { className: 've-ncr-card-title', text: (a.id ? a.id + ' — ' : '') + (a.nombre || '') }));
+            if (a.frsAsociados) card.appendChild(el('div', { className: 've-smart-kv' }, [el('span', { className: 've-smart-key', text: 'FRS:' }), el('span', { className: 've-smart-val', text: Array.isArray(a.frsAsociados) ? a.frsAsociados.join(', ') : String(a.frsAsociados) })]));
+            if (a.trigger) card.appendChild(el('div', { className: 've-smart-intro', text: 'Disparador: ' + a.trigger }));
+            var pasos = Array.isArray(a.pasos) ? a.pasos : [];
+            if (pasos.length) {
+                var ol = el('ol', { className: 've-escala-items' });
+                pasos.forEach(function (p) { ol.appendChild(el('li', { text: (p && typeof p === 'object') ? (p.accion || JSON.stringify(p)) : String(p) })); });
+                card.appendChild(ol);
+            }
+            var decisiones = Array.isArray(a.decisiones) ? a.decisiones : [];
+            if (decisiones.length) {
+                var cols = [{ key: 'condicion', label: 'Condición', width: 45 }, { key: 'accion', label: 'Acción', width: 55 }];
+                var rows = decisiones.map(function (d) { return Array.isArray(d) ? { condicion: d[0], accion: d[1] } : { condicion: d.condicion, accion: d.accion }; });
+                card.appendChild(_buildSmartTable(cols, rows));
+            }
+            if (a.ejemplo) card.appendChild(el('div', { className: 've-smart-intro', text: 'Ejemplo: ' + a.ejemplo, attrs: { style: 'margin-top:8px;' } }));
+            body.appendChild(card);
+        });
+        _readOnlyNote(body);
+    }
+
+    function renderBoxResultadoRaiBody(sec, body) {
+        var row = el('div', { className: 've-rai-row' });
+        var left = el('div', { className: 've-rai-box', attrs: { style: 'background:var(--vsc-azul);color:#fff;' } });
+        if (sec.labelCalculo) left.appendChild(el('div', { className: 've-escala-titulo', text: sec.labelCalculo, attrs: { style: 'color:#fff;' } }));
+        left.appendChild(el('div', { text: sec.calculo || '', attrs: { style: 'font-size:15px;font-weight:700;' } }));
+        row.appendChild(left);
+        var right = el('div', { className: 've-rai-box', attrs: { style: 'background:#EAF7EE;' } });
+        right.appendChild(el('div', { className: 've-escala-titulo', text: 'NIVEL DE RIESGO' }));
+        right.appendChild(el('div', { text: sec.nivel || '', attrs: { style: 'font-size:16px;font-weight:700;color:' + _nivelColor(sec.nivel) + ';' } }));
+        if (sec.rangos) right.appendChild(el('div', { text: sec.rangos, attrs: { style: 'font-size:11px;font-style:italic;color:#666;margin-top:4px;' } }));
+        row.appendChild(right);
+        body.appendChild(row);
+        _readOnlyNote(body);
+    }
+
+    function renderFormulaRaiBody(sec, body) {
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        if (sec.formula) body.appendChild(el('div', { className: 've-formula-box', text: sec.formula }));
+        var cols = [
+            { key: 'var', label: 'Var', width: 8 }, { key: 'factor', label: 'Factor', width: 18 },
+            { key: 'descripcion', label: 'Descripción', width: 44 }, { key: 'escala', label: 'Escala', width: 15 }, { key: 'valor', label: 'Valor', width: 10 },
+        ];
+        body.appendChild(_buildSmartTable(cols, sec.factores, 'Sin factores.'));
+        _readOnlyNote(body);
+    }
+
+    var _DECISIONES_TC_DEFAULT = [
+        { resultado: 'PASA', color: 'pass', significado: 'El test case se ejecutó y cumplió el criterio de aceptación.', impacto: 'Ninguno.', accion: 'Ninguna.' },
+        { resultado: 'PASA CON OBSERVACIONES', color: 'passObs', significado: 'Cumplió el criterio, con desvíos menores documentados.', impacto: 'Bajo.', accion: 'Registrar observación, sin bloquear.' },
+        { resultado: 'NO PASA', color: 'fail', significado: 'No cumplió el criterio de aceptación.', impacto: 'Alto.', accion: 'Abrir NCR, definir CAPA.' },
+        { resultado: 'NO APLICA', color: 'neutral', significado: 'El test case no aplica al contexto de ejecución.', impacto: 'Ninguno.', accion: 'Justificar y documentar.' },
+    ];
+    var _DECISIONES_TC_COLORS = { pass: '#27AE60', passObs: '#E67E22', fail: '#C0392B', neutral: '#717D8A' };
+    function renderTablaDecisionesTcBody(sec, body) {
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var tieneFilas = Array.isArray(sec.filas) && sec.filas.length;
+        var filas = tieneFilas ? sec.filas : _DECISIONES_TC_DEFAULT;
+        if (!tieneFilas) body.appendChild(el('div', { className: 've-smart-note', text: 'No hay filas propias en el JSON -- se muestra la tabla de referencia estándar (la misma que usa el PDF por default).' }));
+        var cols = [
+            { key: 'resultado', label: 'Resultado', width: 22, render: function (f) { return _badgeSpan(f.resultado, _DECISIONES_TC_COLORS[f.color] || '#717D8A'); } },
+            { key: 'significado', label: 'Significado', width: 34 }, { key: 'impacto', label: 'Impacto', width: 22 }, { key: 'accion', label: 'Acción', width: 22 },
+        ];
+        body.appendChild(_buildSmartTable(cols, filas));
+        _readOnlyNote(body);
+    }
+
+    function renderVsrCronologiaFasesBody(sec, body) {
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var fases = Array.isArray(sec.fases) ? sec.fases : [];
+        if (!fases.length) { body.appendChild(_emptyBanner('Sin fases cargadas.')); _readOnlyNote(body); return; }
+        var row = el('div', { className: 've-cronologia-row' });
+        fases.forEach(function (f) {
+            var cell = el('div', { className: 've-cronologia-cell' });
+            cell.appendChild(el('div', { text: f.codigo || '', attrs: { style: 'font-size:16px;font-weight:700;color:var(--vsc-azul);' } }));
+            if (f.label) cell.appendChild(el('div', { text: f.label, attrs: { style: 'font-size:11px;color:#666;' } }));
+            if (f.cierre) cell.appendChild(el('div', { text: f.cierre, attrs: { style: 'font-size:11px;color:#666;' } }));
+            if (f.estado) cell.appendChild(_badgeSpan(f.estado, _estadoColor(f.estado)));
+            row.appendChild(cell);
+        });
+        body.appendChild(row);
+        _readOnlyNote(body);
+    }
+
+    function renderVsrHallazgosResumenBody(sec, body) {
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var h = Array.isArray(sec.hallazgos) ? sec.hallazgos : [];
+        if (!h.length) { body.appendChild(_emptyBanner('Sin hallazgos.')); _readOnlyNote(body); return; }
+        var cerradas = h.filter(function (x) { return /CERR/.test(String(x.estado || '').toUpperCase()); }).length;
+        var criticas = h.filter(function (x) { return /CRITIC/.test(String(x.criticidad || '').toUpperCase()); }).length;
+        body.appendChild(_kpiGrid([
+            { label: 'Total', value: h.length }, { label: 'Cerradas', value: cerradas, color: '#27AE60' },
+            { label: 'Abiertas', value: h.length - cerradas, color: (h.length - cerradas) ? '#C0392B' : '#27AE60' },
+            { label: 'Críticas', value: criticas, color: criticas ? '#C0392B' : '#27AE60' },
+        ]));
+        var cols = [
+            { key: 'id', label: 'NC-ID', width: 8 }, { key: 'criticidad', label: 'Criticidad', width: 10, render: function (x) { return x.criticidad ? _badgeSpan(x.criticidad, _nivelColor(x.criticidad)) : ''; } },
+            { key: 'tcRef', label: 'TC origen', width: 10 }, { key: 'descripcion', label: 'Descripción', width: 32 }, { key: 'accion', label: 'Acción CAPA', width: 32 },
+            { key: 'estado', label: 'Estado', width: 8, render: function (x) { return x.estado ? _badgeSpan(x.estado, _estadoColor(x.estado)) : ''; } },
+        ];
+        body.appendChild(_buildSmartTable(cols, h));
+        _readOnlyNote(body);
     }
 
     // Aceptación formal del riesgo residual (aceptacion-riesgo-residual): conclusión + lista
@@ -1255,6 +1461,423 @@
         }
         body.appendChild(el('div', { className: 've-smart-note', text: 'Vista de solo lectura — editá en modo JSON para modificar esta sección.' }));
     }
+
+    // ──────────────────────────────────────────────────────────────────
+    // HELPERS COMPARTIDOS para las tablas/paneles "smart" de solo lectura
+    // que siguen (matriz-tc, release-*, ncr-*, resumenes de ejecución,
+    // singles). Mismo criterio que RA: mostrar todo, sin truncar, con
+    // proporciones de columna razonables en vez del ancho uniforme del
+    // fallback genérico.
+    // ──────────────────────────────────────────────────────────────────
+
+    // Color por nivel de riesgo (BAJO/MEDIO/ALTO) -- mismos umbrales que _nivelRiesgo,
+    // pero a partir de la etiqueta ya calculada (varios tipos la traen hecha, no el score).
+    function _nivelColor(nivel) {
+        var s = String(nivel || '').toUpperCase();
+        if (s.indexOf('ALTO') >= 0 || s.indexOf('CRITIC') >= 0) return '#C0392B';
+        if (s.indexOf('MEDIO') >= 0 || s.indexOf('MAYOR') >= 0) return '#E67E22';
+        if (s.indexOf('BAJO') >= 0 || s.indexOf('MENOR') >= 0) return '#27AE60';
+        return '#717D8A';
+    }
+
+    // Color genérico por estado/decisión -- heurística por regex, cubre los vocabularios
+    // reales de estado que aparecen en TCs, NCRs, releases y VSR (PASS/FAIL/OBS, aprobado/
+    // pendiente, cerrado/abierto, etc.). Mismo criterio de "aproximado y consistente" que
+    // ya usa el PDF real en cada template (cada uno con su propia regex).
+    function _estadoColor(v) {
+        var s = String(v || '').toUpperCase();
+        if (/PASS|APROB|CERR|CUMPL|VERIF|VALID/.test(s)) return '#27AE60';
+        if (/FAIL|ABIERT|CRITIC|RECHAZ|NO\s*PASA|NO\s*APROB/.test(s)) return '#C0392B';
+        if (/OBS|MEDIO|CURSO|APLIC|PEND/.test(s)) return '#E67E22';
+        return '#717D8A';
+    }
+
+    function _badgeSpan(text, color) {
+        return el('span', { className: 've-badge', text: text || '—', attrs: { style: 'color:' + color + ';border-color:' + color + ';' } });
+    }
+
+    function _emptyBanner(text) {
+        return el('div', { className: 've-empty-banner', text: text });
+    }
+
+    // Tabla genérica: cols = [{key, label, width (relativo), render(row) -> string|Node}].
+    // Si no hay filas, muestra el banner vacío en vez de "Sin filas." pelado.
+    function _buildSmartTable(cols, rows, emptyText) {
+        var wrap = el('div');
+        if (!rows || !rows.length) {
+            wrap.appendChild(_emptyBanner(emptyText || 'Sin datos.'));
+            return wrap;
+        }
+        var tbl = el('table', { className: 've-tabla ve-tabla-smart' });
+        var colgroup = document.createElement('colgroup');
+        var totalW = cols.reduce(function (s, c) { return s + (c.width || 1); }, 0);
+        cols.forEach(function (c) {
+            var col = document.createElement('col');
+            col.style.width = ((c.width || 1) * 100 / totalW) + '%';
+            colgroup.appendChild(col);
+        });
+        tbl.appendChild(colgroup);
+        var thead = el('thead'), headRow = el('tr');
+        cols.forEach(function (c) { headRow.appendChild(el('th', { className: 've-th', text: c.label })); });
+        thead.appendChild(headRow);
+        tbl.appendChild(thead);
+        var tbody = el('tbody');
+        rows.forEach(function (row) {
+            var tr = el('tr');
+            cols.forEach(function (c) {
+                var td = el('td', { className: 've-td' });
+                var content = c.render ? c.render(row) : row[c.key];
+                if (content instanceof Node) td.appendChild(content);
+                else td.textContent = (content === null || content === undefined) ? '' : String(content);
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+        tbl.appendChild(tbody);
+        wrap.appendChild(el('div', { className: 've-tabla-wrap' }, [tbl]));
+        return wrap;
+    }
+
+    // Grilla de KPIs (N celdas iguales con valor grande + etiqueta chica) -- reusada por
+    // resúmenes ejecutivos, cierre de NCR, hallazgos VSR. items = [{label, value, color?}].
+    function _kpiGrid(items) {
+        var grid = el('div', { className: 've-kpi-grid' });
+        items.forEach(function (it) {
+            var cell = el('div', { className: 've-kpi-cell' });
+            cell.appendChild(el('div', {
+                className: 've-kpi-value', text: String(it.value == null ? '—' : it.value),
+                attrs: it.color ? { style: 'color:' + it.color + ';' } : {}
+            }));
+            cell.appendChild(el('div', { className: 've-kpi-label', text: it.label }));
+            grid.appendChild(cell);
+        });
+        return grid;
+    }
+
+    function _readOnlyNote(body) {
+        body.appendChild(el('div', { className: 've-smart-note', text: 'Vista de solo lectura — editá en modo JSON para modificar esta sección.' }));
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // matriz-tc -- IIQ, IOQ, IPQ, PIQ, POQ, PPQ (6 tipos de documento).
+    // Columnas variables por columnasVisibles[]; sin eso, el set legado. Registro de
+    // columnas conocidas con ancho relativo, mismo criterio que el registro real
+    // (_iq-shared.js buildColumnRegistry) pero sin necesitar ese módulo acá.
+    // ──────────────────────────────────────────────────────────────────
+    var _MATRIZ_TC_REGISTRY = {
+        tcId:           { label: 'TC-ID', width: 7 },
+        titulo:         { label: 'Título', width: 22 },
+        componente:     { label: 'Componente', width: 12 },
+        grupo:          { label: 'Grupo', width: 12 },
+        tipoTC:         { label: 'Tipo', width: 8 },
+        raScore:        { label: 'RA', width: 8, render: function (tc) {
+            if (tc.raScore == null && !tc.nivel) return '';
+            var box = el('span');
+            box.appendChild(el('span', { text: tc.raScore != null ? String(tc.raScore) : '', attrs: { style: 'font-weight:700;display:block;' } }));
+            if (tc.nivel) box.appendChild(_badgeSpan(tc.nivel, _nivelColor(tc.nivel)));
+            return box;
+        } },
+        ursVinculados:  { label: 'URS', width: 12, render: function (tc) { return Array.isArray(tc.ursVinculados) ? tc.ursVinculados.join(', ') : (tc.ursVinculados || ''); } },
+        raVinculado:    { label: 'RA Ref.', width: 8 },
+        profundidad:    { label: 'Profundidad', width: 10 },
+        estado:         { label: 'Estado', width: 8, render: function (tc) { return tc.estado ? _badgeSpan(tc.estado, _estadoColor(tc.estado)) : ''; } },
+        ejecutor:       { label: 'Ejecutor', width: 12 },
+        fechaEjecucion: { label: 'Fecha', width: 8 },
+        evidenciasCount:{ label: 'Evid.', width: 6 },
+    };
+    var _MATRIZ_TC_DEFAULT_COLS = ['tcId', 'titulo', 'componente', 'raScore', 'ursVinculados', 'profundidad', 'estado'];
+
+    function renderMatrizTcBody(sec, body) {
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var keys = Array.isArray(sec.columnasVisibles) && sec.columnasVisibles.length
+            ? sec.columnasVisibles.filter(function (k) { return _MATRIZ_TC_REGISTRY[k]; })
+            : _MATRIZ_TC_DEFAULT_COLS;
+        var cols = keys.map(function (k) { return Object.assign({ key: k }, _MATRIZ_TC_REGISTRY[k]); });
+        body.appendChild(_buildSmartTable(cols, sec.tcs, 'Sin test cases en esta matriz.'));
+        _readOnlyNote(body);
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // release-* -- RIQ, ROQ, RPQ (y release-resumen-ejecutivo también en VSR).
+    // ──────────────────────────────────────────────────────────────────
+    function renderReleasePortadaDecisionBody(sec, body) {
+        var color = _estadoColor(sec.decision);
+        var box = el('div', { className: 've-decision-banner', attrs: { style: 'background:' + color + ';' } });
+        box.appendChild(el('div', { className: 've-decision-label', text: 'DECISIÓN DE LIBERACIÓN' }));
+        box.appendChild(el('div', { className: 've-decision-text', text: sec.decision || '—' }));
+        if (sec.subtitulo) box.appendChild(el('div', { className: 've-decision-sub', text: sec.subtitulo }));
+        body.appendChild(box);
+        _readOnlyNote(body);
+    }
+
+    function renderReleaseResumenEjecutivoBody(sec, body) {
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var k = sec.kpis || {};
+        var fila1 = [
+            ['TCs Ejecutados', k.totalTcsEjecutados], ['PASS', k.pass, '#27AE60'], ['FAIL', k.fail, '#C0392B'],
+            ['OBS', k.obs, '#E67E22'], ['N/A', k.na], ['Cobertura', k.cobertura != null ? k.cobertura + '%' : null],
+        ].filter(function (r) { return r[1] != null; }).map(function (r) { return { label: r[0], value: r[1], color: r[2] }; });
+        if (fila1.length) body.appendChild(_kpiGrid(fila1));
+        var fila2 = [
+            ['Negativos', k.negativos], ['Negativos FAIL', k.negativosFail, k.negativosFail ? '#C0392B' : null],
+            ['Críticas abiertas', k.criticasAbiertas, k.criticasAbiertas ? '#C0392B' : '#27AE60'],
+            ['Estado global', k.estadoGlobal, k.estadoGlobal ? _estadoColor(k.estadoGlobal) : null],
+            ['Hallazgos', k.hallazgosTotal], ['Hallazgos cerrados', k.hallazgosCerrados],
+            ['Hallazgos abiertos', k.hallazgosAbiertos, k.hallazgosAbiertos ? '#C0392B' : '#27AE60'],
+        ].filter(function (r) { return r[1] != null; }).map(function (r) { return { label: r[0], value: r[1], color: r[2] }; });
+        if (fila2.length) body.appendChild(_kpiGrid(fila2));
+        if (sec.fundamento) body.appendChild(el('div', { className: 've-smart-intro', text: sec.fundamento, attrs: { style: 'margin-top:10px;' } }));
+        _readOnlyNote(body);
+    }
+
+    // Compartida con vsr-inventario-paquete -- mismo shape {documentos:[{codigo,tipo,version,estado,observacion}]}.
+    function _renderDocumentosTable(sec, body) {
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var cols = [
+            { key: 'codigo', label: 'Código', width: 20 },
+            { key: 'tipo', label: 'Tipo', width: 10 },
+            { key: 'version', label: 'Versión', width: 8 },
+            { key: 'estado', label: 'Estado', width: 12, render: function (d) { return d.estado ? _badgeSpan(d.estado, _estadoColor(d.estado)) : ''; } },
+            { key: 'observacion', label: 'Observación', width: 30 },
+        ];
+        body.appendChild(_buildSmartTable(cols, sec.documentos, 'Sin documentos.'));
+        _readOnlyNote(body);
+    }
+    function renderReleaseTrazabilidadCierreBody(sec, body) { _renderDocumentosTable(sec, body); }
+    function renderVsrInventarioPaqueteBody(sec, body) { _renderDocumentosTable(sec, body); }
+
+    function renderReleaseCondicionantesBody(sec, body) {
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var cond = sec.condicionantes;
+        if (!Array.isArray(cond) || !cond.length) {
+            body.appendChild(_emptyBanner('Sin condicionantes.'));
+        } else {
+            var cols = [
+                { key: 'descripcion', label: 'Condicionante', width: 40 },
+                { key: 'responsable', label: 'Responsable', width: 20 },
+                { key: 'plazo', label: 'Plazo', width: 15 },
+                { key: 'estado', label: 'Estado', width: 15, render: function (c) { return c.estado ? _badgeSpan(c.estado, _estadoColor(c.estado)) : ''; } },
+            ];
+            body.appendChild(_buildSmartTable(cols, cond));
+        }
+        _readOnlyNote(body);
+    }
+
+    function renderReleaseDecisionFormalBody(sec, body) {
+        var color = _estadoColor(sec.decision);
+        var box = el('div', { className: 've-decision-box', attrs: { style: 'border-color:' + color + ';color:' + color + ';' } });
+        box.appendChild(el('div', { className: 've-decision-label', text: 'DECISIÓN FORMAL' }));
+        box.appendChild(el('div', { className: 've-decision-text', text: sec.decision || '—' }));
+        body.appendChild(box);
+        if (sec.textoFormal) body.appendChild(el('div', { className: 've-smart-intro', text: sec.textoFormal, attrs: { style: 'margin-top:10px;' } }));
+        _readOnlyNote(body);
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // ncr-* -- NCR (único tipo de documento, 5 tipos de sección propios).
+    // Las 4 secciones "gateadas" (registro/analisis/capa/cierre) comparten el mismo
+    // envoltorio {estado, firmasRequeridas, firmas} y la misma tabla de firmas al pie.
+    // ──────────────────────────────────────────────────────────────────
+    function _buildFirmasTable(sec) {
+        var req = Array.isArray(sec.firmasRequeridas) ? sec.firmasRequeridas : [];
+        var firmas = Array.isArray(sec.firmas) ? sec.firmas : [];
+        var rows = req.length ? req.map(function (r) {
+            var f = firmas.filter(function (x) { return x.rol === r.rol; })[0];
+            return {
+                rol: r.rol, obligatoria: r.obligatoria ? 'Sí' : 'No',
+                nombre: f ? f.nombre : '', firma: f ? (f.iniciales || (f._signedAt ? '✓' : '')) : '',
+                fecha: f ? f.fecha : '',
+            };
+        }) : firmas.map(function (f) { return { rol: f.rol, obligatoria: '', nombre: f.nombre, firma: f.iniciales || '', fecha: f.fecha }; });
+        if (!rows.length) return el('div');
+        var cols = [
+            { key: 'rol', label: 'Rol', width: 26 }, { key: 'obligatoria', label: 'Obligatoria', width: 12 },
+            { key: 'nombre', label: 'Nombre', width: 24 }, { key: 'firma', label: 'Firma', width: 12 }, { key: 'fecha', label: 'Fecha', width: 12 },
+        ];
+        var out = el('div', { attrs: { style: 'margin-top:12px;' } });
+        out.appendChild(el('div', { className: 've-escala-titulo', text: 'Firmas' }));
+        out.appendChild(_buildSmartTable(cols, rows));
+        return out;
+    }
+
+    function _ncrEstadoBadge(sec, body) {
+        if (sec.estado) body.appendChild(_badgeSpan(sec.estado, _estadoColor(sec.estado)));
+    }
+
+    function renderNcrWorkflowIndicatorBody(sec, body) {
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        body.appendChild(el('div', {
+            className: 've-smart-note',
+            text: 'El indicador de flujo (Registro → Análisis → CAPA → Cierre) se calcula automáticamente en el PDF a partir del estado de las otras secciones NCR de este documento.'
+        }));
+    }
+
+    function renderNcrRegistroHallazgosBody(sec, body) {
+        _ncrEstadoBadge(sec, body);
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var cols = [
+            { key: 'id', label: 'NC-ID', width: 8 }, { key: 'tipo', label: 'Tipo', width: 10 },
+            { key: 'criticidad', label: 'Criticidad', width: 10, render: function (h) { return h.criticidad ? _badgeSpan(h.criticidad, _nivelColor(h.criticidad)) : ''; } },
+            { key: 'tcRef', label: 'TC Ref.', width: 10 }, { key: 'docOrigen', label: 'Doc Origen', width: 12 },
+            { key: 'descripcion', label: 'Descripción', width: 38 }, { key: 'fechaApertura', label: 'F. Apertura', width: 12 },
+        ];
+        body.appendChild(_buildSmartTable(cols, sec.hallazgos, 'Sin hallazgos registrados.'));
+        body.appendChild(_buildFirmasTable(sec));
+        _readOnlyNote(body);
+    }
+
+    function renderNcrAnalisisCausaBody(sec, body) {
+        _ncrEstadoBadge(sec, body);
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var items = Array.isArray(sec.analisis) ? sec.analisis : [];
+        if (!items.length) body.appendChild(_emptyBanner('Sin análisis de causa cargado.'));
+        items.forEach(function (a) {
+            var card = el('div', { className: 've-ncr-card' });
+            card.appendChild(el('div', { className: 've-ncr-card-title', text: (a.ncId || '') + ' · ' + (a.tipoAnalisis || '') }));
+            if (Array.isArray(a.porques) && a.porques.length) {
+                var ol = el('ol', { className: 've-escala-items' });
+                a.porques.forEach(function (p, i) {
+                    var li = el('li', { text: p });
+                    if (i === a.porques.length - 1) li.setAttribute('style', 'font-weight:700;color:var(--vsc-azul);');
+                    ol.appendChild(li);
+                });
+                card.appendChild(ol);
+            }
+            if (a.causaRaizIdentificada) card.appendChild(el('div', { className: 've-smart-intro', text: a.causaRaizIdentificada }));
+            var flags = [];
+            if (a.factorSistemico != null) flags.push(['Factor sistémico', a.factorSistemico, true]);
+            if (a.recurrente != null) flags.push(['Recurrente', a.recurrente, true]);
+            if (a.impactoScope) flags.push(['Alcance de impacto', a.impactoScope, false]);
+            if (flags.length) {
+                var flagsRow = el('div', { className: 've-ncr-flags' });
+                flags.forEach(function (f) {
+                    var text = f[2] ? (f[0] + ': ' + (f[1] ? 'Sí' : 'No')) : (f[0] + ': ' + f[1]);
+                    var color = f[2] ? (f[1] ? '#C0392B' : '#27AE60') : '#717D8A';
+                    flagsRow.appendChild(_badgeSpan(text, color));
+                });
+                card.appendChild(flagsRow);
+            }
+            body.appendChild(card);
+        });
+        body.appendChild(_buildFirmasTable(sec));
+        _readOnlyNote(body);
+    }
+
+    function renderNcrPlanCapaBody(sec, body) {
+        _ncrEstadoBadge(sec, body);
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var items = Array.isArray(sec.capas) ? sec.capas : [];
+        if (!items.length) body.appendChild(_emptyBanner('Sin plan CAPA cargado.'));
+        var FIELDS = [['accionCorrectiva', 'Acción Correctiva'], ['accionPreventiva', 'Acción Preventiva'], ['responsable', 'Responsable'],
+            ['fechaCompromiso', 'F. Compromiso'], ['fechaCierre', 'F. Cierre'], ['evidenciaCierre', 'Evidencia de cierre'], ['verificadoPor', 'Verificado por']];
+        items.forEach(function (c) {
+            var card = el('div', { className: 've-ncr-card' });
+            var head = el('div', { className: 've-ncr-card-title', text: (c.ncId || '') + ' ' });
+            if (c.estadoCapa) head.appendChild(_badgeSpan(c.estadoCapa, _estadoColor(c.estadoCapa)));
+            card.appendChild(head);
+            FIELDS.forEach(function (f) {
+                var v = c[f[0]];
+                if (!v) return;
+                card.appendChild(el('div', { className: 've-smart-kv' }, [
+                    el('span', { className: 've-smart-key', text: f[1] + ':' }),
+                    el('span', { className: 've-smart-val', text: String(v) }),
+                ]));
+            });
+            body.appendChild(card);
+        });
+        body.appendChild(_buildFirmasTable(sec));
+        _readOnlyNote(body);
+    }
+
+    function renderNcrCierreAprobacionBody(sec, body) {
+        _ncrEstadoBadge(sec, body);
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var r = sec.resumen || {};
+        var items = [
+            ['Total NCs', r.totalNcs], ['NCs Cerradas', r.ncCerradas, '#27AE60'], ['NCs Abiertas', r.ncAbiertas, r.ncAbiertas ? '#C0392B' : '#27AE60'],
+            ['NCs Críticas', r.ncCriticas], ['Críticas cerradas', r.criticasCerradas], ['Días prom. cierre', r.diasPromedioCierre],
+        ].filter(function (x) { return x[1] != null; }).map(function (x) { return { label: x[0], value: x[1], color: x[2] }; });
+        if (items.length) body.appendChild(_kpiGrid(items));
+        if (r.factorSistemico != null) {
+            body.appendChild(_badgeSpan('Factor sistémico: ' + (r.factorSistemico ? 'Sí' : 'No'), r.factorSistemico ? '#E67E22' : '#27AE60'));
+        }
+        if (r.decisionFinal) {
+            var color = _estadoColor(r.decisionFinal);
+            var box = el('div', { className: 've-decision-box', attrs: { style: 'border-color:' + color + ';color:' + color + ';margin-top:10px;' } });
+            box.appendChild(el('div', { className: 've-decision-label', text: 'DECISIÓN FINAL' }));
+            box.appendChild(el('div', { className: 've-decision-text', text: r.decisionFinal }));
+            body.appendChild(box);
+        }
+        body.appendChild(_buildFirmasTable(sec));
+        _readOnlyNote(body);
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // hallazgos-consolidados / resumen-ejecucion-{iq,oq,pq} -- IIQ, IOQ, IPQ.
+    // En documentos reales suelen venir vacíos: el PDF los recalcula automáticamente
+    // desde la matriz de test cases del documento al generarse -- se avisa eso en vez
+    // de decir "sin hallazgos" como si fuera un hecho, que sería engañoso.
+    // ──────────────────────────────────────────────────────────────────
+    function renderHallazgosConsolidadosBody(sec, body) {
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var flat = [];
+        (Array.isArray(sec.tcs) ? sec.tcs : []).forEach(function (tc) {
+            (Array.isArray(tc.hallazgos) ? tc.hallazgos : []).forEach(function (h) {
+                flat.push({ id: h.id, severidad: h.severidad, tcTitulo: tc.titulo || h.tcRef, descripcion: h.descripcion, accion: h.accion });
+            });
+        });
+        if (!flat.length) {
+            body.appendChild(_emptyBanner('Sin hallazgos cargados acá directamente -- si el documento no trae hallazgos propios, el PDF los recolecta automáticamente desde la matriz de test cases al generarse.'));
+        } else {
+            var cols = [
+                { key: 'id', label: 'NC-ID', width: 8 },
+                { key: 'severidad', label: 'Severidad', width: 10, render: function (h) { return h.severidad ? _badgeSpan(h.severidad, _nivelColor(h.severidad)) : ''; } },
+                { key: 'tcTitulo', label: 'TC Asociado', width: 20 }, { key: 'descripcion', label: 'Descripción', width: 38 }, { key: 'accion', label: 'Acción', width: 24 },
+            ];
+            body.appendChild(_buildSmartTable(cols, flat));
+        }
+        _readOnlyNote(body);
+    }
+
+    function _renderResumenEjecucionBody(sec, body, fase) {
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var tcs = Array.isArray(sec.tcs) ? sec.tcs : [];
+        if (!tcs.length) {
+            body.appendChild(_emptyBanner('Sin datos de ejecución cargados acá -- el PDF calcula este resumen automáticamente a partir de la matriz de test cases del documento.'));
+            _readOnlyNote(body);
+            return;
+        }
+        var grupos = {};
+        tcs.forEach(function (tc) {
+            var g = tc.grupo || 'Sin grupo';
+            grupos[g] = grupos[g] || { total: 0, PASS: 0, FAIL: 0, OBS: 0, NA: 0 };
+            grupos[g].total++;
+            var e = String(tc.estado || '').toUpperCase();
+            if (/PASS/.test(e)) grupos[g].PASS++;
+            else if (/FAIL/.test(e)) grupos[g].FAIL++;
+            else if (/OBS/.test(e)) grupos[g].OBS++;
+            else grupos[g].NA++;
+        });
+        var rows = Object.keys(grupos).map(function (g) { return Object.assign({ grupo: g }, grupos[g]); });
+        var tot = rows.reduce(function (a, r) { a.total += r.total; a.PASS += r.PASS; a.FAIL += r.FAIL; a.OBS += r.OBS; a.NA += r.NA; return a; },
+            { grupo: 'TOTAL', total: 0, PASS: 0, FAIL: 0, OBS: 0, NA: 0 });
+        rows.push(tot);
+        var cols = [
+            { key: 'grupo', label: 'Grupo', width: 30 }, { key: 'total', label: 'Total', width: 10 },
+            { key: 'PASS', label: 'PASS', width: 12 }, { key: 'FAIL', label: 'FAIL', width: 12 },
+            { key: 'OBS', label: 'OBS', width: 12 }, { key: 'NA', label: 'N/A', width: 12 },
+        ];
+        body.appendChild(_buildSmartTable(cols, rows));
+        var estado = tot.FAIL > 0 ? (fase + ' NO APROBADA') : (tot.OBS > 0 ? (fase + ' APROBADA CON OBSERVACIONES') : (fase + ' APROBADA'));
+        var color = tot.FAIL > 0 ? '#C0392B' : (tot.OBS > 0 ? '#E67E22' : '#27AE60');
+        var box = el('div', { className: 've-decision-box', attrs: { style: 'border-color:' + color + ';color:' + color + ';margin-top:10px;' } });
+        box.appendChild(el('div', { className: 've-decision-text', text: estado }));
+        body.appendChild(box);
+        _readOnlyNote(body);
+    }
+    function renderResumenEjecucionIqBody(sec, body) { _renderResumenEjecucionBody(sec, body, 'IQ'); }
+    function renderResumenEjecucionOqBody(sec, body) { _renderResumenEjecucionBody(sec, body, 'OQ'); }
+    function renderResumenEjecucionPqBody(sec, body) { _renderResumenEjecucionBody(sec, body, 'PQ'); }
 
     // Tarjeta de GAP editable (tarjeta-gap y tarjeta-gap-rrm)
     function renderTarjetaGapBody(sec, body) {
