@@ -392,12 +392,14 @@
             case 'vsr-decision-final':
             case 'vsr-portada-final':        renderVsrDecisionBody(sec, body); break;
             // Tablas especializadas: intro + filas con objetos
-            case 'tabla-fmea':
             case 'tabla-norma':
             case 'tabla-trazabilidad':
             case 'tabla-componentes-ira':
             case 'tabla-alcance-piq':
             case 'aex-matriz-trazabilidad':  renderTablaConIntroBody(sec, body); break;
+            case 'tabla-fmea':               renderTablaFmeaBody(sec, body); break;
+            case 'escalas-fmea':             renderEscalasFmeaBody(sec, body); break;
+            case 'aceptacion-riesgo-residual': renderAceptacionRiesgoResidualBody(sec, body); break;
             // Tarjetas de gap editables
             case 'tarjeta-gap':
             case 'tarjeta-gap-rrm':          renderTarjetaGapBody(sec, body); break;
@@ -1102,6 +1104,156 @@
         tbl.appendChild(tbody);
         body.appendChild(el('div', { className: 've-tabla-wrap' }, [tbl]));
         body.appendChild(el('div', { className: 've-smart-note', text: 'Vista de solo lectura — editá esta sección en modo JSON para modificar filas.' }));
+    }
+
+    // BAJO/MEDIO/ALTO — mismos umbrales y colores que templates/ra.js (nivelRiesgo), para que
+    // el editor visual y el PDF final coincidan al mostrar un mismo puntaje.
+    function _nivelRiesgo(score) {
+        var n = parseInt(score, 10);
+        if (isNaN(n) || n < 1) return { nivel: '—', color: '#717D8A' };
+        if (n <= 6) return { nivel: 'BAJO', color: '#27AE60' };
+        if (n <= 14) return { nivel: 'MEDIO', color: '#E67E22' };
+        return { nivel: 'ALTO', color: '#C0392B' };
+    }
+
+    // Matriz FMEA (tabla-fmea) -- columnas fijas y conocidas (no inferidas como en
+    // renderTablaConIntroBody, que le daba el mismo ancho a "S" que a "peligro" y rompía la
+    // tabla). Mismas proporciones relativas que usa el PDF real (templates/ra.js
+    // renderTablaFmea), adaptadas a HTML. Solo lectura, como el resto de las tablas
+    // especializadas -- se edita en modo JSON.
+    function renderTablaFmeaBody(sec, body) {
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var filas = Array.isArray(sec.filas) ? sec.filas : [];
+        if (!filas.length) { body.appendChild(el('div', { className: 've-smart-empty', text: 'Sin filas.' })); return; }
+
+        var COLS = [
+            ['id', 'RA-ID', 6], ['urs', 'URS Ref.', 8], ['peligro', 'Peligro / Modo de Fallo', 24],
+            ['S', 'S', 4], ['P', 'P', 4], ['D', 'D', 4], ['ri', 'RI', 7],
+            ['control', 'Control de Mitigación', 30], ['RR', 'RR', 7],
+        ];
+        var tbl = el('table', { className: 've-tabla ve-tabla-smart ve-tabla-fmea' });
+        var colgroup = document.createElement('colgroup');
+        COLS.forEach(function (c) {
+            var col = document.createElement('col');
+            col.style.width = c[2] + '%';
+            colgroup.appendChild(col);
+        });
+        tbl.appendChild(colgroup);
+        var thead = el('thead'), headRow = el('tr');
+        COLS.forEach(function (c) { headRow.appendChild(el('th', { className: 've-th', text: c[1] })); });
+        thead.appendChild(headRow);
+        tbl.appendChild(thead);
+        var tbody = el('tbody');
+        filas.forEach(function (fila) {
+            if (fila && fila.subheader != null) {
+                var tr = el('tr');
+                tr.appendChild(el('td', { className: 've-td ve-td-subheader', attrs: { colspan: COLS.length }, text: fila.subheader }));
+                tbody.appendChild(tr);
+                return;
+            }
+            var S = parseInt(fila.S, 10) || 0, P = parseInt(fila.P, 10) || 0, D = parseInt(fila.D, 10) || 0;
+            var RI = (S > 0 && P > 0 && D > 0) ? (S * P * D) : null;
+            var tr2 = el('tr');
+            COLS.forEach(function (c) {
+                var key = c[0];
+                if (key === 'ri') {
+                    tr2.appendChild(el('td', { className: 've-td ve-fmea-score', html: _fmeaScoreHtml(RI) }));
+                    return;
+                }
+                if (key === 'RR') {
+                    var rr = fila.RR != null ? parseInt(fila.RR, 10) : null;
+                    tr2.appendChild(el('td', { className: 've-td ve-fmea-score', html: _fmeaScoreHtml(rr) }));
+                    return;
+                }
+                var v = fila[key];
+                var txt = (v === null || v === undefined) ? '' : String(v);
+                tr2.appendChild(el('td', { className: 've-td', text: txt }));
+            });
+            tbody.appendChild(tr2);
+        });
+        tbl.appendChild(tbody);
+        body.appendChild(el('div', { className: 've-tabla-wrap' }, [tbl]));
+        if (sec.notaInferior) body.appendChild(el('div', { className: 've-smart-intro', text: sec.notaInferior }));
+        body.appendChild(el('div', { className: 've-smart-note', text: 'Vista de solo lectura — editá esta sección en modo JSON para modificar filas. RI se calcula (S×P×D), no se edita acá.' }));
+    }
+
+    function _fmeaScoreHtml(score) {
+        if (score == null) return '<span class="ve-fmea-score-num">—</span>';
+        var n = _nivelRiesgo(score);
+        return '<span class="ve-fmea-score-num">' + score + '</span>'
+            + '<span class="ve-fmea-score-nivel" style="color:' + n.color + '">' + n.nivel + '</span>';
+    }
+
+    // Escalas de puntuación FMEA (escalas-fmea): 3 mini-tablas S/P/D + niveles de riesgo + nota.
+    function renderEscalasFmeaBody(sec, body) {
+        if (sec.intro) body.appendChild(el('div', { className: 've-smart-intro', text: sec.intro }));
+        var ESCALAS = [['escalaS', 'Severidad (S)'], ['escalaP', 'Probabilidad (P)'], ['escalaD', 'Detectabilidad (D)']];
+        var grid = el('div', { className: 've-escalas-grid' });
+        ESCALAS.forEach(function (pair) {
+            var arr = sec[pair[0]];
+            if (!Array.isArray(arr) || !arr.length) return;
+            var col = el('div', { className: 've-escala-col' });
+            col.appendChild(el('div', { className: 've-escala-titulo', text: pair[1] }));
+            var tbl = el('table', { className: 've-tabla ve-tabla-smart' });
+            var tbody = el('tbody');
+            arr.forEach(function (e) {
+                var tr = el('tr');
+                tr.appendChild(el('td', { className: 've-td', text: e.valor != null ? String(e.valor) : '', attrs: { style: 'width:24px;text-align:center;font-weight:700;' } }));
+                tr.appendChild(el('td', {}, [
+                    el('div', { className: 've-escala-nivel', text: e.nivel || '' }),
+                    el('div', { className: 've-escala-desc', text: e.descripcion || '' }),
+                ]));
+                tbody.appendChild(tr);
+            });
+            tbl.appendChild(tbody);
+            col.appendChild(tbl);
+            grid.appendChild(col);
+        });
+        if (grid.children.length) body.appendChild(grid);
+
+        var niveles = sec.niveles;
+        if (Array.isArray(niveles) && niveles.length) {
+            body.appendChild(el('div', { className: 've-escala-titulo', text: 'Niveles de riesgo (rango del producto)', attrs: { style: 'margin-top:14px;' } }));
+            var tbl2 = el('table', { className: 've-tabla ve-tabla-smart' });
+            var thead2 = el('thead'), hr = el('tr');
+            ['Rango', 'Nivel', 'Acción'].forEach(function (h) { hr.appendChild(el('th', { className: 've-th', text: h })); });
+            thead2.appendChild(hr);
+            tbl2.appendChild(thead2);
+            var tbody2 = el('tbody');
+            niveles.forEach(function (n) {
+                var tr = el('tr');
+                tr.appendChild(el('td', { className: 've-td', text: n.rango || '' }));
+                tr.appendChild(el('td', { className: 've-td', text: n.nivel || '' }));
+                tr.appendChild(el('td', { className: 've-td', text: n.accion || '' }));
+                tbody2.appendChild(tr);
+            });
+            tbl2.appendChild(tbody2);
+            body.appendChild(el('div', { className: 've-tabla-wrap' }, [tbl2]));
+        }
+
+        if (sec.nota) body.appendChild(el('div', { className: 've-smart-intro', text: sec.nota, attrs: { style: 'margin-top:10px;' } }));
+        body.appendChild(el('div', { className: 've-smart-note', text: 'Vista de solo lectura — editá en modo JSON para modificar esta sección.' }));
+    }
+
+    // Aceptación formal del riesgo residual (aceptacion-riesgo-residual): conclusión + lista
+    // completa de puntos (el fallback genérico solo mostraba 3 y cortaba el resto).
+    function renderAceptacionRiesgoResidualBody(sec, body) {
+        if (sec.conclusion) body.appendChild(el('div', { className: 've-smart-intro', text: sec.conclusion }));
+        var items = sec.items;
+        if (Array.isArray(items) && items.length) {
+            var ul = el('ul', { className: 've-escala-items' });
+            items.forEach(function (it) {
+                ul.appendChild(el('li', { text: typeof it === 'string' ? it : JSON.stringify(it) }));
+            });
+            body.appendChild(ul);
+        }
+        if (sec.firmas) {
+            body.appendChild(el('div', { className: 've-smart-kv' }, [
+                el('span', { className: 've-smart-key', text: 'firmas:' }),
+                el('span', { className: 've-smart-val', text: JSON.stringify(sec.firmas) }),
+            ]));
+        }
+        body.appendChild(el('div', { className: 've-smart-note', text: 'Vista de solo lectura — editá en modo JSON para modificar esta sección.' }));
     }
 
     // Tarjeta de GAP editable (tarjeta-gap y tarjeta-gap-rrm)
