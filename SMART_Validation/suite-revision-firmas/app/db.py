@@ -520,9 +520,30 @@ def _migrate_add_consent_fk(db) -> None:
       columna que ya existe -- hace falta reconstruir la tabla, mismo patrón que
       rf_review_signatures ya usó en Ronda 18 para otro cambio. Se detecta consultando
       PRAGMA foreign_key_list -- si la columna existe pero ninguna FK apunta a
-      rf_signature_consent, es el caso viejo sin arreglar."""
+      rf_signature_consent, es el caso viejo sin arreglar.
+
+    FIX (2026-09-21, hallazgo H-6 del testing E2E contra producción): el comentario
+    original de esta función afirmaba que "la rama Postgres ya declara consent_id con FK
+    en _migrate_signature_consent_history" -- eso es falso, esa función solo reconstruye
+    la propia tabla rf_signature_consent, nunca toca rf_review_signatures ni
+    rf_approval_signers. Con el `return` temprano de acá, ninguna base Postgres que ya
+    tuviera esas dos tablas creadas ANTES de que consent_id existiera en schema.sql
+    llegaba a tener la columna -- el INSERT de sign_review/sign_approval fallaba con
+    "column consent_id does not exist" -> 500 sin capturar. No hace falta el camino de
+    reconstrucción de tabla que usa SQLite: en Postgres un ALTER TABLE ADD COLUMN con
+    REFERENCES inline funciona directo aunque la tabla ya tenga filas."""
     if USE_PG:
-        return  # la rama Postgres ya declara consent_id con FK en _migrate_signature_consent_history
+        for tabla in ("rf_review_signatures", "rf_approval_signers"):
+            has_col = db.execute(
+                "SELECT 1 FROM information_schema.columns "
+                "WHERE table_name=? AND column_name='consent_id'",
+                (tabla,),
+            ).fetchone()
+            if not has_col:
+                db.execute(
+                    f"ALTER TABLE {tabla} ADD COLUMN consent_id INTEGER REFERENCES rf_signature_consent(id)"
+                )
+        return
 
     def _tiene_fk_a_consent(tabla: str) -> bool:
         return any(fk["table"] == "rf_signature_consent" for fk in db.execute(f"PRAGMA foreign_key_list({tabla})").fetchall())
