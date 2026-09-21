@@ -129,10 +129,6 @@ Para un NCR completo (estado final), las 4 secciones van con `estado: "aprobada"
 
 8. **REFERENCIAS** (`tipo: "tabla"`, `["Documento", "Título"]`, widths `[180, 275]`).
 
-9. **FIRMAS CONSOLIDADAS DEL PROCESO** (`tipo: "tabla-firmas-final"`)
-   - `rolesPlaceholder: ["Identificador NC (Ejecutor)", "Process Owner", "Responsable CAPA", "Aprobador (Gerente QA)"]`.
-   - `nota`: ej. `"NCR cerrado el DD/MM/AAAA — sistema apto para <fase siguiente>."`
-
 ## Principio CAPA — el más importante del NCR
 
 Cada NC se gestiona con **DOS acciones distintas**:

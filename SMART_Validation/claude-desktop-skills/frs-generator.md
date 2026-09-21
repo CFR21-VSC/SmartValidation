@@ -410,20 +410,6 @@ Tabla 2 columnas (`Código / Referencia | Título`). Incluir SIEMPRE:
 - 21 CFR Part 11
 - EU Annex 11
 
-### 13. FIRMAS DE EJECUCIÓN (`tipo: "tabla-firmas-final"`)
-
-> **Nota sobre numeración**: la numeración mostrada arriba (1-13) corresponde al modo **EXTENDIDO**. En modo **ABSTRACTO** se omite la sección 7 (Reglas de Negocio y Lógica Funcional) y todas las posteriores se renumeran automáticamente (Interfaz pasa a 7, Performance a 8, etc.). El renderer numera por índice — no es necesario forzar números en el JSON.
-
-**Siempre incluir**, al final del documento. Roles típicos del FRS:
-- Ejecutor (Validador)
-- Revisor Técnico (IT)
-- Revisor (Process Owner)
-- Aprobador (Jefe de Validaciones)
-- Aprobador (Gerente QA)
-- Aprobador (Vendor — confirmación técnica) [opcional, recomendado en GAMP 4]
-
----
-
 ## Reglas de contenido
 
 ### Cómo escribir un buen FRS

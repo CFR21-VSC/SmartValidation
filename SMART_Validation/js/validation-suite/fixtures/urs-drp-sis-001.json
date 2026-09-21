@@ -2149,19 +2149,6 @@
         ]
       ],
       "numero": 12
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS DE EJECUCIÓN",
-      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de este URS. La trazabilidad legal queda registrada en el log adjunto al paquete de validación.",
-      "firmas": [],
-      "rolesPlaceholder": [
-        "Ejecutor (Validador)",
-        "Revisor (Process Owner)",
-        "Aprobador (Gerente QA)"
-      ],
-      "nota": "Documento sujeto a firma electrónica. La firma manuscrita en este recuadro solo aplica como respaldo físico cuando no es viable la firma digital.",
-      "numero": 13
     }
   ]
 }

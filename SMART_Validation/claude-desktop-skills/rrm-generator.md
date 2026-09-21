@@ -246,12 +246,6 @@ Tabla 3 columnas: `Ref. | Documento | Descripción`. Numerar referencias `[1]`, 
 - Documentos del paquete: HLRA, URS, VP, RA, IRA.
 - Documentación fuente: MAN, SOPs.
 
-### 11. FIRMAS DE EJECUCIÓN (`tipo: "tabla-firmas-final"`)
-
-Estándar 4 firmantes. La `nota` debe mencionar que la aceptación de GAPs Mayores requiere firma formal de Process Owner + Gerente QA.
-
----
-
 ## Reglas de contenido
 
 ### Cómo escribir un buen requerimiento mapeado

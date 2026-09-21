@@ -29,14 +29,40 @@
   },
   "controlCambios": [],
   "matrizAprobaciones": [
-    { "rol": "Redactor (Validador)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Revisor (Process Owner)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+    {
+      "rol": "Redactor (Validador)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Jefe de Validaciones)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    }
   ],
   "trazabilidad": {
-    "recibeDe": ["HLRA", "RA"],
-    "alimentaA": ["PIQ", "MTR"]
+    "recibeDe": [
+      "HLRA",
+      "RA"
+    ],
+    "alimentaA": [
+      "PIQ",
+      "MTR"
+    ]
   },
   "secciones": [
     {
@@ -48,24 +74,72 @@
       "tipo": "escalas-ira",
       "titulo": "METODOLOGÍA: IRA-Score = P × G × I",
       "escalaP": [
-        { "valor": 1, "nivel": "Bajo", "descripcion": "Sin vinculación directa a proceso GxP." },
-        { "valor": 2, "nivel": "Medio", "descripcion": "Soporte indirecto a proceso GxP." },
-        { "valor": 3, "nivel": "Alto", "descripcion": "Directamente involucrado en proceso GxP crítico." }
+        {
+          "valor": 1,
+          "nivel": "Bajo",
+          "descripcion": "Sin vinculación directa a proceso GxP."
+        },
+        {
+          "valor": 2,
+          "nivel": "Medio",
+          "descripcion": "Soporte indirecto a proceso GxP."
+        },
+        {
+          "valor": 3,
+          "nivel": "Alto",
+          "descripcion": "Directamente involucrado en proceso GxP crítico."
+        }
       ],
       "escalaG": [
-        { "valor": 1, "nivel": "Baja", "descripcion": "Fallo no afecta continuidad del servicio." },
-        { "valor": 2, "nivel": "Media", "descripcion": "Fallo interrumpe parcialmente el servicio." },
-        { "valor": 3, "nivel": "Alta", "descripcion": "Fallo total: servicio no disponible o datos comprometidos." }
+        {
+          "valor": 1,
+          "nivel": "Baja",
+          "descripcion": "Fallo no afecta continuidad del servicio."
+        },
+        {
+          "valor": 2,
+          "nivel": "Media",
+          "descripcion": "Fallo interrumpe parcialmente el servicio."
+        },
+        {
+          "valor": 3,
+          "nivel": "Alta",
+          "descripcion": "Fallo total: servicio no disponible o datos comprometidos."
+        }
       ],
       "escalaI": [
-        { "valor": 1, "nivel": "Baja", "descripcion": "Fallo no compromete integridad de datos GxP." },
-        { "valor": 2, "nivel": "Media", "descripcion": "Fallo puede comprometer integridad de forma recuperable." },
-        { "valor": 3, "nivel": "Alta", "descripcion": "Fallo compromete irreversiblemente datos GxP." }
+        {
+          "valor": 1,
+          "nivel": "Baja",
+          "descripcion": "Fallo no compromete integridad de datos GxP."
+        },
+        {
+          "valor": 2,
+          "nivel": "Media",
+          "descripcion": "Fallo puede comprometer integridad de forma recuperable."
+        },
+        {
+          "valor": 3,
+          "nivel": "Alta",
+          "descripcion": "Fallo compromete irreversiblemente datos GxP."
+        }
       ],
       "niveles": [
-        { "rango": "1-4", "nivel": "BAJO", "verificacion": "Verificación Básica" },
-        { "rango": "5-8", "nivel": "MEDIO", "verificacion": "Verificación Estándar" },
-        { "rango": "9-27", "nivel": "ALTO", "verificacion": "Verificación Exhaustiva" }
+        {
+          "rango": "1-4",
+          "nivel": "BAJO",
+          "verificacion": "Verificación Básica"
+        },
+        {
+          "rango": "5-8",
+          "nivel": "MEDIO",
+          "verificacion": "Verificación Estándar"
+        },
+        {
+          "rango": "9-27",
+          "nivel": "ALTO",
+          "verificacion": "Verificación Exhaustiva"
+        }
       ],
       "nota": "El IRA-Score determina la profundidad del IQ (no la mitigación). La Gravedad (G) es propiedad inherente del componente: nunca se reduce."
     },
@@ -74,12 +148,18 @@
       "titulo": "MATRIZ DE RIESGOS POR COMPONENTE",
       "intro": "",
       "filas": [
-        { "subheader": "CATEGORÍA 1 — SOFTWARE DE APLICACIÓN" },
         {
-          "id": "COMP-SW-01", "tipo": "Software",
+          "subheader": "CATEGORÍA 1 — SOFTWARE DE APLICACIÓN"
+        },
+        {
+          "id": "COMP-SW-01",
+          "tipo": "Software",
           "componente": "",
           "descripcion": "",
-          "P": 0, "G": 0, "I": 0, "tcIq": ""
+          "P": 0,
+          "G": 0,
+          "I": 0,
+          "tcIq": ""
         }
       ]
     },
@@ -87,8 +167,20 @@
       "tipo": "tabla",
       "titulo": "RESUMEN DE RESULTADOS",
       "intro": "",
-      "columnas": ["Categoría", "Total", "IRA ALTO (9-27)", "IRA MEDIO (5-8)", "IRA BAJO (1-4)"],
-      "widths": [165, 60, 80, 80, 70],
+      "columnas": [
+        "Categoría",
+        "Total",
+        "IRA ALTO (9-27)",
+        "IRA MEDIO (5-8)",
+        "IRA BAJO (1-4)"
+      ],
+      "widths": [
+        165,
+        60,
+        80,
+        80,
+        70
+      ],
       "filas": []
     },
     {
@@ -110,22 +202,15 @@
     {
       "tipo": "tabla",
       "titulo": "REFERENCIAS",
-      "columnas": ["Código", "Título"],
-      "widths": [180, 275],
-      "filas": []
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS DE EJECUCIÓN",
-      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal del Análisis de Riesgos de Componentes (IRA).",
-      "firmas": [],
-      "rolesPlaceholder": [
-        "Redactor (Validador)",
-        "Revisor (Process Owner)",
-        "Aprobador (Jefe de Validaciones)",
-        "Aprobador (Gerente QA)"
+      "columnas": [
+        "Código",
+        "Título"
       ],
-      "nota": ""
+      "widths": [
+        180,
+        275
+      ],
+      "filas": []
     }
   ]
 }

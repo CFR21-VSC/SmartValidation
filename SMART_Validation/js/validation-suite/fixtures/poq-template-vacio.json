@@ -31,17 +31,51 @@
   },
   "controlCambios": [],
   "matrizAprobaciones": [
-    { "rol": "Redactor (Validador)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Revisor (Process Owner)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+    {
+      "rol": "Redactor (Validador)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Jefe de Validaciones)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    }
   ],
   "trazabilidad": {
-    "recibeDe": ["URS", "RA", "RRM", "MTR", "PIQ"],
-    "alimentaA": ["IOQ", "ROQ", "PPQ"]
+    "recibeDe": [
+      "URS",
+      "RA",
+      "RRM",
+      "MTR",
+      "PIQ"
+    ],
+    "alimentaA": [
+      "IOQ",
+      "ROQ",
+      "PPQ"
+    ]
   },
   "secciones": [
-    { "tipo": "texto", "titulo": "PROPÓSITO Y OBJETIVO", "bloques": [] },
+    {
+      "tipo": "texto",
+      "titulo": "PROPÓSITO Y OBJETIVO",
+      "bloques": []
+    },
     {
       "tipo": "lista-incluido-excluido",
       "titulo": "ALCANCE",
@@ -53,8 +87,14 @@
     {
       "tipo": "tabla",
       "titulo": "DOCUMENTOS DE REFERENCIA",
-      "columnas": ["Documento", "Título y Versión"],
-      "widths": [180, 275],
+      "columnas": [
+        "Documento",
+        "Título y Versión"
+      ],
+      "widths": [
+        180,
+        275
+      ],
       "filas": []
     },
     {
@@ -62,18 +102,43 @@
       "titulo": "CONDICIONES DE EJECUCIÓN",
       "labelWidth": 165,
       "filas": [
-        { "campo": "Ambiente", "valor": "" },
-        { "campo": "Pre-requisitos", "valor": "" },
-        { "campo": "Herramientas", "valor": "" },
-        { "campo": "Cuentas de prueba", "valor": "" },
-        { "campo": "Criterio global", "valor": "100% de TCs con resultado PASS. TCs negativos: PASS si el sistema rechaza correctamente. Cualquier FAIL requiere NC documentada y CAPA antes de aprobar OQ.", "boldValor": true, "colorValor": "primary" }
+        {
+          "campo": "Ambiente",
+          "valor": ""
+        },
+        {
+          "campo": "Pre-requisitos",
+          "valor": ""
+        },
+        {
+          "campo": "Herramientas",
+          "valor": ""
+        },
+        {
+          "campo": "Cuentas de prueba",
+          "valor": ""
+        },
+        {
+          "campo": "Criterio global",
+          "valor": "100% de TCs con resultado PASS. TCs negativos: PASS si el sistema rechaza correctamente. Cualquier FAIL requiere NC documentada y CAPA antes de aprobar OQ.",
+          "boldValor": true,
+          "colorValor": "primary"
+        }
       ]
     },
     {
       "tipo": "matriz-tc",
       "titulo": "RESUMEN DE TEST CASES OQ",
       "intro": "Listado consolidado de Test Cases. Los TCs negativos (verifican rechazo correcto del sistema) están marcados con la etiqueta NEG.",
-      "columnasVisibles": ["tcId", "titulo", "grupo", "tipoTC", "raScore", "nivel", "ursVinculados"],
+      "columnasVisibles": [
+        "tcId",
+        "titulo",
+        "grupo",
+        "tipoTC",
+        "raScore",
+        "nivel",
+        "ursVinculados"
+      ],
       "tcs": []
     },
     {
@@ -84,26 +149,23 @@
       "schemaModo": "procedimiento",
       "tcs": []
     },
-    { "tipo": "texto", "titulo": "JUSTIFICACIÓN DE PROPORCIONALIDAD (CRITICAL THINKING)", "bloques": [] },
+    {
+      "tipo": "texto",
+      "titulo": "JUSTIFICACIÓN DE PROPORCIONALIDAD (CRITICAL THINKING)",
+      "bloques": []
+    },
     {
       "tipo": "tabla",
       "titulo": "REFERENCIAS",
-      "columnas": ["Documento", "Título"],
-      "widths": [180, 275],
-      "filas": []
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS DE EJECUCIÓN",
-      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal del Protocolo de Calificación Operacional.",
-      "firmas": [],
-      "rolesPlaceholder": [
-        "Redactor (Validador)",
-        "Revisor (Process Owner)",
-        "Aprobador (Jefe de Validaciones)",
-        "Aprobador (Gerente QA)"
+      "columnas": [
+        "Documento",
+        "Título"
       ],
-      "nota": ""
+      "widths": [
+        180,
+        275
+      ],
+      "filas": []
     }
   ]
 }

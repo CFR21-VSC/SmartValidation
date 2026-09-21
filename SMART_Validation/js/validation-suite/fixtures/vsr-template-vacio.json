@@ -30,14 +30,42 @@
   },
   "controlCambios": [],
   "matrizAprobaciones": [
-    { "rol": "Sponsor", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Director Técnico", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Gerente QA", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Process Owner", "nombre": "", "iniciales": "", "fecha": "" }
+    {
+      "rol": "Sponsor",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Director Técnico",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Gerente QA",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Process Owner",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    }
   ],
   "trazabilidad": {
-    "recibeDe": ["RIQ", "ROQ", "RPQ", "NCR"],
-    "alimentaA": ["Sistema productivo GxP", "Auditoría regulatoria"]
+    "recibeDe": [
+      "RIQ",
+      "ROQ",
+      "RPQ",
+      "NCR"
+    ],
+    "alimentaA": [
+      "Sistema productivo GxP",
+      "Auditoría regulatoria"
+    ]
   },
   "secciones": [
     {
@@ -51,8 +79,12 @@
       "tipo": "texto",
       "titulo": "PROPÓSITO Y ALCANCE",
       "bloques": [
-        { "texto": "El presente Reporte Maestro de Validación (VSR) constituye el documento ejecutivo final del ciclo de validación del sistema." },
-        { "texto": "Su propósito es consolidar en un único documento toda la evidencia del ciclo, permitir lectura ejecutiva por auditor regulatorio y registrar la decisión formal de validación." }
+        {
+          "texto": "El presente Reporte Maestro de Validación (VSR) constituye el documento ejecutivo final del ciclo de validación del sistema."
+        },
+        {
+          "texto": "Su propósito es consolidar en un único documento toda la evidencia del ciclo, permitir lectura ejecutiva por auditor regulatorio y registrar la decisión formal de validación."
+        }
       ]
     },
     {
@@ -60,13 +92,38 @@
       "titulo": "IDENTIFICACIÓN DEL SISTEMA VALIDADO",
       "labelWidth": 165,
       "filas": [
-        { "campo": "Sistema", "valor": "", "boldValor": true, "colorValor": "primary" },
-        { "campo": "Cliente", "valor": "" },
-        { "campo": "URL Productiva", "valor": "" },
-        { "campo": "Categoría GAMP", "valor": "" },
-        { "campo": "Código del paquete", "valor": "" },
-        { "campo": "Período de validación", "valor": "" },
-        { "campo": "Decisión global", "valor": "PENDIENTE", "boldValor": true, "colorValor": "accent" }
+        {
+          "campo": "Sistema",
+          "valor": "",
+          "boldValor": true,
+          "colorValor": "primary"
+        },
+        {
+          "campo": "Cliente",
+          "valor": ""
+        },
+        {
+          "campo": "URL Productiva",
+          "valor": ""
+        },
+        {
+          "campo": "Categoría GAMP",
+          "valor": ""
+        },
+        {
+          "campo": "Código del paquete",
+          "valor": ""
+        },
+        {
+          "campo": "Período de validación",
+          "valor": ""
+        },
+        {
+          "campo": "Decisión global",
+          "valor": "PENDIENTE",
+          "boldValor": true,
+          "colorValor": "accent"
+        }
       ]
     },
     {
@@ -74,9 +131,19 @@
       "titulo": "RESUMEN EJECUTIVO DEL CICLO",
       "intro": "Indicadores consolidados del ciclo completo. Métricas auto-calculadas desde el paquete cargado.",
       "kpis": {
-        "totalTcsEjecutados": null, "pass": null, "fail": null, "obs": null, "na": null,
-        "cobertura": null, "hallazgosTotal": null, "hallazgosCerrados": null, "hallazgosAbiertos": null,
-        "criticasAbiertas": null, "negativos": null, "negativosFail": null, "estadoGlobal": ""
+        "totalTcsEjecutados": null,
+        "pass": null,
+        "fail": null,
+        "obs": null,
+        "na": null,
+        "cobertura": null,
+        "hallazgosTotal": null,
+        "hallazgosCerrados": null,
+        "hallazgosAbiertos": null,
+        "criticasAbiertas": null,
+        "negativos": null,
+        "negativosFail": null,
+        "estadoGlobal": ""
       },
       "fundamento": ""
     },
@@ -91,10 +158,30 @@
       "titulo": "CRONOLOGÍA DE FASES DEL CICLO",
       "intro": "Líneas de cierre de cada fase del ciclo.",
       "fases": [
-        { "codigo": "IQ", "label": "Calificación de Instalación", "cierre": "", "estado": "pendiente" },
-        { "codigo": "OQ", "label": "Calificación Operacional", "cierre": "", "estado": "pendiente" },
-        { "codigo": "PQ", "label": "Calificación de Performance", "cierre": "", "estado": "pendiente" },
-        { "codigo": "VSR", "label": "Validación Completa", "cierre": "", "estado": "pendiente" }
+        {
+          "codigo": "IQ",
+          "label": "Calificación de Instalación",
+          "cierre": "",
+          "estado": "pendiente"
+        },
+        {
+          "codigo": "OQ",
+          "label": "Calificación Operacional",
+          "cierre": "",
+          "estado": "pendiente"
+        },
+        {
+          "codigo": "PQ",
+          "label": "Calificación de Performance",
+          "cierre": "",
+          "estado": "pendiente"
+        },
+        {
+          "codigo": "VSR",
+          "label": "Validación Completa",
+          "cierre": "",
+          "estado": "pendiente"
+        }
       ]
     },
     {
@@ -113,17 +200,15 @@
     {
       "tipo": "tabla",
       "titulo": "REFERENCIAS NORMATIVAS",
-      "columnas": ["Documento", "Título"],
-      "widths": [180, 275],
+      "columnas": [
+        "Documento",
+        "Título"
+      ],
+      "widths": [
+        180,
+        275
+      ],
       "filas": []
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS EJECUTIVAS DE VALIDACIÓN",
-      "intro": "Firmas ejecutivas finales. Sponsor, Director Técnico y Gerente QA obligatorios.",
-      "firmas": [],
-      "rolesPlaceholder": ["Sponsor", "Director Técnico", "Gerente QA", "Process Owner"],
-      "nota": ""
     }
   ]
 }

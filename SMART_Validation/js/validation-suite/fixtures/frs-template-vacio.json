@@ -30,15 +30,46 @@
   },
   "controlCambios": [],
   "matrizAprobaciones": [
-    { "rol": "Redactor (Validador)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Revisor (Process Owner)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Revisor Técnico (IT)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+    {
+      "rol": "Redactor (Validador)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Revisor Técnico (IT)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Jefe de Validaciones)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    }
   ],
   "trazabilidad": {
-    "recibeDe": ["URS"],
-    "alimentaA": ["DS", "POQ", "MTR"]
+    "recibeDe": [
+      "URS"
+    ],
+    "alimentaA": [
+      "DS",
+      "POQ",
+      "MTR"
+    ]
   },
   "secciones": [
     {
@@ -57,15 +88,27 @@
     {
       "tipo": "tabla",
       "titulo": "RESPONSABILIDADES",
-      "columnas": ["Rol", "Responsabilidad en este FRS"],
-      "widths": [160, 295],
+      "columnas": [
+        "Rol",
+        "Responsabilidad en este FRS"
+      ],
+      "widths": [
+        160,
+        295
+      ],
       "filas": []
     },
     {
       "tipo": "tabla",
       "titulo": "DEFINICIONES",
-      "columnas": ["Término", "Definición"],
-      "widths": [125, 330],
+      "columnas": [
+        "Término",
+        "Definición"
+      ],
+      "widths": [
+        125,
+        330
+      ],
       "filas": []
     },
     {
@@ -80,8 +123,20 @@
       "titulo": "REQUERIMIENTOS FUNCIONALES",
       "intro": "Cada FRS describe una función técnica específica del sistema. Toda funcionalidad listada está soportada por la configuración contratada y referenciada al URS de origen.",
       "compact": true,
-      "columnas": ["FRS-ID", "URS Origen", "El sistema implementará...", "Tipo", "Criticidad"],
-      "widths": [50, 70, 230, 30, 75],
+      "columnas": [
+        "FRS-ID",
+        "URS Origen",
+        "El sistema implementará...",
+        "Tipo",
+        "Criticidad"
+      ],
+      "widths": [
+        50,
+        70,
+        230,
+        30,
+        75
+      ],
       "filas": []
     },
     {
@@ -105,53 +160,81 @@
       "titulo": "REQUERIMIENTOS DE INTERFAZ",
       "intro": "Interfaces externas del sistema. Cada interfaz tiene FRS técnicos asociados sobre protocolo, frecuencia, manejo de errores y trazabilidad.",
       "compact": true,
-      "columnas": ["FRS-IF-ID", "URS Origen", "Interfaz", "Protocolo", "Criticidad"],
-      "widths": [60, 70, 175, 80, 70],
+      "columnas": [
+        "FRS-IF-ID",
+        "URS Origen",
+        "Interfaz",
+        "Protocolo",
+        "Criticidad"
+      ],
+      "widths": [
+        60,
+        70,
+        175,
+        80,
+        70
+      ],
       "filas": []
     },
     {
       "tipo": "tabla",
       "titulo": "REQUERIMIENTOS DE PERFORMANCE",
       "intro": "Cuantificación de tiempos de respuesta y capacidad esperada del sistema en condiciones operativas normales.",
-      "columnas": ["Métrica", "Objetivo", "Justificación / Origen"],
-      "widths": [165, 120, 170],
+      "columnas": [
+        "Métrica",
+        "Objetivo",
+        "Justificación / Origen"
+      ],
+      "widths": [
+        165,
+        120,
+        170
+      ],
       "filas": []
     },
     {
       "tipo": "tabla",
       "titulo": "MANEJO DE ERRORES Y EXCEPCIONES",
       "intro": "Comportamiento esperado del sistema ante condiciones de error.",
-      "columnas": ["Tipo de error", "Comportamiento esperado", "Notificación"],
-      "widths": [140, 200, 115],
+      "columnas": [
+        "Tipo de error",
+        "Comportamiento esperado",
+        "Notificación"
+      ],
+      "widths": [
+        140,
+        200,
+        115
+      ],
       "filas": []
     },
     {
       "tipo": "tabla",
       "titulo": "CRITERIOS DE ACEPTACIÓN DEL FRS",
-      "columnas": ["#", "Criterio", "Verificación"],
-      "widths": [25, 290, 140],
+      "columnas": [
+        "#",
+        "Criterio",
+        "Verificación"
+      ],
+      "widths": [
+        25,
+        290,
+        140
+      ],
       "filas": []
     },
     {
       "tipo": "tabla",
       "titulo": "REFERENCIAS",
-      "columnas": ["Código / Referencia", "Título"],
-      "widths": [180, 275],
-      "filas": []
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS DE EJECUCIÓN",
-      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de este FRS.",
-      "firmas": [],
-      "rolesPlaceholder": [
-        "Ejecutor (Validador)",
-        "Revisor Técnico (IT)",
-        "Revisor (Process Owner)",
-        "Aprobador (Jefe de Validaciones)",
-        "Aprobador (Gerente QA)"
+      "columnas": [
+        "Código / Referencia",
+        "Título"
       ],
-      "nota": ""
+      "widths": [
+        180,
+        275
+      ],
+      "filas": []
     }
   ]
 }

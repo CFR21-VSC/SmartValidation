@@ -436,56 +436,6 @@
           "Acciones correctivas — referencia metodológica de CAPA"
         ]
       ]
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS EJECUTIVAS DE VALIDACIÓN",
-      "intro": "Firmas ejecutivas finales del proceso de validación. Sponsor, Director Técnico y Gerente QA son obligatorios. La firma del Process Owner certifica la operación del sistema.",
-      "firmas": [
-        {
-          "rol": "Sponsor",
-          "nombre": "Ana Pérez",
-          "iniciales": "AP",
-          "fecha": "20/05/2026",
-          "_signedBy": "person_AP_001",
-          "_signedAt": "2026-05-20T12:00:00.000Z",
-          "_signatureHashRef": "158A323A7BA4"
-        },
-        {
-          "rol": "Director Técnico",
-          "nombre": "Carlos Rodríguez",
-          "iniciales": "CR",
-          "fecha": "20/05/2026",
-          "_signedBy": "person_CR_001",
-          "_signedAt": "2026-05-20T12:00:00.000Z",
-          "_signatureHashRef": "977817F7CC41"
-        },
-        {
-          "rol": "Gerente QA",
-          "nombre": "Ana Pérez",
-          "iniciales": "AP",
-          "fecha": "20/05/2026",
-          "_signedBy": "person_AP_001",
-          "_signedAt": "2026-05-20T12:00:00.000Z",
-          "_signatureHashRef": "158A323A7BA4"
-        },
-        {
-          "rol": "Process Owner",
-          "nombre": "Carlos Rodríguez",
-          "iniciales": "CR",
-          "fecha": "20/05/2026",
-          "_signedBy": "person_CR_001",
-          "_signedAt": "2026-05-20T12:00:00.000Z",
-          "_signatureHashRef": "977817F7CC41"
-        }
-      ],
-      "rolesPlaceholder": [
-        "Sponsor",
-        "Director Técnico",
-        "Gerente QA",
-        "Process Owner"
-      ],
-      "nota": "Sistema VALIDADO en estado APROBADO. Documento de cierre del ciclo. Próxima revalidación: 20/05/2027."
     }
   ]
 }

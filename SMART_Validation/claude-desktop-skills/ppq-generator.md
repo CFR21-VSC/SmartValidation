@@ -147,7 +147,6 @@ El PQ verifica que el sistema **funciona en su totalidad bajo condiciones de uso
 6. **TEST CASES — PERFORMANCE QUALIFICATION** (`tipo: "tabla-test-case"`) — `agruparPorGrupo: true`, `schemaModo: "procedimiento"`.
 7. **JUSTIFICACIÓN DE PROPORCIONALIDAD** (`tipo: "texto"`) — distribución por nivel, cobertura escenarios, justificación de TCs negativos.
 8. **REFERENCIAS** (`tipo: "tabla"`).
-9. **FIRMAS DE EJECUCIÓN** (`tipo: "tabla-firmas-final"`).
 
 ## Cantidad típica de TCs PQ por sistema
 

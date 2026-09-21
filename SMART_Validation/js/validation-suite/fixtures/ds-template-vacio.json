@@ -29,16 +29,53 @@
   },
   "controlCambios": [],
   "matrizAprobaciones": [
-    { "rol": "Redactor (Validador)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Arquitecto Vendor", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Revisor Técnico (IT)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Revisor (Process Owner)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+    {
+      "rol": "Redactor (Validador)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Arquitecto Vendor",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Revisor Técnico (IT)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Jefe de Validaciones)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    }
   ],
   "trazabilidad": {
-    "recibeDe": ["FRS", "URS"],
-    "alimentaA": ["IIQ", "POQ", "MTR"]
+    "recibeDe": [
+      "FRS",
+      "URS"
+    ],
+    "alimentaA": [
+      "IIQ",
+      "POQ",
+      "MTR"
+    ]
   },
   "secciones": [
     {
@@ -57,15 +94,27 @@
     {
       "tipo": "tabla",
       "titulo": "RESPONSABILIDADES",
-      "columnas": ["Rol", "Responsabilidad en este DS"],
-      "widths": [160, 295],
+      "columnas": [
+        "Rol",
+        "Responsabilidad en este DS"
+      ],
+      "widths": [
+        160,
+        295
+      ],
       "filas": []
     },
     {
       "tipo": "tabla",
       "titulo": "DEFINICIONES",
-      "columnas": ["Término", "Definición"],
-      "widths": [125, 330],
+      "columnas": [
+        "Término",
+        "Definición"
+      ],
+      "widths": [
+        125,
+        330
+      ],
       "filas": []
     },
     {
@@ -73,10 +122,30 @@
       "titulo": "ARQUITECTURA DE ALTO NIVEL",
       "intro": "",
       "capas": [
-        { "nombre": "Capa de Presentación", "tecnologia": "", "color": "primary", "componentes": [] },
-        { "nombre": "Capa de Aplicación", "tecnologia": "", "color": "secondary", "componentes": [] },
-        { "nombre": "Capa de Datos", "tecnologia": "", "color": "accent", "componentes": [] },
-        { "nombre": "Capa de Infraestructura", "tecnologia": "", "color": "#5C7080", "componentes": [] }
+        {
+          "nombre": "Capa de Presentación",
+          "tecnologia": "",
+          "color": "primary",
+          "componentes": []
+        },
+        {
+          "nombre": "Capa de Aplicación",
+          "tecnologia": "",
+          "color": "secondary",
+          "componentes": []
+        },
+        {
+          "nombre": "Capa de Datos",
+          "tecnologia": "",
+          "color": "accent",
+          "componentes": []
+        },
+        {
+          "nombre": "Capa de Infraestructura",
+          "tecnologia": "",
+          "color": "#5C7080",
+          "componentes": []
+        }
       ],
       "nota": ""
     },
@@ -85,8 +154,18 @@
       "titulo": "COMPONENTES DEL SISTEMA",
       "intro": "Detalle de cada componente principal del sistema, su propósito, FRS asociados y configuración aplicable.",
       "compact": true,
-      "columnas": ["Componente", "Propósito", "FRS asociados", "Configuración"],
-      "widths": [115, 145, 90, 105],
+      "columnas": [
+        "Componente",
+        "Propósito",
+        "FRS asociados",
+        "Configuración"
+      ],
+      "widths": [
+        115,
+        145,
+        90,
+        105
+      ],
       "filas": []
     },
     {
@@ -94,8 +173,20 @@
       "titulo": "DISEÑO DE INTERFAZ TÉCNICA",
       "intro": "Especificación técnica de cada interfaz externa: endpoint, frecuencia, autenticación, formato de payload y manejo de errores.",
       "compact": true,
-      "columnas": ["FRS-IF", "Endpoint / Mecanismo", "Frecuencia", "Auth", "Manejo de fallos"],
-      "widths": [55, 165, 85, 60, 90],
+      "columnas": [
+        "FRS-IF",
+        "Endpoint / Mecanismo",
+        "Frecuencia",
+        "Auth",
+        "Manejo de fallos"
+      ],
+      "widths": [
+        55,
+        165,
+        85,
+        60,
+        90
+      ],
       "filas": []
     },
     {
@@ -103,24 +194,48 @@
       "titulo": "MODELO DE DATOS — TABLAS GxP CRÍTICAS",
       "intro": "Tablas con relevancia GxP donde se aplica audit trail automático, integridad referencial y replicación síncrona.",
       "compact": true,
-      "columnas": ["Tabla", "Propósito", "Audit", "Replicación"],
-      "widths": [120, 195, 60, 80],
+      "columnas": [
+        "Tabla",
+        "Propósito",
+        "Audit",
+        "Replicación"
+      ],
+      "widths": [
+        120,
+        195,
+        60,
+        80
+      ],
       "filas": []
     },
     {
       "tipo": "tabla",
       "titulo": "DISEÑO DE SEGURIDAD TÉCNICA",
       "intro": "Decisiones técnicas para implementación de los FRS de seguridad y compliance.",
-      "columnas": ["Requerimiento", "Implementación técnica", "FRS"],
-      "widths": [125, 235, 95],
+      "columnas": [
+        "Requerimiento",
+        "Implementación técnica",
+        "FRS"
+      ],
+      "widths": [
+        125,
+        235,
+        95
+      ],
       "filas": []
     },
     {
       "tipo": "tabla",
       "titulo": "CONFIGURACIÓN GxP DEL CLIENTE",
       "intro": "Parámetros y recursos configurados específicamente para el cliente.",
-      "columnas": ["Categoría", "Configuración aplicable al cliente"],
-      "widths": [140, 315],
+      "columnas": [
+        "Categoría",
+        "Configuración aplicable al cliente"
+      ],
+      "widths": [
+        140,
+        315
+      ],
       "filas": []
     },
     {
@@ -131,24 +246,15 @@
     {
       "tipo": "tabla",
       "titulo": "REFERENCIAS",
-      "columnas": ["Código / Referencia", "Título"],
-      "widths": [180, 275],
-      "filas": []
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS DE EJECUCIÓN",
-      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de este DS.",
-      "firmas": [],
-      "rolesPlaceholder": [
-        "Ejecutor (Validador)",
-        "Arquitecto (Vendor)",
-        "Revisor Técnico (IT)",
-        "Revisor (Process Owner)",
-        "Aprobador (Jefe de Validaciones)",
-        "Aprobador (Gerente QA)"
+      "columnas": [
+        "Código / Referencia",
+        "Título"
       ],
-      "nota": ""
+      "widths": [
+        180,
+        275
+      ],
+      "filas": []
     }
   ]
 }

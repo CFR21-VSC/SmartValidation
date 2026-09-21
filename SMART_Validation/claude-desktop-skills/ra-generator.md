@@ -283,29 +283,6 @@ Tabla 2 columnas (`Código / Referencia | Título`). Incluir SIEMPRE:
 - ANMAT 4159/2023 Anexo VI
 - 21 CFR Part 11
 
-### 8. FIRMAS DE EJECUCIÓN (`tipo: "tabla-firmas-final"`) — OBLIGATORIA
-
-**No confundir con la Aceptación del Riesgo Residual (Sección 6).** Son dos tablas distintas:
-- **Sección 6 (`aceptacion-riesgo-residual`)**: 2 firmas específicas (PO + Gerente QA) que aceptan formalmente el RR del análisis FMEA.
-- **Sección 8 (`tabla-firmas-final`)**: 4 firmas estándar del documento (Validador, PO, Jefe Validaciones, Gerente QA) que aprueban el documento completo.
-
-```json
-{
-  "tipo": "tabla-firmas-final",
-  "titulo": "FIRMAS DE EJECUCIÓN",
-  "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal del Análisis de Riesgos Operativo. La aceptación específica del riesgo residual quedó documentada en la Sección 6 con firma de Process Owner + Gerente QA.",
-  "firmas": [
-    { "rol": "Redactor (Validador)", "nombre": "<Nombre>", "iniciales": "<XX>", "fecha": "<DD/MM/YYYY>" },
-    { "rol": "Revisor (Process Owner)", "nombre": "<Nombre>", "iniciales": "<XX>", "fecha": "<DD/MM/YYYY>" },
-    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "<Nombre>", "iniciales": "<XX>", "fecha": "<DD/MM/YYYY>" },
-    { "rol": "Aprobador (Gerente QA)", "nombre": "<Nombre>", "iniciales": "<XX>", "fecha": "<DD/MM/YYYY>" }
-  ],
-  "nota": "Documento sujeto a firma electrónica. La firma manuscrita en este recuadro solo aplica como respaldo físico cuando no es viable la firma digital."
-}
-```
-
----
-
 ## Reglas de contenido
 
 ### Cantidad típica de riesgos por categoría GAMP

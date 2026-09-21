@@ -30,22 +30,54 @@
   },
   "controlCambios": [],
   "matrizAprobaciones": [
-    { "rol": "Identificador NC (Ejecutor)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Process Owner", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Responsable CAPA", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+    {
+      "rol": "Identificador NC (Ejecutor)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Process Owner",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Responsable CAPA",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    }
   ],
   "trazabilidad": {
-    "recibeDe": ["IIQ", "IOQ", "IPQ"],
-    "alimentaA": ["ROQ", "RPQ", "Reporte de Liberación"]
+    "recibeDe": [
+      "IIQ",
+      "IOQ",
+      "IPQ"
+    ],
+    "alimentaA": [
+      "ROQ",
+      "RPQ",
+      "Reporte de Liberación"
+    ]
   },
   "secciones": [
     {
       "tipo": "texto",
       "titulo": "PROPÓSITO Y OBJETIVO",
       "bloques": [
-        { "texto": "El presente Reporte de No Conformidades y CAPA (NCR) consolida los hallazgos identificados durante la ejecución del paquete de validación, su análisis de causa raíz y el plan formal de acciones correctivas y preventivas (CAPA)." },
-        { "texto": "El documento aplica un workflow de 4 etapas con gating por firmas: cada etapa debe ser aprobada por sus firmantes obligatorios antes de avanzar a la siguiente. Una etapa no aprobada bloquea visualmente la siguiente." }
+        {
+          "texto": "El presente Reporte de No Conformidades y CAPA (NCR) consolida los hallazgos identificados durante la ejecución del paquete de validación, su análisis de causa raíz y el plan formal de acciones correctivas y preventivas (CAPA)."
+        },
+        {
+          "texto": "El documento aplica un workflow de 4 etapas con gating por firmas: cada etapa debe ser aprobada por sus firmantes obligatorios antes de avanzar a la siguiente. Una etapa no aprobada bloquea visualmente la siguiente."
+        }
       ]
     },
     {
@@ -53,10 +85,24 @@
       "titulo": "DATOS GENERALES",
       "labelWidth": 165,
       "filas": [
-        { "campo": "Documento(s) base", "valor": "" },
-        { "campo": "NCs registradas", "valor": "" },
-        { "campo": "Etapa actual", "valor": "1 — Registro de Hallazgos", "boldValor": true, "colorValor": "primary" },
-        { "campo": "Estado workflow", "valor": "PENDIENTE — Sección 1 sin firmar" }
+        {
+          "campo": "Documento(s) base",
+          "valor": ""
+        },
+        {
+          "campo": "NCs registradas",
+          "valor": ""
+        },
+        {
+          "campo": "Etapa actual",
+          "valor": "1 — Registro de Hallazgos",
+          "boldValor": true,
+          "colorValor": "primary"
+        },
+        {
+          "campo": "Estado workflow",
+          "valor": "PENDIENTE — Sección 1 sin firmar"
+        }
       ]
     },
     {
@@ -70,7 +116,10 @@
       "intro": "Listado de hallazgos identificados durante la ejecución del paquete. Cada NC debe tener id único (NC-XXX o DEV-XXX), tipo (NC/OBS/DEV), criticidad, TC origen y descripción objetiva.",
       "estado": "pendiente",
       "firmasRequeridas": [
-        { "rol": "Validador Ejecutor", "obligatoria": true }
+        {
+          "rol": "Validador Ejecutor",
+          "obligatoria": true
+        }
       ],
       "firmas": [],
       "hallazgos": []
@@ -81,8 +130,14 @@
       "intro": "Para cada NC se aplica análisis estructurado (típicamente 5-porqués o ishikawa). El objetivo es identificar la causa raíz real, no el síntoma. Las OBS pueden no requerir análisis formal si son menores.",
       "estado": "pendiente",
       "firmasRequeridas": [
-        { "rol": "Process Owner", "obligatoria": true },
-        { "rol": "QA Reviewer", "obligatoria": true }
+        {
+          "rol": "Process Owner",
+          "obligatoria": true
+        },
+        {
+          "rol": "QA Reviewer",
+          "obligatoria": true
+        }
       ],
       "firmas": [],
       "analisis": []
@@ -93,8 +148,14 @@
       "intro": "Por cada NC con causa raíz identificada se define la Acción Correctiva (CA: qué se hizo para resolver) y la Acción Preventiva (PA: qué se hace para que no se repita). Cada CAPA tiene responsable, fecha compromiso, fecha cierre, evidencia y verificación.",
       "estado": "pendiente",
       "firmasRequeridas": [
-        { "rol": "Responsable CAPA", "obligatoria": true },
-        { "rol": "Aprobador QA", "obligatoria": true }
+        {
+          "rol": "Responsable CAPA",
+          "obligatoria": true
+        },
+        {
+          "rol": "Aprobador QA",
+          "obligatoria": true
+        }
       ],
       "firmas": [],
       "capas": []
@@ -105,8 +166,14 @@
       "intro": "Resumen consolidado del proceso y decisión final. Solo se firma cuando todas las CAPAs están verificadas y el sistema queda apto para continuar al siguiente paso del ciclo de validación.",
       "estado": "pendiente",
       "firmasRequeridas": [
-        { "rol": "Gerente QA", "obligatoria": true },
-        { "rol": "Director (firma final)", "obligatoria": false }
+        {
+          "rol": "Gerente QA",
+          "obligatoria": true
+        },
+        {
+          "rol": "Director (firma final)",
+          "obligatoria": false
+        }
       ],
       "firmas": [],
       "resumen": {
@@ -123,22 +190,15 @@
     {
       "tipo": "tabla",
       "titulo": "REFERENCIAS",
-      "columnas": ["Documento", "Título"],
-      "widths": [180, 275],
-      "filas": []
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS CONSOLIDADAS DEL PROCESO",
-      "intro": "Firmas representativas del proceso completo. Las firmas detalladas por sección figuran en cada etapa.",
-      "firmas": [],
-      "rolesPlaceholder": [
-        "Identificador NC (Ejecutor)",
-        "Process Owner",
-        "Responsable CAPA",
-        "Gerente QA"
+      "columnas": [
+        "Documento",
+        "Título"
       ],
-      "nota": ""
+      "widths": [
+        180,
+        275
+      ],
+      "filas": []
     }
   ]
 }

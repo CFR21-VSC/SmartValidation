@@ -110,10 +110,6 @@ Generador del documento **VSR (Reporte Maestro de Validación — Ciclo Completo
 
 9. **REFERENCIAS NORMATIVAS** (`tipo: "tabla"`, `["Documento", "Título"]`, widths `[180, 275]`).
 
-10. **FIRMAS EJECUTIVAS DE VALIDACIÓN** (`tipo: "tabla-firmas-final"`)
-    - `rolesPlaceholder: ["Sponsor", "Director Técnico", "Gerente QA", "Process Owner"]`.
-    - `nota`: ej. `"Sistema VALIDADO el DD/MM/AAAA — autorizado para uso productivo GxP."`
-
 ## Reglas estrictas (NUNCA violar)
 
 1. **Output: solo el objeto JSON.**

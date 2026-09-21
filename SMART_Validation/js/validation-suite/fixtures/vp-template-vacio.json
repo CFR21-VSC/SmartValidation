@@ -28,14 +28,43 @@
   },
   "controlCambios": [],
   "matrizAprobaciones": [
-    { "rol": "Redactor (Validador)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Revisor (Process Owner)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+    {
+      "rol": "Redactor (Validador)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Jefe de Validaciones)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    }
   ],
   "trazabilidad": {
-    "recibeDe": ["HLRA"],
-    "alimentaA": ["URS", "RA", "IRA", "MCN", "PIQ", "POQ"]
+    "recibeDe": [
+      "HLRA"
+    ],
+    "alimentaA": [
+      "URS",
+      "RA",
+      "IRA",
+      "MCN",
+      "PIQ",
+      "POQ"
+    ]
   },
   "secciones": [
     {
@@ -54,15 +83,29 @@
     {
       "tipo": "tabla",
       "titulo": "RESPONSABILIDADES",
-      "columnas": ["Rol", "Nombre", "Responsabilidad principal"],
-      "widths": [120, 130, 205],
+      "columnas": [
+        "Rol",
+        "Nombre",
+        "Responsabilidad principal"
+      ],
+      "widths": [
+        120,
+        130,
+        205
+      ],
       "filas": []
     },
     {
       "tipo": "tabla",
       "titulo": "DEFINICIONES",
-      "columnas": ["Término", "Definición"],
-      "widths": [110, 345],
+      "columnas": [
+        "Término",
+        "Definición"
+      ],
+      "widths": [
+        110,
+        345
+      ],
       "filas": []
     },
     {
@@ -76,8 +119,18 @@
       "tipo": "tabla",
       "titulo": "DOCUMENTOS DEL PROYECTO DE VALIDACIÓN",
       "intro": "",
-      "columnas": ["#", "Código", "Documento", "Responsable"],
-      "widths": [25, 130, 175, 125],
+      "columnas": [
+        "#",
+        "Código",
+        "Documento",
+        "Responsable"
+      ],
+      "widths": [
+        25,
+        130,
+        175,
+        125
+      ],
       "filas": []
     },
     {
@@ -89,8 +142,18 @@
       "tipo": "tabla",
       "titulo": "CRONOGRAMA DEL PROYECTO",
       "intro": "",
-      "columnas": ["Semana", "Actividades", "Documentos generados", "Hito de cierre"],
-      "widths": [50, 175, 130, 100],
+      "columnas": [
+        "Semana",
+        "Actividades",
+        "Documentos generados",
+        "Hito de cierre"
+      ],
+      "widths": [
+        50,
+        175,
+        130,
+        100
+      ],
       "filas": []
     },
     {
@@ -105,14 +168,24 @@
     },
     {
       "tipo": "tabla",
-      "columnas": ["Área de verificación IQ", "Qué se verifica", "Criterio de aceptación"],
-      "widths": [140, 195, 120],
+      "columnas": [
+        "Área de verificación IQ",
+        "Qué se verifica",
+        "Criterio de aceptación"
+      ],
+      "widths": [
+        140,
+        195,
+        120
+      ],
       "filas": []
     },
     {
       "tipo": "caja-nota",
       "titulo": "Criterio de aceptación IQ",
-      "parrafos": ["100% de TCs con resultado PASA o PASA CON OBSERVACIONES. Cualquier NO PASA detiene la ejecución y abre una NC."]
+      "parrafos": [
+        "100% de TCs con resultado PASA o PASA CON OBSERVACIONES. Cualquier NO PASA detiene la ejecución y abre una NC."
+      ]
     },
     {
       "tipo": "subseccion",
@@ -121,14 +194,24 @@
     },
     {
       "tipo": "tabla",
-      "columnas": ["Área funcional OQ", "Qué se verifica", "Prioridad"],
-      "widths": [150, 230, 75],
+      "columnas": [
+        "Área funcional OQ",
+        "Qué se verifica",
+        "Prioridad"
+      ],
+      "widths": [
+        150,
+        230,
+        75
+      ],
       "filas": []
     },
     {
       "tipo": "caja-nota",
       "titulo": "Criterio de aceptación OQ",
-      "parrafos": ["≥ 95% de TCs con resultado PASA o PASA CON OBSERVACIONES. NCs críticas: 0 abiertas al momento del cierre. NCs mayores: cerradas con CAPA aprobada."]
+      "parrafos": [
+        "≥ 95% de TCs con resultado PASA o PASA CON OBSERVACIONES. NCs críticas: 0 abiertas al momento del cierre. NCs mayores: cerradas con CAPA aprobada."
+      ]
     },
     {
       "tipo": "subseccion",
@@ -149,8 +232,16 @@
       "tipo": "tabla",
       "titulo": "GESTIÓN DE DESVIACIONES Y NO CONFORMIDADES",
       "intro": "10.1 Clasificación de severidad",
-      "columnas": ["Severidad", "Definición", "Acción requerida"],
-      "widths": [80, 215, 160],
+      "columnas": [
+        "Severidad",
+        "Definición",
+        "Acción requerida"
+      ],
+      "widths": [
+        80,
+        215,
+        160
+      ],
       "filas": []
     },
     {
@@ -175,8 +266,16 @@
     },
     {
       "tipo": "tabla",
-      "columnas": ["Tipo de cambio", "Evaluación requerida", "Posible acción"],
-      "widths": [180, 160, 115],
+      "columnas": [
+        "Tipo de cambio",
+        "Evaluación requerida",
+        "Posible acción"
+      ],
+      "widths": [
+        180,
+        160,
+        115
+      ],
       "filas": []
     },
     {
@@ -186,29 +285,30 @@
     {
       "tipo": "tabla",
       "titulo": "CRITERIOS DE ACEPTACIÓN GENERALES",
-      "columnas": ["#", "Criterio", "Verificación"],
-      "widths": [25, 270, 160],
+      "columnas": [
+        "#",
+        "Criterio",
+        "Verificación"
+      ],
+      "widths": [
+        25,
+        270,
+        160
+      ],
       "filas": []
     },
     {
       "tipo": "tabla",
       "titulo": "REFERENCIAS",
-      "columnas": ["Código / Referencia", "Título"],
-      "widths": [180, 275],
-      "filas": []
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS DE EJECUCIÓN",
-      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de este documento.",
-      "firmas": [],
-      "rolesPlaceholder": [
-        "Ejecutor (Validador)",
-        "Revisor (Process Owner)",
-        "Aprobador (Jefe de Validaciones)",
-        "Aprobador (Gerente QA)"
+      "columnas": [
+        "Código / Referencia",
+        "Título"
       ],
-      "nota": ""
+      "widths": [
+        180,
+        275
+      ],
+      "filas": []
     }
   ]
 }

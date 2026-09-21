@@ -31,13 +31,35 @@
   },
   "controlCambios": [],
   "matrizAprobaciones": [
-    { "rol": "Sponsor / Director", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Gerente QA", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Process Owner", "nombre": "", "iniciales": "", "fecha": "" }
+    {
+      "rol": "Sponsor / Director",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Gerente QA",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Process Owner",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    }
   ],
   "trazabilidad": {
-    "recibeDe": ["IIQ", "IOQ", "IPQ", "NCR"],
-    "alimentaA": ["Siguiente fase del ciclo"]
+    "recibeDe": [
+      "IIQ",
+      "IOQ",
+      "IPQ",
+      "NCR"
+    ],
+    "alimentaA": [
+      "Siguiente fase del ciclo"
+    ]
   },
   "secciones": [
     {
@@ -50,8 +72,12 @@
       "tipo": "texto",
       "titulo": "PROPÓSITO Y ALCANCE",
       "bloques": [
-        { "texto": "El presente Reporte de Calificación documenta el cierre formal de la fase del ciclo de validación y registra la decisión ejecutiva de avance a la siguiente etapa, conforme al ciclo de validación GAMP 5." },
-        { "texto": "Este documento se emite tras la firma del Informe técnico correspondiente y, cuando aplique, tras la verificación del NCR (Reporte de No Conformidades) asociado." }
+        {
+          "texto": "El presente Reporte de Calificación documenta el cierre formal de la fase del ciclo de validación y registra la decisión ejecutiva de avance a la siguiente etapa, conforme al ciclo de validación GAMP 5."
+        },
+        {
+          "texto": "Este documento se emite tras la firma del Informe técnico correspondiente y, cuando aplique, tras la verificación del NCR (Reporte de No Conformidades) asociado."
+        }
       ]
     },
     {
@@ -96,21 +122,15 @@
     {
       "tipo": "tabla",
       "titulo": "REFERENCIAS",
-      "columnas": ["Documento", "Título"],
-      "widths": [180, 275],
-      "filas": []
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS EJECUTIVAS",
-      "intro": "Firmas que autorizan la decisión de liberación. Sponsor / Director y Gerente QA son obligatorios; Process Owner es opcional.",
-      "firmas": [],
-      "rolesPlaceholder": [
-        "Sponsor / Director",
-        "Gerente QA",
-        "Process Owner"
+      "columnas": [
+        "Documento",
+        "Título"
       ],
-      "nota": ""
+      "widths": [
+        180,
+        275
+      ],
+      "filas": []
     }
   ]
 }

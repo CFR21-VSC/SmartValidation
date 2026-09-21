@@ -24,10 +24,30 @@
   },
   "controlCambios": [],
   "matrizAprobaciones": [
-    { "rol": "Redactor (Validador)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Revisor (Process Owner)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+    {
+      "rol": "Redactor (Validador)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Jefe de Validaciones)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    }
   ],
   "trazabilidad": {
     "recibeDe": [],
@@ -50,15 +70,27 @@
     {
       "tipo": "tabla",
       "titulo": "RESPONSABILIDADES",
-      "columnas": ["Rol", "Responsabilidad"],
-      "widths": [200, 255],
+      "columnas": [
+        "Rol",
+        "Responsabilidad"
+      ],
+      "widths": [
+        200,
+        255
+      ],
       "filas": []
     },
     {
       "tipo": "tabla",
       "titulo": "DEFINICIONES",
-      "columnas": ["Término", "Definición"],
-      "widths": [80, 375],
+      "columnas": [
+        "Término",
+        "Definición"
+      ],
+      "widths": [
+        80,
+        375
+      ],
       "filas": []
     },
     {
@@ -103,15 +135,33 @@
     {
       "tipo": "tabla",
       "titulo": "PROCESOS GxP IMPACTADOS",
-      "columnas": ["Proceso GxP", "Función del sistema", "Criticidad"],
-      "widths": [150, 205, 100],
+      "columnas": [
+        "Proceso GxP",
+        "Función del sistema",
+        "Criticidad"
+      ],
+      "widths": [
+        150,
+        205,
+        100
+      ],
       "filas": []
     },
     {
       "tipo": "tabla",
       "titulo": "FUNCIONES CRÍTICAS GxP",
-      "columnas": ["Función", "Impacto GxP", "Criticidad", "Verif. OQ"],
-      "widths": [125, 195, 70, 65],
+      "columnas": [
+        "Función",
+        "Impacto GxP",
+        "Criticidad",
+        "Verif. OQ"
+      ],
+      "widths": [
+        125,
+        195,
+        70,
+        65
+      ],
       "filas": []
     },
     {
@@ -128,8 +178,18 @@
     {
       "tipo": "tabla",
       "titulo": "Documentos de la Validación",
-      "columnas": ["#", "Código", "Documento", "Responsable"],
-      "widths": [25, 110, 200, 120],
+      "columnas": [
+        "#",
+        "Código",
+        "Documento",
+        "Responsable"
+      ],
+      "widths": [
+        25,
+        110,
+        200,
+        120
+      ],
       "filas": []
     },
     {
@@ -140,22 +200,15 @@
     {
       "tipo": "tabla",
       "titulo": "REFERENCIAS",
-      "columnas": ["Código / Referencia", "Título"],
-      "widths": [180, 275],
-      "filas": []
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS DE EJECUCIÓN",
-      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de este documento.",
-      "firmas": [],
-      "rolesPlaceholder": [
-        "Ejecutor (Validador)",
-        "Revisor (Process Owner)",
-        "Aprobador (Jefe de Validaciones)",
-        "Aprobador (Gerente QA)"
+      "columnas": [
+        "Código / Referencia",
+        "Título"
       ],
-      "nota": ""
+      "widths": [
+        180,
+        275
+      ],
+      "filas": []
     }
   ]
 }

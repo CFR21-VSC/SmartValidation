@@ -94,11 +94,6 @@ Generador del documento **EVIR (Informe de Validación de Planilla de Cálculo)*
       "tipo": "caja-estado-validacion",
       "estado": "APROBADA",
       "contenido": "Párrafo formal de conclusión: la planilla [nombre] versión [v] ha superado los casos de prueba establecidos en el EVPROT [referencia]. Los controles de acceso, integridad de fórmulas y control de versión han sido verificados satisfactoriamente. La planilla queda APROBADA para uso en actividades GxP en [departamento]."
-    },
-    {
-      "numero": "5",
-      "titulo": "FIRMAS",
-      "tipo": "tabla-firmas-final"
     }
   ]
 }

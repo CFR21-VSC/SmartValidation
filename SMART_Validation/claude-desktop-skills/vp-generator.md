@@ -422,28 +422,6 @@ Incluir siempre como mínimo:
 - 21 CFR Part 11
 - EU Annex 11
 
-### 14. FIRMAS DE EJECUCIÓN (`tipo: "tabla-firmas-final"`)
-
-**Siempre incluir**, al final del documento. Mismo formato que el HLRA.
-
-```json
-{
-  "tipo": "tabla-firmas-final",
-  "titulo": "FIRMAS DE EJECUCIÓN",
-  "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de este documento. La trazabilidad legal queda registrada en el log adjunto al paquete de validación.",
-  "firmas": [],
-  "rolesPlaceholder": [
-    "Ejecutor (Validador)",
-    "Revisor (Process Owner)",
-    "Aprobador (Jefe de Validaciones)",
-    "Aprobador (Gerente QA)"
-  ],
-  "nota": "Documento sujeto a firma electrónica. La firma manuscrita en este recuadro solo aplica como respaldo físico cuando no es viable la firma digital."
-}
-```
-
----
-
 ## Reglas de contenido
 
 ### Tipo de validación

@@ -399,56 +399,6 @@
           "Acciones correctivas — referencia metodológica"
         ]
       ]
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS CONSOLIDADAS DEL PROCESO",
-      "intro": "Resumen de firmas del workflow completo. Las firmas detalladas por sección figuran en cada etapa.",
-      "firmas": [
-        {
-          "rol": "Identificador NC (Ejecutor)",
-          "nombre": "Carlos Rodríguez",
-          "iniciales": "CR",
-          "fecha": "23/04/2026",
-          "_signedBy": "person_CR_001",
-          "_signedAt": "2026-04-23T12:00:00.000Z",
-          "_signatureHashRef": "977817F7CC41"
-        },
-        {
-          "rol": "Process Owner",
-          "nombre": "Ana Pérez",
-          "iniciales": "AP",
-          "fecha": "24/04/2026",
-          "_signedBy": "person_AP_001",
-          "_signedAt": "2026-04-24T12:00:00.000Z",
-          "_signatureHashRef": "158A323A7BA4"
-        },
-        {
-          "rol": "Responsable CAPA",
-          "nombre": "Ana Pérez",
-          "iniciales": "AP",
-          "fecha": "24/04/2026",
-          "_signedBy": "person_AP_001",
-          "_signedAt": "2026-04-24T12:00:00.000Z",
-          "_signatureHashRef": "158A323A7BA4"
-        },
-        {
-          "rol": "Aprobador (Gerente QA)",
-          "nombre": "Ana Pérez",
-          "iniciales": "AP",
-          "fecha": "25/04/2026",
-          "_signedBy": "person_AP_001",
-          "_signedAt": "2026-04-25T12:00:00.000Z",
-          "_signatureHashRef": "158A323A7BA4"
-        }
-      ],
-      "rolesPlaceholder": [
-        "Identificador NC (Ejecutor)",
-        "Process Owner",
-        "Responsable CAPA",
-        "Aprobador (Gerente QA)"
-      ],
-      "nota": "NCR cerrado el 25/04/2026 — sistema apto para PQ."
     }
   ]
 }

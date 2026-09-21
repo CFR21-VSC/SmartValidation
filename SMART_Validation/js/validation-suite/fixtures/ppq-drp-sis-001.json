@@ -835,56 +835,6 @@
           "Software product quality — Performance efficiency characteristics"
         ]
       ]
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS DE EJECUCIÓN",
-      "intro": "Las firmas siguientes evidencian la revisión y aprobación formal del Protocolo de Calificación de Performance previo a su ejecución.",
-      "firmas": [
-        {
-          "rol": "Redactor (Validador)",
-          "nombre": "Carlos Rodríguez",
-          "iniciales": "CR",
-          "fecha": "20/04/2026",
-          "_signedBy": "person_CR_001",
-          "_signedAt": "2026-04-20T12:00:00.000Z",
-          "_signatureHashRef": "977817F7CC41"
-        },
-        {
-          "rol": "Revisor (Process Owner)",
-          "nombre": "Ana Pérez",
-          "iniciales": "AP",
-          "fecha": "20/04/2026",
-          "_signedBy": "person_AP_001",
-          "_signedAt": "2026-04-20T12:00:00.000Z",
-          "_signatureHashRef": "158A323A7BA4"
-        },
-        {
-          "rol": "Aprobador (Jefe de Validaciones)",
-          "nombre": "Carlos Rodríguez",
-          "iniciales": "CR",
-          "fecha": "20/04/2026",
-          "_signedBy": "person_CR_001",
-          "_signedAt": "2026-04-20T12:00:00.000Z",
-          "_signatureHashRef": "977817F7CC41"
-        },
-        {
-          "rol": "Aprobador (Gerente QA)",
-          "nombre": "Ana Pérez",
-          "iniciales": "AP",
-          "fecha": "20/04/2026",
-          "_signedBy": "person_AP_001",
-          "_signedAt": "2026-04-20T12:00:00.000Z",
-          "_signatureHashRef": "158A323A7BA4"
-        }
-      ],
-      "rolesPlaceholder": [
-        "Redactor (Validador)",
-        "Revisor (Process Owner)",
-        "Aprobador (Jefe de Validaciones)",
-        "Aprobador (Gerente QA)"
-      ],
-      "nota": "Aprobado y listo para ejecución por auditor externo independiente."
     }
   ]
 }

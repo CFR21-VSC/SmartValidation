@@ -91,8 +91,6 @@ Generador del documento **RPQ (Reporte de Calificación PQ — Liberación de Et
 
 7. **REFERENCIAS** (`tabla`, `["Documento", "Título"]`, widths `[180, 275]`).
 
-8. **FIRMAS EJECUTIVAS** (`tabla-firmas-final`) — `rolesPlaceholder: ["Sponsor / Director", "Gerente QA", "Process Owner"]`, `nota: "PQ APROBADA. Sistema autorizado para uso productivo GxP. Habilita emisión del VSR."`
-
 ## Reglas estrictas (NUNCA violar)
 
 1. **Output: solo el objeto JSON.**

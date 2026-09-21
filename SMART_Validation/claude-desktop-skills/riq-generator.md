@@ -104,11 +104,6 @@ Generador del documento **RIQ (Reporte de Calificación IQ — Liberación de Et
 
 7. **REFERENCIAS** (`tipo: "tabla"`, columnas `["Documento", "Título"]`, widths `[180, 275]`).
 
-8. **FIRMAS EJECUTIVAS** (`tipo: "tabla-firmas-final"`)
-   - `rolesPlaceholder`: `["Sponsor / Director", "Gerente QA", "Process Owner"]`.
-   - `firmas`: array poblado (es un documento aprobado).
-   - `nota`: ej. `"IQ APROBADA. Sistema autorizado para iniciar POQ-<CODE>."`
-
 ## Reglas estrictas (NUNCA violar)
 
 1. **Output: solo el objeto JSON.**

@@ -21,7 +21,12 @@
     "version": "v1.0",
     "location": "",
     "sheets": [
-      { "name": "", "purpose": "", "formulaCount": 0, "isCritical": false }
+      {
+        "name": "",
+        "purpose": "",
+        "formulaCount": 0,
+        "isCritical": false
+      }
     ],
     "hasVBA": false,
     "hasExternalLinks": false,
@@ -39,22 +44,53 @@
       "titulo": "CLASIFICACIÓN GxP",
       "tipo": "tabla-info",
       "items": [
-        { "label": "Nombre del archivo", "valor": "" },
-        { "label": "Categoría GAMP 5", "valor": "Categoría 4 — Herramienta configurada" },
-        { "label": "Impacto GxP", "valor": "" },
-        { "label": "Departamento responsable", "valor": "" },
-        { "label": "Frecuencia de uso", "valor": "" },
-        { "label": "Versión evaluada", "valor": "" },
-        { "label": "Responsable de uso", "valor": "" }
+        {
+          "label": "Nombre del archivo",
+          "valor": ""
+        },
+        {
+          "label": "Categoría GAMP 5",
+          "valor": "Categoría 4 — Herramienta configurada"
+        },
+        {
+          "label": "Impacto GxP",
+          "valor": ""
+        },
+        {
+          "label": "Departamento responsable",
+          "valor": ""
+        },
+        {
+          "label": "Frecuencia de uso",
+          "valor": ""
+        },
+        {
+          "label": "Versión evaluada",
+          "valor": ""
+        },
+        {
+          "label": "Responsable de uso",
+          "valor": ""
+        }
       ]
     },
     {
       "numero": "3",
       "titulo": "ESTRUCTURA DE LA PLANILLA",
       "tipo": "tabla",
-      "columnas": ["Hoja", "Propósito", "Fórmulas", "Crítica GxP"],
+      "columnas": [
+        "Hoja",
+        "Propósito",
+        "Fórmulas",
+        "Crítica GxP"
+      ],
       "filas": [
-        ["", "", "0", "No"]
+        [
+          "",
+          "",
+          "0",
+          "No"
+        ]
       ]
     },
     {
@@ -135,10 +171,6 @@
       "titulo": "CONCLUSIÓN",
       "tipo": "caja-conclusion",
       "contenido": ""
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS"
     }
   ]
 }

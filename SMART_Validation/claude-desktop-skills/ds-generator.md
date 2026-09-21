@@ -302,18 +302,6 @@ Tabla 2 columnas (`Código / Referencia | Título`). Incluir SIEMPRE:
 - 21 CFR Part 11
 - EU Annex 11
 
-### 13. FIRMAS DE EJECUCIÓN (`tipo: "tabla-firmas-final"`)
-
-Roles típicos del DS:
-- Ejecutor (Validador)
-- **Arquitecto (Vendor)** — específico de DS
-- Revisor Técnico (IT)
-- Revisor (Process Owner)
-- Aprobador (Jefe de Validaciones)
-- Aprobador (Gerente QA)
-
----
-
 ## Reglas de contenido
 
 ### Cómo escribir un buen DS

@@ -575,32 +575,6 @@
         "Las observaciones identificadas (TC-IQ-008: BD sin encriptación AES-256; TC-IQ-009: Backup no configurado; TC-IQ-012: Puerto 8000 abierto) fueron sometidas a análisis de riesgo ICH Q9 con determinación de impacto aceptable para versión demo bajo política Zero Knowledge. Controles compensatorios documentados.",
         "DECISIÓN: APROBADO CON OBSERVACIONES — Sistema apto para avanzar a fase OQ. Las 3 observaciones identificadas se gestionan vía NCR-DRP-SIS-001 v1.0."
       ]
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS DE EJECUCIÓN Y APROBACIÓN",
-      "intro": "Las firmas siguientes evidencian la ejecución, captura de evidencia, revisión y aprobación formal del presente Anexo.",
-      "firmas": [
-        {
-          "rol": "Ejecutor (Validador)",
-          "nombre": "Ana Pérez",
-          "iniciales": "AP",
-          "fecha": "02/03/2026"
-        },
-        {
-          "rol": "Revisor (Process Owner)",
-          "nombre": "Ana Pérez",
-          "iniciales": "AP",
-          "fecha": "02/03/2026"
-        },
-        {
-          "rol": "Aprobador (Gerente QA)",
-          "nombre": "Carlos Rodríguez",
-          "iniciales": "CR",
-          "fecha": "02/03/2026"
-        }
-      ],
-      "nota": ""
     }
   ]
 }

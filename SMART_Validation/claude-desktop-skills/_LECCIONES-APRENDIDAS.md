@@ -179,17 +179,6 @@ table: {
 | `box-resultado-rai` | Doble box (Cálculo \| Nivel) | Unbreakable |
 | `tarjeta-gap` | GAPs con header de color por severidad | Unbreakable |
 | `caja-conclusion` | Caja con borde para conclusión | Unbreakable |
-| `tabla-firmas-final` | Tabla de firma al final del doc | Celdas de 60pt de alto |
-
----
-
-## 9. Tabla de firmas final
-
-- Es **diferente** de la matriz de aprobaciones de página 2.
-- La matriz de página 2 → es la matriz administrativa del documento.
-- La tabla-firmas-final → es donde se ejecutan las firmas reales (digitales o manuscritas escaneadas).
-- Tiene celdas de **60pt de alto** para que entre la firma física.
-- Si `firmas: []` está vacío → genera filas vacías con los `rolesPlaceholder`.
 
 ---
 
@@ -472,7 +461,7 @@ table: {
 ### Tipos NUEVOS exclusivos de RA
 1. **`escalas-fmea`** — grid 2×2 con 4 mini tablas (S, P, D, niveles RI/RR). Layout compacto que cabe en una sola página. Acepta `nota` que se renderiza con borde azul a la izquierda.
 2. **`tabla-fmea`** — matriz principal con 9 columnas: RA-ID | URS | Peligro | S | P | D | RI | Control | RR. Las celdas RI/RR son `stack` con número grande + nivel pequeño coloreado. Soporta sub-headers de módulo. La `notaInferior` queda destacada con borde y fondo amarillo.
-3. **`aceptacion-riesgo-residual`** — caja conclusion + items numerados + tabla mini de firmas (default 2: Process Owner + Gerente QA). NO usar `tabla-firmas-final` para RA.
+3. **`aceptacion-riesgo-residual`** — caja conclusion + items numerados + tabla mini de firmas (default 2: Process Owner + Gerente QA).
 
 ### Colores de niveles de riesgo (FMEA standard)
 - BAJO (1-6) → verde `#27AE60`
@@ -500,7 +489,7 @@ table: {
 - Esta triple trazabilidad (URS↔RA↔TC) se materializa después en la MTR.
 
 ### Aceptación formal — solo 2 firmas por default
-- Diferencia con `tabla-firmas-final` (que tiene 4-5 firmantes): la aceptación formal del riesgo residual es responsabilidad **únicamente** de Process Owner + Gerente QA.
+- La aceptación formal del riesgo residual es responsabilidad **únicamente** de Process Owner + Gerente QA.
 - Para sumar firmantes en proyectos críticos, override vía `rolesPlaceholder`.
 
 ---

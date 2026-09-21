@@ -221,46 +221,6 @@
           "Electronic Records / Electronic Signatures"
         ]
       ]
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS EJECUTIVAS",
-      "intro": "Firmas que autorizan la decisión de liberación. Sponsor / Director y Gerente QA son obligatorios.",
-      "firmas": [
-        {
-          "rol": "Sponsor / Director",
-          "nombre": "Ana Pérez",
-          "iniciales": "AP",
-          "fecha": "15/05/2026",
-          "_signedBy": "person_AP_001",
-          "_signedAt": "2026-05-15T12:00:00.000Z",
-          "_signatureHashRef": "158A323A7BA4"
-        },
-        {
-          "rol": "Gerente QA",
-          "nombre": "Carlos Rodríguez",
-          "iniciales": "CR",
-          "fecha": "15/05/2026",
-          "_signedBy": "person_CR_001",
-          "_signedAt": "2026-05-15T12:00:00.000Z",
-          "_signatureHashRef": "977817F7CC41"
-        },
-        {
-          "rol": "Process Owner",
-          "nombre": "Ana Pérez",
-          "iniciales": "AP",
-          "fecha": "15/05/2026",
-          "_signedBy": "person_AP_001",
-          "_signedAt": "2026-05-15T12:00:00.000Z",
-          "_signatureHashRef": "158A323A7BA4"
-        }
-      ],
-      "rolesPlaceholder": [
-        "Sponsor / Director",
-        "Gerente QA",
-        "Process Owner"
-      ],
-      "nota": "PQ APROBADA · CICLO DE VALIDACIÓN CERRADO · Sistema LIBERADO PRODUCTIVO GxP."
     }
   ]
 }

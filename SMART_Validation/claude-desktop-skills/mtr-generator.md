@@ -232,12 +232,6 @@ Tabla 2 columnas (`Documento | Título y Versión`). Incluir SIEMPRE:
 - RRM del paquete actual.
 - GAMP 5 — 2da Ed., ICH Q9 R1, ANMAT 4159/2023, 21 CFR Part 11.
 
-### 8. FIRMAS DE EJECUCIÓN (`tipo: "tabla-firmas-final"`)
-
-Estándar 4 firmantes (Validador, Process Owner, Jefe Validaciones, Gerente QA). La `nota` debe mencionar que la MTR es el documento de referencia para responder observaciones regulatorias sobre cobertura URS↔TC.
-
----
-
 ## Reglas de contenido
 
 ### Cómo asignar TCs a URS

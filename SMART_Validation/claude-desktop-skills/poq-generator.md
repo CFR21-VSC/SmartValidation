@@ -176,10 +176,6 @@ CSA (FDA 2022) dice "rigor proporcional al riesgo, sin sobre-scripting". Eso apl
 8. **REFERENCIAS** (`tipo: "tabla"`)
    - FDA Draft Guidance 2022 (CSA), GAMP 5 §8.3 (OQ), ICH Q9 R1, ANMAT, EU Annex 11, 21 CFR Part 11.
 
-9. **FIRMAS DE EJECUCIÓN** (`tipo: "tabla-firmas-final"`)
-   - 4 firmas estándar.
-   - Completadas (es protocolo aprobado).
-
 ## Cantidad típica de TCs por sistema
 
 | Categoría GAMP | TCs OQ típicos |

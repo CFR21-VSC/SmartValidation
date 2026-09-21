@@ -269,27 +269,6 @@ Tabla 2 columnas (`Código | Título`). Incluir SIEMPRE:
 - GAMP 5 §8.2 — 2da Ed. 2022 (Installation Qualification)
 - ICH Q9 R1 (2023)
 
-### 8. FIRMAS DE EJECUCIÓN (`tipo: "tabla-firmas-final"`) — OBLIGATORIA
-
-Tabla estándar de 4 firmantes (Validador, Process Owner, Jefe Validaciones, Gerente QA). El IRA no tiene aceptación de riesgo residual (no hay RR), entonces las firmas finales son la única instancia formal de aprobación del documento.
-
-```json
-{
-  "tipo": "tabla-firmas-final",
-  "titulo": "FIRMAS DE EJECUCIÓN",
-  "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal del Análisis de Riesgos de Componentes (IRA). El alcance del PIQ definido en este documento (Sección 5) será input directo del PIQ.",
-  "firmas": [
-    { "rol": "Redactor (Validador)", "nombre": "<Nombre>", "iniciales": "<XX>", "fecha": "<DD/MM/YYYY>" },
-    { "rol": "Revisor (Process Owner)", "nombre": "<Nombre>", "iniciales": "<XX>", "fecha": "<DD/MM/YYYY>" },
-    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "<Nombre>", "iniciales": "<XX>", "fecha": "<DD/MM/YYYY>" },
-    { "rol": "Aprobador (Gerente QA)", "nombre": "<Nombre>", "iniciales": "<XX>", "fecha": "<DD/MM/YYYY>" }
-  ],
-  "nota": "Documento sujeto a firma electrónica."
-}
-```
-
----
-
 ## Reglas de contenido
 
 ### Cantidad típica de componentes

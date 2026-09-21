@@ -89,8 +89,6 @@ Generador del documento **ROQ (Reporte de Calificación OQ — Liberación de Et
 
 7. **REFERENCIAS** (`tabla`, `["Documento", "Título"]`, widths `[180, 275]`).
 
-8. **FIRMAS EJECUTIVAS** (`tabla-firmas-final`) — `rolesPlaceholder: ["Sponsor / Director", "Gerente QA", "Process Owner"]`, `nota: "OQ APROBADA. Sistema autorizado para iniciar PPQ-<CODE>."`
-
 ## Reglas estrictas (NUNCA violar)
 
 1. **Output: solo el objeto JSON.**

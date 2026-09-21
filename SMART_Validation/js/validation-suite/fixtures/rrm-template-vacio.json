@@ -30,14 +30,41 @@
   },
   "controlCambios": [],
   "matrizAprobaciones": [
-    { "rol": "Redactor (Validador)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Revisor (Process Owner)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+    {
+      "rol": "Redactor (Validador)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Jefe de Validaciones)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    }
   ],
   "trazabilidad": {
-    "recibeDe": ["URS", "HLRA", "RA"],
-    "alimentaA": ["MTR", "POQ"]
+    "recibeDe": [
+      "URS",
+      "HLRA",
+      "RA"
+    ],
+    "alimentaA": [
+      "MTR",
+      "POQ"
+    ]
   },
   "secciones": [
     {
@@ -56,15 +83,27 @@
     {
       "tipo": "tabla",
       "titulo": "RESPONSABILIDADES",
-      "columnas": ["Rol", "Responsabilidad"],
-      "widths": [160, 295],
+      "columnas": [
+        "Rol",
+        "Responsabilidad"
+      ],
+      "widths": [
+        160,
+        295
+      ],
       "filas": []
     },
     {
       "tipo": "tabla",
       "titulo": "DEFINICIONES Y ABREVIATURAS",
-      "columnas": ["Término", "Definición"],
-      "widths": [125, 330],
+      "columnas": [
+        "Término",
+        "Definición"
+      ],
+      "widths": [
+        125,
+        330
+      ],
       "filas": []
     },
     {
@@ -90,8 +129,22 @@
       "tipo": "tabla",
       "titulo": "ANÁLISIS DE BRECHAS REGULATORIAS — RESUMEN",
       "intro": "Sección OPCIONAL. Si el sistema no presenta GAPs, eliminar esta tabla y las tarjetas-gap-rrm que la siguen, o reemplazar por un texto: 'No se identificaron brechas regulatorias durante el mapeo realizado.'",
-      "columnas": ["GAP-ID", "Tipo", "Norma", "Impacto", "URS Afectados", "Estado"],
-      "widths": [50, 60, 90, 75, 100, 80],
+      "columnas": [
+        "GAP-ID",
+        "Tipo",
+        "Norma",
+        "Impacto",
+        "URS Afectados",
+        "Estado"
+      ],
+      "widths": [
+        50,
+        60,
+        90,
+        75,
+        100,
+        80
+      ],
       "filas": []
     },
     {
@@ -111,8 +164,22 @@
     {
       "tipo": "tabla",
       "titulo": "RESUMEN DE CUMPLIMIENTO NORMATIVO",
-      "columnas": ["Norma", "Total Arts.", "CUMPLE", "PARCIAL/GAP", "N/A", "Observación"],
-      "widths": [125, 50, 50, 60, 35, 135],
+      "columnas": [
+        "Norma",
+        "Total Arts.",
+        "CUMPLE",
+        "PARCIAL/GAP",
+        "N/A",
+        "Observación"
+      ],
+      "widths": [
+        125,
+        50,
+        50,
+        60,
+        35,
+        135
+      ],
       "filas": []
     },
     {
@@ -123,22 +190,17 @@
     {
       "tipo": "tabla",
       "titulo": "REFERENCIAS DOCUMENTALES",
-      "columnas": ["Ref.", "Documento", "Descripción"],
-      "widths": [40, 165, 250],
-      "filas": []
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS DE EJECUCIÓN",
-      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de esta RRM.",
-      "firmas": [],
-      "rolesPlaceholder": [
-        "Redactor (Validador)",
-        "Revisor (Process Owner)",
-        "Aprobador (Jefe de Validaciones)",
-        "Aprobador (Gerente QA)"
+      "columnas": [
+        "Ref.",
+        "Documento",
+        "Descripción"
       ],
-      "nota": ""
+      "widths": [
+        40,
+        165,
+        250
+      ],
+      "filas": []
     }
   ]
 }

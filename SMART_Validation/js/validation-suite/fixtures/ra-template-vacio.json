@@ -29,14 +29,40 @@
   },
   "controlCambios": [],
   "matrizAprobaciones": [
-    { "rol": "Redactor (Validador)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Revisor (Process Owner)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+    {
+      "rol": "Redactor (Validador)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Jefe de Validaciones)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    }
   ],
   "trazabilidad": {
-    "recibeDe": ["HLRA", "URS"],
-    "alimentaA": ["MTR", "POQ"]
+    "recibeDe": [
+      "HLRA",
+      "URS"
+    ],
+    "alimentaA": [
+      "MTR",
+      "POQ"
+    ]
   },
   "secciones": [
     {
@@ -66,24 +92,72 @@
       "tipo": "escalas-fmea",
       "titulo": "3.2 Escalas de Puntuación",
       "escalaS": [
-        { "valor": 1, "nivel": "Baja", "descripcion": "" },
-        { "valor": 2, "nivel": "Media", "descripcion": "" },
-        { "valor": 3, "nivel": "Alta", "descripcion": "" }
+        {
+          "valor": 1,
+          "nivel": "Baja",
+          "descripcion": ""
+        },
+        {
+          "valor": 2,
+          "nivel": "Media",
+          "descripcion": ""
+        },
+        {
+          "valor": 3,
+          "nivel": "Alta",
+          "descripcion": ""
+        }
       ],
       "escalaP": [
-        { "valor": 1, "nivel": "Baja", "descripcion": "" },
-        { "valor": 2, "nivel": "Media", "descripcion": "" },
-        { "valor": 3, "nivel": "Alta", "descripcion": "" }
+        {
+          "valor": 1,
+          "nivel": "Baja",
+          "descripcion": ""
+        },
+        {
+          "valor": 2,
+          "nivel": "Media",
+          "descripcion": ""
+        },
+        {
+          "valor": 3,
+          "nivel": "Alta",
+          "descripcion": ""
+        }
       ],
       "escalaD": [
-        { "valor": 1, "nivel": "Alta detección", "descripcion": "" },
-        { "valor": 2, "nivel": "Media detección", "descripcion": "" },
-        { "valor": 3, "nivel": "Baja detección", "descripcion": "" }
+        {
+          "valor": 1,
+          "nivel": "Alta detección",
+          "descripcion": ""
+        },
+        {
+          "valor": 2,
+          "nivel": "Media detección",
+          "descripcion": ""
+        },
+        {
+          "valor": 3,
+          "nivel": "Baja detección",
+          "descripcion": ""
+        }
       ],
       "niveles": [
-        { "rango": "1-6", "nivel": "BAJO", "accion": "Aceptable. Monitoreo estándar." },
-        { "rango": "7-14", "nivel": "MEDIO", "accion": "Mitigación obligatoria. TC dedicado en OQ." },
-        { "rango": "15-27", "nivel": "ALTO", "accion": "Requiere control compensatorio documentado." }
+        {
+          "rango": "1-6",
+          "nivel": "BAJO",
+          "accion": "Aceptable. Monitoreo estándar."
+        },
+        {
+          "rango": "7-14",
+          "nivel": "MEDIO",
+          "accion": "Mitigación obligatoria. TC dedicado en OQ."
+        },
+        {
+          "rango": "15-27",
+          "nivel": "ALTO",
+          "accion": "Requiere control compensatorio documentado."
+        }
       ],
       "nota": "Objetivo de mitigación: todos los riesgos con RI ALTO (≥15) deberán reducirse a RR MEDIO o BAJO tras aplicar controles. La SEVERIDAD nunca se reduce con mitigación: es propiedad inherente del peligro."
     },
@@ -92,12 +166,16 @@
       "titulo": "MATRIZ DE RIESGOS FMEA",
       "intro": "",
       "filas": [
-        { "subheader": "MÓDULO X — <Nombre del módulo>" },
+        {
+          "subheader": "MÓDULO X — <Nombre del módulo>"
+        },
         {
           "id": "RA-001",
           "urs": "URS-001",
           "peligro": "",
-          "S": 0, "P": 0, "D": 0,
+          "S": 0,
+          "P": 0,
+          "D": 0,
           "control": "",
           "RR": 0
         }
@@ -108,8 +186,20 @@
       "tipo": "tabla",
       "titulo": "RESUMEN DE RESULTADOS",
       "intro": "",
-      "columnas": ["Módulo", "Riesgos evaluados", "RI ALTO (≥15)", "RI MEDIO (7-14)", "RR ALTO"],
-      "widths": [165, 80, 70, 80, 60],
+      "columnas": [
+        "Módulo",
+        "Riesgos evaluados",
+        "RI ALTO (≥15)",
+        "RI MEDIO (7-14)",
+        "RR ALTO"
+      ],
+      "widths": [
+        165,
+        80,
+        70,
+        80,
+        60
+      ],
       "filas": []
     },
     {
@@ -123,27 +213,23 @@
       "conclusion": "",
       "items": [],
       "firmas": [],
-      "rolesPlaceholder": ["Process Owner", "Gerente QA"]
+      "rolesPlaceholder": [
+        "Process Owner",
+        "Gerente QA"
+      ]
     },
     {
       "tipo": "tabla",
       "titulo": "REFERENCIAS",
-      "columnas": ["Código / Referencia", "Título"],
-      "widths": [180, 275],
-      "filas": []
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS DE EJECUCIÓN",
-      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal del Análisis de Riesgos Operativo.",
-      "firmas": [],
-      "rolesPlaceholder": [
-        "Redactor (Validador)",
-        "Revisor (Process Owner)",
-        "Aprobador (Jefe de Validaciones)",
-        "Aprobador (Gerente QA)"
+      "columnas": [
+        "Código / Referencia",
+        "Título"
       ],
-      "nota": ""
+      "widths": [
+        180,
+        275
+      ],
+      "filas": []
     }
   ]
 }

@@ -301,12 +301,6 @@ Incluir SIEMPRE:
 - 21 CFR Part 11
 - EU Annex 11
 
-### 13. FIRMAS DE EJECUCIÓN (`tipo: "tabla-firmas-final"`)
-
-**Siempre incluir**, al final del documento. Mismo formato que HLRA/VP.
-
----
-
 ## Reglas de contenido
 
 ### Cómo escribir un buen requerimiento URS

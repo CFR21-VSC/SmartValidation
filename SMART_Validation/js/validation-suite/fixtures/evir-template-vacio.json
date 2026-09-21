@@ -73,7 +73,13 @@
       "numero": "3",
       "titulo": "DESVÍOS Y OBSERVACIONES",
       "tipo": "tabla",
-      "columnas": ["ID Desvío", "TC Relacionado", "Descripción", "Acción Correctiva", "Estado"],
+      "columnas": [
+        "ID Desvío",
+        "TC Relacionado",
+        "Descripción",
+        "Acción Correctiva",
+        "Estado"
+      ],
       "filas": []
     },
     {
@@ -82,11 +88,6 @@
       "tipo": "caja-estado-validacion",
       "estado": "APROBADA",
       "contenido": ""
-    },
-    {
-      "numero": "5",
-      "titulo": "FIRMAS",
-      "tipo": "tabla-firmas-final"
     }
   ]
 }

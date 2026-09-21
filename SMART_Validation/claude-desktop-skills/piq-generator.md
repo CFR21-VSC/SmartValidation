@@ -141,11 +141,6 @@ Generador del documento **PIQ (Installation Qualification Protocol / Protocolo d
 8. **REFERENCIAS** (`tipo: "tabla"`)
    - Incluir SIEMPRE: FDA Draft Guidance 2022 (CSA), GAMP 5 §8.2, ICH Q9 R1, ANMAT, EU Annex 11, 21 CFR Part 11
 
-9. **FIRMAS DE APROBACIÓN DEL PROTOCOLO** (`tipo: "tabla-firmas-final"`)
-   - 4 firmas estándar (Elaboró / Revisó / Aprobó / Process Owner)
-   - Son las firmas que APRUEBAN el protocolo antes de la ejecución, NO firmas de ejecución
-   - Las firmas de ejecución van en el IIQ, no acá
-
 ## Cantidad típica de TCs por sistema
 
 | Categoría GAMP | TCs típicos |

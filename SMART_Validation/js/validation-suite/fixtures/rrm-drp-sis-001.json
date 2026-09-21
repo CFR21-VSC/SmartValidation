@@ -1251,19 +1251,6 @@
           "SOP de Administración del Sistema. DRP Assurance, 2025."
         ]
       ]
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS DE EJECUCIÓN",
-      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de esta RRM. Los GAPs de severidad Mayor (GAP-002 y GAP-003) requieren firma formal de Process Owner + Gerente QA — ver tarjetas individuales para detalle.",
-      "firmas": [],
-      "rolesPlaceholder": [
-        "Redactor (Validador)",
-        "Revisor (Process Owner)",
-        "Aprobador (Jefe de Validaciones)",
-        "Aprobador (Gerente QA)"
-      ],
-      "nota": "La aceptación de GAPs Mayores (GAP-002 y GAP-003) requiere firma de Process Owner + Gerente QA en esta tabla. Sin estas firmas el documento queda en estado Borrador."
     }
   ]
 }

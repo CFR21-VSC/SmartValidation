@@ -34,14 +34,44 @@
   },
   "controlCambios": [],
   "matrizAprobaciones": [
-    { "rol": "Redactor (Validador)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Revisor (Process Owner)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Aprobador (Jefe de Validaciones)", "nombre": "", "iniciales": "", "fecha": "" },
-    { "rol": "Aprobador (Gerente QA)", "nombre": "", "iniciales": "", "fecha": "" }
+    {
+      "rol": "Redactor (Validador)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Revisor (Process Owner)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Jefe de Validaciones)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    },
+    {
+      "rol": "Aprobador (Gerente QA)",
+      "nombre": "",
+      "iniciales": "",
+      "fecha": ""
+    }
   ],
   "trazabilidad": {
-    "recibeDe": ["URS", "RA", "IRA", "RRM"],
-    "alimentaA": ["PIQ", "POQ", "IIQ", "IOQ"]
+    "recibeDe": [
+      "URS",
+      "RA",
+      "IRA",
+      "RRM"
+    ],
+    "alimentaA": [
+      "PIQ",
+      "POQ",
+      "IIQ",
+      "IOQ"
+    ]
   },
   "secciones": [
     {
@@ -65,8 +95,18 @@
     {
       "tipo": "tabla",
       "titulo": "LEYENDA DE COLUMNAS",
-      "columnas": ["Columna", "Tipo", "Valores / Ejemplo", "Descripción"],
-      "widths": [70, 65, 125, 195],
+      "columnas": [
+        "Columna",
+        "Tipo",
+        "Valores / Ejemplo",
+        "Descripción"
+      ],
+      "widths": [
+        70,
+        65,
+        125,
+        195
+      ],
       "filas": []
     },
     {
@@ -74,7 +114,9 @@
       "titulo": "MATRIZ DE TRAZABILIDAD COMPLETA",
       "intro": "",
       "filas": [
-        { "subheader": "MÓDULO X — <Nombre del módulo>" },
+        {
+          "subheader": "MÓDULO X — <Nombre del módulo>"
+        },
         {
           "ursId": "URS-001",
           "descripcion": "",
@@ -91,8 +133,20 @@
       "tipo": "tabla",
       "titulo": "RESUMEN ESTADÍSTICO POR MÓDULO",
       "intro": "",
-      "columnas": ["Módulo", "Rango URS", "Total URS", "TCs IQ", "TCs OQ"],
-      "widths": [165, 120, 60, 50, 60],
+      "columnas": [
+        "Módulo",
+        "Rango URS",
+        "Total URS",
+        "TCs IQ",
+        "TCs OQ"
+      ],
+      "widths": [
+        165,
+        120,
+        60,
+        50,
+        60
+      ],
       "filas": []
     },
     {
@@ -108,29 +162,32 @@
       "tipo": "tabla",
       "titulo": "GAPs Normativos con Impacto en MTR",
       "intro": "Sección OPCIONAL. Si no hay GAPs heredados del HLRA, omitir esta tabla.",
-      "columnas": ["GAP-ID", "URS Afectado", "Descripción del GAP", "Control Compensatorio"],
-      "widths": [55, 75, 155, 170],
+      "columnas": [
+        "GAP-ID",
+        "URS Afectado",
+        "Descripción del GAP",
+        "Control Compensatorio"
+      ],
+      "widths": [
+        55,
+        75,
+        155,
+        170
+      ],
       "filas": []
     },
     {
       "tipo": "tabla",
       "titulo": "REFERENCIAS",
-      "columnas": ["Documento", "Título y Versión"],
-      "widths": [180, 275],
-      "filas": []
-    },
-    {
-      "tipo": "tabla-firmas-final",
-      "titulo": "FIRMAS DE EJECUCIÓN",
-      "intro": "Las firmas digitales o electrónicas siguientes evidencian la revisión y aprobación formal de la Matriz de Trazabilidad de Requisitos.",
-      "firmas": [],
-      "rolesPlaceholder": [
-        "Redactor (Validador)",
-        "Revisor (Process Owner)",
-        "Aprobador (Jefe de Validaciones)",
-        "Aprobador (Gerente QA)"
+      "columnas": [
+        "Documento",
+        "Título y Versión"
       ],
-      "nota": ""
+      "widths": [
+        180,
+        275
+      ],
+      "filas": []
     }
   ]
 }

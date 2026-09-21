@@ -139,11 +139,6 @@ Cada caso de prueba en `testCases` tiene:
           "observaciones": ""
         }
       ]
-    },
-    {
-      "numero": "6",
-      "titulo": "FIRMAS DE EJECUCIÓN",
-      "tipo": "tabla-firmas-final"
     }
   ]
 }
