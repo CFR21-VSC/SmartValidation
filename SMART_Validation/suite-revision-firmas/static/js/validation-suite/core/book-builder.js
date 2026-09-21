@@ -35,6 +35,7 @@
     // que respalda lo contado.
     // ====================================================================
     const PHASE_ORDER = [
+        'LIBRO_FIRMAS',
         'HLRA', 'VP', 'URS', 'FRS', 'DS',
         'RA', 'IRA', 'RRM', 'MTR',
         'PIQ', 'IIQ', 'RIQ',
@@ -45,6 +46,11 @@
     const AEX_TYPES = ['AEX'];
 
     const PHASE_LABELS = {
+        // Va primero en PHASE_ORDER -- conformidad legal de firma electrónica antes de
+        // entrar al ciclo documental (pedido del usuario 2026-09-20). Insertado por
+        // get_book_package (book.py) solo cuando hay al menos una firma real en el
+        // proyecto -- ver wrap_signature_book_as_document.
+        'LIBRO_FIRMAS': 'Libro de Firmas',
         'HLRA': 'Análisis de Riesgo de Alto Nivel',
         'VP': 'Plan de Validación',
         'URS': 'User Requirements Specification',
@@ -645,6 +651,11 @@
     function buildPreface(packageDocs, opts) {
         const tb = VS.templateBase;
         const C = tb.VS_COLORS;
+        const hasLibroFirmas = packageDocs.some(d => d.type === 'LIBRO_FIRMAS');
+        const registroBullet = hasLibroFirmas
+            ? { text: 'Registro de Firmas — Etapas NCR: firmas por etapa de los reportes de No Conformidad, si los hay.' }
+            : { text: 'Registro Maestro de Firmas: matriz consolidada de todas las firmas electrónicas del ciclo.' };
+        const libroFirmasBullet = { text: 'Libro de Firmas: primer capítulo de la cascada -- declaración de conformidad de firma electrónica y firmas de cada documento sellado, con hash completo.' };
         return [
             tb.sectionTitle('PREFACIO'),
             {
@@ -667,7 +678,8 @@
                 ol: [
                     { text: 'Tabla de Contenidos: mapa navegable de todas las secciones del libro con números de página y links directos.' },
                     { text: 'Índice Maestro: lista de todos los documentos del paquete con código, versión, fechas y fase del ciclo.' },
-                    { text: 'Registro Maestro de Firmas: matriz consolidada de todas las firmas electrónicas del ciclo.' },
+                    registroBullet,
+                    ...(hasLibroFirmas ? [libroFirmasBullet] : []),
                     { text: 'Cascada Documental: cada documento del paquete renderizado completo, en orden canónico (HLRA → VP → URS → ... → VSR).' }
                 ],
                 fontSize: 10.5, margin: [0, 0, 0, 10]
@@ -805,7 +817,7 @@
             { label: '·', title: 'Glosario de Términos', page: 3, anchor: null },
             { label: '·', title: 'Marco Regulatorio Aplicado', page: 4, anchor: null },
             { label: '·', title: 'Índice Maestro', page: 5, anchor: null },
-            { label: '·', title: 'Registro Maestro de Firmas', page: 6, anchor: null }
+            { label: '·', title: tomo1.some(d => d.type === 'LIBRO_FIRMAS') ? 'Registro de Firmas — Etapas NCR' : 'Registro Maestro de Firmas', page: 6, anchor: null }
         ];
 
         content.push({
@@ -954,40 +966,58 @@
     }
 
     // ====================================================================
-    // REGISTRO MAESTRO DE FIRMAS
+    // REGISTRO DE FIRMAS (general + NCR, o solo NCR si ya hay capítulo LIBRO_FIRMAS)
+    //
+    // Ronda 19 (Codex, 2026-09-20 y segunda devolución 2026-09-21): antes esta sección
+    // SIEMPRE recolectaba tabla-firmas-final de TODOS los documentos, duplicando (con hash
+    // truncado a 10 caracteres) lo que el capítulo LIBRO_FIRMAS nuevo cubre con hash
+    // completo -- pero LIBRO_FIRMAS solo lo sintetiza el backend de Firmas
+    // (get_book_package). La Suite de Validación (index.html) usa este MISMO book-builder.js
+    // vendorizado con su propio global.packageDocs, sin pasar por ese backend -- para ese
+    // camino, suprimir tabla-firmas-final sin reemplazo dejaba las firmas generales
+    // invisibles en el libro compilado. La supresión ahora es CONDICIONAL: si `packageDocs`
+    // ya trae un documento tipo LIBRO_FIRMAS (lo cubre), se listan solo las firmas de etapa
+    // NCR (gates internos del proceso NCR, sin cobertura en el Libro de Firmas, decisión
+    // explícita del usuario: esas quedan como están); si NO lo trae, se recolecta también
+    // tabla-firmas-final como fallback -- mismo comportamiento que antes de Ronda 19 para
+    // quien nunca ve ese capítulo.
     // ====================================================================
     function buildMasterSignatureRegistry(packageDocs) {
         const tb = VS.templateBase;
         const C = tb.VS_COLORS;
         const out = [];
+        const hasLibroFirmas = packageDocs.some(d => d.type === 'LIBRO_FIRMAS');
 
-        out.push(tb.sectionTitle('REGISTRO MAESTRO DE FIRMAS'));
+        out.push(tb.sectionTitle(hasLibroFirmas ? 'REGISTRO DE FIRMAS — ETAPAS NCR' : 'REGISTRO MAESTRO DE FIRMAS'));
         out.push({
-            text: 'Consolidación de todas las firmas electrónicas registradas en el ciclo de validación. Cada fila vincula una firma con su documento, persona firmante, rol y fecha. Las firmas con hash de PIN registrado tienen referencia criptográfica (HASH-REF) para auditoría.',
+            text: hasLibroFirmas
+                ? 'Consolidación de las firmas por etapa de los reportes de No Conformidad (registro de hallazgo, análisis de causa, plan CAPA, cierre y aprobación). Las firmas generales de cada documento del ciclo están en el capítulo "Libro de Firmas", no acá.'
+                : 'Consolidación de todas las firmas electrónicas registradas en el ciclo de validación. Cada fila vincula una firma con su documento, persona firmante, rol y fecha.',
             fontSize: 10, alignment: 'justify', italics: true, color: C.textSoft, margin: [0, 0, 0, 12]
         });
 
-        // Recolectar todas las firmas
         const allFirmas = [];
         packageDocs.forEach(doc => {
             const data = doc.data;
             const docCode = getDocCode(doc);
-            // tabla-firmas-final
-            const tff = (data.secciones || []).find(s => s.tipo === 'tabla-firmas-final');
-            if (tff && Array.isArray(tff.firmas)) {
-                tff.firmas.forEach(f => {
-                    if (f.nombre && f.fecha) {
-                        allFirmas.push({
-                            docCode, docTipo: doc.type,
-                            rol: f.rol, nombre: f.nombre, iniciales: f.iniciales,
-                            fecha: f.fecha,
-                            hashRef: f._signatureHashRef || '',
-                            signedAt: f._signedAt || ''
-                        });
-                    }
-                });
+            // tabla-firmas-final: solo si NO hay capítulo LIBRO_FIRMAS que ya la cubra.
+            if (!hasLibroFirmas) {
+                const tff = (data.secciones || []).find(s => s.tipo === 'tabla-firmas-final');
+                if (tff && Array.isArray(tff.firmas)) {
+                    tff.firmas.forEach(f => {
+                        if (f.nombre && f.fecha) {
+                            allFirmas.push({
+                                docCode, docTipo: doc.type,
+                                rol: f.rol, nombre: f.nombre, iniciales: f.iniciales,
+                                fecha: f.fecha,
+                                hashRef: f._signatureHashRef || '',
+                                signedAt: f._signedAt || ''
+                            });
+                        }
+                    });
+                }
             }
-            // NCR: firmas por sección gated
+            // NCR: firmas por sección gated -- siempre se recolectan, con o sin LIBRO_FIRMAS.
             if (doc.type === 'NCR') {
                 ['ncr-registro-hallazgos', 'ncr-analisis-causa', 'ncr-plan-capa', 'ncr-cierre-aprobacion'].forEach(t => {
                     const sec = (data.secciones || []).find(s => s.tipo === t);
@@ -1011,7 +1041,9 @@
 
         if (allFirmas.length === 0) {
             out.push({
-                text: 'Sin firmas registradas en el ciclo.',
+                text: hasLibroFirmas
+                    ? 'Sin firmas de etapa NCR en este proyecto (no hay documentos NCR, o ninguno tiene firmas de etapa registradas).'
+                    : 'Sin firmas registradas en el ciclo.',
                 fontSize: 10, italics: true, color: C.textSoft, alignment: 'center',
                 fillColor: '#F4F6F8', margin: [0, 12, 0, 12]
             });

@@ -20,7 +20,7 @@
    8. Resumen de Cumplimiento (totales por norma)
    9. Conclusion + Decision formal
    10. Referencias
-   11. Firmas (tabla-firmas-final)
+   11. Firmas
 
    Tipos de seccion soportados:
    - Todos los compartidos
@@ -334,21 +334,6 @@
     }
 
     // ====================================================================
-    // tabla-firmas-final (compartido con HLRA/VP/URS/FRS/DS)
-    // ====================================================================
-    function renderTablaFirmasFinal(sec, tb, num) {
-        if (VS.shared && typeof VS.shared.renderTablaFirmasFinalSmart === "function") {
-            return VS.shared.renderTablaFirmasFinalSmart(sec, tb, { rolesDefault: [
-                'Redactor (Validador)',
-                'Revisor (Process Owner)',
-                'Aprobador (Jefe de Validaciones)',
-                'Aprobador (Gerente QA)'
-            ], numero: num, titulo: sec.titulo });
-        }
-        return [{ text: "[Helper de firmas no disponible]", color: "#FF0000" }];
-    }
-
-    // ====================================================================
     // RENDERER PRINCIPAL
     // ====================================================================
     VS.registerRenderer('RRM', function renderRRM(data) {
@@ -382,7 +367,7 @@
                 case 'caja-conclusion': contentBlock = shared.renderCajaConclusion(sec, tb); break;
                 case 'tabla-norma': contentBlock = renderTablaNorma(sec, tb); break;
                 case 'tarjeta-gap-rrm': contentBlock = renderTarjetaGapRrm(sec, tb); break;
-                case 'tabla-firmas-final': contentBlock = renderTablaFirmasFinal(sec, tb, num); titleBlock = []; break;
+                case 'firmas-horizontales': contentBlock = (VS.shared && VS.shared.renderFirmasHorizontal) ? VS.shared.renderFirmasHorizontal(sec, tb) : []; titleBlock = []; break;
                 default:
                     contentBlock = [{
                         text: `[Tipo de seccion desconocido: ${sec.tipo}]`,

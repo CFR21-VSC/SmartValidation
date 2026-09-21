@@ -13,9 +13,6 @@
    - caja-criterio               : Banner verde con titulo
    - caja-conclusion             : Caja con borde
 
-   ESPECIFICOS URS:
-   - tabla-firmas-final          : Tabla de firmas (compartido con HLRA/VP)
-
    NOTA: La gran tabla de requerimientos (50+ filas) se renderea con
    tipo: 'tabla', usando filas con { subheader: "7.1 ..." } para los
    grupos. El renderer detecta sub-headers automaticamente.
@@ -28,21 +25,6 @@
     if (!VS) {
         console.error('[urs.js] ValidationSuite no esta cargado');
         return;
-    }
-
-    // ====================================================================
-    // tabla-firmas-final (compartido con HLRA/VP)
-    // ====================================================================
-    function renderTablaFirmasFinal(sec, tb, num) {
-        if (VS.shared && typeof VS.shared.renderTablaFirmasFinalSmart === "function") {
-            return VS.shared.renderTablaFirmasFinalSmart(sec, tb, { rolesDefault: [
-                'Ejecutor (Validador)',
-                'Revisor (Process Owner)',
-                'Aprobador (Jefe de Validaciones)',
-                'Aprobador (Gerente QA)'
-            ], numero: num, titulo: sec.titulo });
-        }
-        return [{ text: "[Helper de firmas no disponible]", color: "#FF0000" }];
     }
 
     // Tipos de tabla "chicos" para wrap unbreakable
@@ -138,7 +120,7 @@
                 case 'caja-justificacion': contentBlock = shared.renderCajaJustificacion(sec, tb); titleBlock = []; break;
                 case 'caja-criterio': contentBlock = shared.renderCajaCriterio(sec, tb); titleBlock = []; break;
                 case 'caja-conclusion': contentBlock = shared.renderCajaConclusion(sec, tb); titleBlock = []; break;
-                case 'tabla-firmas-final': contentBlock = renderTablaFirmasFinal(sec, tb, num); titleBlock = []; break;
+                case 'firmas-horizontales': contentBlock = (VS.shared && VS.shared.renderFirmasHorizontal) ? VS.shared.renderFirmasHorizontal(sec, tb) : []; titleBlock = []; break;
                 default:
                     contentBlock = [{
                         text: `[Tipo de seccion desconocido: ${sec.tipo}]`,

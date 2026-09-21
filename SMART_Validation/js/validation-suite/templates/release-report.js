@@ -25,8 +25,7 @@
      - release-condicionantes    : lista (visible solo si "con condiciones")
      - release-decision-formal   : caja grande con autorización al sponsor
 
-   Tipos compartidos: texto, tabla-info, tabla, caja-conclusion,
-   tabla-firmas-final.
+   Tipos compartidos: texto, tabla-info, tabla, caja-conclusion.
    ==================================================================== */
 
 (function (global) {
@@ -383,18 +382,6 @@
         return out;
     }
 
-    // ====================================================================
-    // FIRMAS FINALES
-    // ====================================================================
-    function renderTablaFirmasFinal(sec, tb, num) {
-        // Delega al helper compartido con ajuste smart (fontSize + height adaptativo)
-        if (VS.shared && typeof VS.shared.renderTablaFirmasFinalSmart === 'function') {
-            return VS.shared.renderTablaFirmasFinalSmart(sec, tb, { rolesDefault: ['Sponsor / Director', 'Gerente QA', 'Process Owner'], numero: num, titulo: sec.titulo });
-        }
-        // Fallback (no debería ocurrir)
-        return [{ text: '[Helper de firmas no disponible]', color: '#FF0000' }];
-    }
-
     function maybeWrapUnbreakable(sec, titleBlock, contentBlock) {
         const UB = ['tabla-info', 'release-portada-decision', 'release-decision-formal'];
         if (UB.includes(sec.tipo)) {
@@ -510,7 +497,7 @@
                 case 'release-trazabilidad-cierre': contentBlock = renderTrazabilidadCierre(sec, tb); break;
                 case 'release-condicionantes': contentBlock = renderCondicionantes(sec, tb); break;
                 case 'release-decision-formal': contentBlock = renderDecisionFormal(sec, tb, etapa, data); break;
-                case 'tabla-firmas-final': contentBlock = renderTablaFirmasFinal(sec, tb, num); titleBlock = []; break;
+                case 'firmas-horizontales': contentBlock = (VS.shared && VS.shared.renderFirmasHorizontal) ? VS.shared.renderFirmasHorizontal(sec, tb) : []; titleBlock = []; break;
                 default:
                     contentBlock = [{ text: `[Tipo de sección desconocido: ${sec.tipo}]`, color: '#FF0000', margin: [0, 0, 0, 12] }];
             }
@@ -533,7 +520,6 @@
     VS.releaseRenderers = {
         renderResumenEjecutivo,
         renderTrazabilidadCierre,
-        renderTablaFirmasFinal,
         autoFillFromPackage
     };
 

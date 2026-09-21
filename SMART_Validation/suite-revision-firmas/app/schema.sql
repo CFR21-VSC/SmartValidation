@@ -172,6 +172,33 @@ CREATE INDEX IF NOT EXISTS idx_rf_events_project ON rf_people_book_events(projec
 
 -- Fase 3: Firma — dos etapas separadas (sección 5).
 
+-- Consentimiento de firma electrónica (Libro de Firmas, pedido del usuario 2026-09-20):
+-- declaración legal estilo 21 CFR Part 11 §11.100 -- "mi firma electrónica basada en PIN es
+-- el equivalente legalmente vinculante de mi firma manuscrita". Política de producto: se
+-- acepta una sola vez por persona, de por vida, sin importar cuántos proyectos firme
+-- después -- sign_review/sign_approval (signatures.py) bloquean con 409 "consent_required"
+-- hasta que exista AL MENOS UNA fila para ese user_id (ver has_accepted_consent en
+-- signature_consent.py, que NO filtra por versión -- una actualización editorial del texto
+-- no exige re-aceptar ni invalida lo ya aceptado, ver Ronda 19 en docs-privados/).
+--
+-- Ronda 19, revisión de Codex (2026-09-20): la versión original tenía user_id como PRIMARY
+-- KEY con INSERT...ON CONFLICT DO UPDATE -- aceptar una versión nueva PISABA la fila
+-- anterior, perdiendo qué texto exacto se aceptó la primera vez. Contradice el mismo
+-- principio de "nunca borrar, invalidar" que ya rige rf_review_signatures/
+-- rf_approval_signers. Ahora es estrictamente insert-only: PK autoincremental,
+-- UNIQUE(user_id, statement_version) evita duplicar la aceptación de la MISMA versión
+-- (reintento idempotente), pero una versión nueva crea una fila nueva sin tocar las
+-- anteriores -- el historial completo de qué se aceptó y cuándo queda íntegro para siempre.
+CREATE TABLE IF NOT EXISTS rf_signature_consent (
+    id                        INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id                   TEXT NOT NULL,
+    statement_version         TEXT NOT NULL,
+    statement_text_snapshot   TEXT NOT NULL,
+    accepted_at               REAL NOT NULL,
+    UNIQUE(user_id, statement_version)
+);
+CREATE INDEX IF NOT EXISTS idx_rf_signature_consent_user ON rf_signature_consent(user_id);
+
 -- 5.1 Firma de Revisión: sin orden, uno por firmante.
 CREATE TABLE IF NOT EXISTS rf_review_signatures (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -189,7 +216,13 @@ CREATE TABLE IF NOT EXISTS rf_review_signatures (
     content_fingerprint      TEXT,
     display_name_at_signing  TEXT,
     invalidated_at    REAL,
-    invalidated_reason TEXT
+    invalidated_reason TEXT,
+    -- Ronda 19: referencia a la fila de rf_signature_consent vigente al momento de ESTA
+    -- firma puntual -- sin esto, el Libro de Firmas no puede vincular temporalmente una
+    -- aceptación a la firma que habilitó (Codex, 2026-09-20: "vincular las firmas nuevas a
+    -- la evidencia de consentimiento que habilitó su emisión"). NULL para firmas emitidas
+    -- antes de que este campo existiera -- no se rellena retroactivamente sin evidencia.
+    consent_id        INTEGER REFERENCES rf_signature_consent(id)
     -- Antes: UNIQUE(document_id, user_id) sobre TODA fila -- una firma invalidada por
     -- reapertura seguía ocupando esa clave, así que el mismo revisor nunca podía volver a
     -- firmar después de reabrir (encontrado en revisión de Codex, 2026-09-19). Reemplazado
@@ -226,6 +259,7 @@ CREATE TABLE IF NOT EXISTS rf_approval_signers (
     display_name_at_signing  TEXT,
     invalidated_at    REAL,
     invalidated_reason TEXT,
+    consent_id        INTEGER REFERENCES rf_signature_consent(id),
     UNIQUE(round_id, user_id),
     UNIQUE(round_id, sign_order)
 );

@@ -450,7 +450,41 @@
             // con 68pt — se le suman esos puntos a costa de Descripción, que tiene sobra.
             table: { widths: vsScaleWidths([68, 78, 114, 195]), body: cambiosBody, dontBreakRows: true, headerRows: 1 },
             layout: vsTableLayout(),
-            margin: [0, 0, 0, 0],
+            margin: [0, 0, 0, 0]
+        });
+
+        // ===== Seccion Matriz de Aprobaciones =====
+        // Hasta acá este campo se validaba (document-renderer.js) y se editaba (visual-editor.js)
+        // pero nunca se pintaba en el PDF -- bug preexistente encontrado evaluando el pedido del
+        // usuario de mostrar el hash de firma (2026-09-20). Es el único lugar del documento con
+        // los nombres reales de los aprobadores administrativos (rol/nombre/fecha), separado de
+        // las firmas electrónicas reales del Libro de Firmas.
+        content.push(sectionTitle('MATRIZ DE APROBACIONES'));
+
+        const matriz = data.matrizAprobaciones || [];
+        const matrizBody = [
+            [vsTh('Rol'), vsTh('Nombre'), vsTh('Fecha')]
+        ];
+        if (matriz.length === 0) {
+            matrizBody.push([
+                vsTd('—'),
+                vsTd('Sin matriz de aprobaciones registrada', { italics: true, color: VS_COLORS.neutral }),
+                vsTd('—', { alignment: 'center' })
+            ]);
+        } else {
+            matriz.forEach((m, idx) => {
+                const bg = idx % 2 === 1 ? VS_COLORS.bgSoft : null;
+                matrizBody.push([
+                    vsTd(m.rol || '—', { fillColor: bg }),
+                    vsTd(m.nombre || '—', { fillColor: bg, bold: true }),
+                    vsTd(formatDateShort(m.fecha) || '—', { fillColor: bg, alignment: 'center' })
+                ]);
+            });
+        }
+        content.push({
+            table: { widths: vsScaleWidths([170, 170, 115]), body: matrizBody, dontBreakRows: true, headerRows: 1 },
+            layout: vsTableLayout(),
+            margin: [0, 10, 0, 0],
             pageBreak: 'after'
         });
 

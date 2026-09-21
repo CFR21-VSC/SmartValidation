@@ -502,154 +502,93 @@
     };
 
     // ====================================================================
-    // TABLA DE FIRMAS FINAL — SMART FIT
+    // FIRMAS EN FORMATO HORIZONTAL — Libro de Firmas (pedido del usuario 2026-09-20)
     //
-    // Renderea la tabla de firmas con:
-    //   - Anchuras: 145+145+90+75 = 455pt (cabe en A4 portrait).
-    //   - fontSize adaptativo según largo del nombre (9 / 8.5 / 8).
-    //   - height adaptativo por fila según contenido (60 base, 75 si largo).
-    //   - Truncado defensivo > 70 chars con elipsis.
-    //   - Soporta tanto firmas pobladas como rolesPlaceholder vacíos.
+    // Columnas por firmante (una tarjeta por persona, lado a lado), y
+    // debajo el hash COMPLETO del documento (sin truncar, a diferencia del viejo
+    // "Registro Maestro de Firmas" de book-builder.js que lo truncaba a 10 caracteres)
+    // con una nota explicando por qué un documento sellado es inmodificable.
     //
-    // Opts:
-    //   - rolesDefault: array con roles default si sec.rolesPlaceholder está
-    //     vacío y no hay firmas. Ej. ['Validador', 'Revisor', 'Aprobador'].
-    //   - showIntro: bool (default true)
+    // sec: { tipoDocumento, sellado, fechaSellado, pdfHash, jsonHash,
+    //        firmasRevision: [{rol,nombre,iniciales,fecha,consentimiento}], firmasAprobacion: [...] }
+    // consentimiento por firma (no por persona): { version, texto, fecha } | null -- Ronda 19,
+    // tercera devolución de Codex (2026-09-21): antes el dato ni siquiera llegaba hasta acá
+    // (se recortaba en el backend); ahora cada tarjeta muestra su propio vínculo, sin
+    // heredar el de otra firma de la misma persona.
     // ====================================================================
-    VS.shared.renderTablaFirmasFinalSmart = function (sec, tb, opts) {
-        opts = opts || {};
+    VS.shared.renderFirmasHorizontal = function (sec, tb) {
         const C = tb.VS_COLORS;
-        const firmas = sec.firmas || [];
-        // Stack interno del bloque unbreakable.
-        // Si opts.numero/titulo se pasan, incluimos el sectionTitle adentro
-        // → el título queda PEGADO al cuadro (no se separa nunca).
-        const innerStack = [];
+        const out = [];
 
-        // Título interno (si se pasó)
-        if (opts.numero != null && opts.titulo && typeof tb.sectionTitle === 'function') {
-            const t = tb.sectionTitle(`${opts.numero}. ${opts.titulo}`, { marginTop: 0 });
-            innerStack.push(...t);
-        } else if (opts.titulo && typeof tb.sectionTitle === 'function') {
-            innerStack.push(...tb.sectionTitle(opts.titulo, { marginTop: 0 }));
+        function signerCard(f) {
+            const consentNote = f.consentimiento
+                ? { text: 'Conformidad vinculada', fontSize: 6.5, color: '#1E7E34', alignment: 'center', margin: [2, 0, 2, 4] }
+                : { text: 'Sin vínculo de conformidad', fontSize: 6.5, italics: true, color: '#B85F0F', alignment: 'center', margin: [2, 0, 2, 4] };
+            return {
+                width: '*',
+                stack: [
+                    { text: f.rol || '—', fontSize: 8, bold: true, color: C.textSoft, alignment: 'center', margin: [2, 6, 2, 2] },
+                    { text: f.nombre || '—', fontSize: 9, bold: true, alignment: 'center', color: C.text, margin: [2, 0, 2, 2] },
+                    { text: f.iniciales || '', fontSize: 14, bold: true, alignment: 'center', color: C.primary, margin: [2, 2, 2, 2] },
+                    { text: tb.formatDateShort(f.fecha) || '—', fontSize: 8, italics: true, alignment: 'center', color: C.textSoft, margin: [2, 0, 2, 2] },
+                    consentNote
+                ],
+                fillColor: '#F4F6F8'
+            };
         }
 
-        if (opts.showIntro !== false && sec.intro) {
-            innerStack.push({
-                text: sec.intro,
-                fontSize: 10, italics: true, color: C.textSoft,
-                alignment: 'justify', lineHeight: 1.35,
-                margin: [0, 0, 0, 12]
+        function firmasRow(titulo, firmas) {
+            const rowOut = [{ text: titulo, fontSize: 9, bold: true, color: C.primary, margin: [0, 8, 0, 4] }];
+            if (!firmas || firmas.length === 0) {
+                rowOut.push({
+                    text: 'Sin firmas registradas todavía.',
+                    fontSize: 8.5, italics: true, color: C.textSoft, margin: [0, 0, 0, 4]
+                });
+                return rowOut;
+            }
+            rowOut.push({
+                columns: firmas.map(signerCard),
+                columnGap: 8,
+                margin: [0, 0, 0, 4]
             });
+            return rowOut;
         }
 
-        const body = [[
-            tb.vsTh('Rol / Cargo'),
-            tb.vsTh('Nombre'),
-            tb.vsTh('Firma', { alignment: 'center' }),
-            tb.vsTh('Fecha', { alignment: 'center' })
-        ]];
+        out.push(...firmasRow('Firmas de revisión', sec.firmasRevision));
+        out.push(...firmasRow('Firmas de aprobación', sec.firmasAprobacion));
 
-        // Helpers locales
-        function fitName(nombre) {
-            const n = String(nombre || '');
-            if (n.length > 70) return n.substring(0, 67) + '...';
-            return n;
-        }
-        function fontForName(nombre) {
-            const len = String(nombre || '').length;
-            if (len > 40) return 7.5;
-            if (len > 28) return 8.5;
-            return 9;
-        }
-        function fontForRol(rol) {
-            const len = String(rol || '').length;
-            if (len > 28) return 8;
-            return 9;
-        }
-        function fontForIniciales(ini) {
-            const len = String(ini || '').length;
-            if (len > 6) return 11;
-            if (len > 4) return 12;
-            return 13;
-        }
-        // height adaptativo: 60 base + 15 extra si algun texto largo en la fila
-        function rowHeight(rol, nombre) {
-            const maxLen = Math.max(String(rol || '').length, String(nombre || '').length);
-            if (maxLen > 40) return 75;
-            if (maxLen > 28) return 68;
-            return 60;
-        }
-
-        const rowHeights = [28]; // header
-
-        if (firmas.length === 0) {
-            const roles = (Array.isArray(sec.rolesPlaceholder) && sec.rolesPlaceholder.length > 0 ? sec.rolesPlaceholder : null) || opts.rolesDefault || ['Validador', 'Revisor', 'Aprobador'];
-            roles.forEach((rol, idx) => {
-                const bg = idx % 2 === 1 ? C.bgSoft : null;
-                body.push([
-                    tb.vsTd(rol, { bold: true, fillColor: bg, fontSize: fontForRol(rol) }),
-                    tb.vsTd('', { fillColor: bg }),
-                    tb.vsTd('', { fillColor: bg }),
-                    tb.vsTd('', { fillColor: bg })
-                ]);
-                rowHeights.push(rowHeight(rol, ''));
+        // Hash — completo, sin truncar (a diferencia de buildMasterSignatureRegistry en
+        // book-builder.js), con nota de inmutabilidad explícita.
+        if (sec.sellado) {
+            out.push({
+                unbreakable: true,
+                stack: [
+                    { text: `Documento sellado el ${sec.fechaSellado || '—'}.`, fontSize: 9, bold: true, color: '#1E7E34', margin: [0, 8, 0, 4] },
+                    { text: 'Hash del PDF sellado (SHA-256):', fontSize: 7.5, bold: true, color: C.textSoft, margin: [0, 0, 0, 1] },
+                    { text: sec.pdfHash || '—', fontSize: 8, italics: true, color: C.text, margin: [0, 0, 0, 5] },
+                    { text: 'Hash del contenido (SHA-256):', fontSize: 7.5, bold: true, color: C.textSoft, margin: [0, 0, 0, 1] },
+                    { text: sec.jsonHash || '—', fontSize: 8, italics: true, color: C.text, margin: [0, 0, 0, 6] },
+                    {
+                        // Ronda 19 (Codex, 2026-09-20): "por eso es inmodificable" es incorrecto -- un
+                        // hash no impide modificar nada, permite DETECTAR una modificación al comparar
+                        // contra esta referencia preservada. Corregido para no afirmar una garantía que
+                        // el hash, por sí solo, no da (tampoco certifica correspondencia PDF↔JSON ni
+                        // conservación del original -- eso sigue abierto en Ronda 18).
+                        text: 'Este hash es la huella digital del documento en el estado exacto en que quedó sellado. '
+                            + 'Permite DETECTAR una modificación posterior comparándolo contra esta referencia: si el '
+                            + 'contenido cambia, el hash recalculado ya no coincide con el que figura arriba.',
+                        fontSize: 8, italics: true, color: C.textSoft, alignment: 'justify', lineHeight: 1.3, margin: [0, 0, 0, 10]
+                    }
+                ]
             });
         } else {
-            firmas.forEach((f, idx) => {
-                const bg = idx % 2 === 1 ? C.bgSoft : null;
-                const rol = f.rol || '—';
-                const nombre = fitName(f.nombre);
-                const iniciales = f.iniciales || f.firma || '';
-                const fecha = tb.formatDateShort(f.fecha) || '';
-
-                // Celda de firma: si hay imagen, usarla; sino iniciales en grande
-                let firmaCell;
-                if (f.firmaImage) {
-                    firmaCell = { image: f.firmaImage, fit: [78, 46], alignment: 'center', margin: [4, 4, 4, 4], fillColor: bg };
-                } else {
-                    firmaCell = tb.vsTd(iniciales, {
-                        alignment: 'center', bold: true, fillColor: bg,
-                        fontSize: fontForIniciales(iniciales)
-                    });
-                }
-
-                body.push([
-                    tb.vsTd(rol, { bold: true, fillColor: bg, fontSize: fontForRol(rol) }),
-                    tb.vsTd(nombre, { fillColor: bg, fontSize: fontForName(nombre), lineHeight: 1.2 }),
-                    firmaCell,
-                    tb.vsTd(fecha, { alignment: 'center', fillColor: bg, fontSize: 9 })
-                ]);
-                rowHeights.push(rowHeight(rol, nombre));
+            out.push({
+                text: 'Documento todavía no sellado — el hash se genera recién con la firma final de aprobación.',
+                fontSize: 8.5, italics: true, color: C.textSoft, margin: [0, 6, 0, 10]
             });
         }
 
-        // Tabla principal de firmas, agregada al stack interno
-        innerStack.push({
-            table: {
-                widths: tb.vsScaleWidths([122, 122, 76, 63]),
-                heights: rowHeights,
-                body: body,
-                headerRows: 1
-            },
-            layout: tb.vsTableLayout(),
-            margin: [0, 0, 0, 14]
-        });
-
-        if (sec.nota) {
-            innerStack.push({
-                text: sec.nota,
-                fontSize: 8, italics: true, color: C.neutral,
-                alignment: 'justify',
-                margin: [0, 0, 0, 0]
-            });
-        }
-
-        // Devolver TODO (título + intro + tabla + nota) como un solo bloque
-        // unbreakable: pdfMake no puede separar el título del cuadro entre páginas.
-        return [{
-            unbreakable: true,
-            stack: innerStack
-        }];
+        return out;
     };
 
     // ====================================================================

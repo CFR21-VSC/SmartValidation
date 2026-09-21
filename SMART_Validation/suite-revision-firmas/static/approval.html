@@ -60,8 +60,41 @@
             <div class="rf-pane-header"><span>Ronda de aprobación</span></div>
             <div class="rf-pane-body">
                 <div class="ap-banner-sealed" id="sealed-banner" style="display:none;"></div>
+                <!-- Panel de hash (pedido del usuario 2026-09-20): pdf_hash/json_hash ya se
+                     calculaban y guardaban al sellar, pero nunca se mostraban en ningún lado
+                     de la UI -- esto solo lo expone. -->
+                <div id="hash-panel" style="display:none; margin: 0 0 14px; padding: 12px 14px; background: var(--bg-soft, #F4F6F8); border-radius: 8px; font-size: 12px;">
+                    <div style="color: var(--text-muted); font-weight:600; margin-bottom:2px;">Hash del PDF sellado (SHA-256)</div>
+                    <div id="hash-panel-pdf" style="word-break: break-all; margin-bottom:8px;"></div>
+                    <div style="color: var(--text-muted); font-weight:600; margin-bottom:2px;">Hash del contenido (SHA-256)</div>
+                    <div id="hash-panel-json" style="word-break: break-all; margin-bottom:8px;"></div>
+                    <div style="color: var(--text-muted); font-style: italic; line-height:1.4;">
+                        Este hash es la huella digital única del documento en el estado exacto en que quedó sellado.
+                        Cualquier modificación posterior a su contenido produciría un hash distinto al que figura arriba —
+                        por eso un documento con hash cerrado es inmodificable: cualquier alteración quedaría en evidencia.
+                    </div>
+                </div>
                 <div id="right-body"><div class="rf-empty">Cargando…</div></div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Declaración de conformidad de firma electrónica (pedido del usuario
+     2026-09-20) -- se muestra UNA sola vez por persona, de por vida, antes de la primera
+     firma que emita en todo el sistema (cualquier proyecto). Ver signature_consent.py. -->
+<div class="rf-modal-backdrop" id="consent-backdrop" style="display:none;">
+    <div class="rf-modal" style="width:min(560px, 92vw);">
+        <h3>Declaración de conformidad de firma electrónica</h3>
+        <p style="font-size:12.5px; color: var(--text-muted); margin: 0 0 10px;">
+            Antes de firmar por primera vez, tenés que aceptar esta declaración. Se te pide
+            una sola vez — no se vuelve a mostrar en proyectos futuros.
+        </p>
+        <div id="consent-text" style="font-size:12.5px; line-height:1.5; background:var(--bg-soft, #F4F6F8); border-radius:6px; padding:14px; margin-bottom:12px;"></div>
+        <div class="rf-error" id="consent-error"></div>
+        <div style="margin-top:6px; display:flex; justify-content:flex-end; gap:10px;">
+            <button class="rf-btn-secondary" id="consent-cancel">Cancelar</button>
+            <button class="rf-btn" id="consent-accept">Acepto</button>
         </div>
     </div>
 </div>
@@ -97,6 +130,7 @@
 </div>
 
 <script src="js/api.js"></script>
+<script src="js/signature-consent.js"></script>
 <script>
 let session = null;
 let projectId = '';
@@ -107,6 +141,7 @@ let currentSigners = [];
 let usersList = [];
 let formRows = [];
 let approvalMatrix = [];  // Matriz de Aprobaciones del documento — ver getApprovalMatrix()
+let documentInfo = null;  // { pdf_hash, json_hash, locked, locked_at, ... } -- ver panel de hash
 
 // Misma sección tabla-firmas-final que arma el motor (shared-renderers.js) — antes de que
 // nadie firme en esta suite, trae los roles esperados (con nombres ya cargados desde la
@@ -240,6 +275,7 @@ async function init() {
     session = await requireSession();
     if (!session) return;
 
+    bindConsentModalEvents();
     const params = new URLSearchParams(location.search);
     projectId = params.get('project') || '';
     docType = params.get('doc') || '';
@@ -286,6 +322,7 @@ async function loadApprovalMatrix() {
         `/projects/${encodeURIComponent(projectId)}/documents/${encodeURIComponent(docType)}`
     );
     approvalMatrix = (status === 200 && data.ok) ? getApprovalMatrix(data.document.json_data) : [];
+    documentInfo = (status === 200 && data.ok) ? data.document : null;
 }
 
 async function loadRound() {
@@ -311,11 +348,20 @@ async function loadRound() {
 // ─── Panel derecho: ronda / formulario de creación ─────────────────────────
 function renderRight() {
     const banner = document.getElementById('sealed-banner');
+    const hashPanel = document.getElementById('hash-panel');
     if (currentRound && currentRound.status === 'sealed') {
         banner.style.display = 'block';
         banner.textContent = `🔒 Documento sellado el ${fmtDateTime(currentRound.sealed_at)} — inmutable`;
+        if (documentInfo && documentInfo.locked) {
+            hashPanel.style.display = 'block';
+            document.getElementById('hash-panel-pdf').textContent = documentInfo.pdf_hash || '—';
+            document.getElementById('hash-panel-json').textContent = documentInfo.json_hash || '—';
+        } else {
+            hashPanel.style.display = 'none';
+        }
     } else {
         banner.style.display = 'none';
+        hashPanel.style.display = 'none';
     }
 
     const container = document.getElementById('right-body');
@@ -538,7 +584,20 @@ function updatePdfNote(text) {
     }
 }
 
+// Declaración de conformidad de firma electrónica: lógica en js/signature-consent.js
+// (Ronda 19 -- compartida con review.html, antes duplicada e idéntica en las dos páginas,
+// ver ese archivo para la historia completa de los fixes). bindConsentModalEvents se llama
+// en init() más abajo.
+
 async function openSignModal(prefillBase64) {
+    // Gate: si falta aceptar la declaración de conformidad, se muestra primero y recién
+    // cuando acepta se vuelve a llamar a esta misma función con el mismo argumento.
+    const consentInfo = await checkSignatureConsent();
+    if (!consentInfo.accepted) {
+        openConsentModal(consentInfo, () => openSignModal(prefillBase64));
+        return;
+    }
+
     document.getElementById('sign-justification').value = '';
     signPinInputs.forEach(i => i.value = '');
     document.getElementById('sign-pdf-file').value = '';
@@ -625,6 +684,7 @@ async function onSignSubmit() {
         closeSignModal();
         if (data.sealed === true) {
             showToast('Documento sellado — quedó inmutable', false);
+            await loadApprovalMatrix(); // refresca documentInfo -- recién ahí existen pdf_hash/json_hash
         } else {
             showToast('Firma registrada');
         }
@@ -632,7 +692,17 @@ async function onSignSubmit() {
         return;
     }
 
-    errorBox.textContent = data.error || 'No se pudo registrar la firma.';
+    // Red de seguridad ante una carrera rara (el chequeo de openSignModal dijo "aceptado"
+    // pero el backend, la verdad autoritativa, rechazó igual -- ej. dos pestañas abiertas).
+    // Sin esto se mostraría el objeto {error, message} crudo en vez de un mensaje legible.
+    if (status === 409 && data.error && data.error.error === 'consent_required') {
+        closeSignModal();
+        const consentInfo = await checkSignatureConsent();
+        openConsentModal(consentInfo, () => openSignModal(modalPdfBase64));
+        return;
+    }
+
+    errorBox.textContent = (data.error && data.error.message) || data.error || 'No se pudo registrar la firma.';
     errorBox.classList.add('visible');
 }
 

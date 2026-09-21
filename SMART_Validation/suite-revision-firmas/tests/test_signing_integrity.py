@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.conftest import accept_signature_consent
 
 SAMPLE_JSON = {"type": "HLRA", "metadata": {"title": "Análisis"}, "secciones": []}
 FAKE_PDF_B64 = base64.b64encode(b"%PDF-1.4 fake test pdf").decode()
@@ -17,6 +18,7 @@ FAKE_PDF_B64 = base64.b64encode(b"%PDF-1.4 fake test pdf").decode()
 @pytest.fixture
 def drp_with_pin(drp_client):
     drp_client.post("/auth/set-pin", json={"pin": "9999"})
+    accept_signature_consent(drp_client)
     return drp_client
 
 
@@ -30,6 +32,7 @@ def cliente(drp_client):
     token = created.json()["invite_link"].split("token=")[-1]
     cli = TestClient(app)
     cli.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "1234"})
+    accept_signature_consent(cli)
     return cli, user_id
 
 
@@ -113,6 +116,43 @@ def test_reopen_rejected_if_already_sealed(drp_with_pin, cliente):
 
     r = drp_with_pin.post("/projects/proj-1/documents/HLRA/reopen", json={"reason": "motivo"})
     assert r.status_code == 409
+
+
+def test_sealing_flips_document_status_to_aprobado(drp_with_pin, cliente):
+    """Ronda 20: el sellado es la única excepción a la inmutabilidad de json_data -- pisa
+    document.status a 'Aprobado' para que la portada del PDF (y cualquier libro regenerado
+    después) deje de mostrar 'Borrador' para siempre en un documento ya aprobado. El
+    json_hash grabado tiene que quedar calculado sobre ESE contenido ya actualizado, no
+    sobre el que había antes de sellar -- si no, una reverificación futura del hash contra
+    el contenido guardado daría siempre un falso positivo de manipulación."""
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente
+    drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+    drp_id = [u["id"] for u in drp_with_pin.get("/users").json()["users"] if u["is_superadmin"]][0]
+
+    before = drp_with_pin.get("/projects/proj-1/documents/HLRA").json()
+    assert "document" not in before["document"]["json_data"]  # SAMPLE_JSON no trae ese campo
+
+    fp = _fp(drp_with_pin)
+    drp_with_pin.post(
+        "/projects/proj-1/documents/HLRA/approval-round",
+        json={"signers": [{"user_id": drp_id, "role_label": "Aprobador", "sign_order": 1}]},
+    )
+    sealed = drp_with_pin.post(
+        "/projects/proj-1/documents/HLRA/approval-round/sign",
+        json={"pin": "9999", "justification_text": "ok", "pdf_base64": FAKE_PDF_B64, "content_fingerprint": fp},
+    )
+    assert sealed.status_code == 200 and sealed.json()["sealed"] is True
+
+    after = drp_with_pin.get("/projects/proj-1/documents/HLRA").json()
+    doc = after["document"]
+    assert doc["json_data"]["document"]["status"] == "Aprobado"
+    # El resto del contenido no se tocó -- solo el campo status.
+    assert doc["json_data"]["metadata"] == SAMPLE_JSON["metadata"]
+    # json_hash tiene que coincidir con un hash fresco del contenido REALMENTE guardado
+    # (content_fingerprint, calculado del string crudo en la fila) -- si json_hash se hubiera
+    # calculado antes del pisado de status, esto fallaría para siempre.
+    assert doc["json_hash"] == after["content_fingerprint"]
 
 
 # ─── ALTA #4: delete_document tiene que respetar evidencia de firma ────────────
@@ -329,7 +369,7 @@ def test_sealed_with_partner_then_partner_changed_keeps_original_snapshot(drp_wi
     assert doc["partner_branding"]["logo"] == "data:image/png;base64,aa"
 
     pkg = drp_with_pin.get("/projects/proj-1/book-package").json()
-    branding = pkg["documents"][0]["data"]["_partnerBranding"]
+    branding = next(d for d in pkg["documents"] if d["type"] == "HLRA")["data"]["_partnerBranding"]
     assert branding["name"] == "Partner Original"
     assert branding["logo"] == "data:image/png;base64,aa"
 

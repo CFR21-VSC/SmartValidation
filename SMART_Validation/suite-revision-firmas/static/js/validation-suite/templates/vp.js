@@ -14,7 +14,6 @@
    - caja-conclusion             : Caja con borde para parrafos finales
 
    ESPECIFICOS VP:
-   - tabla-firmas-final          : Tabla de firmas al final (compartido HLRA)
    - tabla-decisiones-tc         : Cuadro de criterios de resultado de TC
                                    (PASA / NO PASA / PASA CON OBS / NO APLICA)
    ==================================================================== */
@@ -107,21 +106,6 @@
         return out;
     }
 
-    // ====================================================================
-    // tabla-firmas-final (copiado de hlra.js - es compartido)
-    // ====================================================================
-    function renderTablaFirmasFinal(sec, tb, num) {
-        if (VS.shared && typeof VS.shared.renderTablaFirmasFinalSmart === "function") {
-            return VS.shared.renderTablaFirmasFinalSmart(sec, tb, { rolesDefault: [
-                'Ejecutor (Validador)',
-                'Revisor (Process Owner)',
-                'Aprobador (Jefe de Validaciones)',
-                'Aprobador (Gerente QA)'
-            ], numero: num, titulo: sec.titulo });
-        }
-        return [{ text: "[Helper de firmas no disponible]", color: "#FF0000" }];
-    }
-
     // Tipos de seccion que son TABLAS (para detectar si conviene wrappear con unbreakable)
     const TABLE_TYPES = ['tabla', 'tabla-info', 'arbol-decision-gamp', 'tabla-decisiones-tc'];
 
@@ -192,7 +176,7 @@
                 case 'caja-criterio': contentBlock = shared.renderCajaCriterio(sec, tb); titleBlock = []; break;
                 case 'caja-conclusion': contentBlock = shared.renderCajaConclusion(sec, tb); titleBlock = []; break;
                 case 'tabla-decisiones-tc': contentBlock = renderTablaDecisionesTC(sec, tb); break;
-                case 'tabla-firmas-final': contentBlock = renderTablaFirmasFinal(sec, tb, num); titleBlock = []; break;
+                case 'firmas-horizontales': contentBlock = (VS.shared && VS.shared.renderFirmasHorizontal) ? VS.shared.renderFirmasHorizontal(sec, tb) : []; titleBlock = []; break;
                 default:
                     contentBlock = [{
                         text: `[Tipo de seccion desconocido: ${sec.tipo}]`,

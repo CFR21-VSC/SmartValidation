@@ -677,8 +677,25 @@
         <button class="rf-btn-secondary" id="btn-push-validacion" style="display:none;">📤 Enviar a Validación</button>
         <button class="rf-btn-secondary" id="btn-download-original" style="display:none;">⬇️ Descargar original firmado</button>
         <button class="rf-btn-secondary" id="btn-reopen-document" style="display:none;">🔓 Reabrir para editar</button>
+        <button class="rf-btn-secondary" id="btn-view-hash" style="display:none;">🔒 Ver hash del sellado</button>
         <button class="rf-btn" id="btn-sign-review">Firmar revisión</button>
         <div class="rv-signers" id="signers-summary">Cargando firmas…</div>
+    </div>
+
+    <!-- Panel de hash (pedido del usuario 2026-09-20): el hash ya se calculaba y guardaba
+         al sellar (rf_documents.pdf_hash/json_hash) pero nunca se mostraba en ningún lado
+         de la UI -- esto solo lo expone, no cambia cómo se calcula. -->
+    <div id="hash-panel" style="display:none; margin: 0 14px 10px; padding: 12px 16px; background: var(--bg-soft, #F4F6F8); border-radius: 8px; font-size: 12px;">
+        <div style="font-weight:700; color: var(--success); margin-bottom:6px;" id="hash-panel-sealed-at"></div>
+        <div style="color: var(--text-muted); font-weight:600; margin-bottom:2px;">Hash del PDF sellado (SHA-256)</div>
+        <div id="hash-panel-pdf" style="word-break: break-all; margin-bottom:8px;"></div>
+        <div style="color: var(--text-muted); font-weight:600; margin-bottom:2px;">Hash del contenido (SHA-256)</div>
+        <div id="hash-panel-json" style="word-break: break-all; margin-bottom:8px;"></div>
+        <div style="color: var(--text-muted); font-style: italic; line-height:1.4;">
+            Este hash es la huella digital única del documento en el estado exacto en que quedó sellado.
+            Cualquier modificación posterior a su contenido produciría un hash distinto al que figura arriba —
+            por eso un documento con hash cerrado es inmodificable: cualquier alteración quedaría en evidencia.
+        </div>
     </div>
 
     <div class="rv-split-wrap">
@@ -763,6 +780,25 @@
     </div>
 </div>
 
+<!-- Modal: Declaración de conformidad de firma electrónica (pedido del usuario
+     2026-09-20) -- se muestra UNA sola vez por persona, de por vida, antes de la primera
+     firma que emita en todo el sistema (cualquier proyecto). Ver signature_consent.py. -->
+<div class="rf-modal-backdrop" id="consent-backdrop" style="display:none;">
+    <div class="rf-modal" style="width:min(560px, 92vw);">
+        <h3>Declaración de conformidad de firma electrónica</h3>
+        <p style="font-size:12.5px; color: var(--text-muted); margin: 0 0 10px;">
+            Antes de firmar por primera vez, tenés que aceptar esta declaración. Se te pide
+            una sola vez — no se vuelve a mostrar en proyectos futuros.
+        </p>
+        <div id="consent-text" style="font-size:12.5px; line-height:1.5; background:var(--bg-soft, #F4F6F8); border-radius:6px; padding:14px; margin-bottom:12px;"></div>
+        <div class="rf-error" id="consent-error"></div>
+        <div style="margin-top:6px; display:flex; justify-content:flex-end; gap:10px;">
+            <button class="rf-btn-secondary" id="consent-cancel">Cancelar</button>
+            <button class="rf-btn" id="consent-accept">Acepto</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal: Firmar revisión -->
 <div class="rf-modal-backdrop" id="sign-backdrop" style="display:none;">
     <div class="rf-modal">
@@ -789,6 +825,7 @@
 </div>
 
 <script src="js/api.js"></script>
+<script src="js/signature-consent.js"></script>
 <script>
 'use strict';
 
@@ -954,6 +991,7 @@ async function init() {
     session = await requireSession();
     if (!session) return;
 
+    bindConsentModalEvents();
     doc_badge.textContent = `${DOC_TYPE} · ${PROJECT_ID}`;
 
     if (session.role === 'drp') {
@@ -969,9 +1007,13 @@ async function init() {
         if (e.target.id === 'push-validacion-backdrop') document.getElementById('push-validacion-backdrop').style.display = 'none';
     });
     document.getElementById('push-validacion-confirm').addEventListener('click', () => doPushToValidacion(true));
-    document.getElementById('btn-sign-review').addEventListener('click', openSignModal);
+    document.getElementById('btn-sign-review').addEventListener('click', () => openSignModalWithConsentGate(openSignModal));
     document.getElementById('btn-download-original').addEventListener('click', downloadOriginalPdf);
     document.getElementById('btn-reopen-document').addEventListener('click', reopenDocument);
+    document.getElementById('btn-view-hash').addEventListener('click', () => {
+        const panel = document.getElementById('hash-panel');
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    });
     document.getElementById('btn-load-doc').addEventListener('click', openLoadModal);
     document.getElementById('btn-download-doc').addEventListener('click', downloadJson);
     document.getElementById('visual-editor-cancel').addEventListener('click', () => loadDocument());
@@ -1027,6 +1069,14 @@ async function loadDocument() {
     sections = deriveSections(documentRow.json_data);
 
     lock_badge.style.display = documentRow.locked ? '' : 'none';
+    const hashBtn = document.getElementById('btn-view-hash');
+    hashBtn.style.display = documentRow.locked ? '' : 'none';
+    if (documentRow.locked) {
+        document.getElementById('hash-panel-sealed-at').textContent =
+            `Documento sellado el ${fmtDateTime(documentRow.locked_at)}`;
+        document.getElementById('hash-panel-pdf').textContent = documentRow.pdf_hash || '—';
+        document.getElementById('hash-panel-json').textContent = documentRow.json_hash || '—';
+    }
     document.getElementById('btn-download-original').style.display = documentRow.original_stored ? '' : 'none';
     // Reabrir: DRP siempre, o partner si tiene acceso otorgado a este documento (ya tuvo que
     // pasar check_document_access para llegar a ver este documento, así que si está viendo
@@ -1645,6 +1695,11 @@ function buildPinGrid(container) {
     return inputs;
 }
 
+// Declaración de conformidad de firma electrónica: lógica en js/signature-consent.js
+// (Ronda 19 -- compartida con approval.html, antes duplicada e idéntica en las dos
+// páginas, ver ese archivo para la historia completa de los fixes). bindConsentModalEvents
+// se llama en init() más abajo.
+
 let signPinInputs = [];
 let signContentFingerprint = null;
 
@@ -1716,8 +1771,14 @@ async function submitSignReview() {
     }
     if (status === 401) {
         err.textContent = 'PIN incorrecto.';
+    } else if (status === 409 && data.error && data.error.error === 'consent_required') {
+        // Red de seguridad ante una carrera rara -- ver misma nota en approval.html.
+        closeSignModal();
+        const consentInfo = await checkSignatureConsent();
+        openConsentModal(consentInfo, openSignModal);
+        return;
     } else {
-        err.textContent = data.error || 'No se pudo registrar la firma.';
+        err.textContent = (data.error && data.error.message) || data.error || 'No se pudo registrar la firma.';
     }
     err.classList.add('visible');
 }

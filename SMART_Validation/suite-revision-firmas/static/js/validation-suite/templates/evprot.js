@@ -129,12 +129,7 @@
                 case 'caja-criterio':      contentBlock = shared.renderCajaCriterio(sec, tb); break;
                 case 'caja-conclusion':    contentBlock = shared.renderCajaConclusion(sec, tb); break;
                 case 'tabla-test-cases':   contentBlock = renderTablaTestCases(sec, tb); break;
-                case 'tabla-firmas-final':
-                    contentBlock = (shared.renderTablaFirmasFinalSmart)
-                        ? shared.renderTablaFirmasFinalSmart(sec, tb, { numero: num, titulo: sec.titulo })
-                        : [];
-                    titleBlock = [];
-                    break;
+                case 'firmas-horizontales': contentBlock = (VS.shared && VS.shared.renderFirmasHorizontal) ? VS.shared.renderFirmasHorizontal(sec, tb) : []; titleBlock = []; break;
                 default:
                     contentBlock = [{ text: `[Tipo desconocido: ${sec.tipo}]`, color: '#FF0000', margin: [0, 0, 0, 10] }];
             }

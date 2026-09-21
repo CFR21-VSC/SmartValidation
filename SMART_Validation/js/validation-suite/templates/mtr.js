@@ -289,21 +289,6 @@
         return out;
     }
 
-    // ====================================================================
-    // tabla-firmas-final (compartido con HLRA/VP/URS/FRS/DS/RA/IRA/RRM)
-    // ====================================================================
-    function renderTablaFirmasFinal(sec, tb, num) {
-        if (VS.shared && typeof VS.shared.renderTablaFirmasFinalSmart === "function") {
-            return VS.shared.renderTablaFirmasFinalSmart(sec, tb, { rolesDefault: [
-                'Redactor (Validador)',
-                'Revisor (Process Owner)',
-                'Aprobador (Jefe de Validaciones)',
-                'Aprobador (Gerente QA)'
-            ], numero: num, titulo: sec.titulo });
-        }
-        return [{ text: "[Helper de firmas no disponible]", color: "#FF0000" }];
-    }
-
     // Wrap unbreakable solo para tablas chicas (<=6 filas)
     function maybeWrapUnbreakable(sec, titleBlock, contentBlock) {
         const TABLE_TYPES = ['tabla-info'];
@@ -382,7 +367,7 @@
                 case 'caja-criterio': contentBlock = shared.renderCajaCriterio(sec, tb); break;
                 case 'caja-conclusion': contentBlock = shared.renderCajaConclusion(sec, tb); break;
                 case 'tabla-trazabilidad': contentBlock = renderTablaTrazabilidad(sec, tb); break;
-                case 'tabla-firmas-final': contentBlock = renderTablaFirmasFinal(sec, tb, num); titleBlock = []; break;
+                case 'firmas-horizontales': contentBlock = (VS.shared && VS.shared.renderFirmasHorizontal) ? VS.shared.renderFirmasHorizontal(sec, tb) : []; titleBlock = []; break;
                 default:
                     contentBlock = [{
                         text: `[Tipo de seccion desconocido: ${sec.tipo}]`,

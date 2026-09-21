@@ -14,6 +14,7 @@ from .. import security
 from ..audit import log_system_event
 from ..db import get_db
 from ..deps import get_current_user
+from ..signature_consent import CURRENT_CONSENT_VERSION, SIGNATURE_CONSENT_STATEMENT_V1, get_consent, record_consent
 
 router = APIRouter(tags=["auth"])
 
@@ -179,14 +180,30 @@ def set_pin(body: SetPinBody, user: dict = Depends(get_current_user)):
     p. ej. el superadmin bootstrapeado por env vars, sección 3 Capa 2) no hace falta
     reconfirmar nada. Si ya había un PIN, exige el actual -- si no, una sesión robada
     (cookie) alcanzaría para tomar la credencial de firma electrónica de la cuenta,
-    igual que /auth/change-password ya exige la contraseña actual para ese caso."""
+    igual que /auth/change-password ya exige la contraseña actual para ese caso.
+
+    Ronda 20 (2026-09-21): el chequeo de `current_pin` pasa por el MISMO lockout de fuerza
+    bruta que sign_review/sign_approval (security.check_pin_lockout/register_failed_pin) --
+    antes solo esos dos endpoints lo tenían, y una sesión robada podía usar ESTE endpoint para
+    descubrir el PIN sin límite de intentos (10.000 combinaciones de 4 dígitos) y recién
+    después firmar de verdad con el PIN ya conocido, evadiendo por completo el freno que
+    aparentaba proteger la firma electrónica. Un solo contador de intentos por usuario,
+    compartido entre ambos puntos de entrada."""
     if len(body.pin) < 4 or not body.pin.isdigit():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "El PIN debe tener al menos 4 dígitos")
     db = get_db()
     row = db.execute("SELECT pin_hash, pin_set FROM rf_users WHERE id=?", (user["uid"],)).fetchone()
     if row and row["pin_set"]:
+        remaining = security.check_pin_lockout(db, user["uid"])
+        if remaining is not None:
+            raise HTTPException(
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                f"Demasiados intentos fallidos. Probá de nuevo en {int(remaining // 60) + 1} minuto(s).",
+            )
         if not security.pbkdf2_verify(body.current_pin, row["pin_hash"]):
+            security.register_failed_pin(db, user["uid"])
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "El PIN actual es incorrecto")
+        security.clear_pin_attempts(db, user["uid"])
     db.execute(
         "UPDATE rf_users SET pin_hash=?, pin_set=1, updated_at=? WHERE id=?",
         (security.pbkdf2_hash(body.pin), time.time(), user["uid"]),
@@ -213,6 +230,62 @@ def change_password(body: ChangePasswordBody, user: dict = Depends(get_current_u
         (security.pbkdf2_hash(body.new_password), time.time(), user["uid"]),
     )
     db.commit()
+    return {"ok": True}
+
+
+@router.get("/auth/signature-consent")
+def get_signature_consent(user: dict = Depends(get_current_user)):
+    """Estado de la declaración de conformidad de firma electrónica de la sesión actual --
+    el frontend la consulta antes de intentar firmar para saber si tiene que mostrar el
+    modal, y signatures.py (sign_review/sign_approval) la vuelve a chequear server-side
+    como la verdad autoritativa (esto de acá es solo para no mostrar el modal de más).
+    `accepted` ya NO filtra por versión (Ronda 19) -- cualquier fila alcanza, ver docstring
+    de has_accepted_consent."""
+    db = get_db()
+    consent = get_consent(db, user["uid"])
+    return {
+        "ok": True,
+        "accepted": consent is not None,
+        "consent": consent,
+        # Vigente SIEMPRE presente (aceptó o no) -- el modal de consentimiento necesita
+        # mostrar el texto antes de que la persona lo acepte por primera vez, y el POST
+        # tiene que mandar de vuelta esta MISMA versión (ver accept_signature_consent).
+        "current_version": CURRENT_CONSENT_VERSION,
+        "current_statement_text": SIGNATURE_CONSENT_STATEMENT_V1,
+    }
+
+
+class AcceptSignatureConsentBody(BaseModel):
+    # Ronda 19 (Codex, 2026-09-20): el cliente tiene que mandar EXPLÍCITAMENTE la versión que
+    # leyó en el GET, no asumir "la vigente del servidor" -- si el texto cambió entre medio,
+    # se rechaza y se lo obliga a releer antes de aceptar. Antes el POST no recibía nada y
+    # siempre grababa CURRENT_CONSENT_VERSION, sin importar qué había mostrado el GET previo.
+    version: str
+
+
+@router.post("/auth/signature-consent")
+def accept_signature_consent(body: AcceptSignatureConsentBody, user: dict = Depends(get_current_user)):
+    """Registra la aceptación de la declaración de conformidad -- una vez por persona, de
+    por vida (no por proyecto). Rechaza con 409 si `body.version` no es la vigente (el texto
+    cambió entre el GET que lo mostró y este POST); devuelve el texto actual para que el
+    cliente lo vuelva a mostrar."""
+    db = get_db()
+    try:
+        record_consent(db, user["uid"], body.version)
+    except ValueError:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            {
+                "error": "stale_consent_version",
+                "message": "La declaración cambió desde que la leíste -- volvé a revisarla antes de aceptar.",
+                "current_version": CURRENT_CONSENT_VERSION,
+                "current_statement_text": SIGNATURE_CONSENT_STATEMENT_V1,
+            },
+        )
+    log_system_event(
+        user, "signature_consent_accepted",
+        f"{user['u']} aceptó la declaración de conformidad de firma electrónica (versión {body.version})",
+    )
     return {"ok": True}
 
 

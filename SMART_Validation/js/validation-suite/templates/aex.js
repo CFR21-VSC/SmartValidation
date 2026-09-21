@@ -14,7 +14,7 @@
    - aex-matriz-trazabilidad : matriz URS → TC → evidencias capturadas
 
    Tipos compartidos reusados:
-   - texto, tabla, tabla-info, caja-conclusion, tabla-firmas-final
+   - texto, tabla, tabla-info, caja-conclusion
    ==================================================================== */
 
 (function (global) {
@@ -617,15 +617,6 @@
         return out;
     }
 
-    function renderTablaFirmasFinal(sec, tb, num) {
-        if (VS.shared && typeof VS.shared.renderTablaFirmasFinalSmart === "function") {
-            return VS.shared.renderTablaFirmasFinalSmart(sec, tb, { rolesDefault: [
-            'Ejecutor (Validador)', 'Revisor (Process Owner)', 'Aprobador (Gerente QA)'
-        ], numero: num, titulo: sec.titulo });
-        }
-        return [{ text: "[Helper de firmas no disponible]", color: "#FF0000" }];
-    }
-
     function maybeWrapUnbreakable(sec, titleBlock, contentBlock) {
         const TABLE_TYPES = ['tabla-info'];
         const rowCount = (sec.filas || []).length;
@@ -696,7 +687,7 @@
                 case 'caja-nota': contentBlock = shared.renderCajaNota(sec, tb); break;
                 case 'aex-registro-tc': contentBlock = renderRegistroTc(sec, tb); break;
                 case 'aex-matriz-trazabilidad': contentBlock = renderMatrizTrazabilidad(sec, tb); break;
-                case 'tabla-firmas-final': contentBlock = renderTablaFirmasFinal(sec, tb, num); titleBlock = []; break;
+                case 'firmas-horizontales': contentBlock = (VS.shared && VS.shared.renderFirmasHorizontal) ? VS.shared.renderFirmasHorizontal(sec, tb) : []; titleBlock = []; break;
                 default:
                     contentBlock = [{
                         text: `[Tipo de sección desconocido: ${sec.tipo}]`,

@@ -25,7 +25,7 @@
    Tipos de seccion soportados:
    - Todos los compartidos (texto, tabla, tabla-info, subseccion,
      lista-incluido-excluido, caja-nota, caja-justificacion,
-     caja-criterio, caja-conclusion, tabla-firmas-final)
+     caja-criterio, caja-conclusion)
    - escalas-fmea : 4 mini tablas en grid 2x2 con escalas S, P, D y
      niveles de riesgo (RI/RR rangos).
    - tabla-fmea : matriz principal con columnas SPD compactas y
@@ -442,21 +442,6 @@
         return out;
     }
 
-    // ====================================================================
-    // tabla-firmas-final (compartido con HLRA/VP/URS/FRS/DS/IRA/RRM)
-    // ====================================================================
-    function renderTablaFirmasFinal(sec, tb, num) {
-        if (VS.shared && typeof VS.shared.renderTablaFirmasFinalSmart === "function") {
-            return VS.shared.renderTablaFirmasFinalSmart(sec, tb, { rolesDefault: [
-                'Redactor (Validador)',
-                'Revisor (Process Owner)',
-                'Aprobador (Jefe de Validaciones)',
-                'Aprobador (Gerente QA)'
-            ], numero: num, titulo: sec.titulo });
-        }
-        return [{ text: "[Helper de firmas no disponible]", color: "#FF0000" }];
-    }
-
     // Wrap unbreakable solo para tablas chicas (<=4 filas)
     function maybeWrapUnbreakable(sec, titleBlock, contentBlock) {
         const TABLE_TYPES = ['tabla-info'];
@@ -509,7 +494,7 @@
                 case 'escalas-fmea': contentBlock = renderEscalasFmea(sec, tb); break;
                 case 'tabla-fmea': contentBlock = renderTablaFmea(sec, tb); break;
                 case 'aceptacion-riesgo-residual': contentBlock = renderAceptacionRiesgoResidual(sec, tb); break;
-                case 'tabla-firmas-final': contentBlock = renderTablaFirmasFinal(sec, tb, num); titleBlock = []; break;
+                case 'firmas-horizontales': contentBlock = (VS.shared && VS.shared.renderFirmasHorizontal) ? VS.shared.renderFirmasHorizontal(sec, tb) : []; titleBlock = []; break;
                 default:
                     contentBlock = [{
                         text: `[Tipo de seccion desconocido: ${sec.tipo}]`,

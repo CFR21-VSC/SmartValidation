@@ -25,7 +25,10 @@ from ..audit import log_event, log_system_event
 from ..db import get_db
 from ..deps import assert_owner_if_private, check_document_access, ensure_project_active, get_current_user, require_drp
 from ..doc_order import sort_docs
-from .book import collect_signatures, fecha as _fmt_fecha, iniciales as _fmt_iniciales, inject_signatures_section
+from .book import (
+    collect_signatures_split, fecha as _fmt_fecha, iniciales as _fmt_iniciales,
+    inject_signatures_section, _resolve_consent_ids,
+)
 from .projects import ensure_project, has_signature_evidence
 
 router = APIRouter(prefix="/projects/{project_id}/documents", tags=["documents"])
@@ -354,9 +357,10 @@ def get_document(project_id: str, doc_type: str, user: dict = Depends(get_curren
 def get_signed_render(
     project_id: str, doc_type: str, include_pending: bool = False, user: dict = Depends(get_current_user),
 ):
-    """JSON del documento con la sección tabla-firmas-final rellena con las firmas reales
-    (revisión + aprobación) — para que "Ver PDF" de un documento suelto muestre lo mismo que
-    va a mostrar el Libro compilado, en vez de una tabla vacía o desactualizada.
+    """JSON del documento con la sección 'firmas-horizontales' rellena con las firmas reales
+    (revisión + aprobación, Ronda 20 -- reemplaza a la vieja 'tabla-firmas-final', tipo
+    eliminado del sistema de renderizado) — para que "Ver PDF" de un documento suelto muestre
+    lo mismo que va a mostrar el Libro compilado, en vez de una tabla vacía o desactualizada.
 
     `include_pending=true` (usado al generar el PDF que se va a adjuntar en la firma que
     sella) suma también la propia firma del usuario logueado si es firmante de una ronda de
@@ -369,7 +373,8 @@ def get_signed_render(
     # inyectados) -- es lo que sign_review/sign_approval van a recalcular para comparar.
     content_fingerprint = _content_fingerprint(doc["json_data"])
     data = json.loads(doc["json_data"])
-    firmas = collect_signatures(db, doc["id"])
+    firmas_split = collect_signatures_split(db, [doc["id"]])[doc["id"]]
+    firmas_revision, firmas_aprobacion = firmas_split["revision"], firmas_split["aprobacion"]
 
     if include_pending:
         pending = db.execute(
@@ -380,12 +385,13 @@ def get_signed_render(
         ).fetchone()
         if pending:
             nombre = user["d"] or user["u"]
-            firmas.append({
+            firmas_aprobacion.append({
                 "rol": pending["role_label"] or "Aprobador", "nombre": nombre,
                 "iniciales": _fmt_iniciales(nombre), "fecha": _fmt_fecha(time.time()),
             })
 
-    data = inject_signatures_section(data, firmas)
+    _resolve_consent_ids(db, firmas_revision, firmas_aprobacion)
+    data = inject_signatures_section(data, doc, firmas_revision, firmas_aprobacion)
     # Si está sellado, usa el branding FIJADO al sellar (Ronda 18) -- no el actual del
     # proyecto. Solo en esta proyección de render -- nunca se guarda, `data` acá es lo que ya
     # devuelve inject_signatures_section (firmas incluidas "as of now"), no el documento

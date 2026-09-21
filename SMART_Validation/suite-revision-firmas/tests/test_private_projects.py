@@ -11,6 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.conftest import accept_signature_consent
 
 SAMPLE_JSON = {"type": "HLRA", "metadata": {"title": "Análisis"}, "secciones": []}
 
@@ -18,6 +19,7 @@ SAMPLE_JSON = {"type": "HLRA", "metadata": {"title": "Análisis"}, "secciones": 
 @pytest.fixture
 def drp_with_pin(drp_client):
     drp_client.post("/auth/set-pin", json={"pin": "9999"})
+    accept_signature_consent(drp_client)
     return drp_client
 
 
@@ -32,6 +34,7 @@ def _invite(drp, username, role):
     cli = TestClient(app)
     accept = cli.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "1234"})
     assert accept.status_code == 200, accept.text
+    accept_signature_consent(cli)
     return cli, user_id
 
 

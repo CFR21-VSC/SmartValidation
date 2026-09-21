@@ -200,6 +200,28 @@
     </div>
 </div>
 
+
+<!-- Modal: Vista previa del Libro de Firmas (pedido del usuario 2026-09-20) -- mismo
+     patrón rf-modal que el resto de Firmas (no el .modal-theme-book de la Suite de
+     Validación, que no existe acá). El iframe/meta usan los MISMOS ids que
+     book-preview.js espera (VS.bookPreview.openWithDocDef), portado tal cual desde
+     js/validation-suite/ui/ -- así no hace falta tocar esa lógica, solo darle un
+     contenedor propio con el lenguaje visual de esta suite. -->
+<div class="rf-modal-backdrop" id="modalBookPreview" style="display:none;">
+    <div class="rf-modal" style="width:min(1100px, 96vw); max-height:96vh; display:flex; flex-direction:column; padding:0;">
+        <div style="display:flex; align-items:center; gap:12px; padding:14px 20px; border-bottom:1px solid var(--border, #DDE3E8);">
+            <h3 style="flex:1; margin:0;">Vista previa — Libro de Firmas</h3>
+            <span id="bookPreviewMeta" style="font-size:11px; color:var(--text-soft, #717D8A); font-style:italic;">— generando —</span>
+            <button class="rf-btn" onclick="ValidationSuite.bookPreview.download()">Descargar PDF</button>
+            <button class="rf-btn-secondary" onclick="ValidationSuite.bookPreview.close()">Cerrar</button>
+        </div>
+        <iframe id="bookPreviewIframe" style="flex:1; border:none; min-height:75vh; background:#525659;"></iframe>
+        <div style="padding:8px 20px; font-size:10px; color:var(--text-soft, #717D8A); font-style:italic; text-align:center;">
+            Se puede volver a generar en cualquier momento del ciclo -- incluye los documentos que ya tengan al menos una firma, sellados o no.
+        </div>
+    </div>
+</div>
+
 <!-- Modal: alerta de comentarios pendientes -- cruza TODOS los proyectos, salta sola al
      loguearse, sin tener que entrar a ningún documento puntual (sección 2026-09-01, pedido
      explícito del usuario: "que no pase inadvertido") -->
@@ -676,6 +698,7 @@ function renderMain() {
             html += `<button class="rf-btn-secondary" id="btn-reopen-project">Reabrir</button>`;
         }
         html += `<button class="rf-btn-secondary" id="btn-book1">📖 Generar Libro 1</button>`;
+        html += `<button class="rf-btn-secondary" id="btn-libro-firmas">✍️ Vista previa — Libro de Firmas</button>`;
         html += `<button class="rf-btn-secondary" id="btn-sys-audit">🛡 Auditoría</button>`;
         html += `<button class="rf-btn-danger" id="btn-delete-project">Eliminar proyecto</button>`;
         if (pstatus === 'active') {
@@ -772,6 +795,8 @@ function renderMain() {
         ));
         const book1Btn = document.getElementById('btn-book1');
         if (book1Btn) book1Btn.addEventListener('click', generateBook1);
+        const libroFirmasBtn = document.getElementById('btn-libro-firmas');
+        if (libroFirmasBtn) libroFirmasBtn.addEventListener('click', generateLibroFirmas);
         const sysAuditBtn = document.getElementById('btn-sys-audit');
         if (sysAuditBtn) sysAuditBtn.addEventListener('click', () => openSystemAudit(selectedProject));
     }
@@ -1406,6 +1431,8 @@ const ENGINE_SCRIPTS = [
     'js/validation-suite/core/shared-renderers.js',
     'js/validation-suite/core/document-renderer.js',
     'js/validation-suite/core/book-builder.js',
+    'js/validation-suite/ui/book-preview.js',
+    'js/validation-suite/templates/libro-firmas.js',
     'js/validation-suite/templates/_test.js',
     'js/validation-suite/templates/hlra.js',
     'js/validation-suite/templates/vp.js',
@@ -1471,6 +1498,39 @@ async function generateBook1() {
     } finally {
         btn.disabled = false;
         btn.textContent = '📖 Generar Libro 1';
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Vista previa — Libro de Firmas (pedido del usuario 2026-09-20). A diferencia
+// de "Generar Libro 1" (solo documentos sellados), acá se puede previsualizar
+// en cualquier momento del ciclo: incluye cualquier documento con al menos una
+// firma, sellado o no -- el backend (signature-book) ya distingue eso.
+// Reusa el pipeline ESTÁNDAR de un documento individual (renderDocument), no
+// book-builder.js -- pedido explícito: que se vea "como un protocolo más".
+// ---------------------------------------------------------------------------
+async function generateLibroFirmas() {
+    const btn = document.getElementById('btn-libro-firmas');
+    const errorBox = document.getElementById('project-action-error');
+    errorBox.classList.remove('visible');
+    btn.disabled = true;
+    btn.textContent = 'Generando…';
+    try {
+        const { status, data } = await apiFetch(`/projects/${encodeURIComponent(selectedProject)}/signature-book`);
+        if (status !== 200 || !data.ok) throw new Error(data.error || 'No se pudo armar el Libro de Firmas.');
+        if (!data.documentos.length) {
+            throw new Error('Todavía no hay ninguna firma registrada en este proyecto.');
+        }
+        await ensureEngineLoaded();
+        const wrapped = window.ValidationSuite.libroFirmas.wrapSignatureBookAsDoc(data, { projectId: selectedProject });
+        const blob = await window.ValidationSuite.renderDocument(wrapped, { download: false, openInNewTab: false });
+        window.ValidationSuite.bookPreview.attachBlob(blob, `libro-firmas-${selectedProject}.pdf`, { totalDocs: data.documentos.length });
+    } catch (e) {
+        errorBox.textContent = e.message || 'Error al generar el Libro de Firmas.';
+        errorBox.classList.add('visible');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '✍️ Vista previa — Libro de Firmas';
     }
 }
 

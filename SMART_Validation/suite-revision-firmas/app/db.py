@@ -241,6 +241,8 @@ def init_db() -> None:
     _migrate_signing_integrity_gaps(db)
     _migrate_add_document_display_order(db)
     _migrate_add_project_privacy(db)
+    _migrate_signature_consent_history(db)
+    _migrate_add_consent_fk(db)
 
 
 def _migrate_add_comment_parent_id(db) -> None:
@@ -432,6 +434,194 @@ def _migrate_add_project_privacy(db) -> None:
     _add_columns_if_missing(db, "rf_projects", {"is_private": "INTEGER DEFAULT 0", "owner_user_id": "TEXT"})
 
 
+def _migrate_signature_consent_history(db) -> None:
+    """Ronda 19, revisión de Codex (2026-09-20): rf_signature_consent nació con user_id como
+    PRIMARY KEY -- aceptar una declaración de versión nueva pisaba (ON CONFLICT DO UPDATE) la
+    fila de la aceptación anterior, perdiendo evidencia de qué texto exacto se había aceptado
+    antes. Reconstruye a PK autoincremental + UNIQUE(user_id, statement_version), insert-only
+    -- ver schema.sql para el diseño final. `consent_id` en las dos tablas de firma (para
+    vincular cada firma a la aceptación que la habilitó) se agrega aparte, en
+    _migrate_add_consent_fk más abajo -- tiene que correr DESPUÉS de esta función, porque
+    depende de que rf_signature_consent ya tenga la columna `id` final."""
+    if USE_PG:
+        has_id = db.execute(
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_name='rf_signature_consent' AND column_name='id'"
+        ).fetchone()
+        if has_id:
+            return  # ya reconstruida en una corrida anterior, o tabla nueva
+        # Ronda 19, segunda devolución de Codex (2026-09-21): las 3 sentencias corrían sueltas
+        # en autocommit -- un fallo entre el ADD COLUMN y el ADD CONSTRAINT dejaba `id` ya
+        # creado, así que un reintento veía has_id=True y salía temprano sin terminar (sin
+        # UNIQUE, sin índice). Envueltas en una transacción explícita: BEGIN funciona igual
+        # que en cualquier conexión Postgres en autocommit (abre un bloque hasta COMMIT/
+        # ROLLBACK), no depende de isolation_level como en SQLite. NO ejecutado contra un
+        # Postgres real todavía -- ver nota en Ronda 19 sobre este gap.
+        db.execute("BEGIN")
+        try:
+            db.execute("ALTER TABLE rf_signature_consent DROP CONSTRAINT IF EXISTS rf_signature_consent_pkey")
+            db.execute("ALTER TABLE rf_signature_consent ADD COLUMN id SERIAL PRIMARY KEY")
+            db.execute(
+                "ALTER TABLE rf_signature_consent ADD CONSTRAINT rf_signature_consent_user_version_key "
+                "UNIQUE(user_id, statement_version)"
+            )
+            db.execute("CREATE INDEX IF NOT EXISTS idx_rf_signature_consent_user ON rf_signature_consent(user_id)")
+            db.execute("COMMIT")
+        except Exception:
+            db.execute("ROLLBACK")
+            raise
+        return
+
+    cols = {c["name"] for c in db.execute("PRAGMA table_info(rf_signature_consent)").fetchall()}
+    if "id" in cols:
+        return  # ya reconstruida, o tabla nueva (ya nace con la forma correcta)
+
+    db.execute("BEGIN IMMEDIATE")
+    try:
+        db.execute("ALTER TABLE rf_signature_consent RENAME TO rf_signature_consent_old_ronda19")
+        db.execute("""
+            CREATE TABLE rf_signature_consent (
+                id                        INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id                   TEXT NOT NULL,
+                statement_version         TEXT NOT NULL,
+                statement_text_snapshot   TEXT NOT NULL,
+                accepted_at               REAL NOT NULL,
+                UNIQUE(user_id, statement_version)
+            )
+        """)
+        db.execute("""
+            INSERT INTO rf_signature_consent
+                (user_id, statement_version, statement_text_snapshot, accepted_at)
+            SELECT user_id, statement_version, statement_text_snapshot, accepted_at
+            FROM rf_signature_consent_old_ronda19
+        """)
+        db.execute("DROP TABLE rf_signature_consent_old_ronda19")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_rf_signature_consent_user ON rf_signature_consent(user_id)")
+        db.execute("COMMIT")
+    except Exception:
+        db.execute("ROLLBACK")
+        raise
+
+
+def _migrate_add_consent_fk(db) -> None:
+    """Ronda 19, tercera devolución de Codex (2026-09-21) -- corrección sobre mi afirmación
+    anterior: ALTER TABLE ADD COLUMN SÍ puede agregar una REFERENCES inline en SQLite
+    (Codex lo comprobó con PRAGMA foreign_key_list contra una tabla con una fila existente,
+    `foreign_keys=ON`, y un UPDATE a un padre inexistente falló por integridad como
+    corresponde). Corre DESPUÉS de _migrate_signature_consent_history, que garantiza que
+    rf_signature_consent ya tiene su columna `id` final.
+
+    Dos caminos, según si `consent_id` ya existe o no en la tabla de firma:
+    - Si NO existe todavía (instalación nueva, o una que corre esta migración por primera
+      vez): se agrega con la FK ya declarada inline, en un solo ALTER, sin reconstruir nada
+      -- el camino barato que Codex demostró que funciona.
+    - Si YA existe (bases que corrieron la migración de la ronda anterior, que agregaba la
+      columna SIN la FK): el truco de ADD COLUMN no sirve para agregar una restricción a una
+      columna que ya existe -- hace falta reconstruir la tabla, mismo patrón que
+      rf_review_signatures ya usó en Ronda 18 para otro cambio. Se detecta consultando
+      PRAGMA foreign_key_list -- si la columna existe pero ninguna FK apunta a
+      rf_signature_consent, es el caso viejo sin arreglar."""
+    if USE_PG:
+        return  # la rama Postgres ya declara consent_id con FK en _migrate_signature_consent_history
+
+    def _tiene_fk_a_consent(tabla: str) -> bool:
+        return any(fk["table"] == "rf_signature_consent" for fk in db.execute(f"PRAGMA foreign_key_list({tabla})").fetchall())
+
+    def _rebuild_review_signatures():
+        db.execute("BEGIN IMMEDIATE")
+        try:
+            db.execute("ALTER TABLE rf_review_signatures RENAME TO rf_review_signatures_old_ronda19c")
+            db.execute("""
+                CREATE TABLE rf_review_signatures (
+                    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                    document_id   TEXT NOT NULL REFERENCES rf_documents(id) ON DELETE CASCADE,
+                    user_id       TEXT NOT NULL,
+                    username      TEXT,
+                    role_label    TEXT,
+                    signed_at     REAL,
+                    content_fingerprint      TEXT,
+                    display_name_at_signing  TEXT,
+                    invalidated_at    REAL,
+                    invalidated_reason TEXT,
+                    consent_id        INTEGER REFERENCES rf_signature_consent(id)
+                )
+            """)
+            db.execute("""
+                INSERT INTO rf_review_signatures
+                    (id, document_id, user_id, username, role_label, signed_at,
+                     content_fingerprint, display_name_at_signing, invalidated_at,
+                     invalidated_reason, consent_id)
+                SELECT id, document_id, user_id, username, role_label, signed_at,
+                       content_fingerprint, display_name_at_signing, invalidated_at,
+                       invalidated_reason, consent_id
+                FROM rf_review_signatures_old_ronda19c
+            """)
+            db.execute("DROP TABLE rf_review_signatures_old_ronda19c")
+            db.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_rf_review_sig_active_unique "
+                "ON rf_review_signatures(document_id, user_id) WHERE invalidated_at IS NULL"
+            )
+            db.execute("CREATE INDEX IF NOT EXISTS idx_rf_review_sig_doc ON rf_review_signatures(document_id)")
+            db.execute("COMMIT")
+        except Exception:
+            db.execute("ROLLBACK")
+            raise
+
+    def _rebuild_approval_signers():
+        db.execute("BEGIN IMMEDIATE")
+        try:
+            db.execute("ALTER TABLE rf_approval_signers RENAME TO rf_approval_signers_old_ronda19c")
+            db.execute("""
+                CREATE TABLE rf_approval_signers (
+                    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                    round_id            TEXT NOT NULL REFERENCES rf_approval_rounds(id) ON DELETE CASCADE,
+                    user_id             TEXT NOT NULL,
+                    username            TEXT,
+                    role_label          TEXT,
+                    sign_order          INTEGER NOT NULL,
+                    signed_at           REAL,
+                    justification_text  TEXT,
+                    content_fingerprint      TEXT,
+                    display_name_at_signing  TEXT,
+                    invalidated_at    REAL,
+                    invalidated_reason TEXT,
+                    consent_id        INTEGER REFERENCES rf_signature_consent(id),
+                    UNIQUE(round_id, user_id),
+                    UNIQUE(round_id, sign_order)
+                )
+            """)
+            db.execute("""
+                INSERT INTO rf_approval_signers
+                    (id, round_id, user_id, username, role_label, sign_order, signed_at,
+                     justification_text, content_fingerprint, display_name_at_signing,
+                     invalidated_at, invalidated_reason, consent_id)
+                SELECT id, round_id, user_id, username, role_label, sign_order, signed_at,
+                       justification_text, content_fingerprint, display_name_at_signing,
+                       invalidated_at, invalidated_reason, consent_id
+                FROM rf_approval_signers_old_ronda19c
+            """)
+            db.execute("DROP TABLE rf_approval_signers_old_ronda19c")
+            db.execute("CREATE INDEX IF NOT EXISTS idx_rf_approval_signers_round ON rf_approval_signers(round_id)")
+            db.execute("COMMIT")
+        except Exception:
+            db.execute("ROLLBACK")
+            raise
+
+    cols = {c["name"] for c in db.execute("PRAGMA table_info(rf_review_signatures)").fetchall()}
+    if "consent_id" not in cols:
+        db.execute("ALTER TABLE rf_review_signatures ADD COLUMN consent_id INTEGER REFERENCES rf_signature_consent(id)")
+        db.commit()
+    elif not _tiene_fk_a_consent("rf_review_signatures"):
+        _rebuild_review_signatures()
+
+    cols = {c["name"] for c in db.execute("PRAGMA table_info(rf_approval_signers)").fetchall()}
+    if "consent_id" not in cols:
+        db.execute("ALTER TABLE rf_approval_signers ADD COLUMN consent_id INTEGER REFERENCES rf_signature_consent(id)")
+        db.commit()
+    elif not _tiene_fk_a_consent("rf_approval_signers"):
+        _rebuild_approval_signers()
+
+
 def _migrate_legacy_corrections(db) -> None:
     """Corre una sola vez (mientras rf_section_comments esté vacía): copia lo que hubiera
     en la vieja rf_section_corrections (un comentario por sección, sección 2026-08-31) a la
@@ -466,6 +656,7 @@ def reset_db_for_tests() -> None:
         "rf_approval_signers",
         "rf_approval_rounds",
         "rf_review_signatures",
+        "rf_signature_consent",
         "rf_section_comments",
         "rf_section_corrections",
         "rf_documents",

@@ -762,7 +762,7 @@
                     case 'ncr-analisis-causa': contentBlock = renderAnalisisCausa(sec, tb); break;
                     case 'ncr-plan-capa': contentBlock = renderPlanCapa(sec, tb); break;
                     case 'ncr-cierre-aprobacion': contentBlock = renderCierreAprobacion(sec, tb); break;
-                    case 'tabla-firmas-final': contentBlock = renderTablaFirmasFinal(sec, tb, num); titleBlock = []; break;
+                case 'firmas-horizontales': contentBlock = (VS.shared && VS.shared.renderFirmasHorizontal) ? VS.shared.renderFirmasHorizontal(sec, tb) : []; titleBlock = []; break;
                     default:
                         contentBlock = [{ text: `[Tipo de sección desconocido: ${sec.tipo}]`, color: '#FF0000', margin: [0, 0, 0, 12] }];
                 }
@@ -784,17 +784,6 @@
 
         return out;
     });
-
-    // ====================================================================
-    // FIRMAS FINALES — reusa el mismo patrón que IIQ/IOQ
-    // ====================================================================
-    function renderTablaFirmasFinal(sec, tb, num) {
-        // Delega al helper compartido con ajuste smart (fontSize + height adaptativo)
-        if (VS.shared && typeof VS.shared.renderTablaFirmasFinalSmart === 'function') {
-            return VS.shared.renderTablaFirmasFinalSmart(sec, tb, { rolesDefault: ['Identificador NC', 'Process Owner', 'Responsable CAPA', 'Gerente QA'], numero: num, titulo: sec.titulo });
-        }
-        return [{ text: '[Helper de firmas no disponible]', color: '#FF0000' }];
-    }
 
     // Exponer helpers para validator
     VS.ncrHelpers = {

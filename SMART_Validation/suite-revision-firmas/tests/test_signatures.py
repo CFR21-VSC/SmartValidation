@@ -3,6 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.conftest import accept_signature_consent
 
 SAMPLE_JSON = {"type": "HLRA", "metadata": {"title": "Análisis"}, "secciones": []}
 
@@ -18,12 +19,14 @@ def cliente(drp_client):
     token = created.json()["invite_link"].split("token=")[-1]
     cli = TestClient(app)
     cli.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "1234"})
+    accept_signature_consent(cli)
     return cli, user_id
 
 
 @pytest.fixture
 def drp_with_pin(drp_client):
     drp_client.post("/auth/set-pin", json={"pin": "9999"})
+    accept_signature_consent(drp_client)
     return drp_client
 
 
@@ -136,6 +139,30 @@ def test_pin_locks_out_after_five_failed_attempts(drp_with_pin, cliente):
     )  # PIN correcto
     assert locked.status_code == 429
     assert "intentos" in locked.json()["detail"].lower()
+
+
+def test_pin_lockout_is_shared_between_set_pin_and_signing(drp_with_pin, cliente):
+    """Ronda 20 (2026-09-21): antes /auth/set-pin no tenía freno de fuerza bruta propio -- una
+    sesión robada podía agotar las 10.000 combinaciones de un PIN ahí sin límite, descubrir el
+    PIN real, y recién después firmar de verdad con review-signatures (que sí estaba
+    protegido), evadiendo por completo el propósito del freno. Ahora comparten un solo
+    contador por usuario: agotar los intentos en UN endpoint bloquea también al otro."""
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente
+    drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+    fp = _fp(drp_with_pin)
+
+    for _ in range(5):
+        r = cli.post("/auth/set-pin", json={"pin": "1111", "current_pin": "0000"})
+        assert r.status_code == 401
+
+    # El contador es del USUARIO, no del endpoint -- agotado vía set-pin, review-signatures
+    # con el PIN CORRECTO también queda bloqueado.
+    locked = cli.post(
+        "/projects/proj-1/documents/HLRA/review-signatures",
+        json={"pin": "1234", "content_fingerprint": fp},
+    )
+    assert locked.status_code == 429
 
 
 def test_pin_lockout_is_scoped_per_user(drp_with_pin, cliente):
@@ -418,8 +445,9 @@ def test_signed_render_shows_no_signatures_before_anyone_signs(drp_with_pin):
     drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     r = drp_with_pin.get("/projects/proj-1/documents/HLRA/signed-render")
     assert r.status_code == 200
-    tff = next(s for s in r.json()["data"]["secciones"] if s.get("tipo") == "tabla-firmas-final")
-    assert tff["firmas"] == []
+    fh = next(s for s in r.json()["data"]["secciones"] if s.get("tipo") == "firmas-horizontales")
+    assert fh["firmasRevision"] == []
+    assert fh["firmasAprobacion"] == []
 
 
 def test_signed_render_shows_review_signature_immediately(drp_with_pin, cliente):
@@ -432,9 +460,10 @@ def test_signed_render_shows_review_signature_immediately(drp_with_pin, cliente)
     )
 
     r = cli.get("/projects/proj-1/documents/HLRA/signed-render")
-    tff = next(s for s in r.json()["data"]["secciones"] if s.get("tipo") == "tabla-firmas-final")
-    assert len(tff["firmas"]) == 1
-    assert tff["firmas"][0]["rol"] == "Revisor"
+    fh = next(s for s in r.json()["data"]["secciones"] if s.get("tipo") == "firmas-horizontales")
+    assert len(fh["firmasRevision"]) == 1
+    assert fh["firmasRevision"][0]["rol"] == "Revisor"
+    assert fh["firmasAprobacion"] == []
 
 
 def test_signed_render_does_not_persist_injection_into_source(drp_with_pin, cliente):
@@ -473,14 +502,15 @@ def test_signed_render_include_pending_adds_own_unsigned_signature(drp_with_pin,
     )
 
     without_pending = drp_with_pin.get("/projects/proj-1/documents/HLRA/signed-render")
-    tff = next(s for s in without_pending.json()["data"]["secciones"] if s.get("tipo") == "tabla-firmas-final")
-    assert len(tff["firmas"]) == 1  # solo la del cliente, DRP todavía no firmó
+    fh = next(s for s in without_pending.json()["data"]["secciones"] if s.get("tipo") == "firmas-horizontales")
+    assert len(fh["firmasAprobacion"]) == 1  # solo la del cliente, DRP todavía no firmó
+    assert fh["firmasRevision"] == []
 
     with_pending = drp_with_pin.get("/projects/proj-1/documents/HLRA/signed-render?include_pending=true")
-    tff2 = next(s for s in with_pending.json()["data"]["secciones"] if s.get("tipo") == "tabla-firmas-final")
-    assert len(tff2["firmas"]) == 2
-    assert tff2["firmas"][1]["rol"] == "Aprobador CEO"
-    assert tff2["firmas"][1]["fecha"]  # tiene fecha de hoy aunque no esté grabada todavía
+    fh2 = next(s for s in with_pending.json()["data"]["secciones"] if s.get("tipo") == "firmas-horizontales")
+    assert len(fh2["firmasAprobacion"]) == 2
+    assert fh2["firmasAprobacion"][1]["rol"] == "Aprobador CEO"
+    assert fh2["firmasAprobacion"][1]["fecha"]  # tiene fecha de hoy aunque no esté grabada todavía
 
 
 def test_signed_render_include_pending_noop_if_not_a_pending_signer(drp_with_pin):
@@ -488,8 +518,9 @@ def test_signed_render_include_pending_noop_if_not_a_pending_signer(drp_with_pin
     nada ni romper."""
     drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     r = drp_with_pin.get("/projects/proj-1/documents/HLRA/signed-render?include_pending=true")
-    tff = next(s for s in r.json()["data"]["secciones"] if s.get("tipo") == "tabla-firmas-final")
-    assert tff["firmas"] == []
+    fh = next(s for s in r.json()["data"]["secciones"] if s.get("tipo") == "firmas-horizontales")
+    assert fh["firmasRevision"] == []
+    assert fh["firmasAprobacion"] == []
 
 
 def test_signed_render_requires_document_access(cliente):

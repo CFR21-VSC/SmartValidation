@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from tests.conftest import accept_signature_consent
 
 SAMPLE_JSON = {"type": "HLRA", "metadata": {"title": "Demo"}, "secciones": [
     {"titulo": "Propósito", "contenido": "texto original"}
@@ -23,6 +24,7 @@ def cliente(drp_client):
     token = created.json()["invite_link"].split("token=")[-1]
     cli = TestClient(app)
     cli.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "1234"})
+    accept_signature_consent(cli)
     return cli, user_id
 
 
@@ -68,6 +70,7 @@ def _seal_document(drp_with_pin, cliente_tuple, project_id="proj-1", doc_type="H
 @pytest.fixture
 def drp_with_pin(drp_client):
     drp_client.post("/auth/set-pin", json={"pin": "9999"})
+    accept_signature_consent(drp_client)
     return drp_client
 
 
@@ -404,19 +407,28 @@ def test_book_package_only_includes_sealed_documents(drp_with_pin, cliente):
     _seal_document(drp_with_pin, cliente)  # sella HLRA
 
     pkg = drp_with_pin.get("/projects/proj-1/book-package").json()
-    assert [d["type"] for d in pkg["documents"]] == ["HLRA"]
+    # Ronda 19: LIBRO_FIRMAS se antepone automáticamente en cuanto hay al menos un documento
+    # sellado (acá HLRA) -- no es un documento "sellado" cargado por el usuario, es una
+    # proyección sintética del capítulo de firmas, ver wrap_signature_book_as_document.
+    assert [d["type"] for d in pkg["documents"]] == ["LIBRO_FIRMAS", "HLRA"]
     assert pkg["skipped_not_sealed"] == ["URS"]
 
 
 def test_book_package_injects_signature_section(drp_with_pin, cliente):
+    """Ronda 20: 'tabla-firmas-final' fue eliminado del sistema de renderizado (siempre vacío
+    en los documentos reales, reemplazado por el Libro de Firmas) -- la sección inyectada
+    ahora es 'firmas-horizontales', con revisión y aprobación en listas separadas."""
     _seal_document(drp_with_pin, cliente)
     pkg = drp_with_pin.get("/projects/proj-1/book-package").json()
-    doc = pkg["documents"][0]["data"]
-    tff = next(s for s in doc["secciones"] if s.get("tipo") == "tabla-firmas-final")
-    assert len(tff["firmas"]) == 4  # 2 firmas de revisión + 2 de aprobación
-    roles = {f["rol"] for f in tff["firmas"]}
+    doc = next(d for d in pkg["documents"] if d["type"] == "HLRA")["data"]
+    fh = next(s for s in doc["secciones"] if s.get("tipo") == "firmas-horizontales")
+    assert fh["tipoDocumento"] == "HLRA"
+    assert fh["sellado"] is True
+    todas = fh["firmasRevision"] + fh["firmasAprobacion"]
+    assert len(todas) == 4  # 2 firmas de revisión + 2 de aprobación
+    roles = {f["rol"] for f in todas}
     assert "Revisor" in roles and "Aprobador" in roles
-    for f in tff["firmas"]:
+    for f in todas:
         assert f["nombre"]
         assert f["iniciales"]
         assert f["fecha"]
@@ -426,7 +438,7 @@ def test_book_package_preserves_original_sections(drp_with_pin, cliente):
     """La sección inyectada no debe pisar el resto del contenido del documento."""
     _seal_document(drp_with_pin, cliente)
     pkg = drp_with_pin.get("/projects/proj-1/book-package").json()
-    doc = pkg["documents"][0]["data"]
+    doc = next(d for d in pkg["documents"] if d["type"] == "HLRA")["data"]
     titles = [s.get("titulo") for s in doc["secciones"]]
     assert "Propósito" in titles
 

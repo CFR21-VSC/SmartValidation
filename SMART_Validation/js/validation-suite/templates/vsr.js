@@ -32,7 +32,6 @@
    Reusa de release-report.js:
      - release-resumen-ejecutivo  : KPIs grid
      - release-trazabilidad-cierre: cuando se quiere repetir docs
-     - tabla-firmas-final         : firmas ejecutivas
    ==================================================================== */
 
 (function (global) {
@@ -525,12 +524,7 @@
                         contentBlock = VS.releaseRenderers.renderTrazabilidadCierre(sec, tb);
                     }
                     break;
-                case 'tabla-firmas-final':
-                    if (VS.releaseRenderers && VS.releaseRenderers.renderTablaFirmasFinal) {
-                        contentBlock = VS.releaseRenderers.renderTablaFirmasFinal(sec, tb, num);
-                        titleBlock = []; // título queda dentro del unbreakable del helper
-                    }
-                    break;
+                case 'firmas-horizontales': contentBlock = (VS.shared && VS.shared.renderFirmasHorizontal) ? VS.shared.renderFirmasHorizontal(sec, tb) : []; titleBlock = []; break;
 
                 default:
                     contentBlock = [{ text: `[Tipo de sección desconocido: ${sec.tipo}]`, color: '#FF0000', margin: [0, 0, 0, 12] }];

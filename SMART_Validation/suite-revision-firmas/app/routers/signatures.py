@@ -8,6 +8,7 @@ routers/signatures.py — Firma de Revisión y Firma de Aprobación (sección 5)
 """
 import base64
 import hashlib
+import json
 import time
 import uuid
 
@@ -18,19 +19,11 @@ from ..audit import log_event
 from ..db import get_db
 from ..deps import check_document_access, ensure_project_active, get_current_user, require_drp
 from ..email_resend import send_email
-from ..security import pbkdf2_verify
+from ..security import check_pin_lockout, clear_pin_attempts, pbkdf2_verify, register_failed_pin
+from ..signature_consent import get_consent_id_for_signing
 from .documents import _content_fingerprint
 
 router = APIRouter(prefix="/projects/{project_id}/documents/{doc_type}", tags=["signatures"])
-
-# Fuerza bruta de PIN (sección pedida por el usuario 2026-09-01, tras detectar en auditoría
-# que sign_review/sign_approval verificaban el PIN sin ningún límite -- cualquier sesión
-# válida podía probar las 10.000 combinaciones de un PIN de 4 dígitos sin freno). Mismos
-# números y misma ventana que el lockout de login (auth.py).
-MAX_PIN_ATTEMPTS = 5
-PIN_ATTEMPT_WINDOW_S = 30 * 60
-PIN_LOCKOUT_S = 30 * 60
-
 
 class ReviewSignBody(BaseModel):
     pin: str
@@ -58,42 +51,26 @@ def _get_document_or_404(db, project_id: str, doc_type: str) -> dict:
     return dict(row)
 
 
-def _check_pin_lockout(db, user_id: str) -> float | None:
-    """Devuelve segundos restantes de bloqueo, o None si puede intentar."""
-    row = db.execute("SELECT locked_until FROM rf_pin_attempts WHERE user_id=?", (user_id,)).fetchone()
-    if row and row["locked_until"] and row["locked_until"] > time.time():
-        return row["locked_until"] - time.time()
-    return None
-
-
-def _register_failed_pin(db, user_id: str) -> None:
-    now = time.time()
-    row = db.execute(
-        "SELECT fail_count, first_fail_at FROM rf_pin_attempts WHERE user_id=?", (user_id,)
-    ).fetchone()
-    if row and row["first_fail_at"] and (now - row["first_fail_at"]) < PIN_ATTEMPT_WINDOW_S:
-        fail_count = row["fail_count"] + 1
-        first_fail_at = row["first_fail_at"]
-    else:
-        fail_count = 1
-        first_fail_at = now
-    locked_until = now + PIN_LOCKOUT_S if fail_count >= MAX_PIN_ATTEMPTS else None
-    db.execute(
-        "INSERT INTO rf_pin_attempts (user_id, fail_count, first_fail_at, locked_until) VALUES (?,?,?,?) "
-        "ON CONFLICT(user_id) DO UPDATE SET fail_count=excluded.fail_count, "
-        "first_fail_at=excluded.first_fail_at, locked_until=excluded.locked_until",
-        (user_id, fail_count, first_fail_at, locked_until),
-    )
-    db.commit()
-
-
-def _clear_pin_attempts(db, user_id: str) -> None:
-    db.execute("DELETE FROM rf_pin_attempts WHERE user_id=?", (user_id,))
-    db.commit()
+def _require_signature_consent(db, user_id: str) -> int:
+    """Bloquea CUALQUIER firma (revisión o aprobación) hasta que la persona haya aceptado la
+    declaración de conformidad de firma electrónica al menos una vez, en cualquier proyecto
+    (ver signature_consent.py). El frontend intercepta este 409 puntual (`consent_required`),
+    muestra el modal, llama a POST /auth/signature-consent, y reintenta la firma original --
+    por eso el código de error es distinto al resto de los 409 de este archivo. Devuelve el
+    id de la fila de consentimiento vigente para grabarlo en la firma (Ronda 19: vincula
+    temporalmente cada firma a la evidencia de consentimiento que la habilitó, en vez de que
+    el Libro de Firmas lo infiera consultando el estado ACTUAL del usuario sin fecha)."""
+    consent_id = get_consent_id_for_signing(db, user_id)
+    if consent_id is None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            {"error": "consent_required", "message": "Falta aceptar la declaración de conformidad de firma electrónica"},
+        )
+    return consent_id
 
 
 def _verify_pin(db, user_id: str, pin: str) -> None:
-    remaining = _check_pin_lockout(db, user_id)
+    remaining = check_pin_lockout(db, user_id)
     if remaining is not None:
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
@@ -101,9 +78,9 @@ def _verify_pin(db, user_id: str, pin: str) -> None:
         )
     row = db.execute("SELECT pin_hash, pin_set FROM rf_users WHERE id=?", (user_id,)).fetchone()
     if not row or not row["pin_set"] or not pbkdf2_verify(pin, row["pin_hash"]):
-        _register_failed_pin(db, user_id)
+        register_failed_pin(db, user_id)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "PIN incorrecto o no configurado")
-    _clear_pin_attempts(db, user_id)
+    clear_pin_attempts(db, user_id)
 
 
 # ─── 5.1 Firma de Revisión ────────────────────────────────────────────────────
@@ -114,6 +91,7 @@ def sign_review(
 ):
     check_document_access(user, project_id, doc_type)
     db = get_db()
+    consent_id = _require_signature_consent(db, user["uid"])
     ensure_project_active(db, project_id)
     doc = _get_document_or_404(db, project_id, doc_type)
     if doc["locked"]:
@@ -177,10 +155,11 @@ def sign_review(
 
         db.execute(
             "INSERT INTO rf_review_signatures "
-            "(document_id, user_id, username, role_label, signed_at, content_fingerprint, display_name_at_signing) "
-            "VALUES (?,?,?,?,?,?,?)",
+            "(document_id, user_id, username, role_label, signed_at, content_fingerprint, "
+            "display_name_at_signing, consent_id) "
+            "VALUES (?,?,?,?,?,?,?,?)",
             (doc["id"], user["uid"], user["u"], body.role_label, time.time(),
-             body.content_fingerprint, display_name_at_signing),
+             body.content_fingerprint, display_name_at_signing, consent_id),
         )
         # Bloquea edición desde la PRIMERA firma (antes solo el sellado final de aprobación lo
         # hacía) -- ver _upsert_document en documents.py.
@@ -327,6 +306,7 @@ def sign_approval(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "El texto justificativo es obligatorio")
 
     db = get_db()
+    consent_id = _require_signature_consent(db, user["uid"])
     ensure_project_active(db, project_id)
     doc = _get_document_or_404(db, project_id, doc_type)
     rnd = db.execute(
@@ -421,8 +401,9 @@ def sign_approval(
 
         db.execute(
             "UPDATE rf_approval_signers SET signed_at=?, justification_text=?, "
-            "content_fingerprint=?, display_name_at_signing=? WHERE id=?",
-            (now, body.justification_text, body.content_fingerprint, display_name_at_signing, me["id"]),
+            "content_fingerprint=?, display_name_at_signing=?, consent_id=? WHERE id=?",
+            (now, body.justification_text, body.content_fingerprint, display_name_at_signing,
+             consent_id, me["id"]),
         )
         # Bloquea edición desde la PRIMERA firma, no solo el sellado final -- update
         # idempotente si ya estaba en 1 (p.ej. alguien ya firmó como revisor antes).
@@ -430,8 +411,22 @@ def sign_approval(
 
         sealed = False
         if is_last:
+            # Ronda 20 (2026-09-21): el sellado es el único evento que reescribe json_data --
+            # excepción puntual y documentada a la inmutabilidad del contenido cargado por el
+            # DRP (Ronda 18). Se pisa SOLO document.status a "Aprobado", nada más del contenido,
+            # para que la portada del PDF y cualquier libro regenerado después dejen de mostrar
+            # "Borrador" para siempre en un documento que ya está sellado. json_hash se calcula
+            # sobre este contenido YA actualizado -- así el hash guardado siempre coincide con
+            # lo que hay en json_data, sin importar cuándo se vuelva a leer.
+            sealed_json_data = fresh_doc["json_data"]
+            try:
+                parsed = json.loads(sealed_json_data)
+                parsed.setdefault("document", {})["status"] = "Aprobado"
+                sealed_json_data = json.dumps(parsed, ensure_ascii=False)
+            except (ValueError, AttributeError):
+                pass  # JSON inesperado -- no bloquear el sellado por un campo cosmético
             pdf_hash = hashlib.sha256(pdf_bytes).hexdigest()
-            json_hash = hashlib.sha256(fresh_doc["json_data"].encode()).hexdigest()
+            json_hash = hashlib.sha256(sealed_json_data.encode()).hexdigest()
             pdf_data_b64 = base64.b64encode(pdf_bytes).decode("ascii")
             proj = db.execute(
                 "SELECT partner_name, partner_logo FROM rf_projects WHERE id=?", (project_id,)
@@ -441,10 +436,10 @@ def sign_approval(
             )
             db.execute(
                 "UPDATE rf_documents SET locked=1, status='locked', locked_at=?, pdf_hash=?, json_hash=?, "
-                "original_stored=1, pdf_data=?, branding_name_at_signing=?, branding_logo_at_signing=?, "
+                "original_stored=1, pdf_data=?, json_data=?, branding_name_at_signing=?, branding_logo_at_signing=?, "
                 "branding_captured_at_signing=1 WHERE id=?",
                 (
-                    now, pdf_hash, json_hash, pdf_data_b64,
+                    now, pdf_hash, json_hash, pdf_data_b64, sealed_json_data,
                     (proj["partner_name"] or "") if proj else "",
                     (proj["partner_logo"] if proj else None),
                     doc["id"],

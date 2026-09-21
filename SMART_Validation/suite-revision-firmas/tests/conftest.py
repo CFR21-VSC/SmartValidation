@@ -56,3 +56,13 @@ def drp_client(client, superadmin_creds):
     r = client.post("/auth/login", json=superadmin_creds)
     assert r.status_code == 200, r.text
     return client
+
+
+def accept_signature_consent(client) -> None:
+    """Helper compartido (Ronda 19): cualquier fixture de firma tiene que aceptar la
+    declaración de conformidad antes de poder firmar -- sign_review/sign_approval rechazan
+    con 409 si falta (ver signatures.py::_require_signature_consent). `client` ya tiene que
+    estar logueado como la persona que va a firmar."""
+    from app.signature_consent import CURRENT_CONSENT_VERSION
+    r = client.post("/auth/signature-consent", json={"version": CURRENT_CONSENT_VERSION})
+    assert r.status_code == 200, r.text

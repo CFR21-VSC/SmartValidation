@@ -37,18 +37,6 @@
         return;
     }
 
-    function renderTablaFirmasFinal(sec, tb, num) {
-        if (VS.shared && typeof VS.shared.renderTablaFirmasFinalSmart === "function") {
-            return VS.shared.renderTablaFirmasFinalSmart(sec, tb, { rolesDefault: [
-                'Redactor (Validador)',
-                'Revisor (Process Owner)',
-                'Aprobador (Jefe de Validaciones)',
-                'Aprobador (Gerente QA)'
-            ], numero: num, titulo: sec.titulo });
-        }
-        return [{ text: "[Helper de firmas no disponible]", color: "#FF0000" }];
-    }
-
     function maybeWrapUnbreakable(sec, titleBlock, contentBlock) {
         const TABLE_TYPES = ['tabla-info'];
         const rowCount = (sec.filas || sec.preguntas || []).length;
@@ -100,7 +88,7 @@
                 case 'caja-conclusion': contentBlock = shared.renderCajaConclusion(sec, tb); break;
                 case 'matriz-tc': contentBlock = iq.renderSeccionMatriz(sec, tb, MODE); break;
                 case 'tabla-test-case': contentBlock = iq.renderSeccionTabla(sec, tb, MODE); break;
-                case 'tabla-firmas-final': contentBlock = renderTablaFirmasFinal(sec, tb, num); titleBlock = []; break;
+                case 'firmas-horizontales': contentBlock = (VS.shared && VS.shared.renderFirmasHorizontal) ? VS.shared.renderFirmasHorizontal(sec, tb) : []; titleBlock = []; break;
                 default:
                     contentBlock = [{
                         text: `[Tipo de sección desconocido: ${sec.tipo}]`,

@@ -539,23 +539,6 @@
     }
 
     // ====================================================================
-    // NUEVO TIPO: tabla-firmas-final
-    // Para insertar al final del documento una tabla de firmas digitales/electronicas
-    // de ejecucion (distinta de la matriz de aprobaciones de la pagina 2).
-    // ====================================================================
-    function renderTablaFirmasFinal(sec, tb, num) {
-        if (VS.shared && typeof VS.shared.renderTablaFirmasFinalSmart === "function") {
-            return VS.shared.renderTablaFirmasFinalSmart(sec, tb, { rolesDefault: [
-                'Ejecutor (Validador)',
-                'Revisor (Process Owner)',
-                'Aprobador (Jefe de Validaciones)',
-                'Aprobador (Gerente QA)'
-            ], numero: num, titulo: sec.titulo });
-        }
-        return [{ text: "[Helper de firmas no disponible]", color: "#FF0000" }];
-    }
-
-    // ====================================================================
     // RENDERER PRINCIPAL (despacha segun tipo de seccion)
     // ====================================================================
     VS.registerRenderer('HLRA', function (data) {
@@ -588,7 +571,7 @@
                 case 'box-resultado-rai': contentBlock = renderBoxResultadoRai(sec, tb); break;
                 case 'tarjeta-gap': contentBlock = renderTarjetaGap(sec, tb); break;
                 case 'caja-conclusion': contentBlock = renderCajaConclusion(sec, tb); break;
-                case 'tabla-firmas-final': contentBlock = renderTablaFirmasFinal(sec, tb, num); titleBlock = []; break;
+                case 'firmas-horizontales': contentBlock = (VS.shared && VS.shared.renderFirmasHorizontal) ? VS.shared.renderFirmasHorizontal(sec, tb) : []; titleBlock = []; break;
                 default:
                     contentBlock = [{
                         text: `[Tipo de seccion desconocido: ${sec.tipo}]`,
