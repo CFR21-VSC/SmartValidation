@@ -99,7 +99,19 @@
     /**
      * Retorna el tipo de documento que bloquea el avance de docType en la cascada.
      * Un documento solo puede avanzar (draft→in_review, in_review→approved)
-     * si el documento anterior en la cascada está en 'approved' o 'locked'.
+     * si el documento anterior REALMENTE EXISTENTE en la cascada está en 'approved' o
+     * 'locked'. Un tipo que nunca se tocó en este proyecto (sin entrada en el mapa -- ej.
+     * FRS/DS sacados del alcance a pedido del cliente, GAMP 3) se saltea, caminando hacia
+     * atrás hasta encontrar el predecesor real más cercano, o ninguno.
+     *
+     * Antes esto miraba solo el índice inmediato anterior y usaba getState(), que rellena
+     * un 'draft' por default para cualquier tipo sin entrada -- un documento fuera de
+     * alcance (nunca creado a propósito) se veía IDÉNTICO a uno legítimamente en curso, y
+     * bloqueaba el avance del siguiente documento de la cascada PARA SIEMPRE, sin ninguna
+     * forma de destrabarlo (encontrado a pedido del usuario, 2026-09-20, evaluando si sacar
+     * FRS/DS complicaba editar el resto del proceso). Esta función no tenía ningún call site
+     * real todavía en la UI -- corregido antes de conectarla a algo, no como respuesta a un
+     * bloqueo ya sufrido.
      * @param {string} docType — código del documento (ej. 'URS', 'FRS')
      * @param {string} projectId
      * @returns {string|null} — tipo del doc bloqueador, o null si no hay bloqueo
@@ -109,12 +121,17 @@
         var idx = CASCADE_ORDER.indexOf(type);
         if (idx <= 0) return null; // HLRA o tipo no reconocido: sin bloqueo
 
-        var prevType = CASCADE_ORDER[idx - 1];
-        var prevState = getState(prevType, projectId).estado;
-        if (prevState !== STATES.APPROVED && prevState !== STATES.LOCKED) {
-            return prevType;
+        var map = _loadMap(projectId);
+        for (var i = idx - 1; i >= 0; i--) {
+            var prevType = CASCADE_ORDER[i];
+            var entry = map[prevType];
+            if (!entry) continue; // nunca se tocó -- no bloquea, seguir buscando hacia atrás
+            if (entry.estado !== STATES.APPROVED && entry.estado !== STATES.LOCKED) {
+                return prevType;
+            }
+            return null; // predecesor real más cercano, y ya está aprobado/bloqueado
         }
-        return null;
+        return null; // ningún predecesor fue tocado -- nada bloquea
     }
 
     /**
