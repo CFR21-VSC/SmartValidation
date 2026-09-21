@@ -390,7 +390,17 @@ function renderRight() {
         if (alreadySigned) {
             html += `<div style="margin-top:16px; color:var(--success); font-weight:600;">✓ Ya firmaste esta ronda</div>`;
         } else if (currentRound.status !== 'sealed') {
-            html += `<div style="margin-top:16px;"><button class="rf-btn" id="sign-open-btn">Firmar</button></div>`;
+            // El firmante con mayor sign_order es el que sella -- necesita pdf_base64 sí o sí
+            // (ver sign_approval en signatures.py). Antes esto abría el modal vacío y la única
+            // forma de completarlo era descargar el PDF a mano y volver a cargarlo como
+            // archivo -- redundante, ya que el sistema puede generarlo solo (pedido del
+            // usuario, 2026-09-21: "me obliga a descargar y cargar el archivo... debería poder
+            // generarlo directo"). Ahora el botón del sellador genera el PDF automáticamente
+            // antes de abrir el modal, con el mismo motor que "Generar vista previa".
+            const mySignOrder = session && currentSigners.find(s => s.username === session.username);
+            const isSealer = mySignOrder && currentSigners.length > 0
+                && mySignOrder.sign_order === Math.max(...currentSigners.map(s => s.sign_order));
+            html += `<div style="margin-top:16px;"><button class="rf-btn" id="sign-open-btn">${isSealer ? 'Generar PDF y firmar (sella el documento)' : 'Firmar'}</button></div>`;
         }
         html += `<div class="rf-error" id="round-view-error"></div>`;
     }
@@ -401,7 +411,7 @@ function renderRight() {
         bindCreateFormEvents();
     }
     const signBtn = document.getElementById('sign-open-btn');
-    if (signBtn) signBtn.addEventListener('click', () => openSignModal(null));
+    if (signBtn) signBtn.addEventListener('click', onFirmarClick);
 }
 
 function renderSignersTable(signers) {
@@ -578,6 +588,37 @@ async function onUsePdfForSeal() {
     if (!currentPdfBlob) return;
     const b64 = await blobToBase64(currentPdfBlob);
     openSignModal(b64);
+}
+
+async function onFirmarClick() {
+    const mySignOrder = session && currentSigners.find(s => s.username === session.username);
+    const isSealer = mySignOrder && currentSigners.length > 0
+        && mySignOrder.sign_order === Math.max(...currentSigners.map(s => s.sign_order));
+    if (!isSealer) {
+        openSignModal(null);
+        return;
+    }
+    // Sellador: generar el PDF automáticamente (mismo motor que "Generar vista previa") y
+    // abrir el modal ya con el archivo listo -- sin esto, había que ir a generar la vista
+    // previa a mano, o peor, descargar y volver a cargar el PDF como archivo.
+    const btn = document.getElementById('sign-open-btn');
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Generando PDF…';
+    try {
+        // Resetear antes de generar -- si onGeneratePreview() falla (atrapa su propio error
+        // y no relanza), currentPdfBlob no debe quedar con un blob viejo de una vista previa
+        // anterior: eso sellaría con un PDF desactualizado sin que nadie se entere.
+        currentPdfBlob = null;
+        await onGeneratePreview();
+        if (!currentPdfBlob) throw new Error('No se pudo generar el PDF para el sellado.');
+        await onUsePdfForSeal();
+    } catch (e) {
+        showToast(e.message || 'No se pudo generar el PDF para firmar.', true);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalLabel;
+    }
 }
 
 // ─── Modal de firma ─────────────────────────────────────────────────────────
