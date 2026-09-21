@@ -409,8 +409,10 @@
             const tieneCrit = Array.isArray(tc.criterios) && tc.criterios.length > 0;
 
             if (isOq) {
-                // OQ esperado: procedimiento[] + criterioAceptacion
-                if (!tieneProc && !tieneCrit) {
+                // OQ esperado: procedimiento[] + criterioAceptacion -- pero eso es
+                // exigencia del PROTOCOLO. El Informe es magro (Ronda 21) y omite
+                // este detalle a propósito, así que no corresponde advertir su ausencia.
+                if (!esInforme && !tieneProc && !tieneCrit) {
                     warn(`Test Case ${qualKind} sin procedimiento[] ni criterios[] (debe tener al menos uno)`, ctx);
                 }
                 if (tieneProc) {
@@ -429,8 +431,9 @@
                     }
                 }
             } else {
-                // IQ esperado: criterios[] consolidados
-                if (!tieneCrit) {
+                // IQ esperado: criterios[] consolidados -- exigencia del protocolo,
+                // no del Informe magro (Ronda 21).
+                if (!esInforme && !tieneCrit) {
                     warn('Test Case sin criterios definidos (enfoque CSA requiere criterios consolidados)', ctx);
                 }
             }
