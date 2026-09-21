@@ -168,6 +168,62 @@ def reactivate_user(user_id: str, user: dict = Depends(require_drp)):
     return {"ok": True}
 
 
+@router.delete("/{user_id}")
+def delete_user(user_id: str, user: dict = Depends(require_drp)):
+    """Borrado duro -- distinto de deactivate (arriba), que es la vía preferida para
+    cuentas reales (pedido explícito del usuario 2026-09-03, ver deactivate_user). Este
+    endpoint existe puntualmente para poder limpiar cuentas de prueba (QA/testing,
+    2026-09-21) sin dejar basura permanente en el listado de usuarios.
+
+    Reservado a superadmin y bloqueado si la cuenta ya firmó algo: rf_review_signatures/
+    rf_approval_signers guardan user_id sin FK dura (y con username/display_name_at_signing
+    ya snapshoteados) precisamente para sobrevivir sin la fila viva de rf_users, así que
+    técnicamente no se pierde evidencia de firma -- pero igual preferimos no borrar la
+    entidad de alguien que firmó algo real; para esos casos, desactivar."""
+    db = get_db()
+    if not is_superadmin_fresh(db, user):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Solo el superadministrador puede eliminar usuarios")
+
+    target = db.execute(
+        "SELECT id, username, display_name, email, is_superadmin, role, is_active FROM rf_users WHERE id=?",
+        (user_id,),
+    ).fetchone()
+    if not target:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+    _assert_target_not_hidden_superadmin(db, user, target)
+    if target["username"] == user["u"]:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No podés eliminar tu propia cuenta")
+
+    has_signed = db.execute(
+        "SELECT 1 FROM rf_review_signatures WHERE user_id=? "
+        "UNION SELECT 1 FROM rf_approval_signers WHERE user_id=?",
+        (user_id, user_id),
+    ).fetchone()
+    if has_signed:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Esta cuenta ya firmó al menos un documento -- no se puede eliminar. Usá Desactivar para conservar la trazabilidad.",
+        )
+
+    if target["role"] == "drp" and target["is_active"]:
+        remaining = db.execute(
+            "SELECT COUNT(*) AS n FROM rf_users WHERE role='drp' AND is_active=1 AND id != ?",
+            (user_id,),
+        ).fetchone()["n"]
+        if remaining == 0:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "No se puede eliminar el último usuario DRP activo")
+
+    target_label = target["display_name"] or target["email"]
+    _revoke_active_sessions(db, target["username"])
+    # rf_document_access_grants tiene ON DELETE CASCADE sobre user_id -- se limpia solo.
+    db.execute("DELETE FROM rf_signature_consent WHERE user_id=?", (user_id,))
+    db.execute("DELETE FROM rf_users WHERE id=?", (user_id,))
+    db.commit()
+
+    log_system_event(user, "user_deleted", f"{user['u']} eliminó al usuario {target_label} ({target['role']})")
+    return {"ok": True}
+
+
 @router.post("/{user_id}/reset-credentials")
 def reset_credentials(user_id: str, user: dict = Depends(require_drp)):
     """Cubre dos pedidos del usuario a la vez, porque son mecánicamente lo mismo (un link

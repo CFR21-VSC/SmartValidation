@@ -166,7 +166,8 @@ async function loadUsers() {
         if (!isSelf) {
             actions += u.is_active
                 ? ` <button class="rf-btn-danger deactivate-btn" data-id="${u.id}" data-name="${escHtml(u.display_name)}">Desactivar</button>`
-                : ` <button class="rf-btn-secondary reactivate-btn" data-id="${u.id}" data-name="${escHtml(u.display_name)}">Reactivar</button>`;
+                : ` <button class="rf-btn-secondary reactivate-btn" data-id="${u.id}" data-name="${escHtml(u.display_name)}">Reactivar</button>`
+                    + ` <button class="rf-btn-danger delete-btn" data-id="${u.id}" data-name="${escHtml(u.display_name)}">Eliminar</button>`;
         }
         return `
         <tr>
@@ -191,6 +192,9 @@ async function loadUsers() {
     tbody.querySelectorAll('.reactivate-btn').forEach(btn => {
         btn.addEventListener('click', () => reactivateUser(btn.dataset.id, btn.dataset.name));
     });
+    tbody.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteUser(btn.dataset.id, btn.dataset.name));
+    });
     tbody.querySelectorAll('.resend-btn').forEach(btn => {
         btn.addEventListener('click', () => resendCredentials(btn.dataset.id, btn.dataset.name));
     });
@@ -214,6 +218,17 @@ async function reactivateUser(userId, name) {
         await loadUsers();
     } else {
         showToast(data.error || 'No se pudo reactivar', true);
+    }
+}
+
+async function deleteUser(userId, name) {
+    if (!confirm(`¿Eliminar definitivamente a ${name}? Esto no se puede deshacer. Si la cuenta ya firmó algún documento, el sistema va a rechazar el borrado -- usá Desactivar en ese caso.`)) return;
+    const { status, data } = await apiFetch(`/users/${userId}`, { method: 'DELETE' });
+    if (status === 200 && data.ok) {
+        showToast(`${name} eliminado`);
+        await loadUsers();
+    } else {
+        showToast(data.error || 'No se pudo eliminar', true);
     }
 }
 
