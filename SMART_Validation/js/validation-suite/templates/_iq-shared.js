@@ -492,13 +492,18 @@
 
         // ===== Branch por schemaModo =====
         if (schemaModo === 'procedimiento') {
-            // OQ: tabla numerada de procedimiento + criterio de aceptación
-            out.push({
-                text: 'Procedimiento:',
-                bold: true, color: C.primary, fontSize: 9,
-                margin: [0, 4, 0, 4]
-            });
-            out.push(renderProcedimientoTable(tc.procedimiento, tb, mode));
+            // OQ: tabla numerada de procedimiento + criterio de aceptación. Informe "magro"
+            // (Ronda 21, 2026-09-21): el Informe puede no traer procedimiento -- ese detalle
+            // queda solo en el protocolo -- así que el bloque entero se omite en vez de
+            // mostrar una tabla vacía con encabezados sin filas.
+            if (tc.procedimiento && tc.procedimiento.length > 0) {
+                out.push({
+                    text: 'Procedimiento:',
+                    bold: true, color: C.primary, fontSize: 9,
+                    margin: [0, 4, 0, 4]
+                });
+                out.push(renderProcedimientoTable(tc.procedimiento, tb, mode));
+            }
 
             // Criterio de aceptación (consolidado, string único)
             if (tc.criterioAceptacion) {

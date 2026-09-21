@@ -29,8 +29,8 @@ Generador del documento **IPQ (Performance Qualification Report / Informe de Cal
 
 | | PPQ | IPQ |
 |---|---|---|
-| Schema del TC | Mismo (`schemaModo: "procedimiento"`) | Mismo |
-| `procedimiento[].resultadoReal` | NO incluir | Poblado (opcional, libre) |
+| Schema del TC | Completo (`schemaModo: "procedimiento"`) | **Magro** (Ronda 21, 2026-09-21) |
+| `precondiciones`, `procedimiento[]`, `criterioAceptacion` | Sí | **NO incluir** — quedan solo en el PPQ |
 | `criterioObservado` | NO incluir | Poblado (qué se observó vs criterio + métricas reales) |
 | Campos de ejecución | NO incluir | Poblados |
 | `evidenciasGestor` | NO incluir | Array con refs |
@@ -38,6 +38,12 @@ Generador del documento **IPQ (Performance Qualification Report / Informe de Cal
 | Sección "Resumen de Ejecución" | NO existe | Sí (auto-calculada) |
 | Sección "Hallazgos Consolidados" | NO existe | Sí |
 | Sección "Conclusión y Decisión" | NO existe | Sí (apto/no apto para liberación productiva) |
+
+**Informe magro (Ronda 21)**: el IPQ ya NO copia `precondiciones`, `procedimiento[]`
+ni `criterioAceptacion` del PPQ — ese detalle procedimental queda únicamente en el
+protocolo. El IPQ conserva identificación y trazabilidad (`tcId`, `titulo`,
+`objetivo`, `grupo`, `raScore`, `nivel`, `ursVinculados`, `raVinculado`) más los
+campos de ejecución y las métricas observadas.
 
 ## Schema del Test Case PQ con campos de ejecución
 
@@ -52,12 +58,6 @@ Generador del documento **IPQ (Performance Qualification Report / Informe de Cal
   "ursVinculados": ["URS-001", "URS-017", "URS-035", "URS-041"],
   "raVinculado": "RAI-001",
   "objetivo": "...",
-  "precondiciones": ["..."],
-  "procedimiento": [
-    { "paso": 1, "instruccion": "...", "resultadoEsperado": "...", "resultadoReal": "Email recibido en 47s (dentro del límite de 2min)." },
-    { "paso": 2, "instruccion": "...", "resultadoEsperado": "...", "resultadoReal": "Cambio pwd completado. Dashboard cargó en 1.2s." }
-  ],
-  "criterioAceptacion": "Usuario nuevo completa el flujo end-to-end...",
 
   "criterioObservado": "Flujo completo exitoso. Tiempos observados: email 47s, PDF 18s, verificación QR <2s. Usuario no requirió asistencia.",
   "estado": "PASS",
@@ -165,6 +165,7 @@ A diferencia del IOQ, el IPQ debe **explicitar las métricas observadas** vs los
 8. **`firmas` poblar SIEMPRE** en el IPQ (es un documento ejecutado).
 9. **Decisión formal explícita** mencionando liberación productiva.
 10. **TCs negativos contabilizados aparte** en extras y conclusión.
+11. **NO copiar `precondiciones`, `procedimiento[]`, `criterioAceptacion` del PPQ** — el IPQ es magro (Ronda 21): esos campos no van en el TC del IPQ, quedan solo en el protocolo. `objetivo` sí se copia tal cual.
 
 ## Ejemplo de input mínimo
 

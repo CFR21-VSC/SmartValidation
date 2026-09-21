@@ -28,8 +28,8 @@ Generador del documento **IOQ (Operational Qualification Report / Informe de Cal
 
 | | POQ | IOQ |
 |---|---|---|
-| Schema del TC | Mismo (`schemaModo: "procedimiento"`) | Mismo |
-| `procedimiento[].resultadoReal` | NO incluir | Poblado (opcional, libre) |
+| Schema del TC | Mismo (`schemaModo: "procedimiento"`) | **Magro** (Ronda 21, 2026-09-21) |
+| `precondiciones`, `procedimiento[]`, `criterioAceptacion`, `notas` | Sí | **NO incluir** — quedan solo en el POQ |
 | `criterioObservado` | NO incluir | Poblado (qué se observó) |
 | Campos de ejecución (`estado`, `ejecutor`, etc.) | NO incluir | Poblados |
 | `evidenciasGestor` | NO incluir | Array con refs |
@@ -37,6 +37,16 @@ Generador del documento **IOQ (Operational Qualification Report / Informe de Cal
 | Sección "Resumen de Ejecución" | NO existe | Sí (auto-calculada) |
 | Sección "Hallazgos Consolidados" | NO existe | Sí |
 | Sección "Conclusión y Decisión" | NO existe | Sí |
+
+**Informe magro (Ronda 21)**: el IOQ ya NO copia el detalle procedimental del POQ
+(`precondiciones`, `procedimiento[]`, `criterioAceptacion`, `notas`) — ese contenido
+queda únicamente en el protocolo, y el auditor lo consulta ahí si lo necesita. El IOQ
+conserva la identificación y trazabilidad del TC (`tcId`, `titulo`, `objetivo`,
+`grupo`, `componente`, `raScore`, `nivel`, `ursVinculados`, `raVinculado` — la matriz
+resumen los necesita) más los campos de ejecución. Antes de este cambio se copiaba
+todo el TC del POQ tal cual y solo se agregaban los campos de ejecución encima —
+eso duplicaba contenido extenso (pasos, criterios) que ya vive, palabra por palabra,
+en el documento del que el IOQ depende.
 
 ## Schema del Test Case OQ con campos de ejecución
 
@@ -52,13 +62,6 @@ Generador del documento **IOQ (Operational Qualification Report / Informe de Cal
   "ursVinculados": ["URS-001", "URS-002"],
   "raVinculado": "RAI-001",
   "objetivo": "...",
-  "precondiciones": ["..."],
-  "procedimiento": [
-    { "paso": 1, "instruccion": "...", "resultadoEsperado": "...", "resultadoReal": "Pantalla cargó en 1.2s. Login OK." },
-    { "paso": 2, "instruccion": "...", "resultadoEsperado": "...", "resultadoReal": "Dashboard visible con sesión activa." },
-    { "paso": 3, "instruccion": "...", "resultadoEsperado": "...", "resultadoReal": "" }
-  ],
-  "criterioAceptacion": "Login exitoso con credenciales válidas redirige al dashboard. Credenciales inválidas muestran mensaje genérico sin revelar datos sensibles.",
 
   "criterioObservado": "Login exitoso. Dashboard visible. Mensaje de error en credenciales inválidas: 'Usuario o contraseña incorrectos' (sin revelar cuál falló). Cumple criterio.",
   "estado": "PASS",
@@ -81,14 +84,16 @@ Generador del documento **IOQ (Operational Qualification Report / Informe de Cal
       "rolPrueba": "—"
     }
   ],
-  "hallazgos": [],
-  "notas": ""
+  "hallazgos": []
 }
 ```
 
+`criterioRef` sigue pudiendo apuntar a `"Paso N"` aunque el IOQ ya no traiga el array
+`procedimiento[]` — es una referencia textual al paso del POQ, no un link estructural;
+el auditor lo resuelve mirando el POQ.
+
 ### Campos de ejecución — reglas
 
-- `procedimiento[].resultadoReal`: **opcional** por paso. String libre. Vacío `""` si el ejecutor no llenó. El renderer muestra columna sólo si hay al menos un valor.
 - `criterioObservado`: **obligatorio** si `estado` es PASS, FAIL o OBS (es el "qué se observó frente al criterio"). Vacío `""` si `estado: "NA"`.
 - `estado`: PASS / FAIL / OBS / NA (mismas semánticas que IIQ).
 - `ejecutor` y `fechaEjecucion`: obligatorios para todo TC con `estado` distinto de NA.
@@ -232,7 +237,7 @@ Cada TC puede tener `evidenciasGestor` con refs a las capturas hechas en el Gest
 10. **`firmas` poblar SIEMPRE** en el IOQ (es un documento ejecutado).
 11. **Decisión formal explícita** en la sección de conclusión.
 12. **TCs negativos contabilizados aparte** en extras y en datos de ejecución y en resumen — el auditor lo lee como métrica de cobertura de seguridad.
-13. **NO modificar `objetivo`, `precondiciones`, `procedimiento.instruccion`, `procedimiento.resultadoEsperado`, `criterioAceptacion`** vs el POQ — esos son inmutables. El IOQ solo agrega `resultadoReal`, `criterioObservado` y campos de ejecución.
+13. **NO copiar `precondiciones`, `procedimiento[]`, `criterioAceptacion`, `notas` del POQ** — el IOQ es magro (Ronda 21): esos campos no van en el TC del IOQ, quedan solo en el protocolo. `objetivo` sí se copia tal cual (es la identificación mínima del TC). El IOQ agrega `criterioObservado` y los campos de ejecución.
 
 ## Ejemplo de input mínimo
 

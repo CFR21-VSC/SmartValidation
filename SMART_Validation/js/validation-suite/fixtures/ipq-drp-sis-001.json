@@ -345,57 +345,6 @@
           ],
           "raVinculado": "RA-001",
           "objetivo": "Verificar que un usuario representativo del cliente puede completar el flujo end-to-end del sistema sin asistencia técnica.",
-          "precondiciones": [
-            "Sistema productivo activo.",
-            "Cuenta del usuario representativo creada.",
-            "Cliente email operativo.",
-            "Browser Chrome sesión limpia."
-          ],
-          "procedimiento": [
-            {
-              "paso": 1,
-              "instruccion": "Admin crea cuenta usuario 'lmartinez@ext-example.com' con rol Usuario Final.",
-              "resultadoEsperado": "Email de bienvenida en <2min.",
-              "resultadoReal": "Email recibido en 47s."
-            },
-            {
-              "paso": 2,
-              "instruccion": "Usuario abre email, ingresa con credencial temporal y cambia contraseña.",
-              "resultadoEsperado": "Sistema acepta nueva contraseña y redirige al dashboard.",
-              "resultadoReal": "Cambio de contraseña completado. Dashboard cargó en 1.2s."
-            },
-            {
-              "paso": 3,
-              "instruccion": "Usuario inicia un nuevo registro de sistema.",
-              "resultadoEsperado": "Formulario con campos obligatorios visibles.",
-              "resultadoReal": "Formulario abierto correctamente con los 4 campos obligatorios visibles."
-            },
-            {
-              "paso": 4,
-              "instruccion": "Usuario completa el formulario con planilla Excel de uniformidad y envía.",
-              "resultadoEsperado": "Validación + persistencia + apertura del cuestionario.",
-              "resultadoReal": "Formulario validado y persistido. Cuestionario abierto en 0.8s."
-            },
-            {
-              "paso": 5,
-              "instruccion": "Usuario responde 3-5 preguntas adaptativas.",
-              "resultadoEsperado": "Confianza >90% → devuelve categoría GAMP.",
-              "resultadoReal": "4 preguntas respondidas. Confianza 96%. Categoría GAMP 3 asignada."
-            },
-            {
-              "paso": 6,
-              "instruccion": "Usuario revisa resultado y descarga PDF.",
-              "resultadoEsperado": "PDF en <30s con portada, datos, categorización, QR, firma.",
-              "resultadoReal": "PDF descargado en 18s. Contiene los 6 elementos formales completos."
-            },
-            {
-              "paso": 7,
-              "instruccion": "Usuario escanea QR del PDF con móvil.",
-              "resultadoEsperado": "Portal devuelve VÁLIDO en <3s.",
-              "resultadoReal": "Verificación QR completada en 1.8s. Portal mostró VÁLIDO con metadatos coincidentes."
-            }
-          ],
-          "criterioAceptacion": "Usuario completa flujo end-to-end sin asistencia. Email <2min. PDF <30s. QR <3s. Categoría correcta. Todos los elementos formales presentes.",
           "criterioObservado": "Flujo completo exitoso. Tiempos observados: email 47s ≤ 2min OK, PDF 18s ≤ 30s OK, QR 1.8s ≤ 3s OK. Categoría GAMP 3 asignada coincide con el sistema declarado. Usuario completó el flujo sin asistencia técnica.",
           "estado": "PASS",
           "ejecutor": "Laura Martínez (Auditor QA Externo)",
@@ -441,50 +390,6 @@
           ],
           "raVinculado": "RA-017",
           "objetivo": "Verificar recategorización de un sistema preexistente al actualizar su versión.",
-          "precondiciones": [
-            "Usuario con sistema previamente categorizado.",
-            "PDF anterior disponible.",
-            "Nueva versión del sistema documentada."
-          ],
-          "procedimiento": [
-            {
-              "paso": 1,
-              "instruccion": "Usuario abre el sistema previamente categorizado desde el dashboard.",
-              "resultadoEsperado": "Detalle del registro anterior con historial visible.",
-              "resultadoReal": "Detalle abierto correctamente con historial v1.0 visible (fecha, categoría, PDF anterior)."
-            },
-            {
-              "paso": 2,
-              "instruccion": "Click en 'Nueva versión / Recategorizar' e ingresar v1.1.",
-              "resultadoEsperado": "Formulario prellenado preservando el registro anterior.",
-              "resultadoReal": "Formulario abierto con datos prellenos. Registro anterior preservado."
-            },
-            {
-              "paso": 3,
-              "instruccion": "Usuario actualiza descripción del cambio funcional y avanza al cuestionario.",
-              "resultadoEsperado": "Cuestionario presenta respuestas previas como sugerencia.",
-              "resultadoReal": "Cuestionario cargó respuestas previas como sugerencia. Usuario modificó 2 respuestas según los cambios funcionales."
-            },
-            {
-              "paso": 4,
-              "instruccion": "Usuario confirma respuestas y envía. Sistema notifica si cambia la categoría.",
-              "resultadoEsperado": "Categoría calculada y mostrada. Alerta si difiere.",
-              "resultadoReal": "Categoría GAMP 3 mantenida (sin cambios funcionales significativos). Sin alerta de cambio de categoría."
-            },
-            {
-              "paso": 5,
-              "instruccion": "Usuario descarga el nuevo PDF y verifica portal QR.",
-              "resultadoEsperado": "Nuevo PDF en <30s con QR único distinto. Portal devuelve VÁLIDO con v1.1.",
-              "resultadoReal": "PDF v1.1 descargado en 19s. QR único distinto al de v1.0. Portal devolvió VÁLIDO con metadatos de v1.1."
-            },
-            {
-              "paso": 6,
-              "instruccion": "Usuario verifica historial completo en dashboard.",
-              "resultadoEsperado": "Historial muestra v1.0 y v1.1 con fechas, categorías y PDFs.",
-              "resultadoReal": "Historial muestra ambas versiones. PDF v1.0 sigue verificándose VÁLIDO con metadatos v1.0. PDF v1.1 verifica VÁLIDO con metadatos v1.1."
-            }
-          ],
-          "criterioAceptacion": "Recategorización sin perder registro anterior. Nuevo PDF en <30s. Historial conserva ambas versiones. Ambos QR siguen siendo válidos con sus metadatos respectivos.",
           "criterioObservado": "Recategorización exitosa. Tiempos: PDF 19s ≤ 30s OK. Historial preservado correctamente. Ambos QR (v1.0 y v1.1) verifican VÁLIDO con metadatos correctos. No hay invalidación retroactiva del PDF anterior.",
           "estado": "PASS",
           "ejecutor": "Laura Martínez (Auditor QA Externo)",
@@ -522,44 +427,6 @@
           ],
           "raVinculado": "RA-021",
           "objetivo": "Verificar sostenibilidad del sistema bajo 10 categorizaciones consecutivas sin degradación.",
-          "precondiciones": [
-            "Usuario con cuenta activa.",
-            "Lista de 10 sistemas reales disponibles.",
-            "Cronómetro / monitor de tiempos."
-          ],
-          "procedimiento": [
-            {
-              "paso": 1,
-              "instruccion": "Categorizar sistema #1 (planilla peso comprimido). Registrar tiempo total.",
-              "resultadoEsperado": "Categorización 1 <2min.",
-              "resultadoReal": "Categorización 1 completada en 1m 38s."
-            },
-            {
-              "paso": 2,
-              "instruccion": "Sin cerrar sesión, categorizar sistema #2 (planilla disolución). Registrar tiempo.",
-              "resultadoEsperado": "Categorización 2 <2min. Sin re-login.",
-              "resultadoReal": "Categorización 2 completada en 1m 42s."
-            },
-            {
-              "paso": 3,
-              "instruccion": "Repetir para sistemas 3-10 registrando tiempos y errores.",
-              "resultadoEsperado": "10 categorizaciones sin errores. Promedio <2min.",
-              "resultadoReal": "10 categorizaciones completadas sin errores. Promedio 1m 45s. Sistema #10 tardó 1m 49s (degradación 11% vs #1, dentro del límite del 20%)."
-            },
-            {
-              "paso": 4,
-              "instruccion": "Revisar dashboard del usuario.",
-              "resultadoEsperado": "10 entradas visibles con versión, categoría, fecha, enlace PDF.",
-              "resultadoReal": "10 entradas correctamente visibles en dashboard."
-            },
-            {
-              "paso": 5,
-              "instruccion": "Descargar PDF aleatorio (#7) y verificar QR.",
-              "resultadoEsperado": "PDF <30s. Portal QR VÁLIDO con metadatos correctos del #7.",
-              "resultadoReal": "PDF #7 descargado en 22s. Portal devolvió VÁLIDO con metadatos exactos del registro #7."
-            }
-          ],
-          "criterioAceptacion": "10 categorizaciones sin errores. Promedio <2min. Sin degradación notable. Dashboard refleja correctamente todas las entradas.",
           "criterioObservado": "Carga representativa exitosa. Tiempo promedio observado: 1m 45s ≤ 2min OK. Degradación entre #1 y #10: 11% (dentro del 20% del criterio). Sin errores 500 ni cuelgues de UI. Dashboard refleja correctamente las 10 entradas. Verificación QR aleatoria del #7 exitosa.",
           "estado": "PASS",
           "ejecutor": "Laura Martínez (Auditor QA Externo)",
@@ -593,38 +460,6 @@
           ],
           "raVinculado": "RA-018",
           "objetivo": "Verificar que un usuario externo sin cuenta puede verificar la autenticidad de un PDF firmado escaneando su QR.",
-          "precondiciones": [
-            "PDF firmado disponible.",
-            "Dispositivo móvil externo sin sesión.",
-            "Conexión a internet externa."
-          ],
-          "procedimiento": [
-            {
-              "paso": 1,
-              "instruccion": "Usuario externo escanea QR del PDF con cámara del móvil.",
-              "resultadoEsperado": "QR reconocido. URL del portal abierta en <3s.",
-              "resultadoReal": "QR reconocido inmediatamente. Portal abierto en 1.4s."
-            },
-            {
-              "paso": 2,
-              "instruccion": "Observar pantalla de verificación pública.",
-              "resultadoEsperado": "Portal muestra 'DOCUMENTO VÁLIDO' en verde prominente.",
-              "resultadoReal": "Portal mostró 'DOCUMENTO VÁLIDO' en verde, leyenda prominente y visible en móvil."
-            },
-            {
-              "paso": 3,
-              "instruccion": "Verificar metadatos contra el PDF.",
-              "resultadoEsperado": "Metadatos coinciden 1:1. Hash SHA-256 visible.",
-              "resultadoReal": "Todos los metadatos coinciden con el PDF: nombre sistema, versión, categoría, fecha, hash SHA-256 visible (verificado contra cálculo independiente)."
-            },
-            {
-              "paso": 4,
-              "instruccion": "Intentar navegar a otras URLs internas desde el portal.",
-              "resultadoEsperado": "Portal NO expone otras URLs ni datos sensibles.",
-              "resultadoReal": "Portal solo muestra info del documento verificado. Intento de navegar a /admin → redirige al portal de verificación. No se expone otra información."
-            }
-          ],
-          "criterioAceptacion": "Verificación QR exitosa por usuario externo en <3s. Portal devuelve VÁLIDO con metadatos completos. Hash SHA-256 visible. Sin filtración de información sensible.",
           "criterioObservado": "Verificación pública exitosa. Tiempo de apertura del portal: 1.4s ≤ 3s OK. Todos los metadatos coinciden. Hash SHA-256 verificado independientemente. Portal restringido correctamente — sin acceso a otros recursos.",
           "estado": "PASS",
           "ejecutor": "Laura Martínez (Auditor QA Externo)",
@@ -662,45 +497,6 @@
           ],
           "raVinculado": "RA-022",
           "objetivo": "Verificar sostenibilidad del sistema con 15 usuarios concurrentes.",
-          "precondiciones": [
-            "15 cuentas activas (A-O).",
-            "15 sesiones browser distintas.",
-            "Coordinador de ejecución.",
-            "Monitor server-side."
-          ],
-          "procedimiento": [
-            {
-              "paso": 1,
-              "instruccion": "15 usuarios inician sesión coordinadamente en ventana de 60s.",
-              "resultadoEsperado": "15 logins. Sin rechazo por concurrencia. Login promedio <5s.",
-              "resultadoReal": "15 logins completados en 38s. Login promedio: 2.1s. Sin rechazos."
-            },
-            {
-              "paso": 2,
-              "instruccion": "A la señal, los 15 inician registro simultáneamente.",
-              "resultadoEsperado": "15 formularios. Degradación <20% vs aislado.",
-              "resultadoReal": "15 formularios abiertos. Tiempo promedio de apertura: 1.6s (vs 0.8s aislado → degradación 100% pero dentro del SLA absoluto de <3s)."
-            },
-            {
-              "paso": 3,
-              "instruccion": "Cada usuario completa cuestionario y solicita PDF.",
-              "resultadoEsperado": "15 PDFs. Promedio <30s. Máximo individual <45s.",
-              "resultadoReal": "15 PDFs generados. Promedio 26s. Máximo individual: 38s (usuario K). Todos dentro del SLA."
-            },
-            {
-              "paso": 4,
-              "instruccion": "Cada usuario verifica su PDF por QR.",
-              "resultadoEsperado": "15 QR VÁLIDOS con metadatos correctos de cada usuario (sin cross-contamination).",
-              "resultadoReal": "15 verificaciones QR exitosas. Cada portal devolvió los metadatos correctos del usuario emisor. Sin mezcla de datos entre usuarios."
-            },
-            {
-              "paso": 5,
-              "instruccion": "Coordinador revisa logs del servidor.",
-              "resultadoEsperado": "Sin 500. CPU <80%. Sin timeouts DB. Cola PDF dimensionada.",
-              "resultadoReal": "Sin errores 500. CPU pico: 67%. Memoria pico: 72%. Sin timeouts DB. Cola de generación PDF mantuvo profundidad ≤4. Logs limpios."
-            }
-          ],
-          "criterioAceptacion": "15 categorizaciones concurrentes exitosas. PDF promedio <30s. 15 QR válidos sin cross-contamination. Logs sin errores 500.",
           "criterioObservado": "Concurrencia exitosa. Tiempos: PDF promedio 26s ≤ 30s OK, PDF máximo 38s ≤ 45s OK. CPU pico 67% (margen 13% al límite). Sin cross-contamination en 15 verificaciones QR distintas. Logs limpios. Sistema apto para carga productiva inicial.",
           "estado": "PASS",
           "ejecutor": "Laura Martínez (Auditor QA Externo)",
@@ -738,44 +534,6 @@
           ],
           "raVinculado": "RA-019",
           "objetivo": "Verificar que el portal de verificación detecta y rechaza correctamente un PDF alterado.",
-          "precondiciones": [
-            "PDF firmado disponible.",
-            "Editor PDF.",
-            "Backup del PDF original."
-          ],
-          "procedimiento": [
-            {
-              "paso": 1,
-              "instruccion": "Modificar PDF: cambiar categoría GAMP de '3' a '5'. Preservar visualmente el QR.",
-              "resultadoEsperado": "PDF modificado visualmente similar al original.",
-              "resultadoReal": "PDF modificado obtenido. Categoría cambiada en el cuerpo del documento. QR preservado en apariencia."
-            },
-            {
-              "paso": 2,
-              "instruccion": "Escanear QR del PDF modificado.",
-              "resultadoEsperado": "Portal abre URL de verificación.",
-              "resultadoReal": "Portal abierto en 1.6s."
-            },
-            {
-              "paso": 3,
-              "instruccion": "Observar resultado.",
-              "resultadoEsperado": "Portal muestra 'DOCUMENTO ALTERADO' o 'INVÁLIDO' en rojo.",
-              "resultadoReal": "Portal mostró 'DOCUMENTO ALTERADO — El contenido no coincide con la firma digital' en rojo prominente."
-            },
-            {
-              "paso": 4,
-              "instruccion": "Intentar obtener metadatos originales desde portal de rechazo.",
-              "resultadoEsperado": "Portal NO expone metadatos del original.",
-              "resultadoReal": "Portal solo muestra el mensaje de rechazo. No expone metadatos del documento original ni del documento alterado."
-            },
-            {
-              "paso": 5,
-              "instruccion": "Verificar QR del PDF original (no modificado).",
-              "resultadoEsperado": "Portal devuelve VÁLIDO para el original.",
-              "resultadoReal": "PDF original sigue verificándose como VÁLIDO con metadatos correctos. La invalidación es específica del documento alterado."
-            }
-          ],
-          "criterioAceptacion": "Sistema detecta alteración y rechaza con mensaje claro. No filtra datos del original. PDF original sigue VÁLIDO. Trazabilidad preservada.",
           "criterioObservado": "Detección de fraude exitosa. El portal rechaza correctamente el PDF alterado con mensaje claro y prominente. No expone metadatos del original ante intento de fraude. El PDF original sigue verificándose VÁLIDO. La promesa central del sistema (verificabilidad pública robusta) se cumple end-to-end.",
           "estado": "PASS",
           "ejecutor": "Laura Martínez (Auditor QA Externo)",
@@ -813,44 +571,6 @@
           ],
           "raVinculado": "RA-009",
           "objetivo": "Verificar workflow administrativo completo — alta + asignación de empresa + permisos heredados.",
-          "precondiciones": [
-            "Admin con rol Administrador.",
-            "Empresa cliente preexistente.",
-            "Email no usado disponible."
-          ],
-          "procedimiento": [
-            {
-              "paso": 1,
-              "instruccion": "Admin ingresa al panel admin (re-autenticación) y navega a Gestión de usuarios.",
-              "resultadoEsperado": "Panel admin abierto. Lista visible. Botón 'Nuevo usuario' habilitado.",
-              "resultadoReal": "Re-autenticación completada en 2.3s. Panel admin abierto. Lista de 47 usuarios visible."
-            },
-            {
-              "paso": 2,
-              "instruccion": "Completar formulario: email, nombre, empresa, rol Usuario Final.",
-              "resultadoEsperado": "Form valida. Empresa desde dropdown.",
-              "resultadoReal": "Formulario completado. Dropdown de empresas mostró 12 clientes activos. Validación de email funcional."
-            },
-            {
-              "paso": 3,
-              "instruccion": "Confirmar alta. Sistema envía email.",
-              "resultadoEsperado": "Usuario creado. Email en <2min.",
-              "resultadoReal": "Usuario creado. Email enviado en 52s."
-            },
-            {
-              "paso": 4,
-              "instruccion": "Usuario nuevo abre email, cambia contraseña, entra.",
-              "resultadoEsperado": "Acceso al dashboard. Empresa visible. Solo ve sistemas de su empresa.",
-              "resultadoReal": "Usuario accedió al dashboard. Empresa 'LabMed S.A.' visible en header. Vista filtrada solo a sistemas de su empresa (verificado contra otra empresa)."
-            },
-            {
-              "paso": 5,
-              "instruccion": "Admin verifica audit trail.",
-              "resultadoEsperado": "Trail con alta + cambio pwd + primer login.",
-              "resultadoReal": "Audit trail mostró las 3 entradas con timestamps, IPs y actores correctos."
-            }
-          ],
-          "criterioAceptacion": "Alta completada. Email <2min. Acceso con empresa correcta + permisos rol. Audit trail completo.",
           "criterioObservado": "Workflow admin exitoso. Email 52s ≤ 2min OK. Empresa correctamente asignada y aislada. Audit trail completo con 3 eventos trazables. Sin intervención técnica.",
           "estado": "PASS",
           "ejecutor": "Laura Martínez (Auditor QA Externo)",
@@ -888,44 +608,6 @@
           ],
           "raVinculado": "RA-005",
           "objetivo": "Verificar recuperación de contraseña autónoma + preservación de contexto.",
-          "precondiciones": [
-            "Usuario con sistema previo categorizado.",
-            "Acceso al email.",
-            "Sesión cerrada."
-          ],
-          "procedimiento": [
-            {
-              "paso": 1,
-              "instruccion": "Click en 'Olvidé mi contraseña', ingresar email.",
-              "resultadoEsperado": "Confirmación de envío.",
-              "resultadoReal": "Confirmación mostrada inmediatamente."
-            },
-            {
-              "paso": 2,
-              "instruccion": "Abrir email, click en link.",
-              "resultadoEsperado": "Email <2min. Link abre form de reset.",
-              "resultadoReal": "Email recibido en 41s. Link abrió form de reset."
-            },
-            {
-              "paso": 3,
-              "instruccion": "Ingresar nueva contraseña.",
-              "resultadoEsperado": "Sistema acepta. Link queda one-shot.",
-              "resultadoReal": "Contraseña aceptada. Intentar reusar el link mostró 'Enlace expirado'."
-            },
-            {
-              "paso": 4,
-              "instruccion": "Ingresar con nueva contraseña.",
-              "resultadoEsperado": "Login OK. Contexto preservado.",
-              "resultadoReal": "Login exitoso en 1.2s. Dashboard cargado con contexto previo."
-            },
-            {
-              "paso": 5,
-              "instruccion": "Verificar dashboard: registros, historial, PDFs.",
-              "resultadoEsperado": "Todo preservado. PDFs previos siguen verificándose.",
-              "resultadoReal": "12 registros previos visibles. Historial completo. PDF aleatorio descargado y verificado por QR → VÁLIDO con metadatos correctos."
-            }
-          ],
-          "criterioAceptacion": "Recuperación autónoma. Email <2min. Login con nueva contraseña OK. Contexto 100% preservado.",
           "criterioObservado": "Recuperación exitosa. Email 41s ≤ 2min OK. Contexto del usuario preservado al 100% — todos los registros previos accesibles y todos los PDFs históricos siguen verificándose correctamente.",
           "estado": "PASS",
           "ejecutor": "Laura Martínez (Auditor QA Externo)",

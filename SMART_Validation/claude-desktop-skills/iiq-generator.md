@@ -28,13 +28,20 @@ Generador del documento **IIQ (Installation Qualification Report / Informe de Ca
 
 | | PIQ | IIQ |
 |---|---|---|
-| Schema del TC | Mismo | Mismo |
+| Schema del TC | Completo | **Magro** (Ronda 21, 2026-09-21) |
+| `criterios`, `evidenciaEsperada` | Sí | **NO incluir** — quedan solo en el PIQ |
 | Campos de ejecución (`estado`, `ejecutor`, etc.) | NULL / NO incluir | Poblados |
 | `evidenciasGestor` | NO incluir | Array con refs |
 | `hallazgos` por TC | NO incluir | Array (vacío si no hay) |
 | Sección "Resumen de Ejecución" | NO existe | Sí (auto-calculada) |
 | Sección "Hallazgos Consolidados" | NO existe | Sí |
 | Sección "Conclusión y Decisión" | NO existe | Sí |
+
+**Informe magro (Ronda 21)**: el IIQ ya NO copia `criterios` ni `evidenciaEsperada` del
+PIQ — ese detalle queda únicamente en el protocolo. El IIQ conserva la identificación y
+trazabilidad del TC (`tcId`, `titulo`, `objetivo`, `componente`, `raScore`,
+`ursVinculados`, `raVinculado`, `grupo`, `profundidad` — la matriz resumen los
+necesita) más los campos de ejecución.
 
 ## Schema del Test Case (con campos de ejecución)
 
@@ -50,12 +57,10 @@ Generador del documento **IIQ (Installation Qualification Report / Informe de Ca
   "grupo": "Aplicación Web",
   "profundidad": "Exhaustiva",
   "objetivo": "...",
-  "criterios": ["...", "...", "..."],
-  "evidenciaEsperada": "...",
 
   // === Campos NUEVOS en IIQ (poblados, no null) ===
   "estado": "PASS",                    // PASS | FAIL | OBS | NA
-  "resultadoObservado": "URL responde HTTPS 200 OK. Versión v1.0 visible. Sin advertencias.",
+  "criterioObservado": "URL responde HTTPS 200 OK. Versión v1.0 visible. Sin advertencias.",
   "ejecutor": "Federico Bongiovanni",
   "fechaEjecucion": "02/03/2026",
   "firma": "FB",
@@ -70,6 +75,11 @@ Generador del documento **IIQ (Installation Qualification Report / Informe de Ca
   "hallazgos": []                       // array vacío si no hay
 }
 ```
+
+**`criterioObservado`, no `resultadoObservado`** — el nombre correcto y consistente
+con IOQ/IPQ (verificado contra los documentos reales, Ronda 20). Versiones previas de
+esta skill usaban `resultadoObservado`, un nombre legado que el renderer real ya no
+espera.
 
 ### Estado del TC
 
@@ -207,10 +217,10 @@ Cada TC puede tener `evidenciasGestor` con refs a las capturas hechas en el Gest
 7. **`severidad` válida**: Mayor / Menor / Crítico. Sin variantes.
 8. **`firmas` poblar SIEMPRE** en el IIQ (es un documento ejecutado). El PIQ puede tener firmas o placeholders, el IIQ no.
 9. **Decisión formal explícita** en la sección de conclusión — un auditor busca esa frase.
-10. **NO modificar criterios ni objetivo del TC** vs el PIQ — esos son inmutables. El IIQ solo agrega resultados.
+10. **NO copiar `criterios` ni `evidenciaEsperada` del PIQ** — el IIQ es magro (Ronda 21): esos campos no van en el TC del IIQ, quedan solo en el protocolo. `objetivo` sí se copia tal cual, sin modificar. El IIQ agrega `criterioObservado` y los campos de ejecución.
 
 ## Ejemplo de input mínimo
 
 > "Generá el IIQ para DRP-GAMP Categorizador™. El PIQ-DRP-SIS-001 v0.1 se ejecutó el 02/03/2026 por Federico Bongiovanni. Los 15 TCs pasaron PASS. Sin hallazgos. Acá va la lista de evidencias capturadas en el Gestor de Evidencias por TC: [...]"
 
-El skill genera el JSON IIQ con: 15 TCs con estado=PASS, resultadoObservado descriptivo, ejecutor, fecha, firma, evidenciasGestor por TC, hallazgos: []. Resumen estadístico que muestra 15/15 PASS. Sección de hallazgos con mensaje "Sin hallazgos". Conclusión con DECISIÓN: IQ APROBADA, sistema apto para OQ.
+El skill genera el JSON IIQ con: 15 TCs con estado=PASS, criterioObservado descriptivo, ejecutor, fecha, firma, evidenciasGestor por TC, hallazgos: []. Resumen estadístico que muestra 15/15 PASS. Sección de hallazgos con mensaje "Sin hallazgos". Conclusión con DECISIÓN: IQ APROBADA, sistema apto para OQ.

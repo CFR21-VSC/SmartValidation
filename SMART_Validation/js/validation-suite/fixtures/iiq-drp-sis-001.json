@@ -437,12 +437,6 @@
           "grupo": "Aplicación Web",
           "profundidad": "Exhaustiva",
           "objetivo": "Confirmar que la URL principal del sistema es accesible mediante HTTPS, devuelve HTTP 200, y la versión v1.0 es visible en la interfaz sin autenticación.",
-          "criterios": [
-            "Endpoint HTTPS responde 200 OK.",
-            "Versión publicada coincide con la documentada (v1.0).",
-            "Sin advertencias de certificado en el navegador."
-          ],
-          "evidenciaEsperada": "Screenshot de la pantalla principal con URL completa visible y versión legible.",
           "estado": "PASS",
           "resultadoObservado": "URL responde HTTPS 200 OK. Versión v1.1 visible en footer. Sin advertencias de certificado.",
           "ejecutor": "Ana Pérez",
@@ -471,12 +465,6 @@
           "grupo": "Seguridad TLS",
           "profundidad": "Exhaustiva",
           "objetivo": "Verificar que el sistema opera exclusivamente sobre TLS 1.3, que las conexiones HTTP sin cifrar son rechazadas o redirigidas a HTTPS.",
-          "criterios": [
-            "HTTP rechazado o redirigido a HTTPS.",
-            "Certificado SSL válido y vigente.",
-            "TLS 1.3 activo en la conexión."
-          ],
-          "evidenciaEsperada": "Screenshot del panel de certificado y captura del intento HTTP redirigido.",
           "estado": "PASS",
           "resultadoObservado": "HTTP redirige automáticamente a HTTPS. Certificado Let's Encrypt válido hasta 12/05/2026. TLS 1.3 confirmado en panel de certificado del navegador.",
           "ejecutor": "Ana Pérez",
@@ -492,8 +480,7 @@
               "timestamp": "02/03/2026 09:25"
             }
           ],
-          "hallazgos": [],
-          "notas": "GAP-002 (RRM §9): sin firma electrónica nativa — no impacta este TC."
+          "hallazgos": []
         },
         {
           "tcId": "TC-IQ-003",
@@ -508,13 +495,6 @@
           "grupo": "Panel de Administración",
           "profundidad": "Exhaustiva",
           "objetivo": "Confirmar que el panel admin es accesible solo con credencial admin independiente.",
-          "criterios": [
-            "Panel admin accesible solo con credencial admin.",
-            "Login con credencial regular rechazado.",
-            "Contraseñas almacenadas encriptadas.",
-            "Eventos de login registrados en log."
-          ],
-          "evidenciaEsperada": "Screenshots de login admin exitoso, login regular rechazado, log de seguridad.",
           "estado": "PASS",
           "resultadoObservado": "Panel admin accesible solo con credencial admin. Login con usuario regular rechazado. Log de seguridad muestra registros con timestamp.",
           "ejecutor": "Ana Pérez",
@@ -549,12 +529,6 @@
           "grupo": "Panel de Administración",
           "profundidad": "Exhaustiva",
           "objetivo": "Verificar que el Audit Trail está activo y registra acciones críticas.",
-          "criterios": [
-            "Audit trail registra cada login con usuario/fecha/hora/IP.",
-            "Registros inmutables.",
-            "Audit trail accesible solo desde rol Auditor/Admin."
-          ],
-          "evidenciaEsperada": "Screenshot del audit trail con registros recientes.",
           "estado": "PASS",
           "resultadoObservado": "Audit trail muestra logins recientes con timestamp en segundos e IP. Sin opción de edición/eliminación visible. Acceso restringido a admin.",
           "ejecutor": "Ana Pérez",
@@ -581,12 +555,6 @@
           "grupo": "Servicios Auxiliares",
           "profundidad": "Exhaustiva",
           "objetivo": "Confirmar que el portal de verificación pública está operativo.",
-          "criterios": [
-            "Portal responde HTTP 200.",
-            "Formulario de verificación funcional.",
-            "Verificación QR/hash funcional contra BD."
-          ],
-          "evidenciaEsperada": "Screenshots de portal y verificación exitosa.",
           "estado": "PASS",
           "resultadoObservado": "Portal accesible. Formulario presente. Verificación de reporte de prueba con QR exitosa, mostrando datos del reporte original.",
           "ejecutor": "Ana Pérez",
@@ -617,12 +585,6 @@
           "grupo": "Servicios Auxiliares",
           "profundidad": "Básica",
           "objetivo": "Confirmar que el servicio SMTP envía emails de reset correctamente.",
-          "criterios": [
-            "Solicitud de reset dispara email.",
-            "Email recibido en <5 min.",
-            "Link de reset válido por 24h."
-          ],
-          "evidenciaEsperada": "Screenshots de solicitud y email recibido.",
           "estado": "PASS",
           "resultadoObservado": "Email recibido en 1m 23s. Link funcional al ser clickeado.",
           "ejecutor": "Ana Pérez",
@@ -653,12 +615,6 @@
           "grupo": "Infraestructura Cloud AWS",
           "profundidad": "Exhaustiva",
           "objetivo": "Verificar instancia EC2 activa, región y tipo correctos.",
-          "criterios": [
-            "Instancia en estado 'running'.",
-            "Región us-east-1.",
-            "Tipo t3.medium."
-          ],
-          "evidenciaEsperada": "Screenshot Consola AWS EC2.",
           "estado": "PASS",
           "resultadoObservado": "Instancia activa en us-east-1, tipo t3.medium. Uptime 47 días continuos.",
           "ejecutor": "Ana Pérez",
@@ -685,12 +641,6 @@
           "grupo": "Infraestructura Cloud AWS",
           "profundidad": "Exhaustiva",
           "objetivo": "Confirmar BD activa con AES-256 en reposo.",
-          "criterios": [
-            "BD responde a queries de la app.",
-            "AES-256 confirmada.",
-            "Permisos de archivo restringidos."
-          ],
-          "evidenciaEsperada": "Screenshot configuración + output ls -la.",
           "estado": "PASS",
           "resultadoObservado": "BD responde correctamente. AES-256 confirmada. Permisos del archivo: 600 (solo usuario aplicación).",
           "ejecutor": "Ana Pérez",
@@ -721,12 +671,6 @@
           "grupo": "Infraestructura Cloud AWS",
           "profundidad": "Exhaustiva",
           "objetivo": "Confirmar backup automático activo.",
-          "criterios": [
-            "Schedule diario 02:00 AM.",
-            "Último backup exitoso.",
-            "Política de retención configurada."
-          ],
-          "evidenciaEsperada": "Screenshot panel de backups.",
           "estado": "PASS",
           "resultadoObservado": "Schedule activo. Último backup: 02/03/2026 02:00 AM, tamaño 245 MB, estado OK. Retención: 30 días.",
           "ejecutor": "Ana Pérez",
@@ -751,11 +695,6 @@
           "grupo": "Infraestructura Cloud AWS",
           "profundidad": "Básica",
           "objetivo": "Confirmar acceso funcional a Consola AWS.",
-          "criterios": [
-            "Login a Consola exitoso.",
-            "EC2 visible en dashboard."
-          ],
-          "evidenciaEsperada": "Screenshot dashboard AWS.",
           "estado": "PASS",
           "resultadoObservado": "Login con credencial IAM exitoso. Dashboard EC2 visible.",
           "ejecutor": "Ana Pérez",
@@ -780,12 +719,6 @@
           "grupo": "Infraestructura Cloud AWS",
           "profundidad": "Estándar",
           "objetivo": "Confirmar SSH solo acepta clave privada.",
-          "criterios": [
-            "Login SSH con clave privada exitoso.",
-            "Login SSH con contraseña rechazado.",
-            "Configuración persistente."
-          ],
-          "evidenciaEsperada": "Screenshots de login con clave y rechazo con password.",
           "estado": "PASS",
           "resultadoObservado": "SSH con clave privada conecta. SSH con contraseña: 'Permission denied (publickey)'. Configuración PasswordAuthentication=no en sshd_config confirmada.",
           "ejecutor": "Ana Pérez",
@@ -816,13 +749,6 @@
           "grupo": "Seguridad",
           "profundidad": "Exhaustiva",
           "objetivo": "Confirmar que solo los puertos necesarios están abiertos.",
-          "criterios": [
-            "Puerto 443: abierto a 0.0.0.0/0.",
-            "Puerto 80: cerrado o redirige.",
-            "Puerto 22: solo IPs admin.",
-            "Otros puertos cerrados."
-          ],
-          "evidenciaEsperada": "Screenshot Security Group con reglas.",
           "estado": "PASS",
           "resultadoObservado": "Security Group correctamente configurado: 443/tcp open a 0.0.0.0/0, 22/tcp restringido a IPs admin, 80/tcp redirige a 443.",
           "ejecutor": "Ana Pérez",
@@ -850,12 +776,6 @@
           "grupo": "Seguridad",
           "profundidad": "Exhaustiva",
           "objetivo": "Confirmar controles compensatorios sin 2FA configurados.",
-          "criterios": [
-            "Timeout 30 min.",
-            "Bloqueo 3 intentos.",
-            "Política contraseña min 8 chars / complejidad alta."
-          ],
-          "evidenciaEsperada": "Screenshot configuración + prueba funcional.",
           "estado": "PASS",
           "resultadoObservado": "Configuración: timeout 30 min, bloqueo 3 intentos, complejidad 8+ chars con mayúsculas/números/símbolos. Prueba funcional: bloqueo activado tras 3 logins fallidos consecutivos.",
           "ejecutor": "Ana Pérez",
@@ -888,12 +808,6 @@
           "grupo": "Documentación",
           "profundidad": "Básica",
           "objetivo": "Confirmar disponibilidad de documentación oficial.",
-          "criterios": [
-            "MAN-GAMP-CAT-001 v1.0 disponible.",
-            "SOP-USO-GAMP-001 v1.0 disponible.",
-            "SOP-ADM-GAMP-001 v1.0 disponible."
-          ],
-          "evidenciaEsperada": "Screenshot listado de documentos.",
           "estado": "PASS",
           "resultadoObservado": "Los 3 documentos disponibles en repositorio QMS con versiones vigentes.",
           "ejecutor": "Ana Pérez",
@@ -929,12 +843,6 @@
           "grupo": "Documentación",
           "profundidad": "Estándar",
           "objetivo": "Confirmar usuarios y roles iniciales según matriz.",
-          "criterios": [
-            "4 roles definidos.",
-            "Permisos diferenciados.",
-            "Usuarios iniciales con cambio forzado."
-          ],
-          "evidenciaEsperada": "Screenshot panel admin con matriz roles.",
           "estado": "PASS",
           "resultadoObservado": "4 roles configurados (Usuario Final, Auditor QA, Administrador, Gerente). Permisos diferenciados verificados. Cambio de contraseña forzado al primer login confirmado.",
           "ejecutor": "Ana Pérez",
