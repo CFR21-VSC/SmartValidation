@@ -1265,6 +1265,13 @@ async function exportSessionJSON() {
             return;
         }
 
+        // Forzar la descarga de evidencias que existen en el servidor pero todavía no se
+        // bajaron a memoria -- antes de este fix, esta función solo miraba evidence.image
+        // (memoria) o, como mucho, el <img> ya renderizado en el DOM: una evidencia real que
+        // el usuario nunca hubiera scrolleado en esta sesión quedaba afuera del JSON
+        // descargado en silencio, aunque existiera en el servidor.
+        await precargarImagenesEvidenciaFaltantes(tests);
+
         // CRÍTICO: Recolectar imágenes desde el DOM antes de exportar
         const testsWithImages = tests.map(test => {
             return {
@@ -2120,6 +2127,41 @@ function normalizeDictamen(estado) {
  *
  * Devuelve un objeto compatible con VS.renderDocument({type: 'AEX'}).
  */
+/**
+ * Fuerza la descarga de cualquier evidencia con hasImage=true e image=null (existe en el
+ * servidor/R2 pero todavía no se bajó a memoria -- normalmente carga al scrollear/abrir esa
+ * evidencia puntual en la UI, ver el lazy-load de renderWorkArea). Usada antes de cualquier
+ * operación que necesite TODAS las imágenes completas: AEX, guardar sesión, etc. -- sin esto,
+ * cada una lee ev.image tal cual está en memoria en ese momento y cualquier evidencia no vista
+ * todavía en esta sesión queda faltante en silencio, aunque exista en el servidor.
+ * En lotes de 20 (no todas juntas) -- a la escala de la que se habló (700-1200 evidencias),
+ * un solo Promise.all dispararía esa misma cantidad de fetches concurrentes de una, sin
+ * ningún beneficio real ya que el browser igual serializa por su límite de conexiones por
+ * origen. Muta los objetos evidence en el lugar; no devuelve nada.
+ */
+async function precargarImagenesEvidenciaFaltantes(testsAEvaluar) {
+    const pendientes = [];
+    (testsAEvaluar || []).forEach(t => {
+        (t.evidences || []).forEach(ev => {
+            // Mismo chequeo que usa renderWorkArea para decidir si hay que bajar la imagen --
+            // evidencias de tabla/texto no tienen hasImage, así que no se intenta fetch inútil.
+            if (!ev.isEmpty && ev.hasImage && !ev.image) {
+                pendientes.push({ ev, imageId: `${t.id}_evidence_${ev.step}` });
+            }
+        });
+    });
+    if (pendientes.length === 0) return;
+
+    showNotification(`Descargando ${pendientes.length} imagen(es) de evidencia todavía no cargadas...`);
+    const LOTE = 20;
+    for (let i = 0; i < pendientes.length; i += LOTE) {
+        const lote = pendientes.slice(i, i + LOTE);
+        const datos = await Promise.all(lote.map(p => getImageFromDB(p.imageId).catch(() => null)));
+        datos.forEach((data, j) => { if (data) lote[j].ev.image = data; });
+    }
+}
+window.precargarImagenesEvidenciaFaltantes = precargarImagenesEvidenciaFaltantes;
+
 async function buildAexFromGestor() {
     const VS = window.ValidationSuite;
     const ahora = new Date();
@@ -2138,36 +2180,7 @@ async function buildAexFromGestor() {
     const testsConEvidencia = tests.filter(t => Array.isArray(t.evidences) && t.evidences.some(ev => !ev.isEmpty));
     const totalEvidencias = tests.reduce((sum, t) => sum + (Array.isArray(t.evidences) ? t.evidences.filter(ev => !ev.isEmpty).length : 0), 0);
 
-    // Precargar imágenes que existen en el servidor pero todavía no se bajaron a memoria
-    // (hasImage=true, image=null hasta que se scrollea/abre esa evidencia puntual en la UI --
-    // ver el lazy-load de renderWorkArea). Sin este paso, buildAexFromGestor() lee ev.image
-    // tal cual está en memoria en ese momento: cualquier evidencia real que el usuario no
-    // haya visto todavía en esta sesión salía como "[Imagen no disponible]" en el AEX, en
-    // silencio, aunque la imagen SÍ existiera en el servidor -- mismo patrón que ya usan
-    // exportTest/exportFolder (getImageFromDB, IndexedDB local con fallback a R2).
-    const pendientes = [];
-    testsConEvidencia.forEach(t => {
-        (t.evidences || []).forEach(ev => {
-            // Mismo chequeo que usa renderWorkArea para decidir si hay que bajar la imagen --
-            // evidencias de tabla/texto no tienen hasImage, así que no se intenta fetch inútil.
-            if (!ev.isEmpty && ev.hasImage && !ev.image) {
-                pendientes.push({ ev, imageId: `${t.id}_evidence_${ev.step}` });
-            }
-        });
-    });
-    if (pendientes.length > 0) {
-        showNotification(`Descargando ${pendientes.length} imagen(es) de evidencia todavía no cargadas...`);
-        // En lotes, no todas juntas -- a 700-1200 evidencias, un solo Promise.all dispararía
-        // esa misma cantidad de fetches concurrentes de una (picos de carga en el servidor,
-        // sin beneficio real ya que el browser igual serializa por su límite de conexiones
-        // por origen).
-        const LOTE = 20;
-        for (let i = 0; i < pendientes.length; i += LOTE) {
-            const lote = pendientes.slice(i, i + LOTE);
-            const datos = await Promise.all(lote.map(p => getImageFromDB(p.imageId).catch(() => null)));
-            datos.forEach((data, j) => { if (data) lote[j].ev.image = data; });
-        }
-    }
+    await precargarImagenesEvidenciaFaltantes(testsConEvidencia);
 
     // Stats por estado del TC
     const stats = { PASS: 0, FAIL: 0, OBS: 0, NA: 0, pendiente: 0 };
