@@ -436,7 +436,7 @@
                 <span style="font-size:13px;">✍</span>
                 <span class="sys-chip-label" style="color:#A5D6A7;">Suite Firmas</span>
             </button>
-            <button class="sys-chip" onclick="toggleSysPanel()" title="Empresa · Sistema · Ejecutor" style="gap:6px;">
+            <button class="sys-chip sys-panel-trigger" onclick="toggleSysPanel()" title="Empresa · Sistema · Ejecutor" style="gap:6px;">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.55;flex-shrink:0;"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
                 <span class="sys-chip-val" id="chipEmpresaVal" style="max-width:120px;">—</span>
             </button>
@@ -901,7 +901,7 @@
 
                 <div class="sp-col">
                     <span class="sp-col-title">Sistema</span>
-                    <button class="sp-item sp-item-primary" onclick="toggleSysPanel()" title="Configurar empresa, sistema, ejecutor y período del proyecto">
+                    <button class="sp-item sp-item-primary sys-panel-trigger" onclick="toggleSysPanel()" title="Configurar empresa, sistema, ejecutor y período del proyecto">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
                         Contexto del sistema
                     </button>
@@ -4310,7 +4310,13 @@
         document.getElementById('sysInfoPanel').classList.toggle('open');
     }
     document.addEventListener('click', function(e) {
-        if (!e.target.closest('.app-header-center') && !e.target.closest('#sysInfoPanel')) {
+        // FIX (2026-09-21, hallazgo H-4 del testing E2E): el botón "Contexto del
+        // sistema" del menú Admin también llama toggleSysPanel(), pero vive fuera
+        // de .app-header-center -- el click abría el panel y, al burbujear hasta
+        // acá, este mismo listener lo cerraba en el mismo evento. .sys-panel-trigger
+        // marca cualquier botón que abra el panel (el chip del header y el ítem del
+        // menú Admin) para excluirlo del cierre automático por click afuera.
+        if (!e.target.closest('.app-header-center') && !e.target.closest('#sysInfoPanel') && !e.target.closest('.sys-panel-trigger')) {
             document.getElementById('sysInfoPanel').classList.remove('open');
         }
     });
