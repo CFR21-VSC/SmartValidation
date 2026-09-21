@@ -114,6 +114,13 @@ CREATE TABLE IF NOT EXISTS rf_documents (
     -- de cascada GxP por defecto (doc_order.py). Se pisa entero cada vez que se guarda un
     -- reordenamiento nuevo (PATCH .../documents-order) -- ver sort_docs.
     display_order INTEGER,
+    -- Cierre explícito de revisión (2026-09-21, pedido del usuario): acción formal de DRP
+    -- que marca la revisión como completa, independientemente de cuántos revisores hayan
+    -- firmado -- necesaria porque abrir la ronda de aprobación no exige revisión completa
+    -- por diseño (cualquier DRP puede abrirla en cualquier momento), pero SÍ debe exigir que
+    -- alguien haya decidido explícitamente "la revisión terminó". NULL = todavía no se cerró.
+    review_closed_at REAL,
+    review_closed_by TEXT,
     UNIQUE(project_id, doc_type)
 );
 

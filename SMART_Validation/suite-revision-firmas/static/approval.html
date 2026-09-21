@@ -368,9 +368,17 @@ function renderRight() {
     let html = '';
 
     if (!currentRound) {
-        html = (session.role === 'drp')
-            ? renderCreateForm()
-            : '<div class="rf-empty">Todavía no se abrió la ronda de aprobación</div>';
+        if (session.role !== 'drp') {
+            html = '<div class="rf-empty">Todavía no se abrió la ronda de aprobación</div>';
+        } else if (documentInfo && !documentInfo.review_closed_at) {
+            html = `<div class="rf-empty">
+                La revisión de este documento todavía no está cerrada -- hay que cerrarla
+                antes de poder abrir la ronda de aprobación (botón "Cerrar revisión" en la
+                pantalla de Revisión de este documento).
+            </div>`;
+        } else {
+            html = renderCreateForm();
+        }
     } else {
         html += `<div class="ap-help">
             Ronda abierta por <strong>${escHtml(currentRound.created_by)}</strong> el ${fmtDateTime(currentRound.created_at)}
@@ -389,7 +397,7 @@ function renderRight() {
 
     container.innerHTML = html;
 
-    if (!currentRound && session.role === 'drp') {
+    if (!currentRound && session.role === 'drp' && documentInfo && documentInfo.review_closed_at) {
         bindCreateFormEvents();
     }
     const signBtn = document.getElementById('sign-open-btn');

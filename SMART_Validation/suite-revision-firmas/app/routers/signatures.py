@@ -31,6 +31,10 @@ class ReviewSignBody(BaseModel):
     content_fingerprint: str  # Ronda 18: sha256 del contenido que el firmante vio al preparar la firma
 
 
+class CloseReviewBody(BaseModel):
+    pin: str
+
+
 class CreateRoundBody(BaseModel):
     signers: list[dict]  # [{user_id, role_label, sign_order}]
 
@@ -196,6 +200,43 @@ def list_review_signatures(project_id: str, doc_type: str, user: dict = Depends(
     return {"ok": True, "signatures": signatures}
 
 
+@router.post("/close-review")
+def close_review(project_id: str, doc_type: str, body: CloseReviewBody, user: dict = Depends(require_drp)):
+    """Cierre explícito de revisión (2026-09-21, pedido del usuario): acción formal de DRP,
+    independiente de cuántos revisores hayan firmado -- abrir la ronda de aprobación no exige
+    revisión completa por diseño (cualquier DRP la puede abrir en cualquier momento), pero
+    SÍ exige que alguien haya cerrado la revisión explícitamente primero (ver el chequeo en
+    create_approval_round más abajo). Requiere PIN, igual que una firma -- queda registrada
+    en el People Book como cualquier otro evento GxP del documento."""
+    db = get_db()
+    consent_id = _require_signature_consent(db, user["uid"])
+    ensure_project_active(db, project_id)
+    doc = _get_document_or_404(db, project_id, doc_type)
+    if doc["locked"]:
+        raise HTTPException(status.HTTP_409_CONFLICT, "El documento está sellado")
+    if doc["review_closed_at"]:
+        raise HTTPException(status.HTTP_409_CONFLICT, "La revisión de este documento ya está cerrada")
+
+    pending = db.execute(
+        "SELECT COUNT(*) AS n FROM rf_section_comments WHERE document_id=? AND resolved=0 AND parent_id IS NULL",
+        (doc["id"],),
+    ).fetchone()
+    if pending["n"] > 0:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Hay comentarios sin resolver")
+
+    _verify_pin(db, user["uid"], body.pin)
+
+    now = time.time()
+    db.execute(
+        "UPDATE rf_documents SET review_closed_at=?, review_closed_by=? WHERE id=?",
+        (now, user["u"], doc["id"]),
+    )
+    db.commit()
+
+    log_event(project_id, doc_type, user, "review_closed", f"{user['u']} cerró la revisión de {doc_type}")
+    return {"ok": True, "review_closed_at": now, "review_closed_by": user["u"]}
+
+
 # ─── 5.2 Firma de Aprobación ──────────────────────────────────────────────────
 
 @router.post("/approval-round")
@@ -207,6 +248,11 @@ def create_approval_round(
     doc = _get_document_or_404(db, project_id, doc_type)
     if doc["locked"]:
         raise HTTPException(status.HTTP_409_CONFLICT, "El documento ya está sellado")
+    if not doc["review_closed_at"]:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "La revisión todavía no está cerrada -- cerrala antes de abrir la ronda de aprobación",
+        )
 
     open_round = db.execute(
         "SELECT id FROM rf_approval_rounds WHERE document_id=? AND status='open'", (doc["id"],)

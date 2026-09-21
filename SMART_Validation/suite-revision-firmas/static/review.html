@@ -679,6 +679,7 @@
         <button class="rf-btn-secondary" id="btn-reopen-document" style="display:none;">🔓 Reabrir para editar</button>
         <button class="rf-btn-secondary" id="btn-view-hash" style="display:none;">🔒 Ver hash del sellado</button>
         <button class="rf-btn" id="btn-sign-review">Firmar revisión</button>
+        <button class="rf-btn-secondary" id="btn-close-review" style="display:none;" title="Cierra la revisión de este documento -- necesario antes de poder abrir la ronda de aprobación, sin importar cuántos revisores hayan firmado">Cerrar revisión</button>
         <div class="rv-signers" id="signers-summary">Cargando firmas…</div>
     </div>
 
@@ -820,6 +821,27 @@
         <div style="margin-top:14px; display:flex; justify-content:flex-end; gap:10px;">
             <button class="rf-btn-secondary" id="sign-cancel">Cancelar</button>
             <button class="rf-btn" id="sign-submit">Firmar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Cerrar revisión -->
+<div class="rf-modal-backdrop" id="close-review-backdrop" style="display:none;">
+    <div class="rf-modal">
+        <h3>Cerrar revisión</h3>
+        <p style="font-size:12.5px; color: var(--text-muted); margin: 0 0 6px;">
+            Marca la revisión de este documento como terminada, sin importar cuántos
+            revisores hayan firmado todavía. Es un paso obligatorio antes de poder abrir la
+            ronda de aprobación, y no se puede deshacer.
+        </p>
+        <div class="rf-field" style="margin-top:14px;">
+            <label class="rf-label" style="text-align:center; display:block;">PIN (6 dígitos)</label>
+            <div class="rf-pin-grid" id="close-review-pin-grid"></div>
+        </div>
+        <div class="rf-error" id="close-review-error"></div>
+        <div style="margin-top:14px; display:flex; justify-content:flex-end; gap:10px;">
+            <button class="rf-btn-secondary" id="close-review-cancel">Cancelar</button>
+            <button class="rf-btn" id="close-review-submit">Cerrar revisión</button>
         </div>
     </div>
 </div>
@@ -997,7 +1019,15 @@ async function init() {
     if (session.role === 'drp') {
         sourceActions.style.display = '';
         document.getElementById('btn-push-validacion').style.display = '';
+        document.getElementById('btn-close-review').style.display = '';
     }
+
+    document.getElementById('btn-close-review').addEventListener('click', () => openSignModalWithConsentGate(openCloseReviewModal));
+    document.getElementById('close-review-cancel').addEventListener('click', closeCloseReviewModal);
+    document.getElementById('close-review-backdrop').addEventListener('click', (e) => {
+        if (e.target.id === 'close-review-backdrop') closeCloseReviewModal();
+    });
+    document.getElementById('close-review-submit').addEventListener('click', submitCloseReview);
 
     document.getElementById('btn-push-validacion').addEventListener('click', pushToValidacion);
     document.getElementById('push-validacion-cancel').addEventListener('click', () => {
@@ -1086,6 +1116,19 @@ async function loadDocument() {
     // esta pieza).
     document.getElementById('btn-reopen-document').style.display =
         ((session.role === 'drp' || session.role === 'partner') && documentRow.edit_locked && !documentRow.locked) ? '' : 'none';
+
+    const closeReviewBtn = document.getElementById('btn-close-review');
+    if (session.role === 'drp') {
+        if (documentRow.review_closed_at) {
+            closeReviewBtn.textContent = `✓ Revisión cerrada (${escHtml(documentRow.review_closed_by || '')})`;
+            closeReviewBtn.disabled = true;
+            closeReviewBtn.title = `Revisión cerrada el ${fmtDateTime(documentRow.review_closed_at)} por ${documentRow.review_closed_by || '?'} -- no se puede reabrir.`;
+        } else {
+            closeReviewBtn.textContent = 'Cerrar revisión';
+            closeReviewBtn.disabled = !!documentRow.locked;
+            closeReviewBtn.title = 'Cierra la revisión de este documento -- necesario antes de poder abrir la ronda de aprobación, sin importar cuántos revisores hayan firmado';
+        }
+    }
 
     renderOutline();
     renderDocumentPane();
@@ -1779,6 +1822,57 @@ async function submitSignReview() {
         return;
     } else {
         err.textContent = (data.error && data.error.message) || data.error || 'No se pudo registrar la firma.';
+    }
+    err.classList.add('visible');
+}
+
+let closeReviewPinInputs = [];
+
+function openCloseReviewModal() {
+    const err = document.getElementById('close-review-error');
+    err.textContent = ''; err.classList.remove('visible');
+    closeReviewPinInputs = buildPinGrid(document.getElementById('close-review-pin-grid'));
+    document.getElementById('close-review-backdrop').style.display = 'flex';
+    closeReviewPinInputs[0].focus();
+}
+function closeCloseReviewModal() {
+    document.getElementById('close-review-backdrop').style.display = 'none';
+}
+
+async function submitCloseReview() {
+    const err = document.getElementById('close-review-error');
+    err.textContent = ''; err.classList.remove('visible');
+
+    const pin = closeReviewPinInputs.map(i => i.value).join('');
+    if (pin.length !== 6) {
+        err.textContent = 'Completá los 6 dígitos del PIN.';
+        err.classList.add('visible');
+        return;
+    }
+
+    const btn = document.getElementById('close-review-submit');
+    btn.disabled = true;
+    const { status, data } = await apiFetch(
+        `/projects/${encodeURIComponent(PROJECT_ID)}/documents/${encodeURIComponent(DOC_TYPE)}/close-review`,
+        { method: 'POST', body: { pin } }
+    );
+    btn.disabled = false;
+
+    if (status === 200 && data.ok) {
+        closeCloseReviewModal();
+        showToast('Revisión cerrada');
+        await loadDocument();
+        return;
+    }
+    if (status === 401) {
+        err.textContent = 'PIN incorrecto.';
+    } else if (status === 409 && data.error && data.error.error === 'consent_required') {
+        closeCloseReviewModal();
+        const consentInfo = await checkSignatureConsent();
+        openConsentModal(consentInfo, openCloseReviewModal);
+        return;
+    } else {
+        err.textContent = (data.error && data.error.message) || data.error || 'No se pudo cerrar la revisión.';
     }
     err.classList.add('visible');
 }

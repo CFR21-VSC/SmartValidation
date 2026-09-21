@@ -243,6 +243,20 @@ def init_db() -> None:
     _migrate_add_project_privacy(db)
     _migrate_signature_consent_history(db)
     _migrate_add_consent_fk(db)
+    _migrate_add_review_closed(db)
+
+
+def _migrate_add_review_closed(db) -> None:
+    """Agrega review_closed_at/review_closed_by a rf_documents (cierre explícito de
+    revisión, 2026-09-21) -- mismo motivo que las demás migraciones de columna: CREATE
+    TABLE IF NOT EXISTS no altera una tabla que ya existe. Usa el helper genérico
+    _add_columns_if_missing (ya probado en ambos motores) en vez de repetir el chequeo a
+    mano -- justo el tipo de gap que causó el bug de H-6 (consent_id nunca se agregaba en
+    Postgres porque la rama USE_PG de esa migración solo retornaba)."""
+    _add_columns_if_missing(db, "rf_documents", {
+        "review_closed_at": "REAL",
+        "review_closed_by": "TEXT",
+    })
 
 
 def _migrate_add_comment_parent_id(db) -> None:
