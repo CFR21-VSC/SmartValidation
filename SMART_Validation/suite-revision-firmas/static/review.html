@@ -1101,6 +1101,12 @@ async function loadDocument() {
     lock_badge.style.display = documentRow.locked ? '' : 'none';
     const hashBtn = document.getElementById('btn-view-hash');
     hashBtn.style.display = documentRow.locked ? '' : 'none';
+    // El backend ya rechaza firmar revisión sobre un documento sellado (409, ver sign_review
+    // en signatures.py), pero la UI ofrecía el botón igual -- se llevaba el error recién al
+    // apretar Firmar. Deshabilitarlo apenas se sabe que está sellado.
+    const signReviewBtn = document.getElementById('btn-sign-review');
+    signReviewBtn.disabled = !!documentRow.locked;
+    signReviewBtn.title = documentRow.locked ? 'El documento ya está sellado -- no se puede firmar la revisión' : '';
     if (documentRow.locked) {
         document.getElementById('hash-panel-sealed-at').textContent =
             `Documento sellado el ${fmtDateTime(documentRow.locked_at)}`;
