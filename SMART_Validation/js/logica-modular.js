@@ -2485,7 +2485,15 @@ function mergeExecutionResultsIntoInforme(informeData, aexTests) {
             tcIdsAfectados.add(tc.tcId);
         });
     });
-    return { mergedCount, tcCount: tcIdsAfectados.size };
+
+    // Cualquier TC del gestor que no matcheó NINGUNA sección del informe (tcId con
+    // typo, TC de un protocolo distinto, etc.) se reporta -- antes se perdía en
+    // silencio, sin ningún aviso de que ese resultado no se aplicó.
+    const tcIdsSinMatch = aexTests
+        .map(t => t.tcId)
+        .filter(tcId => !tcIdsAfectados.has(tcId));
+
+    return { mergedCount, tcCount: tcIdsAfectados.size, tcIdsSinMatch };
 }
 
 /**
@@ -2528,7 +2536,7 @@ async function actualizarInformeDesdeGestor(protocolType, aexTests) {
         return { skipped: true, reason: 'json_invalido', informeType };
     }
 
-    const { mergedCount, tcCount } = mergeExecutionResultsIntoInforme(informeData, aexTests);
+    const { mergedCount, tcCount, tcIdsSinMatch } = mergeExecutionResultsIntoInforme(informeData, aexTests);
     if (mergedCount === 0) {
         return { skipped: true, reason: 'sin_matches', informeType };
     }
@@ -2537,7 +2545,7 @@ async function actualizarInformeDesdeGestor(protocolType, aexTests) {
     if (!saved) {
         return { skipped: true, reason: 'error_guardado', informeType };
     }
-    return { skipped: false, informeType, tcCount };
+    return { skipped: false, informeType, tcCount, tcIdsSinMatch };
 }
 
 /**
@@ -2567,6 +2575,12 @@ async function actualizarInformeDesdeEjecucion() {
     }
     if (resultado && !resultado.skipped) {
         showNotification(`Informe ${resultado.informeType} actualizado con ${resultado.tcCount} TC(s) ejecutados.`);
+        if (resultado.tcIdsSinMatch && resultado.tcIdsSinMatch.length > 0) {
+            showNotification(
+                `${resultado.tcIdsSinMatch.length} TC(s) del gestor no matchearon ningún TC del informe -- revisá el tcId: ${resultado.tcIdsSinMatch.join(', ')}`,
+                'warning'
+            );
+        }
     } else if (resultado && resultado.reason === 'no_existe') {
         showNotification(`No se actualizó el informe ${resultado.informeType} porque todavía no existe -- generalo primero.`, 'warning');
     } else if (resultado && resultado.reason === 'error_guardado') {
