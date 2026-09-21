@@ -5,9 +5,329 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>try{if(localStorage.getItem('rf_theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
 <title>Ingresar — Suite de Revisión y Firmas</title>
+
+<!-- Google Fonts para la splash (Orbitron futurista para el monograma, Montserrat clean para tagline) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+
 <link rel="stylesheet" href="css/base.css">
+<style>
+    /* ════════════════════════════════════════════════════════════════════
+       SPLASH INICIAL — pantalla de presentación (~4.5s, click to skip)
+       Portado tal cual de SMART_Validation/index.html (mismo escudo, mismo
+       audio procedural vía Web Audio API) para que ambas suites compartan
+       identidad visual de arranque.
+       ════════════════════════════════════════════════════════════════════ */
+    #splashScreen {
+        position: fixed;
+        inset: 0;
+        z-index: 99999;
+        background:
+            radial-gradient(ellipse at center, rgba(64, 90, 117, 0.35) 0%, transparent 60%),
+            linear-gradient(135deg, #0A1825 0%, #0B2341 50%, #0E2435 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: #FFFFFF;
+        opacity: 1;
+        transition: opacity 0.9s ease-out;
+        user-select: none;
+        cursor: pointer;
+        overflow: hidden;
+    }
+    #splashScreen.splash-fade-out { opacity: 0; pointer-events: none; }
+    #splashScreen.splash-removed { display: none; }
+
+    .splash-shield-wrap {
+        position: relative;
+        width: 240px;
+        height: 260px;
+        margin-bottom: 36px;
+    }
+    .splash-shield-svg {
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+        filter: drop-shadow(0 0 30px rgba(200, 146, 26,0.3));
+    }
+
+    .splash-shield-stroke {
+        stroke-dasharray: 720;
+        stroke-dashoffset: 720;
+        animation: splashDraw 1.6s cubic-bezier(0.55, 0.1, 0.25, 1) 0.5s forwards;
+    }
+    .splash-shield-fill {
+        opacity: 0;
+        animation: splashFadeIn 0.8s ease-out 1.7s forwards;
+    }
+    .splash-vsc-text {
+        opacity: 0;
+        transform-origin: center;
+        font-family: 'Orbitron', 'Arial Black', sans-serif;
+        font-weight: 900;
+        letter-spacing: 6px;
+        animation: splashLogoIn 1.0s cubic-bezier(0.34, 1.56, 0.64, 1) 1.9s forwards;
+    }
+    .splash-dot {
+        opacity: 0;
+        animation: splashDotIn 0.6s ease-out forwards;
+    }
+    .splash-dot-1 { animation-delay: 2.4s; }
+    .splash-dot-2 { animation-delay: 2.6s; }
+    .splash-dot-3 { animation-delay: 2.8s; }
+
+    .splash-title-block {
+        text-align: center;
+        opacity: 0;
+        animation: splashFadeIn 0.9s ease-out 2.5s forwards;
+    }
+    .splash-brand-small {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 13px;
+        font-weight: 500;
+        color: #C8921A;
+        letter-spacing: 10px;
+        text-transform: uppercase;
+        margin-bottom: 8px;
+    }
+    .splash-brand-big {
+        font-family: 'Orbitron', 'Arial Black', sans-serif;
+        font-size: 26px;
+        font-weight: 900;
+        color: #FFFFFF;
+        letter-spacing: 5px;
+        text-transform: uppercase;
+        margin-bottom: 16px;
+        text-shadow: 0 0 18px rgba(200, 146, 26,0.25);
+    }
+    .splash-tagline {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 11px;
+        font-weight: 300;
+        color: rgba(255, 255, 255, 0.75);
+        letter-spacing: 4px;
+        text-transform: uppercase;
+    }
+    .splash-tagline strong { color: #C8921A; font-weight: 700; }
+
+    .splash-bottom {
+        position: absolute;
+        bottom: 50px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        opacity: 0;
+        animation: splashFadeIn 0.9s ease-out 3.1s forwards;
+    }
+    .splash-loader {
+        display: flex;
+        gap: 7px;
+    }
+    .splash-loader-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #C8921A;
+        animation: splashPulse 1.6s ease-in-out infinite;
+    }
+    .splash-loader-dot:nth-child(2) { animation-delay: 0.2s; }
+    .splash-loader-dot:nth-child(3) { animation-delay: 0.4s; }
+    .splash-skip-hint {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 10px;
+        font-weight: 300;
+        color: rgba(255, 255, 255, 0.45);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    }
+
+    @keyframes splashDraw { to { stroke-dashoffset: 0; } }
+    @keyframes splashFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes splashLogoIn {
+        0%   { opacity: 0; transform: scale(0.6); filter: blur(8px); }
+        65%  { opacity: 1; transform: scale(1.08); filter: blur(0); }
+        100% { opacity: 1; transform: scale(1); filter: blur(0); }
+    }
+    @keyframes splashDotIn {
+        from { opacity: 0; transform: translateY(4px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes splashPulse {
+        0%, 60%, 100% { opacity: 0.35; transform: scale(0.85); }
+        30%           { opacity: 1.0;  transform: scale(1.20); }
+    }
+
+    /* Línea diagonal dorada que cruza el bg (efecto cinematográfico) */
+    #splashScreen::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 4px;
+        background: linear-gradient(90deg, transparent 0%, rgba(200, 146, 26,0.5) 50%, transparent 100%);
+        transform: rotate(20deg);
+        animation: splashSweep 3.6s ease-in-out 0.3s forwards;
+        opacity: 0;
+    }
+    @keyframes splashSweep {
+        0%   { transform: translate(-30%, -30%) rotate(20deg); opacity: 0; }
+        20%  { opacity: 1; }
+        100% { transform: translate(30%, 30%) rotate(20deg); opacity: 0; }
+    }
+
+    /* Segunda línea diagonal opuesta (más sutil) para reforzar el efecto */
+    #splashScreen::after {
+        content: "";
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.15) 50%, transparent 100%);
+        transform: rotate(-15deg);
+        animation: splashSweep2 3.2s ease-in-out 1.2s forwards;
+        opacity: 0;
+    }
+    @keyframes splashSweep2 {
+        0%   { transform: translate(30%, 30%) rotate(-15deg); opacity: 0; }
+        30%  { opacity: 1; }
+        100% { transform: translate(-30%, -30%) rotate(-15deg); opacity: 0; }
+    }
+</style>
 </head>
 <body>
+
+<div id="splashScreen" onclick="(function(){var s=document.getElementById('splashScreen');if(!s)return;s.classList.add('splash-fade-out');setTimeout(function(){s.classList.add('splash-removed');},650);})();">
+    <div class="splash-shield-wrap">
+        <svg class="splash-shield-svg" viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg">
+            <path class="splash-shield-fill"
+                  d="M100 18 L172 45 L172 128 Q172 175 100 200 Q28 175 28 128 L28 45 Z"
+                  fill="rgba(33, 59, 80, 0.85)" />
+            <path class="splash-shield-stroke"
+                  d="M100 10 L180 40 L180 130 Q180 180 100 210 Q20 180 20 130 L20 40 Z"
+                  fill="none"
+                  stroke="#C8921A"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round" />
+            <text class="splash-vsc-text"
+                  x="100" y="128"
+                  text-anchor="middle"
+                  font-size="48"
+                  fill="#FFFFFF">SRF</text>
+            <circle class="splash-dot splash-dot-1" cx="65"  cy="165" r="3.5" fill="#C8921A"/>
+            <circle class="splash-dot splash-dot-2" cx="100" cy="165" r="3.5" fill="#C8921A"/>
+            <circle class="splash-dot splash-dot-3" cx="135" cy="165" r="3.5" fill="#C8921A"/>
+        </svg>
+    </div>
+
+    <div class="splash-title-block">
+        <div class="splash-brand-small">DRP Assurance</div>
+        <div class="splash-brand-big">Revisión y Firmas</div>
+        <div class="splash-tagline">GxP &middot; <strong>Firma Electrónica</strong> &middot; 21 CFR Part 11 &middot; ANMAT 4159</div>
+    </div>
+
+    <div class="splash-bottom">
+        <div class="splash-loader">
+            <span class="splash-loader-dot"></span>
+            <span class="splash-loader-dot"></span>
+            <span class="splash-loader-dot"></span>
+        </div>
+        <div class="splash-skip-hint">Click para entrar</div>
+    </div>
+</div>
+
+<script>
+    // ── Splash logic: auto-dismiss + click-to-skip + audio procedural ──
+    // Portado tal cual de SMART_Validation/index.html.
+    (function () {
+        var splash = document.getElementById('splashScreen');
+        if (!splash) return;
+
+        function playSplashAudio() {
+            try {
+                var AC = window.AudioContext || window.webkitAudioContext;
+                if (!AC) return;
+                var ctx = new AC();
+                if (ctx.state === 'suspended') {
+                    ctx.resume().catch(function(){});
+                }
+                var now = ctx.currentTime;
+                var master = ctx.createGain();
+                master.gain.value = 0.22;
+                master.connect(ctx.destination);
+
+                var boom = ctx.createOscillator();
+                boom.type = 'sine';
+                boom.frequency.setValueAtTime(80, now);
+                boom.frequency.exponentialRampToValueAtTime(40, now + 0.4);
+                var boomG = ctx.createGain();
+                boomG.gain.setValueAtTime(0.001, now);
+                boomG.gain.exponentialRampToValueAtTime(0.7, now + 0.05);
+                boomG.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+                boom.connect(boomG).connect(master);
+                boom.start(now);
+                boom.stop(now + 0.5);
+
+                var sweep = ctx.createOscillator();
+                sweep.type = 'sawtooth';
+                sweep.frequency.setValueAtTime(200, now + 0.5);
+                sweep.frequency.exponentialRampToValueAtTime(1200, now + 2.1);
+                var sweepFilter = ctx.createBiquadFilter();
+                sweepFilter.type = 'lowpass';
+                sweepFilter.frequency.setValueAtTime(800, now + 0.5);
+                sweepFilter.frequency.exponentialRampToValueAtTime(3500, now + 2.1);
+                sweepFilter.Q.value = 4;
+                var sweepG = ctx.createGain();
+                sweepG.gain.setValueAtTime(0.001, now + 0.5);
+                sweepG.gain.exponentialRampToValueAtTime(0.15, now + 0.8);
+                sweepG.gain.exponentialRampToValueAtTime(0.001, now + 2.2);
+                sweep.connect(sweepFilter).connect(sweepG).connect(master);
+                sweep.start(now + 0.5);
+                sweep.stop(now + 2.3);
+
+                [1320, 1980, 2640].forEach(function (freq, i) {
+                    var d = ctx.createOscillator();
+                    d.type = 'sine';
+                    d.frequency.value = freq;
+                    var dG = ctx.createGain();
+                    var t0 = now + 1.9;
+                    var amp = 0.16 / (i + 1);
+                    dG.gain.setValueAtTime(0.001, t0);
+                    dG.gain.exponentialRampToValueAtTime(amp, t0 + 0.03);
+                    dG.gain.exponentialRampToValueAtTime(0.001, t0 + 1.2);
+                    d.connect(dG).connect(master);
+                    d.start(t0);
+                    d.stop(t0 + 1.3);
+                });
+
+                setTimeout(function () {
+                    try { ctx.close(); } catch (e) {}
+                }, 4000);
+            } catch (e) {
+                // Silencioso: si el browser bloquea autoplay, no rompemos la splash
+            }
+        }
+        playSplashAudio();
+
+        var dismissed = false;
+        function dismiss() {
+            if (dismissed) return;
+            dismissed = true;
+            splash.classList.add('splash-fade-out');
+            setTimeout(function () { splash.classList.add('splash-removed'); }, 950);
+        }
+        setTimeout(dismiss, 4500);
+    })();
+</script>
+
 <div class="rf-center-screen">
     <div class="rf-auth-box">
         <div class="rf-card">
