@@ -2408,6 +2408,178 @@ function buildAexFromGestor() {
  * Handler del botón "Exportar AEX (suite)". Construye el AEX desde el state
  * del gestor y dispara VS.renderDocument() para generar el PDF.
  */
+/* ====================================================================
+   MERGE INFORME (Fase D) — al exportar AEX, actualiza también el informe
+   correspondiente (IIQ/IOQ/IPQ) con los resultados reales de ejecución.
+
+   El informe YA EXISTE como copia del protocolo (PIQ/POQ/PPQ) -- nunca se
+   reconstruye desde cero acá, solo se le pisan los campos de RESULTADO
+   (estado, ejecutor, fecha, firma, criterioObservado, evidenciasGestor,
+   hallazgos) en cada TC que matchea por tcId. Todo lo redactado del
+   protocolo (objetivo, criterios, precondiciones, etc.) queda intacto.
+
+   Recorre TODAS las secciones del documento que tengan `tcs` (matriz-tc,
+   tabla-test-case, resumen-ejecucion-*, hallazgos-consolidados) -- están
+   intencionalmente duplicadas en el schema (ver claude-desktop-skills/
+   ioq-generator.md: "el array tcs se repite en 4 secciones... NO sacarlo"),
+   cada una necesita su propia copia actualizada.
+
+   Se guarda de verdad (POST al servidor) para que Firmas y cualquier
+   "Ver PDF" reflejen el progreso real apenas se ejecuta AEX -- no es una
+   vista previa que se descarta.
+   ==================================================================== */
+const PROTOCOL_TO_INFORME = { PIQ: 'IIQ', POQ: 'IOQ', PPQ: 'IPQ' };
+
+/**
+ * Mergea los resultados (misma forma que aexTests) dentro de un documento
+ * informe ya cargado. Muta y devuelve `informeData`. `mergedCount` cuenta
+ * cuántas ENTRADAS de TC se actualizaron (una por sección, se repite).
+ */
+function mergeExecutionResultsIntoInforme(informeData, aexTests) {
+    const byTcId = {};
+    aexTests.forEach(t => { byTcId[t.tcId] = t; });
+
+    let mergedCount = 0;
+    const tcIdsAfectados = new Set();
+    (informeData.secciones || []).forEach(sec => {
+        if (!Array.isArray(sec.tcs)) return;
+        sec.tcs.forEach(tc => {
+            const aex = byTcId[tc.tcId];
+            if (!aex) return;
+            tc.estado = aex.resultado.estado;
+            tc.ejecutor = aex.resultado.ejecutor;
+            tc.fechaEjecucion = aex.resultado.fecha;
+            tc.firma = aex.resultado.firma || tc.firma;
+            tc.criterioObservado = aex.resultado.criterioObservado;
+            tc.evidenciasGestor = aex.evidencias.map(ev => ({
+                descripcion: ev.descripcion,
+                timestamp: ev.timestamp,
+                usuarioPrueba: ev.usuarioPrueba,
+                rolPrueba: ev.rolPrueba,
+                criterioRef: ev.criterioRef || undefined,
+            }));
+
+            // Hallazgo a NIVEL TC (no por evidencia individual), id determinístico
+            // por tcId -- así re-correr el merge actualiza el mismo hallazgo en vez
+            // de duplicarlo, y si el TC pasa a PASS en una re-ejecución, se retira
+            // solo el hallazgo AUTO-generado (nunca uno que el DRP haya agregado
+            // a mano con otro id).
+            const ncId = 'NC-' + (String(tc.tcId).match(/(\d+)$/) || ['', '000'])[1];
+            const yaExiste = Array.isArray(tc.hallazgos) ? tc.hallazgos.find(h => h.id === ncId) : null;
+            if (aex.resultado.estado === 'FAIL' || aex.resultado.estado === 'OBS') {
+                const severidad = aex.resultado.estado === 'FAIL' ? 'Mayor' : 'Menor';
+                if (yaExiste) {
+                    yaExiste.severidad = severidad;
+                    yaExiste.descripcion = aex.resultado.criterioObservado || '';
+                    // `accion` (CAPA) nunca se pisa -- es redacción humana, no dato del gestor.
+                } else {
+                    tc.hallazgos = (tc.hallazgos || []).concat([{
+                        id: ncId, severidad, descripcion: aex.resultado.criterioObservado || '', accion: '',
+                    }]);
+                }
+            } else if (yaExiste) {
+                tc.hallazgos = tc.hallazgos.filter(h => h.id !== ncId);
+            }
+
+            mergedCount++;
+            tcIdsAfectados.add(tc.tcId);
+        });
+    });
+    return { mergedCount, tcCount: tcIdsAfectados.size };
+}
+
+/**
+ * Punto de entrada: dado el protocolo activo y los aexTests ya compilados,
+ * actualiza (si existe) el informe correspondiente en el servidor. No hace
+ * nada si no hay protocolo activo reconocido, si no hay TCs con evidencia,
+ * o si el informe todavía no fue creado (nunca se auto-crea acá -- nace
+ * como copia del protocolo, eso es responsabilidad de /gxp-generate).
+ */
+async function actualizarInformeDesdeGestor(protocolType, aexTests) {
+    const informeType = PROTOCOL_TO_INFORME[protocolType];
+    if (!informeType || !aexTests || aexTests.length === 0) return null;
+
+    // window.ValidationSuite (motor de render/proyectos) y window.VS (storage-server.js,
+    // write-through al servidor) son DOS globals DISTINTOS en este codebase -- Storage
+    // vive en VS, no en ValidationSuite. Ver saveToStorage() más arriba para el mismo
+    // patrón ya establecido (`window.VS && window.VS.Storage`).
+    const VSuite = window.ValidationSuite;
+    const projectId = VSuite && VSuite.projects && VSuite.projects.getActiveId && VSuite.projects.getActiveId();
+    const Storage = window.VS && window.VS.Storage;
+    if (!projectId || !Storage || typeof Storage.getDocument !== 'function') return null;
+
+    let existing;
+    try {
+        existing = await Storage.getDocument(projectId, informeType);
+    } catch (e) {
+        console.warn('[actualizarInformeDesdeGestor] no se pudo leer el informe existente:', e);
+        return null;
+    }
+    if (!existing || !existing.json_data) {
+        // No existe todavía -- no se auto-crea, se lo avisa al usuario para que lo genere primero.
+        return { skipped: true, reason: 'no_existe', informeType };
+    }
+
+    let informeData;
+    try {
+        informeData = typeof existing.json_data === 'string' ? JSON.parse(existing.json_data) : existing.json_data;
+    } catch (e) {
+        console.warn('[actualizarInformeDesdeGestor] json_data del informe existente es inválido:', e);
+        return { skipped: true, reason: 'json_invalido', informeType };
+    }
+
+    const { mergedCount, tcCount } = mergeExecutionResultsIntoInforme(informeData, aexTests);
+    if (mergedCount === 0) {
+        return { skipped: true, reason: 'sin_matches', informeType };
+    }
+
+    const saved = await Storage.saveDocument(projectId, informeType, informeData, existing.status || 'draft');
+    if (!saved) {
+        return { skipped: true, reason: 'error_guardado', informeType };
+    }
+    return { skipped: false, informeType, tcCount };
+}
+
+/**
+ * Punto de entrada de UI, independiente de "Exportar AEX" (pedido del usuario,
+ * 2026-09-21: "a veces no saco el AEX, podemos hacerlo sin el AEX?"). Compila
+ * `testsConEvidencia` de la MISMA forma que exportarAex(), pero no genera ni
+ * descarga ningún PDF -- solo actualiza el informe (IIQ/IOQ/IPQ) correspondiente
+ * al protocolo activo. Devuelve el resultado de actualizarInformeDesdeGestor
+ * (o null si no hay nada para actualizar) y muestra su propia notificación.
+ */
+async function actualizarInformeDesdeEjecucion() {
+    const aexJson = buildAexFromGestor();
+    const testsConEvidencia = (aexJson.secciones.find(s => s.tipo === 'aex-registro-tc') || {}).tests || [];
+    if (testsConEvidencia.length === 0) {
+        showNotification('No hay tests con evidencias capturadas todavía.', 'warning');
+        return null;
+    }
+    const protocolRef = protocols.find(p => p.id === activeProtocolId) || protocols[0] || null;
+    const protocolType = protocolRef ? protocolRef.type : '';
+    let resultado;
+    try {
+        resultado = await actualizarInformeDesdeGestor(protocolType, testsConEvidencia);
+    } catch (e) {
+        console.error('[actualizarInformeDesdeEjecucion] error:', e);
+        showNotification('Error actualizando el informe: ' + e.message, 'error');
+        return null;
+    }
+    if (resultado && !resultado.skipped) {
+        showNotification(`Informe ${resultado.informeType} actualizado con ${resultado.tcCount} TC(s) ejecutados.`);
+    } else if (resultado && resultado.reason === 'no_existe') {
+        showNotification(`No se actualizó el informe ${resultado.informeType} porque todavía no existe -- generalo primero.`, 'warning');
+    } else if (resultado && resultado.reason === 'error_guardado') {
+        showNotification(`No se pudo guardar el informe ${resultado.informeType} actualizado.`, 'error');
+    } else if (resultado && resultado.reason === 'sin_matches') {
+        showNotification(`Ningún TC ejecutado matchea con el informe ${resultado.informeType} -- revisá los tcId.`, 'warning');
+    } else if (!resultado) {
+        showNotification('No se pudo determinar el proyecto/protocolo activo para actualizar el informe.', 'warning');
+    }
+    return resultado;
+}
+window.actualizarInformeDesdeEjecucion = actualizarInformeDesdeEjecucion;
+
 async function exportarAex() {
     try {
         if (!validateSystemInfo()) return;
@@ -2429,6 +2601,17 @@ async function exportarAex() {
             if (!proceed) return;
         }
 
+        // Actualizar el informe (IIQ/IOQ/IPQ) correspondiente con los mismos resultados
+        // que se están compilando para el AEX -- si de paso ya estás exportando el AEX,
+        // el informe se refresca solo, sin que haga falta apretar el botón aparte.
+        if (testsConEvidencia.length > 0) {
+            try {
+                await actualizarInformeDesdeEjecucion();
+            } catch (e) {
+                console.warn('[exportarAex] actualizarInformeDesdeEjecucion falló, el AEX se genera igual:', e);
+            }
+        }
+
         const sysCode = (systemInfo.codigoSistema || 'SIS-001').toUpperCase();
         const fileName = 'AEX-' + sysCode + '-' + new Date().toISOString().split('T')[0] + '.pdf';
 
@@ -2444,6 +2627,8 @@ async function exportarAex() {
 }
 
 window.buildAexFromGestor = buildAexFromGestor;
+window.mergeExecutionResultsIntoInforme = mergeExecutionResultsIntoInforme;
+window.actualizarInformeDesdeGestor = actualizarInformeDesdeGestor;
 window.exportarAex = exportarAex;
 
 /**
@@ -4133,6 +4318,12 @@ function initButtonListeners() {
     const btnExportarAex = document.getElementById('btnExportarAex');
     if (btnExportarAex) {
         btnExportarAex.addEventListener('click', (e) => exportarAex(e));
+    }
+
+    // Fase D — Actualizar Informe desde ejecución, sin pasar por Exportar AEX
+    const btnActualizarInforme = document.getElementById('btnActualizarInforme');
+    if (btnActualizarInforme) {
+        btnActualizarInforme.addEventListener('click', () => actualizarInformeDesdeEjecucion());
     }
 
     // Fase B.2 — Cargar paquete documental completo (multi-file picker)
