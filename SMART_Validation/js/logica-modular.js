@@ -2120,7 +2120,7 @@ function normalizeDictamen(estado) {
  *
  * Devuelve un objeto compatible con VS.renderDocument({type: 'AEX'}).
  */
-function buildAexFromGestor() {
+async function buildAexFromGestor() {
     const VS = window.ValidationSuite;
     const ahora = new Date();
     const fechaCorta = ahora.toISOString().split('T')[0]; // YYYY-MM-DD
@@ -2137,6 +2137,37 @@ function buildAexFromGestor() {
     // === Contar evidencias e identificar TCs con captura ===
     const testsConEvidencia = tests.filter(t => Array.isArray(t.evidences) && t.evidences.some(ev => !ev.isEmpty));
     const totalEvidencias = tests.reduce((sum, t) => sum + (Array.isArray(t.evidences) ? t.evidences.filter(ev => !ev.isEmpty).length : 0), 0);
+
+    // Precargar imágenes que existen en el servidor pero todavía no se bajaron a memoria
+    // (hasImage=true, image=null hasta que se scrollea/abre esa evidencia puntual en la UI --
+    // ver el lazy-load de renderWorkArea). Sin este paso, buildAexFromGestor() lee ev.image
+    // tal cual está en memoria en ese momento: cualquier evidencia real que el usuario no
+    // haya visto todavía en esta sesión salía como "[Imagen no disponible]" en el AEX, en
+    // silencio, aunque la imagen SÍ existiera en el servidor -- mismo patrón que ya usan
+    // exportTest/exportFolder (getImageFromDB, IndexedDB local con fallback a R2).
+    const pendientes = [];
+    testsConEvidencia.forEach(t => {
+        (t.evidences || []).forEach(ev => {
+            // Mismo chequeo que usa renderWorkArea para decidir si hay que bajar la imagen --
+            // evidencias de tabla/texto no tienen hasImage, así que no se intenta fetch inútil.
+            if (!ev.isEmpty && ev.hasImage && !ev.image) {
+                pendientes.push({ ev, imageId: `${t.id}_evidence_${ev.step}` });
+            }
+        });
+    });
+    if (pendientes.length > 0) {
+        showNotification(`Descargando ${pendientes.length} imagen(es) de evidencia todavía no cargadas...`);
+        // En lotes, no todas juntas -- a 700-1200 evidencias, un solo Promise.all dispararía
+        // esa misma cantidad de fetches concurrentes de una (picos de carga en el servidor,
+        // sin beneficio real ya que el browser igual serializa por su límite de conexiones
+        // por origen).
+        const LOTE = 20;
+        for (let i = 0; i < pendientes.length; i += LOTE) {
+            const lote = pendientes.slice(i, i + LOTE);
+            const datos = await Promise.all(lote.map(p => getImageFromDB(p.imageId).catch(() => null)));
+            datos.forEach((data, j) => { if (data) lote[j].ev.image = data; });
+        }
+    }
 
     // Stats por estado del TC
     const stats = { PASS: 0, FAIL: 0, OBS: 0, NA: 0, pendiente: 0 };
@@ -2557,7 +2588,7 @@ async function actualizarInformeDesdeGestor(protocolType, aexTests) {
  * (o null si no hay nada para actualizar) y muestra su propia notificación.
  */
 async function actualizarInformeDesdeEjecucion() {
-    const aexJson = buildAexFromGestor();
+    const aexJson = await buildAexFromGestor();
     let testsConEvidencia = (aexJson.secciones.find(s => s.tipo === 'aex-registro-tc') || {}).tests || [];
     if (testsConEvidencia.length === 0) {
         showNotification('No hay tests con evidencias capturadas todavía.', 'warning');
@@ -2633,7 +2664,7 @@ async function exportarAex() {
             return;
         }
 
-        const aexJson = buildAexFromGestor();
+        const aexJson = await buildAexFromGestor();
         const testsConEvidencia = (aexJson.secciones.find(s => s.tipo === 'aex-registro-tc') || {}).tests || [];
 
         if (testsConEvidencia.length === 0) {
