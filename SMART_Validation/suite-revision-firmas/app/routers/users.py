@@ -67,7 +67,11 @@ def create_user(body: CreateUserBody, user: dict = Depends(require_drp)):
     )
     db.commit()
 
-    invite_link = f"{config.APP_BASE_URL}/app/invite.html?token={token}"
+    # Ronda 20 (2026-09-21): token en el fragmento (#), no en el query string -- un fragmento
+    # nunca se manda al servidor, así que no queda expuesto en logs de acceso/proxy ni en el
+    # header Referer de pedidos posteriores (a diferencia de ?token=, que sí viaja en la
+    # request line). invite.html acepta igual el viejo ?token= como fallback.
+    invite_link = f"{config.APP_BASE_URL}/app/invite.html#token={token}"
     email_resend.send_invite_email(body.email, body.display_name, invite_link)
 
     log_system_event(user, "user_created", f"{user['u']} creó el usuario {body.email} ({body.role})")
@@ -191,7 +195,11 @@ def reset_credentials(user_id: str, user: dict = Depends(require_drp)):
     )
     db.commit()
 
-    invite_link = f"{config.APP_BASE_URL}/app/invite.html?token={token}"
+    # Ronda 20 (2026-09-21): token en el fragmento (#), no en el query string -- un fragmento
+    # nunca se manda al servidor, así que no queda expuesto en logs de acceso/proxy ni en el
+    # header Referer de pedidos posteriores (a diferencia de ?token=, que sí viaja en la
+    # request line). invite.html acepta igual el viejo ?token= como fallback.
+    invite_link = f"{config.APP_BASE_URL}/app/invite.html#token={token}"
     email_resend.send_credentials_reset_email(target["email"], target["display_name"], invite_link)
 
     target_label = target["display_name"] or target["email"]

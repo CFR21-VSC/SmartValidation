@@ -17,6 +17,33 @@ def cliente_client(drp_client):
     return cli, created.json()["user_id"]
 
 
+def test_invite_link_puts_token_in_fragment_not_query_string(drp_client):
+    """Ronda 20 (2026-09-21): el token vivía en el query string (?token=...), que SÍ se manda
+    al servidor -- queda expuesto en logs de acceso/proxy y en el header Referer de cualquier
+    pedido posterior desde esa página. Movido al fragmento (#token=...), que el navegador
+    nunca envía al servidor. El endpoint sigue devolviendo el token utilizable (test_users.py
+    ya lo extrae con .split("token=")[-1] en el resto del archivo, funciona igual con # o ?)."""
+    r = drp_client.post(
+        "/users",
+        json={"username": "frag-check", "email": "frag-check@example.com", "display_name": "Frag Check", "role": "cliente"},
+    )
+    link = r.json()["invite_link"]
+    assert "#token=" in link
+    assert "?token=" not in link
+
+
+def test_credentials_reset_link_puts_token_in_fragment_not_query_string(drp_client):
+    created = drp_client.post(
+        "/users",
+        json={"username": "frag-reset", "email": "frag-reset@example.com", "display_name": "Frag Reset", "role": "cliente"},
+    )
+    user_id = created.json()["user_id"]
+    r = drp_client.post(f"/users/{user_id}/reset-credentials")
+    link = r.json()["invite_link"]
+    assert "#token=" in link
+    assert "?token=" not in link
+
+
 def test_create_user_requires_auth(client):
     r = client.post("/users", json={"username": "a", "email": "a@a.com", "display_name": "A", "role": "cliente"})
     assert r.status_code == 401

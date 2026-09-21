@@ -170,6 +170,24 @@ def test_set_pin_requires_current_pin_once_set(client, superadmin_creds):
     assert r.status_code == 200
 
 
+def test_set_pin_locks_out_after_five_failed_current_pin_attempts(client, superadmin_creds):
+    """Ronda 20 (2026-09-21): antes, el chequeo de `current_pin` en set-pin no tenía ningún
+    freno de fuerza bruta (a diferencia de sign_review/sign_approval, que sí) -- una sesión
+    robada podía probar las 10.000 combinaciones de un PIN de 4 dígitos sin límite acá, aunque
+    firmar de verdad estuviera protegido. Mismo criterio (5 intentos, después 429) que ya
+    tenía la firma de documentos."""
+    client.post("/auth/login", json=superadmin_creds)
+    client.post("/auth/set-pin", json={"pin": "9999"})  # primer PIN, sin reconfirmar
+
+    for _ in range(5):
+        r = client.post("/auth/set-pin", json={"pin": "1111", "current_pin": "0000"})
+        assert r.status_code == 401
+
+    locked = client.post("/auth/set-pin", json={"pin": "1111", "current_pin": "9999"})  # PIN correcto
+    assert locked.status_code == 429
+    assert "intentos" in locked.json()["detail"].lower()
+
+
 def test_change_password_requires_auth(client):
     r = client.post("/auth/change-password", json={"current_password": "x", "new_password": "newpass123"})
     assert r.status_code == 401

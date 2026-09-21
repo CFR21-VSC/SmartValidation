@@ -93,3 +93,54 @@ def build_set_cookie(token: str) -> str:
 
 def build_clear_cookie() -> str:
     return f"{config.COOKIE_NAME}=; HttpOnly; Max-Age=0; Path=/"
+
+
+# ─── Fuerza bruta de PIN ────────────────────────────────────────────────────
+# Sección pedida por el usuario 2026-09-01, tras detectar en auditoría que
+# sign_review/sign_approval verificaban el PIN sin ningún límite -- cualquier sesión válida
+# podía probar las 10.000 combinaciones de un PIN de 4 dígitos sin freno. Originalmente vivía
+# solo en routers/signatures.py; movido acá (Ronda 20, 2026-09-21) porque una auditoría de
+# seguridad encontró el mismo hueco sin cerrar en POST /auth/set-pin (el chequeo de
+# `current_pin`, que también acepta 10.000 intentos): una sesión robada podía usar ESE
+# endpoint para descubrir el PIN sin límite, y después firmar de verdad con
+# sign_review/sign_approval (que sí tenían el freno) usando el PIN ya conocido -- incumpliendo
+# el mismo objetivo que el freno de firma ya cumplía en apariencia. Un solo lockout por
+# usuario, compartido entre ambos puntos de entrada (no dos contadores independientes con el
+# doble de intentos reales disponibles).
+MAX_PIN_ATTEMPTS = 5
+PIN_ATTEMPT_WINDOW_S = 30 * 60
+PIN_LOCKOUT_S = 30 * 60
+
+
+def check_pin_lockout(db, user_id: str) -> float | None:
+    """Devuelve segundos restantes de bloqueo, o None si puede intentar."""
+    row = db.execute("SELECT locked_until FROM rf_pin_attempts WHERE user_id=?", (user_id,)).fetchone()
+    if row and row["locked_until"] and row["locked_until"] > time.time():
+        return row["locked_until"] - time.time()
+    return None
+
+
+def register_failed_pin(db, user_id: str) -> None:
+    now = time.time()
+    row = db.execute(
+        "SELECT fail_count, first_fail_at FROM rf_pin_attempts WHERE user_id=?", (user_id,)
+    ).fetchone()
+    if row and row["first_fail_at"] and (now - row["first_fail_at"]) < PIN_ATTEMPT_WINDOW_S:
+        fail_count = row["fail_count"] + 1
+        first_fail_at = row["first_fail_at"]
+    else:
+        fail_count = 1
+        first_fail_at = now
+    locked_until = now + PIN_LOCKOUT_S if fail_count >= MAX_PIN_ATTEMPTS else None
+    db.execute(
+        "INSERT INTO rf_pin_attempts (user_id, fail_count, first_fail_at, locked_until) VALUES (?,?,?,?) "
+        "ON CONFLICT(user_id) DO UPDATE SET fail_count=excluded.fail_count, "
+        "first_fail_at=excluded.first_fail_at, locked_until=excluded.locked_until",
+        (user_id, fail_count, first_fail_at, locked_until),
+    )
+    db.commit()
+
+
+def clear_pin_attempts(db, user_id: str) -> None:
+    db.execute("DELETE FROM rf_pin_attempts WHERE user_id=?", (user_id,))
+    db.commit()

@@ -95,8 +95,14 @@ function showInvalid(message) {
     document.getElementById('invalid-box').style.display = '';
 }
 
-const params = new URLSearchParams(window.location.search);
-const token = params.get('token');
+// Ronda 20 (2026-09-21): el link se genera ahora con el token en el FRAGMENTO (#token=...),
+// no en el query string -- un fragmento nunca se manda al servidor (ni en esta carga de
+// página ni en el Referer de pedidos posteriores), así que no queda expuesto en logs de
+// acceso/proxy ni en el header Referer como sí pasaba con ?token=. Se sigue aceptando
+// ?token= como fallback para no romper invitaciones ya enviadas antes de este cambio.
+const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+const searchParams = new URLSearchParams(window.location.search);
+const token = hashParams.get('token') || searchParams.get('token');
 
 const pinInputs = buildPinGrid(document.getElementById('pin-grid'));
 const confirmInputs = buildPinGrid(document.getElementById('pin-confirm-grid'));
