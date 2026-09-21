@@ -2558,13 +2558,42 @@ async function actualizarInformeDesdeGestor(protocolType, aexTests) {
  */
 async function actualizarInformeDesdeEjecucion() {
     const aexJson = buildAexFromGestor();
-    const testsConEvidencia = (aexJson.secciones.find(s => s.tipo === 'aex-registro-tc') || {}).tests || [];
+    let testsConEvidencia = (aexJson.secciones.find(s => s.tipo === 'aex-registro-tc') || {}).tests || [];
     if (testsConEvidencia.length === 0) {
         showNotification('No hay tests con evidencias capturadas todavía.', 'warning');
         return null;
     }
     const protocolRef = protocols.find(p => p.id === activeProtocolId) || protocols[0] || null;
     const protocolType = protocolRef ? protocolRef.type : '';
+
+    // Filtrar a solo los TCs del protocolo activo -- buildAexFromGestor() junta TCs de
+    // TODOS los protocolos cargados en el Gestor (modo merge: PIQ + POQ + PPQ conviven en
+    // el mismo runtime), pero acá solo interesa actualizar el informe de un protocolo a la
+    // vez. Sin este filtro, un TC de OTRO protocolo con evidencia real (que nunca va a
+    // matchear tcIds contra este informe) queda mezclado en testsConEvidencia y puede
+    // reportar "ningún TC matchea" aunque sí hubiera uno válido para este informe,
+    // simplemente perdido entre ruido de otro protocolo (hallazgo H-3 del testing E2E).
+    // Solo se excluye un TC si declara pertenecer a OTRO protocolo -- uno creado a mano
+    // (vía "+ nueva prueba") no trae protocolSource, y no hay forma de saber a qué
+    // protocolo pertenece, así que no se descarta por las dudas.
+    if (protocolType) {
+        const tipoPorTcId = {};
+        tests.forEach(t => {
+            if (t.protocolSource && t.protocolSource.type) tipoPorTcId[t.tcId] = t.protocolSource.type;
+        });
+        testsConEvidencia = testsConEvidencia.filter(t => {
+            const tipo = tipoPorTcId[t.tcId];
+            return !tipo || tipo === protocolType;
+        });
+        if (testsConEvidencia.length === 0) {
+            showNotification(
+                `Hay TCs con evidencia capturada, pero ninguno pertenece al protocolo activo (${protocolType}) -- revisá si es el protocolo correcto o si el TC ejecutado es de otro protocolo cargado en el Gestor.`,
+                'warning'
+            );
+            return null;
+        }
+    }
+
     let resultado;
     try {
         resultado = await actualizarInformeDesdeGestor(protocolType, testsConEvidencia);
