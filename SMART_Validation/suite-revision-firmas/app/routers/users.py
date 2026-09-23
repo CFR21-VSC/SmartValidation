@@ -37,7 +37,14 @@ class GrantBody(BaseModel):
 def create_user(body: CreateUserBody, user: dict = Depends(require_drp)):
     if body.role not in ("drp", "partner", "cliente"):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "role debe ser 'drp', 'partner' o 'cliente'")
-    username = body.username.strip()
+    # .lower() -- 2026-09-23, pedido del usuario: "el sistema debe unir todo sea mayúsculas
+    # minúsculas, el nombre de usuario no debe ser duplicable" -- antes "Fbongiovanni",
+    # "fbongiovanni" y "fBONgiovanni" se guardaban como tres cuentas distintas. Se normaliza
+    # SIEMPRE a minúscula al guardar, así el resto del sistema (login, sesiones, etc.) puede
+    # seguir comparando con = simple una vez migrados los datos viejos (_migrate_normalize_
+    # usernames_lowercase en db.py) -- LOWER() en el chequeo de abajo es además una segunda
+    # red de seguridad por si quedara algún dato legado sin migrar.
+    username = body.username.strip().lower()
     if not _USERNAME_RE.match(username):
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
@@ -48,7 +55,7 @@ def create_user(body: CreateUserBody, user: dict = Depends(require_drp)):
     existing_email = db.execute("SELECT id FROM rf_users WHERE email=?", (body.email,)).fetchone()
     if existing_email:
         raise HTTPException(status.HTTP_409_CONFLICT, "Ya existe un usuario con ese email")
-    existing_username = db.execute("SELECT id FROM rf_users WHERE username=?", (username,)).fetchone()
+    existing_username = db.execute("SELECT id FROM rf_users WHERE LOWER(username)=?", (username,)).fetchone()
     if existing_username:
         raise HTTPException(status.HTTP_409_CONFLICT, "Ya existe un usuario con ese nombre de usuario")
 

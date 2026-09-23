@@ -103,18 +103,24 @@ def _issue_session(response: Response, row: dict) -> None:
 @router.post("/auth/login")
 def login(body: LoginBody, response: Response):
     db = get_db()
+    # .strip().lower() -- 2026-09-23, mismo motivo que create_user: "Fbongiovanni" y
+    # "fbongiovanni" tienen que ser la MISMA cuenta al loguear, no solo al crearla. Se usa
+    # esta variable normalizada para todo lo de acá en más (lockout, intentos fallidos,
+    # búsqueda) -- así un ataque de fuerza bruta alternando mayúsculas/minúsculas no evade
+    # el contador por intentos, todo cae en el mismo balde.
+    username = body.username.strip().lower()
 
     if body.website.strip():
         # Honeypot lleno -> bot. Mismo error genérico que credenciales inválidas, pero sin
         # tocar rf_users ni el contador de intentos fallidos (no debe poder usarse para
         # bloquear la cuenta de otra persona a propósito).
         log_system_event(
-            {"uid": None, "u": body.username or "?"}, "login_honeypot_triggered",
+            {"uid": None, "u": username or "?"}, "login_honeypot_triggered",
             f"Intento de login con honeypot lleno (username enviado: {body.username!r})",
         )
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Usuario o contraseña incorrectos")
 
-    remaining = _check_login_lockout(db, body.username)
+    remaining = _check_login_lockout(db, username)
     if remaining is not None:
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
@@ -122,17 +128,17 @@ def login(body: LoginBody, response: Response):
         )
 
     row = db.execute(
-        "SELECT * FROM rf_users WHERE username=? AND is_active=1", (body.username,)
+        "SELECT * FROM rf_users WHERE LOWER(username)=? AND is_active=1", (username,)
     ).fetchone()
     if not row or not row["password_hash"]:
         security.dummy_verify_delay()
-        _register_failed_login(db, body.username)
+        _register_failed_login(db, username)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Usuario o contraseña incorrectos")
     if not security.pbkdf2_verify(body.password, row["password_hash"]):
-        _register_failed_login(db, body.username)
+        _register_failed_login(db, username)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Usuario o contraseña incorrectos")
 
-    _clear_login_attempts(db, body.username)
+    _clear_login_attempts(db, username)
     db.execute("UPDATE rf_users SET last_login=? WHERE id=?", (time.time(), row["id"]))
     db.commit()
     _issue_session(response, dict(row))

@@ -245,6 +245,37 @@ def init_db() -> None:
     _migrate_add_consent_fk(db)
     _migrate_add_review_closed(db)
     _migrate_add_signature_display_name(db)
+    _migrate_normalize_usernames_lowercase(db)
+
+
+def _migrate_normalize_usernames_lowercase(db) -> None:
+    """2026-09-23, pedido del usuario: "el sistema debe unir todo sea mayúsculas
+    minúsculas, el nombre de usuario no debe ser duplicable". De acá en más create_user/
+    login/bootstrap_superadmin siempre normalizan a minúscula al escribir o comparar, pero
+    eso no arregla cuentas que ya existían con mayúsculas antes de este cambio -- esta
+    migración las pasa a minúscula, una por una (no en un UPDATE masivo) porque si dos
+    cuentas viejas ya chocaban por mayúsculas/minúsculas (ej. "Jperez" y "jperez" como
+    cuentas distintas -- justo el bug que se está arreglando), normalizar la segunda viola
+    el UNIQUE de la primera. Se salta esa fila puntual con un aviso en vez de romper el
+    arranque entero; ese caso hay que resolverlo a mano (renombrar una de las dos)."""
+    rows = db.execute("SELECT id, username FROM rf_users").fetchall()
+    for r in rows:
+        normalizado = (r["username"] or "").strip().lower()
+        if normalizado == r["username"]:
+            continue
+        try:
+            db.execute("UPDATE rf_users SET username=? WHERE id=?", (normalizado, r["id"]))
+            db.commit()
+        except Exception as e:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            sys.stderr.write(
+                f"[migrate] no se pudo normalizar username '{r['username']}' (id={r['id']}) "
+                f"a minúscula -- probablemente ya existe otra cuenta '{normalizado}'. "
+                f"Resolver a mano (renombrar una de las dos). Error: {e}\n"
+            )
 
 
 def _migrate_add_signature_display_name(db) -> None:

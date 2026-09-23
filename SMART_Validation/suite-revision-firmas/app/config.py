@@ -17,7 +17,10 @@ COOKIE_NAME: str = "rf_session"
 
 # Bootstrap del primer usuario DRP (superadmin). Igual patrón que SUPERADMIN_USERNAME
 # en el servicio de Validación, pero es una cuenta totalmente separada.
-SUPERADMIN_USERNAME: str = os.environ.get("RF_SUPERADMIN_USERNAME", "")
+# .strip().lower() -- 2026-09-23, mismo criterio que el resto de los usernames del sistema
+# (ver create_user/login): todo username se normaliza a minúscula, nunca dos formas de
+# mayúscula/minúscula deben poder referirse a cuentas distintas.
+SUPERADMIN_USERNAME: str = os.environ.get("RF_SUPERADMIN_USERNAME", "").strip().lower()
 SUPERADMIN_EMAIL: str = os.environ.get("RF_SUPERADMIN_EMAIL", "")
 SUPERADMIN_PASSWORD: str = os.environ.get("RF_SUPERADMIN_PASSWORD", "")
 SUPERADMIN_DISPLAY: str = os.environ.get("RF_SUPERADMIN_DISPLAY", "DRP Admin")
