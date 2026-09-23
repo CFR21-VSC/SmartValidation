@@ -349,6 +349,51 @@ def grant_document_access(user_id: str, body: GrantBody, user: dict = Depends(re
     return {"ok": True}
 
 
+class BulkGrantBody(BaseModel):
+    project_id: str
+
+
+@router.post("/{user_id}/grants/bulk-project")
+def grant_all_project_documents(user_id: str, body: BulkGrantBody, user: dict = Depends(require_drp)):
+    """Otorga acceso a TODOS los documentos de un proyecto de una sola vez -- pedido del
+    usuario, 2026-09-23: "al dar acceso a los documentos tengo que dar uno por uno, lo ideal
+    seria dar todos juntos". Mismo INSERT OR IGNORE que grant_document_access, documento por
+    documento (salteando los que ya tenía), pero sin el email individual por cada uno -- un
+    proyecto con 15-20 documentos mandaría esa misma cantidad de mails de una, que es spam
+    para lo que en la práctica es una sola acción del DRP."""
+    db = get_db()
+    target = db.execute("SELECT display_name, email FROM rf_users WHERE id=?", (user_id,)).fetchone()
+    if not target:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+
+    doc_rows = db.execute(
+        "SELECT doc_type FROM rf_documents WHERE project_id=?", (body.project_id,)
+    ).fetchall()
+    if not doc_rows:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "El proyecto no existe o no tiene documentos")
+
+    now = time.time()
+    granted = 0
+    for r in doc_rows:
+        cur = db.execute(
+            "INSERT OR IGNORE INTO rf_document_access_grants "
+            "(user_id, project_id, doc_type, granted_by, granted_at) VALUES (?,?,?,?,?)",
+            (user_id, body.project_id, r["doc_type"], user["u"], now),
+        )
+        if cur.rowcount:
+            granted += 1
+    db.commit()
+
+    target_label = target["display_name"] or target["email"]
+    log_system_event(
+        user, "grant_bulk_created",
+        f"{user['u']} otorgó a {target_label} acceso a {granted} documento(s) nuevo(s) de {body.project_id} "
+        f"(proyecto completo, {len(doc_rows)} documento(s) en total)",
+        project_id=body.project_id,
+    )
+    return {"ok": True, "granted": granted, "total_documents": len(doc_rows)}
+
+
 @router.get("/{user_id}/grants")
 def list_grants(user_id: str, user: dict = Depends(require_drp)):
     db = get_db()

@@ -80,11 +80,11 @@
     <div class="rf-modal" style="width:min(640px, 92vw);">
         <h3 id="grants-title">Gestionar accesos</h3>
         <div class="rf-label" style="margin-bottom:12px;">
-            Otorgar acceso a un documento puntual (proyecto + tipo de documento específicos —
-            no acceso a todo el proyecto).
+            Otorgar acceso a un documento puntual (proyecto + tipo de documento), o a todos
+            los documentos de un proyecto de una sola vez.
         </div>
 
-        <form id="add-grant-form" style="display:flex; gap:8px; align-items:flex-end; margin-bottom:18px;">
+        <form id="add-grant-form" style="display:flex; gap:8px; align-items:flex-end; margin-bottom:10px;">
             <div class="rf-field" style="margin-bottom:0; flex:1;">
                 <label class="rf-label" for="grant-project">Proyecto</label>
                 <select class="rf-select" id="grant-project" required>
@@ -99,6 +99,11 @@
             </div>
             <button type="submit" class="rf-btn" style="white-space:nowrap;">Otorgar</button>
         </form>
+        <div style="margin-bottom:18px;">
+            <button type="button" class="rf-btn-secondary" id="grant-all-btn" disabled style="font-size:12px;">
+                Otorgar todos los documentos de este proyecto
+            </button>
+        </div>
         <div class="rf-error" id="add-grant-error"></div>
 
         <div style="max-height:40vh; overflow-y:auto;">
@@ -397,10 +402,12 @@ async function loadGrantProjectOptions() {
 async function onGrantProjectChange() {
     const projectId = document.getElementById('grant-project').value;
     const docSelect = document.getElementById('grant-doctype');
+    const allBtn = document.getElementById('grant-all-btn');
     docSelect.innerHTML = '';
     if (!projectId) {
         docSelect.innerHTML = '<option value="">— elegí un proyecto primero —</option>';
         docSelect.disabled = true;
+        allBtn.disabled = true;
         return;
     }
 
@@ -409,14 +416,39 @@ async function onGrantProjectChange() {
     if (docs.length === 0) {
         docSelect.innerHTML = '<option value="">— este proyecto no tiene documentos —</option>';
         docSelect.disabled = true;
+        allBtn.disabled = true;
         return;
     }
     docSelect.innerHTML = '<option value="">Elegir…</option>' + docs.map(d =>
         `<option value="${escHtml(d.doc_type)}">${escHtml(d.doc_type)}${d.locked ? ' (sellado)' : ''}</option>`
     ).join('');
     docSelect.disabled = false;
+    allBtn.disabled = false;
+    allBtn.textContent = `Otorgar todos los documentos de este proyecto (${docs.length})`;
 }
 document.getElementById('grant-project').addEventListener('change', onGrantProjectChange);
+
+// Otorgar todos de una (2026-09-23, pedido del usuario: "tengo que dar uno por uno, lo
+// ideal seria dar todos juntos").
+document.getElementById('grant-all-btn').addEventListener('click', async () => {
+    const projectId = document.getElementById('grant-project').value;
+    if (!projectId || !currentGrantUserId) return;
+    const btn = document.getElementById('grant-all-btn');
+    if (!confirm(`¿Otorgar acceso a TODOS los documentos de "${projectId}"?`)) return;
+
+    btn.disabled = true;
+    const { status, data } = await apiFetch(`/users/${currentGrantUserId}/grants/bulk-project`, {
+        method: 'POST', body: { project_id: projectId },
+    });
+    btn.disabled = false;
+
+    if (status === 200 && data.ok) {
+        showToast(`Acceso otorgado a ${data.granted} documento(s) nuevo(s) (${data.total_documents} en total)`);
+        await loadGrants();
+        return;
+    }
+    showToast(data.error || 'No se pudo otorgar el acceso masivo.', true);
+});
 
 function closeGrantsModal() {
     document.getElementById('grants-backdrop').style.display = 'none';
