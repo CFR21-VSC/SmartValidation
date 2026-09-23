@@ -3911,8 +3911,7 @@
 
             window.vsSendToFirmas = async function() {
                 const projId = localStorage.getItem('vscActiveProjectId');
-                const docType = localStorage.getItem('vscActiveDocType');
-                if (!projId || !docType) { alert('Abrí un documento del proyecto activo antes de enviarlo a Firmas.'); return; }
+                if (!projId) { alert('Abrí un documento del proyecto activo antes de enviarlo a Firmas.'); return; }
 
                 const editor = document.getElementById('vsJsonEditor');
                 let data;
@@ -3922,6 +3921,17 @@
                     alert('El documento del editor no es válido. Corregí los errores antes de enviarlo a Firmas:\n\n' + err.message);
                     return;
                 }
+
+                // FIX (2026-09-23, reportado por el usuario: "mande el HLRA a firmar, y me
+                // mando el IIQ"): docType salía de localStorage['vscActiveDocType'], una clave
+                // que ningún código del editor escribe -- quedaba stale para siempre con lo que
+                // sea que haya estado ahí (en este caso "IIQ"), así que TODO envío a Firmas
+                // mandaba ese mismo tipo sin importar qué documento estuviera realmente abierto.
+                // data.type (recién parseado del contenido actual del editor, dos líneas arriba)
+                // es la fuente correcta -- ya se estaba leyendo para guardar el documento, pero
+                // se ignoraba para decidir a qué doc_type mandarlo.
+                const docType = data && data.type;
+                if (!docType) { alert('El documento del editor no tiene un campo "type" válido.'); return; }
 
                 const btn = document.getElementById('vsBtnSendFirmas');
                 const originalText = btn ? btn.textContent : '';
@@ -3977,7 +3987,12 @@
             // antes al panel (pedido por el usuario: que no pase inadvertido).
             window._vsRefreshFirmasBadge = async function() {
                 const projId = localStorage.getItem('vscActiveProjectId');
-                const docType = localStorage.getItem('vscActiveDocType');
+                // FIX (2026-09-23): vscActiveDocType nunca se escribe en ningún lado -- quedaba
+                // stale para siempre (ver misma nota en vsSendToFirmas más arriba). #vsDocBadge
+                // sí se mantiene al día, actualizado por vsUpdateInfoBar() en cada cambio del
+                // editor -- es la fuente confiable de "qué documento está abierto ahora".
+                const badgeEl = document.getElementById('vsDocBadge');
+                const docType = badgeEl && badgeEl.textContent !== '—' ? badgeEl.textContent : null;
                 if (!projId || !docType) { _vsSetFirmasBadge(0); return; }
                 const r = await fetch(`/api/projects/${projId}/documents/${docType}/firmas-comments`, { credentials: 'include' })
                     .then(r => r.json()).catch(() => null);
@@ -3992,7 +4007,10 @@
                 if (!body) return;
                 body.innerHTML = '<div style="color:#4a6a86;font-size:13px;">Cargando...</div>';
                 const projId = localStorage.getItem('vscActiveProjectId');
-                const docType = localStorage.getItem('vscActiveDocType');
+                // FIX (2026-09-23): mismo motivo que _vsRefreshFirmasBadge más arriba --
+                // vscActiveDocType nunca se escribe, #vsDocBadge sí está siempre al día.
+                const badgeEl = document.getElementById('vsDocBadge');
+                const docType = badgeEl && badgeEl.textContent !== '—' ? badgeEl.textContent : null;
                 if (!projId || !docType) {
                     body.innerHTML = '<div style="color:#4a6a86;font-size:13px;">Abrí un documento para ver sus comentarios.</div>';
                     return;
