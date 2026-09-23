@@ -659,16 +659,29 @@
 
     .rv-load-modal .rf-textarea { min-height: 260px; font-family: monospace; }
 
-    /* Responsive (2026-09-23): las tres columnas (Estructura | Documento | Comentarios)
-       tienen anchos fijos con !important pensados para desktop -- en mobile pasan a
-       apilarse (regla genérica en base.css), pero esos flex-basis fijos seguirían
-       aplicando como ALTO en vez de ancho si no se neutralizan acá, donde viven los
-       valores originales y cargan después de base.css (gana el orden en el documento). */
+    /* Responsive (2026-09-23) -- primer intento (apilar las tres columnas) resultaba en el
+       outline de navegación ("Estructura") ocupando casi toda la pantalla y el documento
+       real casi inaccesible, reportado por el usuario ("todo amontonado arriba, apenas se
+       puede leer abajo"). Su propia sugerencia -- mostrar en mobile solo la vista de PDF
+       más el botón de Comentarios -- resulta que ya existe hecho: la tercera columna
+       (.rv-pane-corr) ES esa vista previa de PDF con el toggle de Comentarios en el mismo
+       lugar (btn-toggle-comments). No hace falta construir nada nuevo: en mobile se
+       esconden Estructura y el editor de contenido, y esa columna pasa a ocupar toda la
+       pantalla, igual que en desktop pero sola en vez de compartir el ancho. Editar
+       contenido de sección queda para desktop -- revisar el PDF y comentar es el caso de
+       uso real en mobile. */
     @media (max-width: 720px) {
         .rv-toolbar { padding: 8px 14px; }
-        .rv-pane-narrow, .rv-pane-mid, .rv-pane-corr {
-            flex: none !important;
-            max-height: 60vh !important;
+        /* !important necesario -- .rf-split > .rf-pane en base.css (dos clases combinadas)
+           tiene más especificidad que un selector de una sola clase y le gana a un
+           display:none simple, aunque este cargue después en el documento. */
+        .rv-pane-narrow, .rv-pane-mid { display: none !important; }
+        .rf-split { height: 100%; overflow: hidden; }
+        .rv-pane-corr {
+            flex: 1 !important;
+            width: 100%;
+            max-height: none !important;
+            border-bottom: none;
         }
     }
 </style>
