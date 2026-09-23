@@ -61,20 +61,24 @@ def collect_signatures_split(db, document_ids: list[str]) -> dict[str, dict[str,
 
     for r in db.execute(
         f"SELECT rs.document_id, rs.user_id, rs.role_label, rs.signed_at, rs.display_name_at_signing, "
-        f"rs.consent_id, u.display_name, u.username "
+        f"rs.signature_name_at_signing, rs.consent_id, u.display_name, u.username "
         f"FROM rf_review_signatures rs JOIN rf_users u ON u.id = rs.user_id "
         f"WHERE rs.document_id IN ({placeholders}) AND rs.invalidated_at IS NULL ORDER BY rs.signed_at",
         tuple(document_ids),
     ):
         nombre = r["display_name_at_signing"] or r["display_name"] or r["username"]
+        # 2026-09-23: signature_name_at_signing es el snapshot correcto; firmas de antes de
+        # que existiera ese campo caen a nombre (mismo criterio que display_name_at_signing).
+        firma_cursiva = r["signature_name_at_signing"] or nombre
         result[r["document_id"]]["revision"].append({
             "user_id": r["user_id"], "rol": r["role_label"] or "Revisor", "nombre": nombre,
-            "iniciales": iniciales(nombre), "fecha": fecha(r["signed_at"]), "consent_id": r["consent_id"],
+            "iniciales": iniciales(nombre), "firmaCursiva": firma_cursiva,
+            "fecha": fecha(r["signed_at"]), "consent_id": r["consent_id"],
         })
 
     for r in db.execute(
         f"SELECT rnd.document_id, sig.user_id, sig.role_label, sig.signed_at, sig.display_name_at_signing, "
-        f"sig.consent_id, u.display_name, u.username "
+        f"sig.signature_name_at_signing, sig.consent_id, u.display_name, u.username "
         f"FROM rf_approval_signers sig "
         f"JOIN rf_approval_rounds rnd ON rnd.id = sig.round_id "
         f"JOIN rf_users u ON u.id = sig.user_id "
@@ -83,9 +87,11 @@ def collect_signatures_split(db, document_ids: list[str]) -> dict[str, dict[str,
         tuple(document_ids),
     ):
         nombre = r["display_name_at_signing"] or r["display_name"] or r["username"]
+        firma_cursiva = r["signature_name_at_signing"] or nombre
         result[r["document_id"]]["aprobacion"].append({
             "user_id": r["user_id"], "rol": r["role_label"] or "Aprobador", "nombre": nombre,
-            "iniciales": iniciales(nombre), "fecha": fecha(r["signed_at"]), "consent_id": r["consent_id"],
+            "iniciales": iniciales(nombre), "firmaCursiva": firma_cursiva,
+            "fecha": fecha(r["signed_at"]), "consent_id": r["consent_id"],
         })
     return result
 

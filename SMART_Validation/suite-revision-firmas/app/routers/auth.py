@@ -233,6 +233,46 @@ def change_password(body: ChangePasswordBody, user: dict = Depends(get_current_u
     return {"ok": True}
 
 
+class UpdateProfileBody(BaseModel):
+    signature_display_name: str
+
+
+@router.get("/auth/profile")
+def get_profile(user: dict = Depends(get_current_user)):
+    """Autoservicio (2026-09-23, pedido del usuario: 'cada usuario la configura para sí
+    mismo') -- cualquier cuenta activa puede ver y editar solo SU PROPIO nombre de firma
+    cursiva, nunca el de otra persona."""
+    db = get_db()
+    row = db.execute(
+        "SELECT display_name, signature_display_name FROM rf_users WHERE id=?", (user["uid"],)
+    ).fetchone()
+    if not row:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+    return {
+        "ok": True,
+        "display_name": row["display_name"],
+        "signature_display_name": row["signature_display_name"] or row["display_name"],
+    }
+
+
+@router.post("/auth/profile")
+def update_profile(body: UpdateProfileBody, user: dict = Depends(get_current_user)):
+    name = body.signature_display_name.strip()
+    if not name:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "El nombre de firma no puede quedar vacío")
+    if len(name) > 80:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "El nombre de firma es demasiado largo (máximo 80 caracteres)")
+
+    db = get_db()
+    db.execute(
+        "UPDATE rf_users SET signature_display_name=?, updated_at=? WHERE id=?",
+        (name, time.time(), user["uid"]),
+    )
+    db.commit()
+    log_system_event(user, "signature_name_updated", f"{user['u']} actualizó su nombre de firma a \"{name}\"")
+    return {"ok": True, "signature_display_name": name}
+
+
 @router.get("/auth/signature-consent")
 def get_signature_consent(user: dict = Depends(get_current_user)):
     """Estado de la declaración de conformidad de firma electrónica de la sesión actual --

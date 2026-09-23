@@ -16,7 +16,13 @@ CREATE TABLE IF NOT EXISTS rf_users (
     created_by    TEXT,
     created_at    REAL,
     updated_at    REAL,
-    last_login    REAL
+    last_login    REAL,
+    -- Nombre a mostrar en cursiva al firmar (2026-09-23, pedido del usuario: "nombre y
+    -- apellido tipo cursiva como hace Adobe o DocuSign", configurable por cada uno para sí
+    -- mismo). NULL = usar display_name tal cual. Nunca se lee en vivo al armar un documento
+    -- ya firmado -- se snapshotea en signature_name_at_signing (rf_review_signatures /
+    -- rf_approval_signers) al momento de cada firma, mismo criterio que display_name_at_signing.
+    signature_display_name TEXT
 );
 
 CREATE TABLE IF NOT EXISTS rf_invites (
@@ -222,6 +228,11 @@ CREATE TABLE IF NOT EXISTS rf_review_signatures (
     -- queda como evidencia de que existió y de por qué se invalidó.
     content_fingerprint      TEXT,
     display_name_at_signing  TEXT,
+    -- 2026-09-23: mismo criterio que display_name_at_signing -- lo que efectivamente se
+    -- muestra en cursiva en el Libro de Firmas / PDF firmado, congelado al momento de esta
+    -- firma puntual. NULL para firmas emitidas antes de que este campo existiera (no se
+    -- rellena retroactivamente sin evidencia).
+    signature_name_at_signing TEXT,
     invalidated_at    REAL,
     invalidated_reason TEXT,
     -- Ronda 19: referencia a la fila de rf_signature_consent vigente al momento de ESTA
@@ -264,6 +275,7 @@ CREATE TABLE IF NOT EXISTS rf_approval_signers (
     -- Ronda 18: mismo criterio que rf_review_signatures -- ver esa tabla.
     content_fingerprint      TEXT,
     display_name_at_signing  TEXT,
+    signature_name_at_signing TEXT,
     invalidated_at    REAL,
     invalidated_reason TEXT,
     consent_id        INTEGER REFERENCES rf_signature_consent(id),

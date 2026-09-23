@@ -385,9 +385,17 @@ def get_signed_render(
         ).fetchone()
         if pending:
             nombre = user["d"] or user["u"]
+            # 2026-09-23: previsualización de la firma cursiva propia (todavía no firmó, no
+            # hay snapshot -- se lee el valor configurado ahora, en vivo, como preview de lo
+            # que va a quedar congelado apenas firme de verdad).
+            urow_pending = db.execute(
+                "SELECT signature_display_name FROM rf_users WHERE id=?", (user["uid"],)
+            ).fetchone()
+            firma_cursiva = (urow_pending["signature_display_name"] if urow_pending else None) or nombre
             firmas_aprobacion.append({
                 "rol": pending["role_label"] or "Aprobador", "nombre": nombre,
-                "iniciales": _fmt_iniciales(nombre), "fecha": _fmt_fecha(time.time()),
+                "iniciales": _fmt_iniciales(nombre), "firmaCursiva": firma_cursiva,
+                "fecha": _fmt_fecha(time.time()),
             })
 
     _resolve_consent_ids(db, firmas_revision, firmas_aprobacion)

@@ -125,8 +125,14 @@ def sign_review(
     # transacción a la mitad sin que el código de más abajo se entere).
     _verify_pin(db, user["uid"], body.pin)
 
-    urow = db.execute("SELECT display_name FROM rf_users WHERE id=?", (user["uid"],)).fetchone()
+    urow = db.execute(
+        "SELECT display_name, signature_display_name FROM rf_users WHERE id=?", (user["uid"],)
+    ).fetchone()
     display_name_at_signing = (urow["display_name"] if urow else None) or user["u"]
+    # 2026-09-23: nombre de firma cursiva configurado por el usuario para sí mismo -- se
+    # congela acá, igual criterio que display_name_at_signing (nunca se relee en vivo al
+    # armar un documento ya firmado).
+    signature_name_at_signing = (urow["signature_display_name"] if urow else None) or display_name_at_signing
 
     # Ronda 18 (revisión de Codex sobre el commit anterior, 2026-09-19): todo lo de abajo --
     # releer el documento, comprobar fingerprint/lock, y escribir la firma -- tiene que ser
@@ -160,10 +166,10 @@ def sign_review(
         db.execute(
             "INSERT INTO rf_review_signatures "
             "(document_id, user_id, username, role_label, signed_at, content_fingerprint, "
-            "display_name_at_signing, consent_id) "
-            "VALUES (?,?,?,?,?,?,?,?)",
+            "display_name_at_signing, signature_name_at_signing, consent_id) "
+            "VALUES (?,?,?,?,?,?,?,?,?)",
             (doc["id"], user["uid"], user["u"], body.role_label, time.time(),
-             body.content_fingerprint, display_name_at_signing, consent_id),
+             body.content_fingerprint, display_name_at_signing, signature_name_at_signing, consent_id),
         )
         # Bloquea edición desde la PRIMERA firma (antes solo el sellado final de aprobación lo
         # hacía) -- ver _upsert_document en documents.py.
@@ -388,9 +394,14 @@ def sign_approval(
     # No confiar en user["sa"] (viene del token, no cubierto por su firma HMAC -- ver
     # security.py) para una decisión de autorización real. Se relee is_superadmin desde
     # rf_users, igual que ya hace create_round más arriba para el mismo chequeo.
-    urow = db.execute("SELECT is_superadmin, display_name FROM rf_users WHERE id=?", (user["uid"],)).fetchone()
+    urow = db.execute(
+        "SELECT is_superadmin, display_name, signature_display_name FROM rf_users WHERE id=?",
+        (user["uid"],),
+    ).fetchone()
     is_superadmin = bool(urow["is_superadmin"]) if urow else False
     display_name_at_signing = (urow["display_name"] if urow else None) or user["u"]
+    # 2026-09-23: mismo criterio que sign_review -- ver esa nota.
+    signature_name_at_signing = (urow["signature_display_name"] if urow else None) or display_name_at_signing
     if is_last and not is_superadmin:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "El último firmante debe ser DRP (superadmin)")
     if is_last and not body.pdf_base64:
@@ -447,9 +458,10 @@ def sign_approval(
 
         db.execute(
             "UPDATE rf_approval_signers SET signed_at=?, justification_text=?, "
-            "content_fingerprint=?, display_name_at_signing=?, consent_id=? WHERE id=?",
+            "content_fingerprint=?, display_name_at_signing=?, signature_name_at_signing=?, "
+            "consent_id=? WHERE id=?",
             (now, body.justification_text, body.content_fingerprint, display_name_at_signing,
-             consent_id, me["id"]),
+             signature_name_at_signing, consent_id, me["id"]),
         )
         # Bloquea edición desde la PRIMERA firma, no solo el sellado final -- update
         # idempotente si ya estaba en 1 (p.ej. alguien ya firmó como revisor antes).

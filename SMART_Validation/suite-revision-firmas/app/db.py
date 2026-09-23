@@ -244,6 +244,17 @@ def init_db() -> None:
     _migrate_signature_consent_history(db)
     _migrate_add_consent_fk(db)
     _migrate_add_review_closed(db)
+    _migrate_add_signature_display_name(db)
+
+
+def _migrate_add_signature_display_name(db) -> None:
+    """Agrega signature_display_name (rf_users) y signature_name_at_signing
+    (rf_review_signatures, rf_approval_signers) -- 2026-09-23, "firma cursiva"
+    configurable por cada usuario. Mismo helper probado que review_closed (H-6 enseñó a no
+    repetir el gap de Postgres a mano)."""
+    _add_columns_if_missing(db, "rf_users", {"signature_display_name": "TEXT"})
+    _add_columns_if_missing(db, "rf_review_signatures", {"signature_name_at_signing": "TEXT"})
+    _add_columns_if_missing(db, "rf_approval_signers", {"signature_name_at_signing": "TEXT"})
 
 
 def _migrate_add_review_closed(db) -> None:

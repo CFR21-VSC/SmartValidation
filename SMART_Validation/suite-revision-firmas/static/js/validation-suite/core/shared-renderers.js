@@ -529,7 +529,12 @@
                 stack: [
                     { text: f.rol || '—', fontSize: 8, bold: true, color: C.textSoft, alignment: 'center', margin: [2, 6, 2, 2] },
                     { text: f.nombre || '—', fontSize: 9, bold: true, alignment: 'center', color: C.text, margin: [2, 0, 2, 2] },
-                    { text: f.iniciales || '', fontSize: 14, bold: true, alignment: 'center', color: C.primary, margin: [2, 2, 2, 2] },
+                    // Firma "tipeada" en cursiva (2026-09-23, estilo Adobe/DocuSign) --
+                    // f.firmaCursiva es el nombre que el propio firmante configuró para sí
+                    // mismo (o su display_name si nunca lo configuró), congelado al momento
+                    // de firmar. Reemplaza el bloque de iniciales de antes -- ese campo sigue
+                    // viniendo del backend por compatibilidad, pero ya no se muestra acá.
+                    { text: f.firmaCursiva || f.nombre || '', font: 'DancingScript', fontSize: 16, alignment: 'center', color: C.primary, margin: [2, 4, 2, 2] },
                     { text: tb.formatDateShort(f.fecha) || '—', fontSize: 8, italics: true, alignment: 'center', color: C.textSoft, margin: [2, 0, 2, 2] },
                     consentNote
                 ],
