@@ -19,7 +19,7 @@ from pypdf import PdfReader
 
 from ..audit import log_event
 from ..db import get_db
-from ..deps import check_document_access, ensure_project_active, get_current_user, require_drp
+from ..deps import check_can_sign, check_document_access, ensure_project_active, get_current_user, require_drp
 from ..email_resend import send_email
 from ..security import check_pin_lockout, clear_pin_attempts, pbkdf2_verify, register_failed_pin
 from ..signature_consent import get_consent_id_for_signing
@@ -95,7 +95,9 @@ def _verify_pin(db, user_id: str, pin: str) -> None:
 def sign_review(
     project_id: str, doc_type: str, body: ReviewSignBody, user: dict = Depends(get_current_user)
 ):
-    check_document_access(user, project_id, doc_type)
+    # 2026-09-23 (precaución del usuario): ser DRP alcanza para VER un documento no privado,
+    # no para firmarlo -- necesita asignación explícita. Ver check_can_sign en deps.py.
+    check_can_sign(user, project_id, doc_type)
     db = get_db()
     consent_id = _require_signature_consent(db, user["uid"])
     ensure_project_active(db, project_id)
@@ -221,9 +223,13 @@ def close_review(project_id: str, doc_type: str, body: CloseReviewBody, user: di
     list_review_signatures, este endpoint no llamaba a check_document_access -- un DRP
     ajeno a un proyecto privado, sin grant, podía cerrar la revisión de un documento que
     ni siquiera podía leer (404 en /signature-book y en el documento, pero 200 acá).
-    Mismo chequeo, mismo lugar (primera línea, antes de tocar la DB) que el resto de los
-    endpoints de esta familia."""
-    check_document_access(user, project_id, doc_type)
+
+    2026-09-23 (precaución del usuario, mismo día): ese primer fix usó check_document_access,
+    que deja pasar a CUALQUIER DRP en un proyecto no privado sin asignación -- cerrar la
+    revisión es una acción formal GxP, misma familia que firmar, así que ahora usa
+    check_can_sign (ver deps.py): hace falta asignación (o ser superadmin) para poder
+    cerrarla, no solo ser DRP."""
+    check_can_sign(user, project_id, doc_type)
     db = get_db()
     consent_id = _require_signature_consent(db, user["uid"])
     ensure_project_active(db, project_id)
@@ -259,6 +265,13 @@ def close_review(project_id: str, doc_type: str, body: CloseReviewBody, user: di
 def create_approval_round(
     project_id: str, doc_type: str, body: CreateRoundBody, user: dict = Depends(require_drp)
 ):
+    # Encontrado al revisar esto (2026-09-23, precaución del usuario sobre firma sin
+    # asignación): este endpoint no llamaba a NINGÚN chequeo de acceso para quien abre la
+    # ronda -- ni siquiera el laxo de check_document_access. Cualquier DRP podía abrir una
+    # ronda de aprobación (eligiendo firmantes) incluso sobre un documento de un proyecto
+    # PRIVADO ajeno, algo que ni el chequeo laxo permitía en ningún otro endpoint de este
+    # archivo. Mismo check_can_sign que el resto de las acciones formales.
+    check_can_sign(user, project_id, doc_type)
     db = get_db()
     ensure_project_active(db, project_id)
     doc = _get_document_or_404(db, project_id, doc_type)
@@ -363,7 +376,11 @@ def get_current_approval_round(project_id: str, doc_type: str, user: dict = Depe
 def sign_approval(
     project_id: str, doc_type: str, body: ApprovalSignBody, user: dict = Depends(get_current_user)
 ):
-    check_document_access(user, project_id, doc_type)
+    # En la práctica esto ya estaba cubierto de forma transitiva -- create_approval_round exige
+    # grant (o superadmin) para designar a alguien firmante, así que nadie llega hasta acá sin
+    # eso. Se pone el mismo chequeo explícito igual, en vez de confiar en esa invariante
+    # indirecta (defensa en profundidad -- ver check_can_sign en deps.py).
+    check_can_sign(user, project_id, doc_type)
     if not body.justification_text or not body.justification_text.strip():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "El texto justificativo es obligatorio")
 

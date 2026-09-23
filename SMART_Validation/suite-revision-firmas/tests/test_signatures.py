@@ -30,6 +30,26 @@ def drp_with_pin(drp_client):
     return drp_client
 
 
+@pytest.fixture
+def unassigned_drp(drp_client):
+    """Segundo DRP, NO superadmin, invitado por el primero -- sin ningún grant. Precaución
+    del usuario 2026-09-23: ser DRP alcanza para ver un documento no privado, pero no para
+    firmarlo sin asignación explícita (ver check_can_sign en deps.py). Devuelve (cliente,
+    user_id) -- mismo shape que el fixture `cliente`, de arriba."""
+    created = drp_client.post(
+        "/users",
+        json={"username": "otro-drp", "email": "otro-drp@example.com", "display_name": "Otro DRP", "role": "drp"},
+    )
+    assert created.status_code == 200, created.text
+    user_id = created.json()["user_id"]
+    token = created.json()["invite_link"].split("token=")[-1]
+    cli = TestClient(app)
+    accept = cli.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "5678"})
+    assert accept.status_code == 200, accept.text
+    accept_signature_consent(cli)
+    return cli, user_id
+
+
 def _fp(drp, project_id="proj-1", doc_type="HLRA"):
     """content_fingerprint vigente del documento -- Ronda 18: review-signatures y
     approval-round/sign lo exigen y lo comparan contra el string guardado. Se usa `drp`
@@ -437,6 +457,58 @@ def test_cannot_open_second_approval_round_while_one_is_open(drp_with_pin, clien
     drp_with_pin.post("/projects/proj-1/documents/HLRA/approval-round", json=body)
     r = drp_with_pin.post("/projects/proj-1/documents/HLRA/approval-round", json=body)
     assert r.status_code == 409
+
+
+# ─── DRP sin asignación no puede firmar (precaución del usuario 2026-09-23) ────
+
+def test_review_sign_rejected_for_drp_without_grant(drp_with_pin, unassigned_drp):
+    cli, _user_id = unassigned_drp
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    # Ser DRP alcanza para VER el documento -- el proyecto no es privado.
+    seen = cli.get("/projects/proj-1/documents/HLRA")
+    assert seen.status_code == 200
+    r = cli.post(
+        "/projects/proj-1/documents/HLRA/review-signatures",
+        json={"pin": "5678", "role_label": "Revisor", "content_fingerprint": seen.json()["content_fingerprint"]},
+    )
+    assert r.status_code == 403
+    assert "asignaci" in r.text
+
+
+def test_close_review_rejected_for_drp_without_grant(drp_with_pin, unassigned_drp):
+    cli, _user_id = unassigned_drp
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    r = cli.post("/projects/proj-1/documents/HLRA/close-review", json={"pin": "5678"})
+    assert r.status_code == 403
+
+
+def test_approval_round_open_rejected_for_drp_without_grant(drp_with_pin, unassigned_drp):
+    cli, _user_id = unassigned_drp
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    assert drp_with_pin.post("/projects/proj-1/documents/HLRA/close-review", json={"pin": "9999"}).status_code == 200
+    drp_id = _superadmin_id(drp_with_pin)
+    r = cli.post(
+        "/projects/proj-1/documents/HLRA/approval-round",
+        json={"signers": [{"user_id": drp_id, "role_label": "Aprobador", "sign_order": 1}]},
+    )
+    assert r.status_code == 403
+
+
+def test_drp_can_self_grant_then_sign(drp_with_pin, unassigned_drp):
+    """El DRP sin asignación puede autoasignarse el grant (es admin, /grants no exige más
+    que require_drp) y a partir de ahí SÍ puede firmar -- la restricción es "necesita
+    asignación", no "nunca puede ser DRP", tal como lo pidió el usuario."""
+    cli, my_id = unassigned_drp
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    granted = cli.post(f"/users/{my_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+    assert granted.status_code == 200, granted.text
+
+    fp = cli.get("/projects/proj-1/documents/HLRA").json()["content_fingerprint"]
+    r = cli.post(
+        "/projects/proj-1/documents/HLRA/review-signatures",
+        json={"pin": "5678", "role_label": "Revisor", "content_fingerprint": fp},
+    )
+    assert r.status_code == 200, r.text
 
 
 # ─── Ver PDF con firmas reales inyectadas (no solo en el Libro) ────────────

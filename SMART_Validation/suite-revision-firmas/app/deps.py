@@ -96,6 +96,39 @@ def check_document_access(user: dict, project_id: str, doc_type: str) -> None:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "No tenés acceso a este documento")
 
 
+def check_can_sign(user: dict, project_id: str, doc_type: str) -> None:
+    """Como check_document_access, pero para las acciones formales de firma/cierre de revisión
+    (sign_review, close_review, sign_approval) -- pedido explícito del usuario 2026-09-23: ser
+    DRP alcanza para VER un documento de un proyecto no privado (bypass de rol de
+    check_document_access, sin cambios), pero no para FIRMARLO -- necesita una asignación
+    (grant) explícita a ese documento puntual, igual que un partner o un cliente. Un DRP puede
+    autoasignarse ese grant (es admin, puede otorgárselo a sí mismo desde Usuarios) pero hasta
+    que lo haga, no puede firmar. Superadmin sigue firmando cualquier documento sin grant --
+    ya era así para designar firmantes de aprobación (`grants_by_id`, ver create_approval_round
+    en signatures.py); esto extiende el MISMO criterio a la firma de revisión y al cierre de
+    revisión, que hasta ahora pasaban por el chequeo laxo de check_document_access (cualquier
+    DRP, sin asignación). 404 (no 403) para proyecto privado ajeno -- mismo motivo de no
+    confirmar existencia que check_document_access; 403 para "sos DRP pero no estás asignado a
+    este documento", que no es información sensible (el proyecto ya es visible)."""
+    db = get_db()
+    proj = db.execute(
+        "SELECT is_private, owner_user_id FROM rf_projects WHERE id=?", (project_id,)
+    ).fetchone()
+    is_owner = bool(proj) and proj["owner_user_id"] == user.get("uid")
+    if proj and proj["is_private"] and not is_owner:
+        if not _has_document_grant(db, user.get("uid"), project_id, doc_type):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Documento no encontrado")
+        return
+    if is_owner or is_superadmin_fresh(db, user):
+        return
+    if not _has_document_grant(db, user.get("uid"), project_id, doc_type):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "No tenés una asignación en este documento -- pedile a un DRP que te otorgue "
+            "acceso antes de firmar",
+        )
+
+
 def assert_owner_if_private(db, user: dict, project_id: str) -> None:
     """Para endpoints exclusivos de DRP a nivel PROYECTO, sin mecanismo de grant propio
     (renombrar, cerrar/archivar/borrar, marca del partner, audit-log, libro compilado, listado
