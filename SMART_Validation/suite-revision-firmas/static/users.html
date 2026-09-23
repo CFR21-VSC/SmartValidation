@@ -56,7 +56,13 @@
         <input class="rf-input" id="reset-link-input" readonly onclick="this.select();">
     </div>
 
-    <h3>Usuarios</h3>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <h3 style="margin-bottom:0;">Usuarios</h3>
+        <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--text-muted); cursor:pointer;">
+            <input type="checkbox" id="show-inactive-toggle">
+            Mostrar inactivos (<span id="inactive-count">0</span>)
+        </label>
+    </div>
     <table class="rf-table">
         <thead>
             <tr>
@@ -136,8 +142,11 @@ async function init() {
     }
 
     document.getElementById('user-badge').textContent = `${session.display_name} · DRP`;
+    document.getElementById('show-inactive-toggle').addEventListener('change', renderUsers);
     await loadUsers();
 }
+
+let allUsers = [];
 
 async function loadUsers() {
     const { status, data } = await apiFetch('/users');
@@ -151,9 +160,35 @@ async function loadUsers() {
         return;
     }
 
-    const users = data.users || [];
+    allUsers = data.users || [];
+    renderUsers();
+}
+
+// Separado de loadUsers() (que solo pega al server) -- pedido del usuario, 2026-09-23:
+// "dejame archivar usuarios, para que eso no sea algo ingobernable". Con cada ronda de
+// testing se acumulan cuentas desactivadas (qatest01, qatest02, etc.) que antes quedaban
+// mezcladas para siempre con las activas en la misma lista plana. Por defecto se ocultan;
+// el toggle "Mostrar inactivos" las trae de vuelta sin perder nada (siguen ahí, solo no
+// estorban en el uso del día a día).
+function renderUsers() {
+    const tbody = document.getElementById('users-tbody');
+    const empty = document.getElementById('users-empty');
+    const showInactive = document.getElementById('show-inactive-toggle').checked;
+
+    const inactiveCount = allUsers.filter(u => !u.is_active).length;
+    document.getElementById('inactive-count').textContent = inactiveCount;
+
+    const users = showInactive ? allUsers : allUsers.filter(u => u.is_active);
+
+    if (allUsers.length === 0) {
+        tbody.innerHTML = '';
+        empty.textContent = 'No hay usuarios.';
+        empty.style.display = 'block';
+        return;
+    }
     if (users.length === 0) {
         tbody.innerHTML = '';
+        empty.textContent = `Todos los usuarios están inactivos (${inactiveCount}) -- tildá "Mostrar inactivos" para verlos.`;
         empty.style.display = 'block';
         return;
     }
