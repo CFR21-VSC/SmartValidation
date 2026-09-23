@@ -8,12 +8,14 @@ routers/signatures.py — Firma de Revisión y Firma de Aprobación (sección 5)
 """
 import base64
 import hashlib
+import io
 import json
 import time
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+from pypdf import PdfReader
 
 from ..audit import log_event
 from ..db import get_db
@@ -420,15 +422,21 @@ def sign_approval(
     # Decodificar y validar el formato del PDF ANTES de escribir nada -- un adjunto inválido
     # no puede dejar la firma del signer parcialmente grabada. hashlib.sha256(pdf_base64.
     # encode()) hasheaba el texto base64, nunca el PDF real, y los bytes nunca se guardaban
-    # (Codex, 2026-09-19). Ahora se decodifica, se valida la firma de archivo %PDF-, se
-    # hashea el binario real, y se guardan los bytes.
+    # (Codex, 2026-09-19). Ahora se decodifica, se hashea el binario real, y se guardan los
+    # bytes.
     #
-    # LÍMITE CONOCIDO, sin cerrar todavía (Codex, segunda revisión): esto valida que el
-    # adjunto TIENE FORMA de PDF, no que sea un render fiel del JSON que se está sellando --
-    # nada impide hoy adjuntar un PDF de otro documento que también empiece con "%PDF-". El
+    # F-02 (informe de simulación adversarial 2026-09-23): el chequeo anterior solo miraba el
+    # prefijo `%PDF-` -- cualquier string de bytes que empezara así (sin estructura real de
+    # PDF: sin xref, sin trailer, sin una sola página) pasaba y quedaba sellado como "original".
+    # Ahora se usa pypdf para exigir un PDF realmente parseable con al menos una página, lo que
+    # cierra el caso "artefacto inutilizable" del hallazgo.
+    #
+    # LÍMITE QUE SIGUE ABIERTO (ya señalado por Codex en Ronda 18, no cerrado acá): esto valida
+    # que el adjunto es un PDF ESTRUCTURALMENTE VÁLIDO, no que sea un render fiel del JSON que
+    # se está sellando -- nada impide hoy adjuntar un PDF válido de OTRO documento. El
     # fingerprint garantiza que el JSON no cambió; no garantiza que el PDF corresponda a ESE
-    # JSON. Cerrarlo de verdad requiere que el servidor genere el PDF (o lo verifique
-    # estructuralmente) en vez de confiar en el que manda el cliente -- ver discusión en
+    # JSON. Cerrarlo de verdad requiere que el servidor genere el PDF (o lo verifique contra el
+    # contenido) en vez de confiar en el que manda el cliente -- ver discusión en
     # docs-privados/ronda-18-revision-firma-artefacto-inmutable.md, es una pieza de
     # infraestructura aparte (motor de render del lado del servidor), no un ajuste chico.
     pdf_bytes = None
@@ -437,7 +445,11 @@ def sign_approval(
             pdf_bytes = base64.b64decode(body.pdf_base64, validate=True)
         except Exception:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "pdf_base64 no es base64 válido")
-        if not pdf_bytes.startswith(b"%PDF-"):
+        try:
+            reader = PdfReader(io.BytesIO(pdf_bytes))
+            if len(reader.pages) < 1:
+                raise ValueError("PDF sin páginas")
+        except Exception:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "El adjunto no es un PDF válido")
 
     # Ronda 18, segunda vuelta: todo el chequeo+escritura en una sola transacción real (ver

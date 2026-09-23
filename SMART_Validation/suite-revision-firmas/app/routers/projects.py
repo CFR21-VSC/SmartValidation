@@ -42,6 +42,54 @@ def has_signature_evidence(db, document_id: str) -> bool:
     ).fetchone()
     return bool(has_approval_sig)
 
+
+# F-04 (informe de simulación adversarial 2026-09-23): alias fijado a la función real en
+# tiempo de definición, no al nombre del módulo. delete_project/delete_document (documents.py)
+# lo usan para el re-chequeo final DENTRO de la transacción con lock de escritura ya tomado
+# (BEGIN IMMEDIATE) -- ese re-chequeo tiene que quedar aislado de cualquier cosa que pueda
+# estar enganchada al nombre público `has_signature_evidence` en tiempo de ejecución. Si el
+# re-chequeo reentrara ahí y ese código intentara abrir su propia transacción de escritura,
+# quedaría esperando indefinidamente un lock que esta misma llamada no va a soltar hasta que
+# esa reentrada termine -- auto-deadlock. El chequeo previo (fuera del lock, fail-fast) sigue
+# usando el nombre público sin problema.
+_has_signature_evidence_locked = has_signature_evidence
+
+
+def _assert_project_deletable(db, project_id: str, *, evidence_check) -> list[str]:
+    """Levanta 409 si el proyecto no se puede borrar (documento sellado o con evidencia de
+    firma). Devuelve el doc_type de todos los documentos del proyecto. Se llama dos veces
+    desde delete_project: una vez fuera de cualquier transacción (fail-fast, con el chequeo
+    público) y otra vez fresca, adentro del BEGIN IMMEDIATE (con `_has_signature_evidence_locked`,
+    ver nota arriba) -- misma lógica, una sola fuente de verdad para el mensaje y el criterio.
+
+    `evidence_check` no tiene default a propósito: si lo tuviera, Python lo fijaría UNA vez al
+    definir esta función (import time), capturando el objeto función de ese momento -- daría
+    igual qué esté enganchado después en `has_signature_evidence`. Pasarlo siempre explícito
+    en el call site hace que se resuelva recién ahí, en cada llamada."""
+    locked = db.execute(
+        "SELECT doc_type FROM rf_documents WHERE project_id=? AND locked=1", (project_id,)
+    ).fetchall()
+    if locked:
+        types = ", ".join(r["doc_type"] for r in locked)
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"No se puede eliminar: tiene documento(s) sellado(s) ({types})",
+        )
+    all_docs = db.execute(
+        "SELECT id, doc_type FROM rf_documents WHERE project_id=?", (project_id,)
+    ).fetchall()
+    con_firmas = [d["doc_type"] for d in all_docs if evidence_check(db, d["id"])]
+    if con_firmas:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "No se puede eliminar: documento(s) con firmas registradas (" + ", ".join(con_firmas) + ") "
+            "-- conservan evidencia de firma electrónica, el proyecto entero no se puede borrar "
+            "mientras existan (tampoco eliminándolos uno por uno: delete_document aplica el mismo "
+            "bloqueo)",
+        )
+    return [d["doc_type"] for d in all_docs]
+
+
 router = APIRouter(prefix="/projects", tags=["projects"])
 
 # Sin prefijo /projects — es el audit trail de sistema UNIFICADO, cruzando todos los
@@ -426,35 +474,34 @@ def delete_project(project_id: str, user: dict = Depends(require_drp)):
     db = get_db()
     _get_project_or_404(db, project_id, user)
 
-    locked = db.execute(
-        "SELECT doc_type FROM rf_documents WHERE project_id=? AND locked=1", (project_id,)
-    ).fetchall()
-    if locked:
-        types = ", ".join(r["doc_type"] for r in locked)
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            f"No se puede eliminar: tiene documento(s) sellado(s) ({types})",
-        )
+    # Chequeo fail-fast, sin lock -- rechaza el caso común (proyecto no borrable) sin pagar
+    # el costo de una transacción de escritura. No es la protección real contra la carrera;
+    # ver la relectura de abajo, DENTRO del lock.
+    _assert_project_deletable(db, project_id, evidence_check=has_signature_evidence)
 
-    all_docs = db.execute(
-        "SELECT id, doc_type FROM rf_documents WHERE project_id=?", (project_id,)
-    ).fetchall()
-    con_firmas = [d["doc_type"] for d in all_docs if has_signature_evidence(db, d["id"])]
-    if con_firmas:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            "No se puede eliminar: documento(s) con firmas registradas (" + ", ".join(con_firmas) + ") "
-            "-- conservan evidencia de firma electrónica, el proyecto entero no se puede borrar "
-            "mientras existan (tampoco eliminándolos uno por uno: delete_document aplica el mismo "
-            "bloqueo)",
-        )
+    # F-04 (informe de simulación adversarial 2026-09-23): los SELECT de arriba y los DELETE
+    # de abajo corrían como statements sueltos en autocommit (ver db.py), sin nada que
+    # impidiera una firma real -- sign_review/sign_approval SÍ toman BEGIN IMMEDIATE -- de
+    # intercalarse entre la comprobación "no hay firmas" y el borrado. El proyecto se borraba
+    # igual, perdiendo una firma que acababa de confirmarse. Mismo patrón que sign_review/
+    # sign_approval/reopen_document: comprobar y escribir dentro de la MISMA transacción con
+    # lock de escritura. La relectura usa `_has_signature_evidence_locked` (no el nombre
+    # público) -- ver la nota junto a esa asignación, arriba, sobre por qué.
+    db.execute("BEGIN IMMEDIATE")
+    try:
+        doc_types = _assert_project_deletable(db, project_id, evidence_check=_has_signature_evidence_locked)
+        doc_count = len(doc_types)
 
-    doc_count = len(all_docs)
-
-    db.execute("DELETE FROM rf_documents WHERE project_id=?", (project_id,))  # cascada: corrections/firmas
-    db.execute("DELETE FROM rf_document_access_grants WHERE project_id=?", (project_id,))
-    db.execute("DELETE FROM rf_projects WHERE id=?", (project_id,))
-    db.commit()
+        db.execute("DELETE FROM rf_documents WHERE project_id=?", (project_id,))  # cascada: corrections/firmas
+        db.execute("DELETE FROM rf_document_access_grants WHERE project_id=?", (project_id,))
+        db.execute("DELETE FROM rf_projects WHERE id=?", (project_id,))
+        db.execute("COMMIT")
+    except HTTPException:
+        db.execute("ROLLBACK")
+        raise
+    except Exception:
+        db.execute("ROLLBACK")
+        raise
 
     # El Libro de Validación (People Book) de este proyecto NO se borra — queda como
     # registro histórico de que existió y fue eliminado (no se destruyen audit trails).

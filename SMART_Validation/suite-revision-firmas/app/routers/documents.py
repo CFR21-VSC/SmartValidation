@@ -29,7 +29,7 @@ from .book import (
     collect_signatures_split, fecha as _fmt_fecha, iniciales as _fmt_iniciales,
     inject_signatures_section, _resolve_consent_ids,
 )
-from .projects import ensure_project, has_signature_evidence
+from .projects import _has_signature_evidence_locked, ensure_project
 
 router = APIRouter(prefix="/projects/{project_id}/documents", tags=["documents"])
 
@@ -209,15 +209,34 @@ def delete_document(project_id: str, doc_type: str, user: dict = Depends(require
     # (projects.py, compartida con delete_project) también excluye designaciones de ronda sin
     # firmar todavía (signed_at IS NULL) -- eso no es evidencia de firma electrónica (tercera
     # devolución de Codex).
-    if has_signature_evidence(db, doc["id"]):
-        raise HTTPException(
-            status.HTTP_409_CONFLICT,
-            "El documento tiene firmas registradas (activas o invalidadas) — no se puede eliminar, "
-            "conserva evidencia de firma electrónica",
-        )
-
-    db.execute("DELETE FROM rf_documents WHERE id=?", (doc["id"],))  # cascada: corrections/comentarios
-    db.commit()
+    #
+    # F-04 (informe de simulación adversarial 2026-09-23, mismo defecto que delete_project):
+    # el chequeo de arriba y el DELETE de abajo corrían sueltos en autocommit -- una firma real
+    # (sign_review SÍ toma BEGIN IMMEDIATE) podía intercalarse entre medio y perderse en la
+    # cascada. Se releen locked/evidencia DENTRO de la misma transacción con lock de escritura
+    # que el DELETE, mismo patrón que delete_project -- usando `_has_signature_evidence_locked`
+    # para la relectura, no el nombre público (ver nota junto a esa asignación en projects.py).
+    db.execute("BEGIN IMMEDIATE")
+    try:
+        fresh_doc = db.execute("SELECT locked FROM rf_documents WHERE id=?", (doc["id"],)).fetchone()
+        if not fresh_doc:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Documento no encontrado")
+        if fresh_doc["locked"]:
+            raise HTTPException(status.HTTP_409_CONFLICT, "El documento está sellado — no puede eliminarse")
+        if _has_signature_evidence_locked(db, doc["id"]):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "El documento tiene firmas registradas (activas o invalidadas) — no se puede eliminar, "
+                "conserva evidencia de firma electrónica",
+            )
+        db.execute("DELETE FROM rf_documents WHERE id=?", (doc["id"],))  # cascada: corrections/comentarios
+        db.execute("COMMIT")
+    except HTTPException:
+        db.execute("ROLLBACK")
+        raise
+    except Exception:
+        db.execute("ROLLBACK")
+        raise
     log_system_event(user, "document_deleted", f"{user['u']} eliminó {doc_type}", project_id=project_id, doc_type=doc_type)
     return {"ok": True}
 
@@ -456,8 +475,26 @@ def reopen_document(
     # ni reintentar limpio. db.commit() al final no agrupaba nada retroactivamente, cada
     # execute() ya se había confirmado solo. Mismo patrón que sign_review/sign_approval:
     # invalidar + cancelar + desbloquear, todo en una sola transacción real.
+    #
+    # F-03 (informe de simulación adversarial 2026-09-23): el `doc["locked"]` chequeado arriba
+    # se leyó ANTES de este BEGIN IMMEDIATE y nunca se releía adentro -- un sellado real podía
+    # intercalarse entre esa lectura y acá, y esta función invalidaba igual las firmas de un
+    # documento que ya había terminado de sellarse en el medio. Mismo motivo por el que
+    # sign_review/sign_approval releen `locked` fresco dentro de su propia transacción; acá
+    # faltaba ese re-chequeo pese a que el comentario de arriba ya hablaba de "una sola
+    # transacción real".
     db.execute("BEGIN IMMEDIATE")
     try:
+        fresh_doc = db.execute(
+            "SELECT locked, edit_locked FROM rf_documents WHERE id=?", (doc["id"],)
+        ).fetchone()
+        if not fresh_doc or fresh_doc["locked"]:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "El documento está sellado (aprobación completa) — no se puede reabrir",
+            )
+        if not fresh_doc["edit_locked"]:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "El documento no tiene firmas, no hace falta reabrirlo")
         db.execute(
             "UPDATE rf_review_signatures SET invalidated_at=?, invalidated_reason=? "
             "WHERE document_id=? AND invalidated_at IS NULL",
