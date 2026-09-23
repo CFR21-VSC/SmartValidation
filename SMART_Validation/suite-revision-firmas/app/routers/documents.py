@@ -23,7 +23,10 @@ from pydantic import BaseModel
 from .. import config, email_resend, validacion_bridge
 from ..audit import log_event, log_system_event
 from ..db import get_db
-from ..deps import assert_owner_if_private, check_document_access, ensure_project_active, get_current_user, require_drp
+from ..deps import (
+    assert_owner_if_private, check_document_access, ensure_project_active, get_current_user,
+    has_sign_access, require_drp,
+)
 from ..doc_order import sort_docs
 from .book import (
     collect_signatures_split, fecha as _fmt_fecha, iniciales as _fmt_iniciales,
@@ -366,9 +369,15 @@ def get_document(project_id: str, doc_type: str, user: dict = Depends(get_curren
     content_fingerprint = _content_fingerprint(doc["json_data"])
     branding = _branding_for_document(db, project_id, doc)
     doc["json_data"] = json.loads(doc["json_data"])
+    # 2026-09-23 (reportado por el usuario): check_document_access (arriba) deja ver este
+    # documento a cualquier DRP de un proyecto no privado, pero firmarlo ahora exige
+    # asignación (check_can_sign, ver deps.py) -- sin este campo, review.html mostraba el
+    # menú de firmas igual para cualquier DRP, y el 403 recién aparecía al apretar el botón.
+    can_sign = has_sign_access(user, project_id, doc_type)
     return {
         "ok": True, "document": doc, "comments": [dict(c) for c in comments],
         "partner_branding": branding, "content_fingerprint": content_fingerprint,
+        "can_sign": can_sign,
     }
 
 

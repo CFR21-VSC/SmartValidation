@@ -467,6 +467,13 @@ def test_review_sign_rejected_for_drp_without_grant(drp_with_pin, unassigned_drp
     # Ser DRP alcanza para VER el documento -- el proyecto no es privado.
     seen = cli.get("/projects/proj-1/documents/HLRA")
     assert seen.status_code == 200
+    # can_sign (2026-09-23): el frontend usa este campo para no mostrar el menú de firmas
+    # habilitado a un DRP sin asignación (reportado por el usuario: "tenía disponible todo
+    # el menú de firmas... como si nunca hubiera perdido la funcionalidad"). El superadmin
+    # (drp_with_pin) sí puede firmar -- confirma que el campo distingue por usuario, no por
+    # rol ni por documento.
+    assert seen.json()["can_sign"] is False
+    assert drp_with_pin.get("/projects/proj-1/documents/HLRA").json()["can_sign"] is True
     r = cli.post(
         "/projects/proj-1/documents/HLRA/review-signatures",
         json={"pin": "5678", "role_label": "Revisor", "content_fingerprint": seen.json()["content_fingerprint"]},

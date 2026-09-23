@@ -891,6 +891,7 @@ try {
 } catch (e) {}
 
 let session = null;
+let canSign = false;         // ¿este usuario puede firmar/cerrar revisión de ESTE documento? (2026-09-23)
 let documentRow = null;      // { id, doc_type, status, locked, json_data, ... }
 let commentsBySection = {};  // section_key -> [{ id, content, resolved, user_id, username, created_at }, …]
 let sections = [];           // [{ key, label }]
@@ -1045,7 +1046,8 @@ async function init() {
     if (session.role === 'drp') {
         sourceActions.style.display = '';
         document.getElementById('btn-push-validacion').style.display = '';
-        document.getElementById('btn-close-review').style.display = '';
+        // btn-close-review: la visibilidad final (¿tiene asignación?) se decide en
+        // loadDocument(), que es donde se sabe `can_sign` -- acá todavía no.
     }
 
     document.getElementById('btn-close-review').addEventListener('click', () => openSignModalWithConsentGate(openCloseReviewModal));
@@ -1118,6 +1120,7 @@ async function loadDocument() {
     }
 
     documentRow = data.document;
+    canSign = !!data.can_sign;
     commentsBySection = {};
     (data.comments || []).forEach(c => {
         (commentsBySection[c.section_key] || (commentsBySection[c.section_key] = [])).push(c);
@@ -1130,9 +1133,16 @@ async function loadDocument() {
     // El backend ya rechaza firmar revisión sobre un documento sellado (409, ver sign_review
     // en signatures.py), pero la UI ofrecía el botón igual -- se llevaba el error recién al
     // apretar Firmar. Deshabilitarlo apenas se sabe que está sellado.
+    //
+    // can_sign (2026-09-23, reportado por el usuario): ser DRP alcanza para VER este
+    // documento (por eso llegó a cargar), pero firmarlo exige asignación explícita --
+    // check_can_sign en el backend ya lo rechaza con 403, esto evita mostrar el botón
+    // habilitado como si nada hubiera cambiado y que el error aparezca recién al firmar.
     const signReviewBtn = document.getElementById('btn-sign-review');
-    signReviewBtn.disabled = !!documentRow.locked;
-    signReviewBtn.title = documentRow.locked ? 'El documento ya está sellado -- no se puede firmar la revisión' : '';
+    signReviewBtn.disabled = !!documentRow.locked || !canSign;
+    signReviewBtn.title = documentRow.locked
+        ? 'El documento ya está sellado -- no se puede firmar la revisión'
+        : (!canSign ? 'No tenés una asignación en este documento -- otorgátela desde Usuarios para poder firmar' : '');
     if (documentRow.locked) {
         document.getElementById('hash-panel-sealed-at').textContent =
             `Documento sellado el ${fmtDateTime(documentRow.locked_at)}`;
@@ -1150,11 +1160,19 @@ async function loadDocument() {
         ((session.role === 'drp' || session.role === 'partner') && documentRow.edit_locked && !documentRow.locked) ? '' : 'none';
 
     const closeReviewBtn = document.getElementById('btn-close-review');
+    // can_sign (2026-09-23): cerrar revisión es DRP-only en el backend (require_drp), pero
+    // ahora TAMBIÉN exige asignación (check_can_sign) -- sin esto, el botón quedaba visible y
+    // habilitado para cualquier DRP aunque no estuviera asignado a este documento.
+    closeReviewBtn.style.display = session.role === 'drp' ? '' : 'none';
     if (session.role === 'drp') {
         if (documentRow.review_closed_at) {
             closeReviewBtn.textContent = `✓ Revisión cerrada (${escHtml(documentRow.review_closed_by || '')})`;
             closeReviewBtn.disabled = true;
             closeReviewBtn.title = `Revisión cerrada el ${fmtDateTime(documentRow.review_closed_at)} por ${documentRow.review_closed_by || '?'} -- no se puede reabrir.`;
+        } else if (!canSign) {
+            closeReviewBtn.textContent = 'Cerrar revisión';
+            closeReviewBtn.disabled = true;
+            closeReviewBtn.title = 'No tenés una asignación en este documento -- otorgátela desde Usuarios para poder cerrar la revisión';
         } else {
             closeReviewBtn.textContent = 'Cerrar revisión';
             closeReviewBtn.disabled = !!documentRow.locked;
@@ -1943,7 +1961,9 @@ async function loadSignatures() {
         signBtn.disabled = true;
         signBtn.textContent = '✓ Ya firmaste la revisión';
     } else {
-        signBtn.disabled = false;
+        // No pisar el `disabled` que loadDocument() ya calculó (sellado / sin asignación,
+        // ver can_sign) -- esta función corre DESPUÉS y antes reseteaba a false sin más.
+        signBtn.disabled = !!documentRow.locked || !canSign;
         signBtn.textContent = 'Firmar revisión';
     }
 }

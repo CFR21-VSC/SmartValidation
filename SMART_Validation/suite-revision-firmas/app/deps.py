@@ -96,6 +96,23 @@ def check_document_access(user: dict, project_id: str, doc_type: str) -> None:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "No tenés acceso a este documento")
 
 
+def has_sign_access(user: dict, project_id: str, doc_type: str) -> bool:
+    """Versión sin excepción de check_can_sign -- para que el frontend sepa de antemano si
+    mostrar las acciones de firma (ver campo `can_sign` en GET .../{doc_type}, documents.py),
+    en vez de mostrarlas siempre para cualquier DRP y que el 403 llegue recién al apretar el
+    botón (reportado por el usuario 2026-09-23: "entré [sin asignación] y tenía disponible
+    todo el menú de firmas... como si nunca hubiera perdido la funcionalidad"). Se asume que
+    quien llama YA pasó check_document_access (puede ver el documento) -- acá solo falta el
+    criterio más estricto de firma: dueño, superadmin, o grant."""
+    db = get_db()
+    if is_superadmin_fresh(db, user):
+        return True
+    proj = db.execute("SELECT owner_user_id FROM rf_projects WHERE id=?", (project_id,)).fetchone()
+    if proj and proj["owner_user_id"] == user.get("uid"):
+        return True
+    return _has_document_grant(db, user.get("uid"), project_id, doc_type)
+
+
 def check_can_sign(user: dict, project_id: str, doc_type: str) -> None:
     """Como check_document_access, pero para las acciones formales de firma/cierre de revisión
     (sign_review, close_review, sign_approval) -- pedido explícito del usuario 2026-09-23: ser

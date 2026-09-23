@@ -142,6 +142,7 @@ let usersList = [];
 let formRows = [];
 let approvalMatrix = [];  // Matriz de Aprobaciones del documento — ver getApprovalMatrix()
 let documentInfo = null;  // { pdf_hash, json_hash, locked, locked_at, ... } -- ver panel de hash
+let canSign = false;      // ¿este usuario puede abrir la ronda / firmar en este documento? (2026-09-23)
 
 // Misma sección tabla-firmas-final que arma el motor (shared-renderers.js) — antes de que
 // nadie firme en esta suite, trae los roles esperados (con nombres ya cargados desde la
@@ -323,6 +324,11 @@ async function loadApprovalMatrix() {
     );
     approvalMatrix = (status === 200 && data.ok) ? getApprovalMatrix(data.document.json_data) : [];
     documentInfo = (status === 200 && data.ok) ? data.document : null;
+    // 2026-09-23 (reportado por el usuario): abrir la ronda ahora exige asignación
+    // (check_can_sign en create_approval_round, no solo ser DRP) -- sin esto, el formulario
+    // de "abrir ronda" se mostraba igual para cualquier DRP y el 403 llegaba recién al
+    // enviarlo.
+    canSign = (status === 200 && data.ok) ? !!data.can_sign : false;
 }
 
 async function loadRound() {
@@ -370,6 +376,11 @@ function renderRight() {
     if (!currentRound) {
         if (session.role !== 'drp') {
             html = '<div class="rf-empty">Todavía no se abrió la ronda de aprobación</div>';
+        } else if (!canSign) {
+            html = `<div class="rf-empty">
+                No tenés una asignación en este documento -- otorgátela desde Usuarios para
+                poder abrir la ronda de aprobación.
+            </div>`;
         } else if (documentInfo && !documentInfo.review_closed_at) {
             html = `<div class="rf-empty">
                 La revisión de este documento todavía no está cerrada -- hay que cerrarla
@@ -407,7 +418,7 @@ function renderRight() {
 
     container.innerHTML = html;
 
-    if (!currentRound && session.role === 'drp' && documentInfo && documentInfo.review_closed_at) {
+    if (!currentRound && session.role === 'drp' && canSign && documentInfo && documentInfo.review_closed_at) {
         bindCreateFormEvents();
     }
     const signBtn = document.getElementById('sign-open-btn');
