@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 
 from . import config, security
 from .db import get_db, init_db, release_db
-from .routers import auth, book, bridge, documents, projects, signatures, users
+from .routers import auth, book, bridge, documents, process_mining, projects, signatures, users
 from .routers.documents import me_router
 from .routers.projects import audit_router
 
@@ -56,6 +56,7 @@ app.include_router(book.router)
 app.include_router(bridge.router)
 app.include_router(bridge.project_router)
 app.include_router(me_router)
+app.include_router(process_mining.router)
 
 app.mount("/app", StaticFiles(directory=_STATIC_DIR, html=True), name="app")
 

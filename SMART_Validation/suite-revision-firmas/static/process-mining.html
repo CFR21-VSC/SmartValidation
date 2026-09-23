@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>document.documentElement.classList.add('rf-auth-pending');try{if(localStorage.getItem('rf_theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+<title>Minería de procesos — Suite de Revisión y Firmas</title>
+<link rel="stylesheet" href="css/base.css">
+<style>
+    .pm-stage-row { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+    .pm-stage-row .pm-stage-label { flex: 2; font-size: 13px; color: var(--text-muted); }
+    .pm-stage-row .rf-input { flex: 1; max-width: 120px; }
+    .pm-summary-cards { display: flex; gap: 12px; flex-wrap: wrap; margin: 14px 0 20px; }
+    .pm-summary-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; min-width: 150px; }
+    .pm-summary-card .n { font-size: 22px; font-weight: 700; }
+    .pm-summary-card .l { font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+    .pm-breach { color: var(--danger); font-weight: 700; }
+    .pm-ok { color: var(--text-muted); }
+    .pm-filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin-bottom: 14px; }
+    .pm-filters .rf-field { margin-bottom: 0; }
+    .pm-version-item { font-size: 12px; color: var(--text-muted); padding: 4px 0; border-bottom: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<div class="rf-topbar">
+    <div class="rf-brand">Minería de procesos</div>
+    <span class="rf-badge" id="user-badge">…</span>
+    <div class="rf-spacer"></div>
+    <button class="rf-btn-secondary" id="back-link">← Dashboard</button>
+    <button class="rf-theme-toggle" id="theme-toggle-btn" title="Cambiar tema">☀️</button>
+    <button class="rf-btn-secondary" id="logout-btn">Cerrar sesión</button>
+</div>
+
+<div id="main-content" style="max-width: 1100px; margin: 24px auto; padding: 0 16px;">
+
+    <div class="rf-card" style="margin-bottom: 24px;">
+        <h3>Definición del SOP (proceso ideal)</h3>
+        <div class="rf-label" style="margin-bottom: 14px;">
+            Comparación puramente determinística (sin IA): cada etapa mide el tiempo real
+            transcurrido entre dos hitos del ciclo de firma, y se marca como desvío cuando
+            supera el umbral que definís acá. Guardar crea una <strong>versión nueva</strong> —
+            nunca se pisa una anterior, así que se puede iterar sin perder el historial.
+        </div>
+        <div id="sop-stages-body"></div>
+        <div class="rf-field" style="max-width: 220px; margin-top: 10px;">
+            <label class="rf-label" for="sop-max-rework">Rework máximo tolerado (reaperturas)</label>
+            <input class="rf-input" type="number" min="0" step="1" id="sop-max-rework">
+        </div>
+        <div class="rf-error" id="sop-error"></div>
+        <div style="margin-top: 14px; display: flex; align-items: center; gap: 12px;">
+            <button class="rf-btn" id="sop-save-btn">Guardar nueva versión</button>
+            <span id="sop-current-version" style="font-size: 12px; color: var(--text-muted);"></span>
+        </div>
+        <div id="sop-versions-body" style="margin-top: 14px;"></div>
+    </div>
+
+    <div class="rf-card">
+        <h3>Reporte de desvíos</h3>
+        <div class="pm-filters">
+            <div class="rf-field">
+                <label class="rf-label" for="filter-project">Proyecto</label>
+                <select class="rf-input" id="filter-project"><option value="">Todos (sistema completo)</option></select>
+            </div>
+            <div class="rf-field">
+                <label class="rf-label" for="filter-doc-type">Tipo de documento</label>
+                <input class="rf-input" id="filter-doc-type" placeholder="Ej: HLRA" style="max-width: 140px;">
+            </div>
+            <button class="rf-btn-secondary" id="filter-apply-btn">Filtrar</button>
+        </div>
+        <div class="pm-summary-cards" id="summary-cards"></div>
+        <table class="rf-table" id="deviations-table">
+            <thead>
+                <tr>
+                    <th>Proyecto</th><th>Documento</th>
+                    <th>Carga→revisión</th><th>Revisión→cierre</th>
+                    <th>Cierre→ronda</th><th>Ronda→sellado</th>
+                    <th>Rework</th>
+                </tr>
+            </thead>
+            <tbody id="deviations-body"></tbody>
+        </table>
+    </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+let session = null;
+let currentSop = null;
+
+const backLink = document.getElementById('back-link');
+backLink.addEventListener('click', () => { window.location.href = 'dashboard.html'; });
+document.getElementById('logout-btn').addEventListener('click', doLogout);
+document.getElementById('filter-apply-btn').addEventListener('click', loadDeviations);
+document.getElementById('sop-save-btn').addEventListener('click', saveSop);
+
+function fmtHours(h) {
+    if (h == null) return '—';
+    if (h < 1) return `${Math.round(h * 60)} min`;
+    if (h < 48) return `${h.toFixed(1)} h`;
+    return `${(h / 24).toFixed(1)} d`;
+}
+
+// ---------------------------------------------------------------------------
+// SOP: cargar, editar, guardar nueva versión
+// ---------------------------------------------------------------------------
+function renderSopForm(sop) {
+    currentSop = sop;
+    const body = document.getElementById('sop-stages-body');
+    body.innerHTML = sop.definition.stages.map(s => `
+        <div class="pm-stage-row">
+            <span class="pm-stage-label">${escHtml(s.label)}</span>
+            <input class="rf-input" type="number" min="0.1" step="0.5" data-stage-key="${escHtml(s.key)}" value="${s.max_hours}"> hs máx.
+        </div>
+    `).join('');
+    document.getElementById('sop-max-rework').value = sop.definition.max_rework_count;
+    document.getElementById('sop-current-version').textContent =
+        sop.version > 0 ? `Versión activa: v${sop.version} (${sop.name})` : 'Todavía no se guardó ninguna versión -- usando valores por defecto.';
+}
+
+async function loadSop() {
+    const { status, data } = await apiFetch('/sop');
+    if (status === 200 && data.ok) renderSopForm(data.sop);
+    await loadSopVersions();
+}
+
+async function loadSopVersions() {
+    const { status, data } = await apiFetch('/sop/versions');
+    const el = document.getElementById('sop-versions-body');
+    if (status !== 200 || !data.ok || data.versions.length === 0) {
+        el.innerHTML = '';
+        return;
+    }
+    el.innerHTML = '<div class="rf-label" style="margin-bottom:4px;">Historial de versiones:</div>' +
+        data.versions.map(v => `<div class="pm-version-item">v${v.version} — ${escHtml(v.name)} — ${fmtDateTime(v.created_at)} por ${escHtml(v.created_by || '?')}</div>`).join('');
+}
+
+async function saveSop() {
+    const errorBox = document.getElementById('sop-error');
+    errorBox.classList.remove('visible');
+    const stageInputs = document.querySelectorAll('#sop-stages-body input[data-stage-key]');
+    const stages = currentSop.definition.stages.map(s => {
+        const input = Array.from(stageInputs).find(i => i.dataset.stageKey === s.key);
+        return { key: s.key, label: s.label, max_hours: parseFloat(input.value) };
+    });
+    const maxRework = parseInt(document.getElementById('sop-max-rework').value, 10);
+    const btn = document.getElementById('sop-save-btn');
+    btn.disabled = true;
+    const { status, data } = await apiFetch('/sop', {
+        method: 'PUT',
+        body: { name: currentSop.version === 0 ? 'SOP v1' : currentSop.name, stages, max_rework_count: maxRework },
+    });
+    btn.disabled = false;
+    if (status === 200 && data.ok) {
+        showToast(`SOP guardado como versión ${data.version}`);
+        await loadSop();
+        await loadDeviations();
+    } else {
+        errorBox.textContent = data.error || 'No se pudo guardar el SOP.';
+        errorBox.classList.add('visible');
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Reporte de desvíos
+// ---------------------------------------------------------------------------
+async function loadProjectFilterOptions() {
+    const { status, data } = await apiFetch('/projects');
+    const sel = document.getElementById('filter-project');
+    if (status !== 200 || !data.ok) return;
+    (data.projects || []).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.display_name || p.id;
+        sel.appendChild(opt);
+    });
+}
+
+function stageCell(stage) {
+    if (!stage || stage.hours == null) return '<span class="pm-ok">—</span>';
+    const txt = fmtHours(stage.hours);
+    return stage.breached
+        ? `<span class="pm-breach">⚠ ${txt} (+${fmtHours(stage.over_by_hours)})</span>`
+        : `<span class="pm-ok">${txt}</span>`;
+}
+
+async function loadDeviations() {
+    const params = {};
+    const projectId = document.getElementById('filter-project').value;
+    const docType = document.getElementById('filter-doc-type').value.trim();
+    if (projectId) params.project_id = projectId;
+    if (docType) params.doc_type = docType;
+    const qs = new URLSearchParams(params).toString();
+    const { status, data } = await apiFetch('/process-mining/deviations' + (qs ? `?${qs}` : ''));
+    if (status !== 200 || !data.ok) {
+        document.getElementById('deviations-body').innerHTML = `<tr><td colspan="7" class="rf-empty">${escHtml(data.error || 'No se pudo cargar el reporte.')}</td></tr>`;
+        document.getElementById('summary-cards').innerHTML = '';
+        return;
+    }
+
+    const s = data.summary;
+    document.getElementById('summary-cards').innerHTML = `
+        <div class="pm-summary-card"><div class="n">${s.total_documents}</div><div class="l">Documentos</div></div>
+        <div class="pm-summary-card"><div class="n">${s.documents_with_any_breach}</div><div class="l">Con algún desvío (${Math.round(s.breach_rate * 100)}%)</div></div>
+        <div class="pm-summary-card"><div class="n">${fmtHours(s.avg_total_hours)}</div><div class="l">Ciclo total promedio</div></div>
+        <div class="pm-summary-card"><div class="n">${s.avg_rework_count}</div><div class="l">Rework promedio</div></div>
+    `;
+
+    const rows = data.documents;
+    document.getElementById('deviations-body').innerHTML = rows.length === 0
+        ? '<tr><td colspan="7" class="rf-empty">No hay documentos en este filtro.</td></tr>'
+        : rows.map(d => `
+            <tr>
+                <td>${escHtml(d.project_id)}</td>
+                <td>${escHtml(d.doc_type)}</td>
+                <td>${stageCell(d.stages.carga_a_revision)}</td>
+                <td>${stageCell(d.stages.revision_a_cierre)}</td>
+                <td>${stageCell(d.stages.cierre_a_ronda)}</td>
+                <td>${stageCell(d.stages.ronda_a_sellado)}</td>
+                <td>${d.rework_breached ? `<span class="pm-breach">⚠ ${d.rework_count}</span>` : d.rework_count}</td>
+            </tr>
+        `).join('');
+}
+
+// ---------------------------------------------------------------------------
+async function init() {
+    session = await requireSession();
+    if (!session) return;
+    if (!session.is_superadmin) {
+        // requireSession() ya sacó rf-auth-pending al confirmar la sesión -- acá solo
+        // falta reemplazar el contenido, no hay nada más que destrabar.
+        document.getElementById('main-content').innerHTML =
+            '<div class="rf-empty" style="margin-top:40px;">Esta sección es exclusiva de superadmin.</div>';
+        return;
+    }
+    document.getElementById('user-badge').textContent = `${session.display_name} · ${roleLabel(session.role)}`;
+
+    await loadProjectFilterOptions();
+    await loadSop();
+    await loadDeviations();
+}
+
+init();
+</script>
+</body>
+</html>

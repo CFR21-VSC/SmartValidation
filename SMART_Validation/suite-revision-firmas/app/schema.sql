@@ -212,6 +212,27 @@ CREATE TABLE IF NOT EXISTS rf_signature_consent (
 );
 CREATE INDEX IF NOT EXISTS idx_rf_signature_consent_user ON rf_signature_consent(user_id);
 
+-- Minería de procesos (2026-09-23, pedido del usuario): SOP versionado y editable desde
+-- pantalla, para comparar el proceso REAL (timestamps ya existentes de
+-- rf_documents/rf_review_signatures/rf_approval_rounds) contra el ideal, sin ninguna IA
+-- de por medio -- solo resta de timestamps contra umbrales. Insert-only, igual criterio
+-- que rf_signature_consent: nunca se pisa una versión vieja, cada guardado nuevo es una
+-- fila nueva con version = MAX(version)+1 -- así "iterar" el SOP no destruye el
+-- historial, y en el futuro se puede recalcular el reporte contra una versión anterior.
+-- Ver app/process_mining.py para el cálculo de desvíos.
+CREATE TABLE IF NOT EXISTS rf_sop_definitions (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    version         INTEGER NOT NULL,
+    name            TEXT NOT NULL,
+    -- {"stages":[{"key","label","max_hours"}, ...], "max_rework_count": N} -- ver
+    -- DEFAULT_SOP_DEFINITION en process_mining.py para la forma exacta y los valores
+    -- por defecto (usados si esta tabla todavía está vacía, primer arranque).
+    definition_json TEXT NOT NULL,
+    created_by      TEXT,
+    created_at      REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_rf_sop_definitions_version ON rf_sop_definitions(version DESC);
+
 -- 5.1 Firma de Revisión: sin orden, uno por firmante.
 CREATE TABLE IF NOT EXISTS rf_review_signatures (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
