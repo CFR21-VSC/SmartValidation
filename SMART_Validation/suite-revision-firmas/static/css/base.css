@@ -42,6 +42,16 @@ body {
     font-size: 14px;
 }
 
+/* Anti-flash de páginas con sesión (2026-09-23): sin esto, el HTML/CSS de la página
+   (topbar, botones, layout) llega a pintarse un instante ANTES de que requireSession()
+   -- que es async -- confirme la sesión y recién ahí redirija a login.html. No expone
+   datos (el contenido real se pide aparte y esa llamada también exige sesión), pero se
+   ve como "algo entra solo". El inline <script> de cada página marca <html> con esta
+   clase antes del primer paint; requireSession() la saca recién cuando la sesión (y el
+   PIN si corresponde) ya están confirmados. Si la sesión no es válida, la clase nunca
+   se saca -- queda oculta hasta que el redirect a login.html se completa. */
+html.rf-auth-pending body { visibility: hidden; }
+
 a { color: var(--gold-light); }
 
 .rf-topbar {

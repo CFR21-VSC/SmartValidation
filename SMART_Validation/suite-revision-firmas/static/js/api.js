@@ -75,6 +75,10 @@ async function requireSession(opts = {}) {
         window.location.href = '/app/pin-setup.html';
         return null;
     }
+    // Recién acá se confirmó que ESTA página es la que corresponde mostrar (sesión
+    // válida + PIN si hace falta) -- se saca la clase que el inline <script> del <head>
+    // puso antes del primer paint (ver comentario en base.css junto a .rf-auth-pending).
+    document.documentElement.classList.remove('rf-auth-pending');
     return data;
 }
 
