@@ -204,12 +204,23 @@ function renderUsers() {
                 : ` <button class="rf-btn-secondary reactivate-btn" data-id="${u.id}" data-name="${escHtml(u.display_name)}">Reactivar</button>`
                     + ` <button class="rf-btn-danger delete-btn" data-id="${u.id}" data-name="${escHtml(u.display_name)}">Eliminar</button>`;
         }
+        // Rol editable inline (2026-09-23, pedido del usuario: "ahora es cliente, pero
+        // mañana puede ser partner") -- no editable para uno mismo ni para el superadmin
+        // (el backend igual lo rechaza, pero mostrarlo fijo en esos casos evita un click
+        // que siempre iba a fallar).
+        const roleCell = (isSelf || u.is_superadmin)
+            ? roleLabel(u.role)
+            : `<select class="rf-select role-select" data-id="${u.id}" data-name="${escHtml(u.display_name)}" style="font-size:12px; padding:4px 6px;">
+                <option value="drp" ${u.role === 'drp' ? 'selected' : ''}>DRP</option>
+                <option value="partner" ${u.role === 'partner' ? 'selected' : ''}>Partner</option>
+                <option value="cliente" ${u.role === 'cliente' ? 'selected' : ''}>Cliente</option>
+            </select>`;
         return `
         <tr>
             <td>${escHtml(u.username)}</td>
             <td>${escHtml(u.display_name)}</td>
             <td>${escHtml(u.email)}</td>
-            <td>${roleLabel(u.role)}</td>
+            <td>${roleCell}</td>
             <td><span class="rf-status-dot ${u.is_active ? 'on' : 'off'}"></span>${u.is_active ? 'Activo' : 'Inactivo'}</td>
             <td>${u.pin_set ? 'Sí' : 'No'}</td>
             <td>${fmtDateTime(u.last_login)}</td>
@@ -220,6 +231,9 @@ function renderUsers() {
 
     tbody.querySelectorAll('.manage-grants-btn').forEach(btn => {
         btn.addEventListener('click', () => openGrantsModal(btn.dataset.id, btn.dataset.name));
+    });
+    tbody.querySelectorAll('.role-select').forEach(sel => {
+        sel.addEventListener('change', () => updateRole(sel));
     });
     tbody.querySelectorAll('.deactivate-btn').forEach(btn => {
         btn.addEventListener('click', () => deactivateUser(btn.dataset.id, btn.dataset.name));
@@ -233,6 +247,32 @@ function renderUsers() {
     tbody.querySelectorAll('.resend-btn').forEach(btn => {
         btn.addEventListener('click', () => resendCredentials(btn.dataset.id, btn.dataset.name));
     });
+}
+
+async function updateRole(selectEl) {
+    const userId = selectEl.dataset.id;
+    const name = selectEl.dataset.name;
+    const newRole = selectEl.value;
+    const previousRole = selectEl.dataset.currentRole || allUsers.find(u => u.id === userId)?.role;
+
+    if (!confirm(`¿Cambiar el rol de ${name} a "${roleLabel(newRole)}"?`)) {
+        selectEl.value = previousRole;
+        return;
+    }
+
+    selectEl.disabled = true;
+    const { status, data } = await apiFetch(`/users/${userId}/role`, {
+        method: 'PATCH', body: { role: newRole },
+    });
+    selectEl.disabled = false;
+
+    if (status === 200 && data.ok) {
+        showToast(`Rol de ${name} actualizado a ${roleLabel(newRole)}`);
+        await loadUsers();
+    } else {
+        selectEl.value = previousRole;
+        showToast(data.error || 'No se pudo cambiar el rol', true);
+    }
 }
 
 async function deactivateUser(userId, name) {

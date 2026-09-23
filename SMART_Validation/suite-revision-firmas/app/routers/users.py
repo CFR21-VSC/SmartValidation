@@ -168,6 +168,54 @@ def reactivate_user(user_id: str, user: dict = Depends(require_drp)):
     return {"ok": True}
 
 
+class UpdateRoleBody(BaseModel):
+    role: str  # 'drp' | 'partner' | 'cliente'
+
+
+@router.patch("/{user_id}/role")
+def update_role(user_id: str, body: UpdateRoleBody, user: dict = Depends(require_drp)):
+    """El rol quedaba fijo para siempre desde la creación -- pedido del usuario, 2026-09-23:
+    "ahora es cliente, pero mañana puede ser partner". Mismas protecciones que ya existen
+    para desactivar/eliminar: no tocar al superadmin oculto, no tocar la propia cuenta, y acá
+    además no dejar sin ningún DRP activo al sistema (a diferencia de desactivar, esto SÍ
+    puede sacarle el rol drp a alguien sin que se note hasta que ya no quede nadie con
+    permisos de administración)."""
+    if body.role not in ("drp", "partner", "cliente"):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "role debe ser 'drp', 'partner' o 'cliente'")
+
+    db = get_db()
+    target = db.execute(
+        "SELECT username, display_name, email, role, is_superadmin, is_active FROM rf_users WHERE id=?",
+        (user_id,),
+    ).fetchone()
+    if not target:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Usuario no encontrado")
+    _assert_target_not_hidden_superadmin(db, user, target)
+    if target["username"] == user["u"]:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "No podés cambiar tu propio rol")
+    if target["is_superadmin"] and body.role != "drp":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "El superadministrador no puede tener un rol distinto de DRP")
+
+    if target["role"] == "drp" and target["is_active"] and body.role != "drp":
+        remaining = db.execute(
+            "SELECT COUNT(*) AS n FROM rf_users WHERE role='drp' AND is_active=1 AND id != ?",
+            (user_id,),
+        ).fetchone()["n"]
+        if remaining == 0:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "No se puede cambiar el rol del último DRP activo")
+
+    old_role = target["role"]
+    db.execute("UPDATE rf_users SET role=?, updated_at=? WHERE id=?", (body.role, time.time(), user_id))
+    db.commit()
+
+    target_label = target["display_name"] or target["email"]
+    log_system_event(
+        user, "user_role_changed",
+        f"{user['u']} cambió el rol de {target_label} de '{old_role}' a '{body.role}'",
+    )
+    return {"ok": True, "role": body.role}
+
+
 @router.delete("/{user_id}")
 def delete_user(user_id: str, user: dict = Depends(require_drp)):
     """Borrado duro -- distinto de deactivate (arriba), que es la vía preferida para
