@@ -213,7 +213,15 @@ def close_review(project_id: str, doc_type: str, body: CloseReviewBody, user: di
     revisión completa por diseño (cualquier DRP la puede abrir en cualquier momento), pero
     SÍ exige que alguien haya cerrado la revisión explícitamente primero (ver el chequeo en
     create_approval_round más abajo). Requiere PIN, igual que una firma -- queda registrada
-    en el People Book como cualquier otro evento GxP del documento."""
+    en el People Book como cualquier otro evento GxP del documento.
+
+    F-01 (informe de simulación adversarial 2026-09-23): a diferencia de sign_review y
+    list_review_signatures, este endpoint no llamaba a check_document_access -- un DRP
+    ajeno a un proyecto privado, sin grant, podía cerrar la revisión de un documento que
+    ni siquiera podía leer (404 en /signature-book y en el documento, pero 200 acá).
+    Mismo chequeo, mismo lugar (primera línea, antes de tocar la DB) que el resto de los
+    endpoints de esta familia."""
+    check_document_access(user, project_id, doc_type)
     db = get_db()
     consent_id = _require_signature_consent(db, user["uid"])
     ensure_project_active(db, project_id)
