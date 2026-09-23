@@ -62,7 +62,13 @@ async function requireSession(opts = {}) {
     startIdleLogoutTimer();
     const { status, data } = await apiFetch('/auth/session');
     if (status !== 200) {
-        window.location.href = '/app/login.html';
+        // ?next= (2026-09-23): sin esto, un link de mail a un documento puntual (sesión
+        // vencida o nunca logueado en este navegador) rebotaba a un login.html genérico --
+        // login.html usa este param para saltear directo la splash (que hacía parecer que
+        // "algo entraba solo" cuando en realidad seguía pidiendo contraseña) y, después de
+        // loguear de verdad, volver acá en vez de aterrizar siempre en el dashboard.
+        const next = encodeURIComponent(window.location.pathname + window.location.search);
+        window.location.href = '/app/login.html?next=' + next;
         return null;
     }
     if (!data.pin_set && !opts.allowNoPin) {

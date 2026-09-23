@@ -251,6 +251,19 @@
         var splash = document.getElementById('splashScreen');
         if (!splash) return;
 
+        // FIX (2026-09-23, reportado por el usuario: al llegar desde un link de mail a un
+        // documento con la sesión vencida, la splash (~4.5s tapando el formulario) daba la
+        // sensación de que "algo entraba solo" -- no era cierto (login.html siempre pide
+        // contraseña real, verificado), pero visualmente confundía. Si vinimos rebotados
+        // desde una página protegida (?next=... lo agrega requireSession en api.js), se
+        // salta la splash directo -- mismo criterio que el ?mobile=XXX de la Suite de
+        // Validación (index.html), que también la oculta de inmediato para no demorar un
+        // flujo que ya viene con una intención puntual.
+        if (new URLSearchParams(window.location.search).get('next')) {
+            splash.classList.add('splash-removed');
+            return;
+        }
+
         function playSplashAudio() {
             try {
                 var AC = window.AudioContext || window.webkitAudioContext;
@@ -394,7 +407,14 @@ form.addEventListener('submit', async (e) => {
         if (data.pin_set === false) {
             window.location.href = '/app/pin-setup.html';
         } else {
-            window.location.href = '/app/dashboard.html';
+            // ?next= (2026-09-23): volver al documento puntual que originó el rebote a
+            // login, en vez de aterrizar siempre en el dashboard. Se valida que sea una
+            // ruta relativa propia (empieza con "/app/") antes de usarla -- un link
+            // armado a mano con next=https://sitio-ajeno no debe poder mandar a nadie
+            // fuera de este dominio después de un login real (open redirect).
+            const next = new URLSearchParams(window.location.search).get('next');
+            const isSafeNext = next && next.startsWith('/app/') && !next.startsWith('//');
+            window.location.href = isSafeNext ? next : '/app/dashboard.html';
         }
         return;
     }
