@@ -658,6 +658,19 @@
     .rv-signatures-list li:last-child { border-bottom: none; }
 
     .rv-load-modal .rf-textarea { min-height: 260px; font-family: monospace; }
+
+    /* Responsive (2026-09-23): las tres columnas (Estructura | Documento | Comentarios)
+       tienen anchos fijos con !important pensados para desktop -- en mobile pasan a
+       apilarse (regla genérica en base.css), pero esos flex-basis fijos seguirían
+       aplicando como ALTO en vez de ancho si no se neutralizan acá, donde viven los
+       valores originales y cargan después de base.css (gana el orden en el documento). */
+    @media (max-width: 720px) {
+        .rv-toolbar { padding: 8px 14px; }
+        .rv-pane-narrow, .rv-pane-mid, .rv-pane-corr {
+            flex: none !important;
+            max-height: 60vh !important;
+        }
+    }
 </style>
 </head>
 <body>
