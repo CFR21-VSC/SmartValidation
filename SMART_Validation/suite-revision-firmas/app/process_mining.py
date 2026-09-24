@@ -134,12 +134,21 @@ def _rework_counts(db, project_doc_pairs: list) -> dict:
     return out
 
 
-def compute_deviations(db, *, project_id=None, doc_type=None, date_from=None, date_to=None) -> dict:
+def compute_deviations(
+    db, *, project_id=None, doc_type=None, date_from=None, date_to=None, include_archived=False,
+) -> dict:
     """El reporte completo: SOP activa + cada documento del scope con sus 4 duraciones de
     etapa (las que todavía no se puedan calcular -- documento en una etapa anterior --
     quedan en None, nunca se inventa un valor) comparadas contra los umbrales, más el
     conteo de rework. `project_id`/`doc_type` filtran el scope; sin ninguno, es "todo el
-    sistema" (alcance pedido por el usuario)."""
+    sistema" (alcance pedido por el usuario).
+
+    `include_archived=False` (default, pedido del usuario 2026-09-23: "quiero solo datos
+    reales") excluye documentos de proyectos archivados -- el camino recomendado para sacar
+    del reporte un proyecto de prueba/demo es archivarlo (PATCH /projects/{id}/archive,
+    reversible, ya existente), NO borrarlo a la fuerza si tiene evidencia de firma (eso
+    rompería la misma protección GxP que delete_project ya aplica). Mismo criterio de
+    "archivado por defecto afuera" que list_projects (projects.py)."""
     sop = get_active_sop(db)
     definition = sop["definition"]
     stages_by_key = {s["key"]: s for s in definition["stages"]}
@@ -147,22 +156,27 @@ def compute_deviations(db, *, project_id=None, doc_type=None, date_from=None, da
 
     where, params = [], []
     if project_id:
-        where.append("project_id=?")
+        where.append("d.project_id=?")
         params.append(project_id)
     if doc_type:
-        where.append("doc_type=?")
+        where.append("d.doc_type=?")
         params.append(doc_type)
     if date_from is not None:
-        where.append("created_at>=?")
+        where.append("d.created_at>=?")
         params.append(date_from)
     if date_to is not None:
-        where.append("created_at<=?")
+        where.append("d.created_at<=?")
         params.append(date_to)
+    if not include_archived:
+        # COALESCE: un documento sin fila en rf_projects (proyecto implícito legado, ver
+        # ensure_project en projects.py) se trata como activo -- mismo criterio que
+        # list_projects para el mismo caso.
+        where.append("COALESCE(p.status, 'active') != 'archived'")
     where_sql = ("WHERE " + " AND ".join(where)) if where else ""
 
     docs = [dict(d) for d in db.execute(
-        f"SELECT id, project_id, doc_type, created_at, review_closed_at, locked, locked_at "
-        f"FROM rf_documents {where_sql}",
+        f"SELECT d.id, d.project_id, d.doc_type, d.created_at, d.review_closed_at, d.locked, d.locked_at "
+        f"FROM rf_documents d LEFT JOIN rf_projects p ON p.id = d.project_id {where_sql}",
         tuple(params),
     )]
     doc_ids = [d["id"] for d in docs]

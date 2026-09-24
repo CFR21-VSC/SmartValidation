@@ -242,6 +242,25 @@ def test_deviations_counts_and_flags_rework(drp_with_pin, cliente):
     assert r.json()["summary"]["avg_rework_count"] == pytest.approx(1.0)
 
 
+def test_deviations_excludes_archived_projects_by_default(drp_with_pin):
+    """2026-09-23 (pedido del usuario: "quiero solo datos reales"): archivar un proyecto de
+    prueba es el camino recomendado para sacarlo del reporte -- no borrarlo a la fuerza si
+    tiene evidencia de firma (eso rompería la protección GxP de delete_project)."""
+    drp_with_pin.put("/projects/proj-archived/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    drp_with_pin.put("/projects/proj-live/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    assert drp_with_pin.patch("/projects/proj-archived/archive").status_code == 200
+    drp_with_pin.put("/sop", json=GENEROUS_SOP)
+
+    default = drp_with_pin.get("/process-mining/deviations")
+    ids = {d["project_id"] for d in default.json()["documents"]}
+    assert "proj-live" in ids
+    assert "proj-archived" not in ids
+
+    with_archived = drp_with_pin.get("/process-mining/deviations", params={"include_archived": "true"})
+    ids2 = {d["project_id"] for d in with_archived.json()["documents"]}
+    assert {"proj-live", "proj-archived"}.issubset(ids2)
+
+
 def test_deviations_filters_by_project_vs_system_wide(drp_with_pin):
     drp_with_pin.post("/projects", json={"id": "proj-a"})
     drp_with_pin.post("/projects", json={"id": "proj-b"})

@@ -65,6 +65,9 @@
                 <label class="rf-label" for="filter-doc-type">Tipo de documento</label>
                 <input class="rf-input" id="filter-doc-type" placeholder="Ej: HLRA" style="max-width: 140px;">
             </div>
+            <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); margin-bottom:2px;">
+                <input type="checkbox" id="filter-include-archived"> incluir proyectos archivados
+            </label>
             <button class="rf-btn-secondary" id="filter-apply-btn">Filtrar</button>
         </div>
         <div class="pm-summary-cards" id="summary-cards"></div>
@@ -189,6 +192,7 @@ async function loadDeviations() {
     const docType = document.getElementById('filter-doc-type').value.trim();
     if (projectId) params.project_id = projectId;
     if (docType) params.doc_type = docType;
+    if (document.getElementById('filter-include-archived').checked) params.include_archived = 'true';
     const qs = new URLSearchParams(params).toString();
     const { status, data } = await apiFetch('/process-mining/deviations' + (qs ? `?${qs}` : ''));
     if (status !== 200 || !data.ok) {

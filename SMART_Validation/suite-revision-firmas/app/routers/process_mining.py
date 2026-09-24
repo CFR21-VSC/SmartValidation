@@ -99,10 +99,12 @@ def get_deviations(
     doc_type: str | None = None,
     date_from: float | None = None,
     date_to: float | None = None,
+    include_archived: bool = False,
     user: dict = Depends(require_drp),
 ):
     db = get_db()
     _require_superadmin(db, user)
     return {"ok": True, **compute_deviations(
         db, project_id=project_id, doc_type=doc_type, date_from=date_from, date_to=date_to,
+        include_archived=include_archived,
     )}
