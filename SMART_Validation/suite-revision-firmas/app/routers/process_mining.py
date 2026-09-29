@@ -105,6 +105,6 @@ def get_deviations(
     db = get_db()
     _require_superadmin(db, user)
     return {"ok": True, **compute_deviations(
-        db, project_id=project_id, doc_type=doc_type, date_from=date_from, date_to=date_to,
-        include_archived=include_archived,
+        db, caller_uid=user["uid"], project_id=project_id, doc_type=doc_type,
+        date_from=date_from, date_to=date_to, include_archived=include_archived,
     )}

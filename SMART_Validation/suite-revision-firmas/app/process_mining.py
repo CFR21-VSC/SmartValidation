@@ -135,7 +135,7 @@ def _rework_counts(db, project_doc_pairs: list) -> dict:
 
 
 def compute_deviations(
-    db, *, project_id=None, doc_type=None, date_from=None, date_to=None, include_archived=False,
+    db, *, caller_uid, project_id=None, doc_type=None, date_from=None, date_to=None, include_archived=False,
 ) -> dict:
     """El reporte completo: SOP activa + cada documento del scope con sus 4 duraciones de
     etapa (las que todavía no se puedan calcular -- documento en una etapa anterior --
@@ -148,7 +148,18 @@ def compute_deviations(
     del reporte un proyecto de prueba/demo es archivarlo (PATCH /projects/{id}/archive,
     reversible, ya existente), NO borrarlo a la fuerza si tiene evidencia de firma (eso
     rompería la misma protección GxP que delete_project ya aplica). Mismo criterio de
-    "archivado por defecto afuera" que list_projects (projects.py)."""
+    "archivado por defecto afuera" que list_projects (projects.py).
+
+    `caller_uid` (revisión de seguridad 2026-09-29, security-checklist): aunque este
+    endpoint es superadmin-only, `is_superadmin` técnicamente NO es un singleton forzado
+    por esquema -- solo lo es en la práctica porque ninguna API puede otorgarlo, se pone
+    una sola vez en bootstrap_superadmin() (main.py) a partir de RF_SUPERADMIN_USERNAME. Si
+    esa env var cambiara entre deploys sin desactivar la cuenta anterior, existirían DOS
+    superadmins, y sin este filtro el reporte "sistema completo" de uno mostraría los
+    proyectos PRIVADOS del otro -- el mismo aislamiento que check_document_access/
+    get_dossier/list_projects ya aplican en todo el resto del sistema (is_owner O grant
+    explícito) faltaba acá. Un documento de un proyecto NO privado sigue siendo visible
+    siempre, sin excepción -- eso es justamente "sistema completo"."""
     sop = get_active_sop(db)
     definition = sop["definition"]
     stages_by_key = {s["key"]: s for s in definition["stages"]}
@@ -172,12 +183,21 @@ def compute_deviations(
         # ensure_project en projects.py) se trata como activo -- mismo criterio que
         # list_projects para el mismo caso.
         where.append("COALESCE(p.status, 'active') != 'archived'")
-    where_sql = ("WHERE " + " AND ".join(where)) if where else ""
+    # Aislamiento de proyectos privados ajenos -- ver nota de `caller_uid` arriba.
+    where.append(
+        "(COALESCE(p.is_private, 0) = 0 OR p.owner_user_id = ? OR g.id IS NOT NULL)"
+    )
+    params.append(caller_uid)
+    where_sql = "WHERE " + " AND ".join(where)
 
     docs = [dict(d) for d in db.execute(
         f"SELECT d.id, d.project_id, d.doc_type, d.created_at, d.review_closed_at, d.locked, d.locked_at "
-        f"FROM rf_documents d LEFT JOIN rf_projects p ON p.id = d.project_id {where_sql}",
-        tuple(params),
+        f"FROM rf_documents d "
+        f"LEFT JOIN rf_projects p ON p.id = d.project_id "
+        f"LEFT JOIN rf_document_access_grants g "
+        f"  ON g.project_id = d.project_id AND g.doc_type = d.doc_type AND g.user_id = ? "
+        f"{where_sql}",
+        (caller_uid, *params),
     )]
     doc_ids = [d["id"] for d in docs]
     ts = _case_timestamps(db, doc_ids)

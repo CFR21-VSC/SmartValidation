@@ -261,6 +261,41 @@ def test_deviations_excludes_archived_projects_by_default(drp_with_pin):
     assert {"proj-live", "proj-archived"}.issubset(ids2)
 
 
+def test_deviations_hides_other_superadmins_private_projects(drp_with_pin):
+    """Seguridad (2026-09-29, security-checklist): is_superadmin no es un singleton
+    forzado por esquema -- solo lo es en la práctica porque ninguna API puede otorgarlo
+    (se pone una sola vez en bootstrap_superadmin, a partir de RF_SUPERADMIN_USERNAME). Si
+    esa env var cambiara alguna vez sin desactivar la cuenta anterior, existirían dos
+    superadmins -- el reporte "sistema completo" de uno no debe mostrar los proyectos
+    PRIVADOS del otro, mismo aislamiento que check_document_access aplica en todo el resto
+    del sistema. No hay forma de crear un segundo superadmin por API a propósito -- se
+    simula con un UPDATE directo, como el propio escenario que se está probando."""
+    drp_with_pin.post("/projects", json={"id": "proj-private-other-admin", "is_private": True})
+    drp_with_pin.put(
+        "/projects/proj-private-other-admin/documents/HLRA", json={"json_data": SAMPLE_JSON}
+    )
+    drp_with_pin.put("/projects/proj-visible-to-all/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    drp_with_pin.put("/sop", json=GENEROUS_SOP)
+
+    created = drp_with_pin.post(
+        "/users",
+        json={"username": "otro-superadmin", "email": "otro-superadmin@example.com", "display_name": "Otro Superadmin", "role": "drp"},
+    )
+    other_id = created.json()["user_id"]
+    token = created.json()["invite_link"].split("token=")[-1]
+    other = TestClient(app)
+    other.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "1111"})
+    get_db().execute("UPDATE rf_users SET is_superadmin=1 WHERE id=?", (other_id,))
+    get_db().commit()
+    other.post("/auth/login", json={"username": "otro-superadmin", "password": "password123"})
+
+    r = other.get("/process-mining/deviations")
+    assert r.status_code == 200
+    ids = {d["project_id"] for d in r.json()["documents"]}
+    assert "proj-visible-to-all" in ids
+    assert "proj-private-other-admin" not in ids
+
+
 def test_deviations_filters_by_project_vs_system_wide(drp_with_pin):
     drp_with_pin.post("/projects", json={"id": "proj-a"})
     drp_with_pin.post("/projects", json={"id": "proj-b"})
