@@ -2733,7 +2733,17 @@ class SyncHandler(BaseHTTPRequestHandler):
         return None
 
     def _api_evidence_save(self, compound_id, user):
-        """POST /api/evidence/{compound_id} — guarda imagen; usa R2 si configurado."""
+        """POST /api/evidence/{compound_id} — guarda imagen; usa R2 si configurado.
+        VULN-16 (2026-09-29): antes no chequeaba pertenencia de proyecto en absoluto --
+        cualquier usuario autenticado podía sobrescribir evidencia de otro proyecto/cliente
+        con solo conocer o adivinar el compound_id. Mismo _assert_project_access que ya
+        usan _api_evidence_image_upload y el resto del sistema."""
+        proj_id = self._proj_id_from_compound(compound_id)
+        if not proj_id:
+            return self._send_json(400, {"ok": False, "error": "compound_id inválido"})
+        db = _get_db()
+        if not self._assert_project_access(db, user, proj_id):
+            return
         body = self._read_json_body()
         if body is None:
             return
@@ -2744,8 +2754,6 @@ class SyncHandler(BaseHTTPRequestHandler):
             return self._send_json(413, {"ok": False, "error": "Imagen demasiado grande (máx 8 MB)"})
 
         if _r2 is not None and _r2.is_configured():
-            proj_id = self._proj_id_from_compound(compound_id) or "unknown"
-            db = _get_db()
             if not self._store_evidence(db, compound_id, proj_id, raw, time.time()):
                 return self._send_json(500, {"ok": False, "error": "Error guardando imagen"})
             return self._send_json(200, {"ok": True})
@@ -2779,7 +2787,15 @@ class SyncHandler(BaseHTTPRequestHandler):
         return self._send_json(200, {"ok": True})
 
     def _api_evidence_get(self, compound_id, user):
-        """GET /api/evidence/{compound_id} — recupera imagen; usa R2 si configurado."""
+        """GET /api/evidence/{compound_id} — recupera imagen; usa R2 si configurado.
+        VULN-16 (2026-09-29): antes no chequeaba pertenencia de proyecto -- cualquier
+        usuario autenticado podía leer evidencia de otro proyecto/cliente con solo conocer
+        o adivinar el compound_id."""
+        proj_id = self._proj_id_from_compound(compound_id)
+        if not proj_id:
+            return self._send_json(400, {"ok": False, "error": "compound_id inválido"})
+        if not self._assert_project_access(_get_db(), user, proj_id):
+            return
         if _r2 is not None and _r2.is_configured():
             data_uri = _r2.get_image(compound_id)
             if data_uri:
@@ -2812,15 +2828,33 @@ class SyncHandler(BaseHTTPRequestHandler):
         """POST /api/evidence-batch — devuelve múltiples imágenes en una sola request.
         Body: {ids: ["compound_id_1", ...]}  (máx 500)
         Response: {ok:true, results: {"id": "data:...", ...}}  (null si no existe)
+
+        VULN-16 (2026-09-29): antes no chequeaba pertenencia de proyecto en absoluto --
+        un solo request de hasta 500 ids permitía sondear evidencia de cualquier proyecto.
+        Se chequea por id (con `_has_project_access_silent`, que NO manda 403 y corta el
+        resto del batch -- un id sin acceso simplemente se omite, mismo criterio que ya
+        aplica para un id con formato inválido) con un cache por proyecto para no repetir
+        la consulta de acceso una vez por id cuando varios comparten el mismo proyecto.
         """
         data = self._read_json_body()
         ids = data.get("ids", []) if isinstance(data, dict) else []
         if not isinstance(ids, list) or len(ids) > 500:
             return self._send_json(400, {"ok": False, "error": "ids debe ser array ≤500"})
+        db = _get_db()
+        access_cache = {}
         results = {}
         use_r2 = _r2 is not None and _r2.is_configured()
         for raw_id in ids:
             if not isinstance(raw_id, str) or not re.match(r'^[a-zA-Z0-9_-]{1,300}$', raw_id):
+                results[raw_id] = None
+                continue
+            proj_id = self._proj_id_from_compound(raw_id)
+            if proj_id is None:
+                results[raw_id] = None
+                continue
+            if proj_id not in access_cache:
+                access_cache[proj_id] = self._has_project_access_silent(db, user, proj_id)
+            if not access_cache[proj_id]:
                 results[raw_id] = None
                 continue
             if use_r2:
@@ -2916,16 +2950,30 @@ class SyncHandler(BaseHTTPRequestHandler):
         """POST /api/evidence-batch-upload — sube múltiples imágenes en una sola request.
         Body: {images: {"compound_id": "data:...", ...}}  (máx 100)
         Útil para el bulk-sync inicial desde IndexedDB.
+
+        VULN-16 (2026-09-29): antes no chequeaba pertenencia de proyecto -- permitía
+        SOBRESCRIBIR evidencia de cualquier proyecto ajeno con solo conocer sus
+        compound_id. Mismo criterio que _api_evidence_batch_get: se omite (no se guarda)
+        cualquier entrada cuyo proyecto no pertenezca al usuario, no se aborta el resto.
         """
         data = self._read_json_body()
         images = data.get("images", {}) if isinstance(data, dict) else {}
         if not isinstance(images, dict) or len(images) > 100:
             return self._send_json(400, {"ok": False, "error": "images debe ser objeto ≤100 entradas"})
+        db = _get_db()
+        access_cache = {}
         saved = 0
         for compound_id, data_url in images.items():
             if not isinstance(compound_id, str) or not re.match(r'^[a-zA-Z0-9_-]{1,300}$', compound_id):
                 continue
             if not isinstance(data_url, str) or not data_url.startswith("data:"):
+                continue
+            proj_id = self._proj_id_from_compound(compound_id)
+            if proj_id is None:
+                continue
+            if proj_id not in access_cache:
+                access_cache[proj_id] = self._has_project_access_silent(db, user, proj_id)
+            if not access_cache[proj_id]:
                 continue
             try:
                 header, b64 = data_url.split(",", 1)
@@ -3013,6 +3061,32 @@ class SyncHandler(BaseHTTPRequestHandler):
             return True
         self._send_json(403, {"ok": False, "error": "Acceso denegado"})
         return False
+
+    def _has_project_access_silent(self, db, user, proj_id) -> bool:
+        """VULN-16 (2026-09-29, security-checklist -- IDOR cross-tenant en evidencia):
+        misma lógica que _assert_project_access, pero SIN mandar ninguna respuesta HTTP.
+        _assert_project_access no sirve dentro de un loop de batch (_api_evidence_batch_get/
+        _api_evidence_batch_upload) porque un solo ID sin acceso mandaría un 403 y cortaría
+        el resto del request -- el comportamiento correcto ahí es omitir ESE id del
+        resultado (mismo criterio que ya usa el código para un id con formato inválido),
+        no abortar la respuesta batch entera. No duplica el mensaje de "usuario inactivo"
+        vs "acceso denegado" porque el llamador no necesita distinguirlos, solo un bool."""
+        if not _is_valid_proj_id(proj_id):
+            return False
+        if user.get("r") in ("admin", "auditor"):
+            return True
+        username = user.get("u", "")
+        active_row = db.execute(
+            "SELECT is_active FROM users WHERE username=?", (username,)
+        ).fetchone()
+        if not active_row or not active_row["is_active"]:
+            return False
+        row = db.execute("""
+            SELECT 1 FROM project_access pa
+            INNER JOIN users u ON u.id = pa.user_id
+            WHERE u.username=? AND pa.project_id=?
+        """, (username, proj_id)).fetchone()
+        return bool(row)
 
     def _api_docs_list(self, proj_id, user):
         db = _get_db()
