@@ -98,11 +98,11 @@ def test_invite_accept_full_flow(client, drp_client):
     # TestClient propio: si reusara drp_client/client, aceptar la invitación pisaría la
     # cookie de sesión de DRP en el mismo objeto (mismo bug ya visto en test_documents.py).
     anon = TestClient(app)
-    info = anon.get(f"/invite/{token}")
+    info = anon.post("/invite/lookup", json={"token": token})
     assert info.status_code == 200
     assert info.json()["email"] == "cliente1@example.com"
 
-    accepted = anon.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "1234"})
+    accepted = anon.post("/invite/accept", json={"token": token, "password": "password123", "pin": "1234"})
     assert accepted.status_code == 200, accepted.text
     assert accepted.json()["role"] == "cliente"
 
@@ -112,7 +112,7 @@ def test_invite_accept_full_flow(client, drp_client):
     assert activated["last_login"] is not None
 
     # El token ya fue consumido — no se puede reusar
-    reused = anon.post(f"/invite/{token}/accept", json={"password": "otraClave123", "pin": "5678"})
+    reused = anon.post("/invite/accept", json={"token": token, "password": "otraClave123", "pin": "5678"})
     assert reused.status_code == 404
 
 
@@ -122,12 +122,12 @@ def test_accept_invite_rejects_short_pin(client, drp_client):
         json={"username": "cliente2", "email": "cliente2@example.com", "display_name": "Cliente Dos", "role": "cliente"},
     )
     token = created.json()["invite_link"].split("token=")[-1]
-    r = client.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "12"})
+    r = client.post("/invite/accept", json={"token": token, "password": "password123", "pin": "12"})
     assert r.status_code == 400
 
 
 def test_accept_invite_unknown_token(client):
-    r = client.get("/invite/token-que-no-existe")
+    r = client.post("/invite/lookup", json={"token": "token-que-no-existe"})
     assert r.status_code == 404
 
 

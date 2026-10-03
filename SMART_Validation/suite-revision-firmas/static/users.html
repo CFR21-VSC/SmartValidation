@@ -312,18 +312,28 @@ async function deleteUser(userId, name) {
     }
 }
 
+// El link de activación solo le llega en la respuesta al superadministrador (con él se
+// define el PIN de firma de la cuenta). Para el resto: o salió por email, o hay que pedírselo.
+function inviteToastMessage(data, sentMsg, copyMsg) {
+    if (data.email_configured) return sentMsg;
+    if (data.invite_link) return copyMsg;
+    return 'El envío automático por email no está configurado — pedile al superadministrador que genere el link de acceso';
+}
+
 async function resendCredentials(userId, name) {
     document.getElementById('reset-link-box').style.display = 'none';
     const { status, data } = await apiFetch(`/users/${userId}/reset-credentials`, { method: 'POST' });
     if (status === 200 && data.ok) {
         showToast(
-            data.email_configured ? 'Link nuevo enviado por email' : 'Link nuevo generado — copialo, el envío automático por email no está configurado',
+            inviteToastMessage(data, 'Link nuevo enviado por email', 'Link nuevo generado — copialo, el envío automático por email no está configurado'),
             !data.email_configured
         );
-        document.getElementById('reset-link-user').textContent = name;
-        document.getElementById('reset-link-input').value = data.invite_link;
-        document.getElementById('reset-link-box').style.display = 'block';
-        document.getElementById('reset-link-box').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (data.invite_link) {
+            document.getElementById('reset-link-user').textContent = name;
+            document.getElementById('reset-link-input').value = data.invite_link;
+            document.getElementById('reset-link-box').style.display = 'block';
+            document.getElementById('reset-link-box').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
         await loadUsers();
     } else {
         showToast(data.error || 'No se pudo generar el link', true);
@@ -351,7 +361,7 @@ async function onCreateUserSubmit(e) {
     submitBtn.disabled = false;
 
     if (status === 200 && data.ok) {
-        showToast(data.email_configured ? 'Usuario creado — invitación enviada por email' : 'Usuario creado — copiá el link, el envío automático por email no está configurado', !data.email_configured);
+        showToast(inviteToastMessage(data, 'Usuario creado — invitación enviada por email', 'Usuario creado — copiá el link, el envío automático por email no está configurado'), !data.email_configured);
         document.getElementById('create-user-form').reset();
         if (data.invite_link) {
             document.getElementById('invite-link-input').value = data.invite_link;

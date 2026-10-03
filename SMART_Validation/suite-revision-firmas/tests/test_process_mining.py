@@ -6,22 +6,10 @@ from fastapi.testclient import TestClient
 from app.db import get_db
 from app.main import app
 from app.process_mining import STAGE_KEYS
-from tests.conftest import accept_signature_consent
+from tests.conftest import VALID_PDF_B64, accept_signature_consent
 
 SAMPLE_JSON = {"type": "HLRA", "metadata": {"title": "Demo"}, "secciones": []}
 
-# PDF mínimo pero estructuralmente válido (una página en blanco, generado con pypdf) --
-# necesario desde que sign_approval exige un PDF real (F-02, ver signatures.py). El mismo
-# usado en la simulación adversarial de docs-privados/.
-VALID_PDF_B64 = (
-    "JVBERi0xLjMKJeLjz9MKMSAwIG9iago8PAovUHJvZHVjZXIgKHB5cGRmKQo+PgplbmRvYmoKMiAwIG9iago8"
-    "PAovVHlwZSAvUGFnZXMKL0NvdW50IDEKL0tpZHMgWyA0IDAgUiBdCj4+CmVuZG9iagozIDAgb2JqCjw8Ci9U"
-    "eXBlIC9DYXRhbG9nCi9QYWdlcyAyIDAgUgo+PgplbmRvYmoKNCAwIG9iago8PAovVHlwZSAvUGFnZQovUmVz"
-    "b3VyY2VzIDw8Cj4+Ci9NZWRpYUJveCBbIDAuMCAwLjAgNzIgNzIgXQovUGFyZW50IDIgMCBSCj4+CmVuZG9i"
-    "agp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTUgMDAwMDAgbiAKMDAwMDAwMDA1NCAw"
-    "MDAwMCBuIAowMDAwMDAwMTEzIDAwMDAwIG4gCjAwMDAwMDAxNjIgMDAwMDAgbiAKdHJhaWxlcgo8PAovU2l6"
-    "ZSA1Ci9Sb290IDMgMCBSCi9JbmZvIDEgMCBSCj4+CnN0YXJ0eHJlZgoyNTQKJSVFT0YK"
-)
 
 
 @pytest.fixture
@@ -40,7 +28,7 @@ def cliente(drp_client):
     user_id = created.json()["user_id"]
     token = created.json()["invite_link"].split("token=")[-1]
     cli = TestClient(app)
-    cli.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "1234"})
+    cli.post("/invite/accept", json={"token": token, "password": "password123", "pin": "1234"})
     accept_signature_consent(cli)
     return cli, user_id
 
@@ -55,7 +43,7 @@ def second_drp(drp_client):
     )
     token = created.json()["invite_link"].split("token=")[-1]
     cli = TestClient(app)
-    cli.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "5678"})
+    cli.post("/invite/accept", json={"token": token, "password": "password123", "pin": "5678"})
     return cli
 
 
@@ -284,7 +272,7 @@ def test_deviations_hides_other_superadmins_private_projects(drp_with_pin):
     other_id = created.json()["user_id"]
     token = created.json()["invite_link"].split("token=")[-1]
     other = TestClient(app)
-    other.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "1111"})
+    other.post("/invite/accept", json={"token": token, "password": "password123", "pin": "1111"})
     get_db().execute("UPDATE rf_users SET is_superadmin=1 WHERE id=?", (other_id,))
     get_db().commit()
     other.post("/auth/login", json={"username": "otro-superadmin", "password": "password123"})

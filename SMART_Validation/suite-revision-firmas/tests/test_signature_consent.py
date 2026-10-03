@@ -16,7 +16,7 @@ from fastapi.testclient import TestClient
 from app.db import get_db
 from app.main import app
 from app.signature_consent import CURRENT_CONSENT_VERSION, SIGNATURE_CONSENT_STATEMENT_V1
-from tests.conftest import accept_signature_consent
+from tests.conftest import VALID_PDF_B64, accept_signature_consent
 
 SAMPLE_JSON = {"type": "HLRA", "metadata": {"title": "Análisis"}, "secciones": []}
 
@@ -67,6 +67,7 @@ def test_full_review_and_approval_flow_with_consent(drp_with_pin):
     assert r1.status_code == 200, r1.text
 
     drp_id = get_db().execute("SELECT id FROM rf_users WHERE is_superadmin=1").fetchone()["id"]
+    drp_with_pin.post("/projects/proj-1/documents/HLRA/close-review", json={"pin": "9999"})
     round_r = drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round",
         json={"signers": [{"user_id": drp_id, "role_label": "Aprobador", "sign_order": 1}]},
@@ -77,7 +78,7 @@ def test_full_review_and_approval_flow_with_consent(drp_with_pin):
         "/projects/proj-1/documents/HLRA/approval-round/sign",
         json={
             "pin": "9999", "justification_text": "ok",
-            "pdf_base64": "JVBERi0xLjQgZmFrZSB0ZXN0IHBkZg==",
+            "pdf_base64": VALID_PDF_B64,
             "content_fingerprint": fp,
         },
     )
@@ -267,7 +268,7 @@ def other_drp(drp_with_pin):
     user_id = created.json()["user_id"]
     token = created.json()["invite_link"].split("token=")[-1]
     cli = TestClient(app)
-    accept = cli.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "1234"})
+    accept = cli.post("/invite/accept", json={"token": token, "password": "password123", "pin": "1234"})
     assert accept.status_code == 200, accept.text
     return cli, user_id
 

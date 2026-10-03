@@ -1169,10 +1169,14 @@ async function inviteAndGrantAccess(docType) {
         errorBox.classList.add('visible');
     }
 
-    showToast(
-        created.data.email_configured ? 'Usuario creado — invitación enviada por email' : 'Usuario creado — copiá el link, el envío automático por email no está configurado',
-        !created.data.email_configured
-    );
+    let inviteMsg = 'Usuario creado — invitación enviada por email';
+    if (!created.data.email_configured) {
+        // El link solo le llega al superadministrador (con él se define el PIN de firma).
+        inviteMsg = created.data.invite_link
+            ? 'Usuario creado — copiá el link, el envío automático por email no está configurado'
+            : 'Usuario creado — el envío automático por email no está configurado, pedile al superadministrador que genere el link de acceso';
+    }
+    showToast(inviteMsg, !created.data.email_configured);
     if (created.data.invite_link) {
         document.getElementById(`access-invite-link-${safe}`).value = created.data.invite_link;
         document.getElementById(`access-invite-link-box-${safe}`).style.display = 'block';

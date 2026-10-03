@@ -246,6 +246,24 @@ def init_db() -> None:
     _migrate_add_review_closed(db)
     _migrate_add_signature_display_name(db)
     _migrate_normalize_usernames_lowercase(db)
+    _migrate_hash_invite_tokens(db)
+
+
+def _migrate_hash_invite_tokens(db) -> None:
+    """rf_invites.token pasa a guardar el SHA-256 del token en vez del token en claro
+    (2026-10-03). Convierte las filas viejas una sola vez: un token en claro
+    (secrets.token_urlsafe(32)) mide 43 caracteres y un hash SHA-256 en hex mide 64, así
+    que el largo alcanza para distinguirlos y la migración es idempotente. Los links ya
+    enviados por mail siguen funcionando -- se buscan por el hash de lo que trae el link."""
+    import hashlib
+    rows = db.execute("SELECT token FROM rf_invites WHERE LENGTH(token) != 64").fetchall()
+    for r in rows:
+        db.execute(
+            "UPDATE rf_invites SET token=? WHERE token=?",
+            (hashlib.sha256(r["token"].encode()).hexdigest(), r["token"]),
+        )
+    if rows:
+        db.commit()
 
 
 def _migrate_normalize_usernames_lowercase(db) -> None:

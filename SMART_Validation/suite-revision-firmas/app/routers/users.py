@@ -33,6 +33,17 @@ class GrantBody(BaseModel):
     doc_type: str
 
 
+def _invite_link_for(db, user: dict, invite_link: str) -> dict:
+    """El link de activación solo vuelve en la respuesta si quien lo pidió es el
+    superadministrador (2026-10-03). Con ese link se define la contraseña Y el PIN de firma
+    de la cuenta: devolvérselo a cualquier DRP le permitía activar la cuenta de un externo,
+    elegirle el PIN y firmar en su nombre. El resto de DRP depende del mail automático -- si
+    el envío no está configurado, tiene que pedirle el link al superadministrador."""
+    if is_superadmin_fresh(db, user):
+        return {"invite_link": invite_link}
+    return {"invite_link": None}
+
+
 @router.post("")
 def create_user(body: CreateUserBody, user: dict = Depends(require_drp)):
     if body.role not in ("drp", "partner", "cliente"):
@@ -67,11 +78,7 @@ def create_user(body: CreateUserBody, user: dict = Depends(require_drp)):
         (user_id, username, body.email, body.display_name, body.role, user["u"], now, now),
     )
 
-    token = security.generate_invite_token()
-    db.execute(
-        "INSERT INTO rf_invites (token, user_id, created_at, expires_at) VALUES (?,?,?,?)",
-        (token, user_id, now, now + config.INVITE_TTL_H * 3600),
-    )
+    token = security.issue_invite(db, user_id, now, config.INVITE_TTL_H * 3600)
     db.commit()
 
     # Ronda 20 (2026-09-21): token en el fragmento (#), no en el query string -- un fragmento
@@ -87,8 +94,9 @@ def create_user(body: CreateUserBody, user: dict = Depends(require_drp)):
     # el envío automático está configurado en este servicio; si no lo está, el frontend debe
     # avisar que hay que mandar el link a mano en vez de decir "invitación enviada" en falso.
     return {
-        "ok": True, "user_id": user_id, "invite_link": invite_link,
+        "ok": True, "user_id": user_id,
         "email_configured": bool(config.RESEND_API_KEY),
+        **_invite_link_for(db, user, invite_link),
     }
 
 
@@ -285,8 +293,8 @@ def reset_credentials(user_id: str, user: dict = Depends(require_drp)):
     nuevo de rf_invites para terminar de configurar la cuenta): "resetear la contraseña" de
     alguien que ya activó su cuenta, y "reenviar invitación" si la original venció sin
     usarse. Invalida la contraseña actual (si tenía) y cualquier sesión abierta al instante
-    -- el link viejo también queda inválido porque el token es de un solo uso
-    (rf_invites.consumed_at)."""
+    -- y cualquier link anterior que siguiera pendiente muere en el mismo acto
+    (security.issue_invite), haya sido usado o no."""
     db = get_db()
     target = db.execute(
         "SELECT username, email, display_name, is_superadmin FROM rf_users WHERE id=?", (user_id,)
@@ -299,11 +307,7 @@ def reset_credentials(user_id: str, user: dict = Depends(require_drp)):
     db.execute("UPDATE rf_users SET password_hash=NULL, updated_at=? WHERE id=?", (now, user_id))
     _revoke_active_sessions(db, target["username"])
 
-    token = security.generate_invite_token()
-    db.execute(
-        "INSERT INTO rf_invites (token, user_id, created_at, expires_at) VALUES (?,?,?,?)",
-        (token, user_id, now, now + config.INVITE_TTL_H * 3600),
-    )
+    token = security.issue_invite(db, user_id, now, config.INVITE_TTL_H * 3600)
     db.commit()
 
     # Ronda 20 (2026-09-21): token en el fragmento (#), no en el query string -- un fragmento
@@ -316,8 +320,9 @@ def reset_credentials(user_id: str, user: dict = Depends(require_drp)):
     target_label = target["display_name"] or target["email"]
     log_system_event(user, "credentials_reset", f"{user['u']} generó un nuevo link de acceso para {target_label}")
     return {
-        "ok": True, "invite_link": invite_link,
+        "ok": True,
         "email_configured": bool(config.RESEND_API_KEY),
+        **_invite_link_for(db, user, invite_link),
     }
 
 

@@ -84,7 +84,7 @@ def test_login_lockout_is_scoped_per_username(client, drp_client, superadmin_cre
     from fastapi.testclient import TestClient
     from app.main import app
     other_cli = TestClient(app)
-    other_cli.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "1234"})
+    other_cli.post("/invite/accept", json={"token": token, "password": "password123", "pin": "1234"})
 
     fresh = TestClient(app)
     for _ in range(5):

@@ -47,6 +47,32 @@ def generate_invite_token() -> str:
     return secrets.token_urlsafe(32)
 
 
+def hash_invite_token(token: str) -> str:
+    """rf_invites.token guarda SOLO este hash (2026-10-03), nunca el token en claro -- una
+    copia de la base o un backup filtrado no alcanza para armar un link de activación. El
+    token es aleatorio de 256 bits, así que un SHA-256 simple (sin salt ni PBKDF2) alcanza:
+    no hay diccionario posible que probar."""
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def issue_invite(db, user_id: str, now: float, ttl_s: float) -> str:
+    """Genera un link de activación nuevo para user_id y mata cualquier otro que siguiera
+    pendiente -- nunca hay más de un link vivo por usuario. Antes (hasta 2026-10-03) un
+    reseteo dejaba vigente el mail anterior sin usar hasta su vencimiento, y con ese mail
+    viejo se podía tomar la cuenta y fijar el PIN de firma. Devuelve el token en claro (lo
+    único que sale de acá hacia el mail); en la base queda solo el hash. No hace commit."""
+    db.execute(
+        "UPDATE rf_invites SET consumed_at=? WHERE user_id=? AND consumed_at IS NULL",
+        (now, user_id),
+    )
+    token = generate_invite_token()
+    db.execute(
+        "INSERT INTO rf_invites (token, user_id, created_at, expires_at) VALUES (?,?,?,?)",
+        (hash_invite_token(token), user_id, now, now + ttl_s),
+    )
+    return token
+
+
 def create_token(user_id: str, username: str, display: str, role: str, is_superadmin: bool) -> tuple[str, str]:
     """Crea un token de sesión firmado. Devuelve (token, nonce)."""
     if not config.AUTH_SECRET_KEY:

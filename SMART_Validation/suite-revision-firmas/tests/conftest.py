@@ -58,6 +58,20 @@ def drp_client(client, superadmin_creds):
     return client
 
 
+# PDF mínimo pero estructuralmente válido (una página en blanco, generado con pypdf) --
+# necesario desde que sign_approval exige un PDF real (F-02, ver signatures.py). El mismo
+# usado en la simulación adversarial de docs-privados/.
+VALID_PDF_B64 = (
+    "JVBERi0xLjMKJeLjz9MKMSAwIG9iago8PAovUHJvZHVjZXIgKHB5cGRmKQo+PgplbmRvYmoKMiAwIG9iago8"
+    "PAovVHlwZSAvUGFnZXMKL0NvdW50IDEKL0tpZHMgWyA0IDAgUiBdCj4+CmVuZG9iagozIDAgb2JqCjw8Ci9U"
+    "eXBlIC9DYXRhbG9nCi9QYWdlcyAyIDAgUgo+PgplbmRvYmoKNCAwIG9iago8PAovVHlwZSAvUGFnZQovUmVz"
+    "b3VyY2VzIDw8Cj4+Ci9NZWRpYUJveCBbIDAuMCAwLjAgNzIgNzIgXQovUGFyZW50IDIgMCBSCj4+CmVuZG9i"
+    "agp4cmVmCjAgNQowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTUgMDAwMDAgbiAKMDAwMDAwMDA1NCAw"
+    "MDAwMCBuIAowMDAwMDAwMTEzIDAwMDAwIG4gCjAwMDAwMDAxNjIgMDAwMDAgbiAKdHJhaWxlcgo8PAovU2l6"
+    "ZSA1Ci9Sb290IDMgMCBSCi9JbmZvIDEgMCBSCj4+CnN0YXJ0eHJlZgoyNTQKJSVFT0YK"
+)
+
+
 def accept_signature_consent(client) -> None:
     """Helper compartido (Ronda 19): cualquier fixture de firma tiene que aceptar la
     declaración de conformidad antes de poder firmar -- sign_review/sign_approval rechazan

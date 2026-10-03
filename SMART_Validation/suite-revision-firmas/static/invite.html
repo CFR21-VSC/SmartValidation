@@ -95,14 +95,14 @@ function showInvalid(message) {
     document.getElementById('invalid-box').style.display = '';
 }
 
-// Ronda 20 (2026-09-21): el link se genera ahora con el token en el FRAGMENTO (#token=...),
-// no en el query string -- un fragmento nunca se manda al servidor (ni en esta carga de
-// página ni en el Referer de pedidos posteriores), así que no queda expuesto en logs de
-// acceso/proxy ni en el header Referer como sí pasaba con ?token=. Se sigue aceptando
-// ?token= como fallback para no romper invitaciones ya enviadas antes de este cambio.
+// El token viene en el FRAGMENTO (#token=...), que el navegador nunca manda al servidor, y
+// de acá en adelante viaja solo en el body de los POST -- nunca en una URL, así no queda en
+// logs de acceso/proxy ni en el header Referer. Ya no se acepta ?token= (2026-10-03): esos
+// links son anteriores al 2026-09-21 y vencieron hace rato.
 const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-const searchParams = new URLSearchParams(window.location.search);
-const token = hashParams.get('token') || searchParams.get('token');
+const token = hashParams.get('token');
+// Sacarlo de la barra de direcciones y del historial apenas se leyó.
+if (token) history.replaceState(null, '', window.location.pathname);
 
 const pinInputs = buildPinGrid(document.getElementById('pin-grid'));
 const confirmInputs = buildPinGrid(document.getElementById('pin-confirm-grid'));
@@ -126,7 +126,7 @@ function clearError() {
         return;
     }
 
-    const { status, data } = await apiFetch('/invite/' + encodeURIComponent(token));
+    const { status, data } = await apiFetch('/invite/lookup', { method: 'POST', body: { token } });
 
     if (status !== 200 || !data.ok) {
         showInvalid(data.error || 'Esta invitación no es válida o ya expiró.');
@@ -169,9 +169,9 @@ form.addEventListener('submit', async (e) => {
     }
 
     submitBtn.disabled = true;
-    const { status, data } = await apiFetch('/invite/' + encodeURIComponent(token) + '/accept', {
+    const { status, data } = await apiFetch('/invite/accept', {
         method: 'POST',
-        body: { password, pin },
+        body: { token, password, pin },
     });
     submitBtn.disabled = false;
 

@@ -70,7 +70,12 @@ def _clear_login_attempts(db, username: str) -> None:
     db.commit()
 
 
+class InviteLookupBody(BaseModel):
+    token: str
+
+
 class AcceptInviteBody(BaseModel):
+    token: str
     password: str
     pin: str
 
@@ -335,11 +340,27 @@ def accept_signature_consent(body: AcceptSignatureConsentBody, user: dict = Depe
     return {"ok": True}
 
 
-@router.get("/invite/{token}")
-def get_invite(token: str):
-    db = get_db()
-    inv = db.execute("SELECT * FROM rf_invites WHERE token=?", (token,)).fetchone()
+def _find_live_invite(db, token: str):
+    """Busca por hash (rf_invites.token nunca guarda el token en claro)."""
+    if not token:
+        return None
+    inv = db.execute(
+        "SELECT * FROM rf_invites WHERE token=?", (security.hash_invite_token(token),)
+    ).fetchone()
     if not inv or inv["consumed_at"] or inv["expires_at"] < time.time():
+        return None
+    return inv
+
+
+# El token viaja en el BODY, nunca en la ruta (2026-10-03): antes era /invite/{token} y
+# /invite/{token}/accept, y la ruta completa queda escrita en el log de accesos del
+# servidor/proxy -- quien leyera esos logs podía usar el link de alguien que lo abrió y
+# todavía no había terminado el alta.
+@router.post("/invite/lookup")
+def get_invite(body: InviteLookupBody):
+    db = get_db()
+    inv = _find_live_invite(db, body.token)
+    if not inv:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Invitación inválida o expirada")
     u = db.execute("SELECT * FROM rf_users WHERE id=?", (inv["user_id"],)).fetchone()
     if not u:
@@ -347,16 +368,16 @@ def get_invite(token: str):
     return {"ok": True, "email": u["email"], "display_name": u["display_name"], "role": u["role"]}
 
 
-@router.post("/invite/{token}/accept")
-def accept_invite(token: str, body: AcceptInviteBody, response: Response):
+@router.post("/invite/accept")
+def accept_invite(body: AcceptInviteBody, response: Response):
     if len(body.pin) < 4 or not body.pin.isdigit():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "El PIN debe tener al menos 4 dígitos")
     if len(body.password) < 8:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "La contraseña debe tener al menos 8 caracteres")
 
     db = get_db()
-    inv = db.execute("SELECT * FROM rf_invites WHERE token=?", (token,)).fetchone()
-    if not inv or inv["consumed_at"] or inv["expires_at"] < time.time():
+    inv = _find_live_invite(db, body.token)
+    if not inv:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Invitación inválida o expirada")
 
     u = db.execute("SELECT * FROM rf_users WHERE id=?", (inv["user_id"],)).fetchone()
@@ -369,7 +390,11 @@ def accept_invite(token: str, body: AcceptInviteBody, response: Response):
         "last_login=?, updated_at=? WHERE id=?",
         (security.pbkdf2_hash(body.password), security.pbkdf2_hash(body.pin), now, now, u["id"]),
     )
-    db.execute("UPDATE rf_invites SET consumed_at=? WHERE token=?", (now, token))
+    # Usado mata: se consume este link y cualquier otro que el usuario tuviera pendiente.
+    db.execute(
+        "UPDATE rf_invites SET consumed_at=? WHERE user_id=? AND consumed_at IS NULL",
+        (now, u["id"]),
+    )
     db.commit()
 
     fresh = db.execute("SELECT * FROM rf_users WHERE id=?", (u["id"],)).fetchone()

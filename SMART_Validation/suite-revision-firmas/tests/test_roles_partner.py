@@ -28,7 +28,7 @@ def _invite(drp, username, role):
     user_id = created.json()["user_id"]
     token = created.json()["invite_link"].split("token=")[-1]
     cli = TestClient(app)
-    accept = cli.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "1234"})
+    accept = cli.post("/invite/accept", json={"token": token, "password": "password123", "pin": "1234"})
     assert accept.status_code == 200, accept.text
     accept_signature_consent(cli)
     return cli, user_id

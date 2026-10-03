@@ -9,10 +9,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from tests.conftest import accept_signature_consent
+from tests.conftest import VALID_PDF_B64, accept_signature_consent
 
 SAMPLE_JSON = {"type": "HLRA", "metadata": {"title": "Análisis"}, "secciones": []}
-FAKE_PDF_B64 = base64.b64encode(b"%PDF-1.4 fake test pdf").decode()
+FAKE_PDF_B64 = VALID_PDF_B64  # sign_approval exige un PDF estructuralmente válido (F-02)
 
 
 @pytest.fixture
@@ -31,7 +31,7 @@ def cliente(drp_client):
     user_id = created.json()["user_id"]
     token = created.json()["invite_link"].split("token=")[-1]
     cli = TestClient(app)
-    cli.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "1234"})
+    cli.post("/invite/accept", json={"token": token, "password": "password123", "pin": "1234"})
     accept_signature_consent(cli)
     return cli, user_id
 
@@ -104,6 +104,7 @@ def test_reopen_rejected_if_already_sealed(drp_with_pin, cliente):
     drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
     drp_id = [u["id"] for u in drp_with_pin.get("/users").json()["users"] if u["is_superadmin"]][0]
     fp = _fp(drp_with_pin)
+    drp_with_pin.post("/projects/proj-1/documents/HLRA/close-review", json={"pin": "9999"})
     drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round",
         json={"signers": [{"user_id": drp_id, "role_label": "Aprobador", "sign_order": 1}]},
@@ -134,6 +135,7 @@ def test_sealing_flips_document_status_to_aprobado(drp_with_pin, cliente):
     assert "document" not in before["document"]["json_data"]  # SAMPLE_JSON no trae ese campo
 
     fp = _fp(drp_with_pin)
+    drp_with_pin.post("/projects/proj-1/documents/HLRA/close-review", json={"pin": "9999"})
     drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round",
         json={"signers": [{"user_id": drp_id, "role_label": "Aprobador", "sign_order": 1}]},
@@ -204,6 +206,7 @@ def test_delete_not_blocked_by_merely_designated_unsigned_round(drp_with_pin):
     firmante tiene que ser superadmin) pero NADIE firmó todavía."""
     drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     drp_id = [u["id"] for u in drp_with_pin.get("/users").json()["users"] if u["is_superadmin"]][0]
+    drp_with_pin.post("/projects/proj-1/documents/HLRA/close-review", json={"pin": "9999"})
     r = drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round",
         json={"signers": [{"user_id": drp_id, "role_label": "Aprobador", "sign_order": 1}]},
@@ -312,6 +315,7 @@ def _seal_solo(drp_with_pin, project_id="proj-1", doc_type="HLRA"):
     suficiente para estos tests de branding, que no necesitan el circuito de dos firmantes."""
     drp_id = [u["id"] for u in drp_with_pin.get("/users").json()["users"] if u["is_superadmin"]][0]
     fp = drp_with_pin.get(f"/projects/{project_id}/documents/{doc_type}").json()["content_fingerprint"]
+    drp_with_pin.post(f"/projects/{project_id}/documents/{doc_type}/close-review", json={"pin": "9999"})
     drp_with_pin.post(
         f"/projects/{project_id}/documents/{doc_type}/approval-round",
         json={"signers": [{"user_id": drp_id, "role_label": "Aprobador", "sign_order": 1}]},
@@ -439,6 +443,7 @@ def test_seal_rejects_non_pdf_attachment(drp_with_pin):
     drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     drp_id = [u["id"] for u in drp_with_pin.get("/users").json()["users"] if u["is_superadmin"]][0]
     fp = _fp(drp_with_pin)
+    drp_with_pin.post("/projects/proj-1/documents/HLRA/close-review", json={"pin": "9999"})
     drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round",
         json={"signers": [{"user_id": drp_id, "role_label": "Aprobador", "sign_order": 1}]},
@@ -460,7 +465,7 @@ def test_original_pdf_download_returns_exact_stored_bytes(drp_with_pin):
     _seal_solo(drp_with_pin)
     r = drp_with_pin.get("/projects/proj-1/documents/HLRA/original")
     assert r.status_code == 200
-    assert r.content == b"%PDF-1.4 fake test pdf"
+    assert r.content == base64.b64decode(FAKE_PDF_B64)
     assert r.headers["content-type"] == "application/pdf"
 
 

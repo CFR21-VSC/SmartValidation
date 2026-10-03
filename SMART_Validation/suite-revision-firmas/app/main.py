@@ -46,6 +46,36 @@ async def _release_db_connection(request: Request, call_next):
         release_db()
 
 
+# Misma política que _add_sec_headers en server.py (Suite de Validación), que usa el mismo
+# motor de render (pdfMake + Google Fonts + previews en iframe blob:). Hasta 2026-10-03 este
+# servicio no mandaba ninguna cabecera de seguridad -- sin HSTS, la primera visita por
+# http:// era interceptable.
+_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "img-src 'self' data: blob:; "
+    "font-src 'self' data: https://fonts.gstatic.com; "
+    "connect-src 'self'; "
+    "worker-src blob:; "
+    "frame-src 'self' blob:; "
+    "frame-ancestors 'self';"
+)
+
+
+@app.middleware("http")
+async def _security_headers(request: Request, call_next):
+    response = await call_next(request)
+    if config.IS_PROD:
+        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Content-Security-Policy"] = _CSP
+    return response
+
+
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(documents.router)

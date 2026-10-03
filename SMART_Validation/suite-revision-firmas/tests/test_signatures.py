@@ -3,7 +3,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from tests.conftest import accept_signature_consent
+from tests.conftest import VALID_PDF_B64, accept_signature_consent
 
 SAMPLE_JSON = {"type": "HLRA", "metadata": {"title": "Análisis"}, "secciones": []}
 
@@ -18,7 +18,7 @@ def cliente(drp_client):
     user_id = created.json()["user_id"]
     token = created.json()["invite_link"].split("token=")[-1]
     cli = TestClient(app)
-    cli.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "1234"})
+    cli.post("/invite/accept", json={"token": token, "password": "password123", "pin": "1234"})
     accept_signature_consent(cli)
     return cli, user_id
 
@@ -44,7 +44,7 @@ def unassigned_drp(drp_client):
     user_id = created.json()["user_id"]
     token = created.json()["invite_link"].split("token=")[-1]
     cli = TestClient(app)
-    accept = cli.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "5678"})
+    accept = cli.post("/invite/accept", json={"token": token, "password": "password123", "pin": "5678"})
     assert accept.status_code == 200, accept.text
     accept_signature_consent(cli)
     return cli, user_id
@@ -243,6 +243,7 @@ def test_approval_round_requires_superadmin_last(drp_with_pin, cliente):
     drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     cli, user_id = cliente
     drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+    drp_with_pin.post("/projects/proj-1/documents/HLRA/close-review", json={"pin": "9999"})
     r = drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round",
         json={"signers": [{"user_id": user_id, "role_label": "Aprobador", "sign_order": 1}]},
@@ -270,6 +271,7 @@ def test_approval_sign_last_signer_superadmin_checked_live(drp_with_pin, cliente
     db.commit()
     cli.post("/auth/login", json={"username": "firmante", "password": "password123"})
 
+    drp_with_pin.post("/projects/proj-1/documents/HLRA/close-review", json={"pin": "9999"})
     created = drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round",
         json={"signers": [{"user_id": user_id, "role_label": "Aprobador", "sign_order": 1}]},
@@ -284,7 +286,7 @@ def test_approval_sign_last_signer_superadmin_checked_live(drp_with_pin, cliente
     r = cli.post(
         "/projects/proj-1/documents/HLRA/approval-round/sign",
         json={
-            "pin": "1234", "justification_text": "Apruebo", "pdf_base64": "JVBERi0xLjQgZmFrZSB0ZXN0IHBkZg==",
+            "pin": "1234", "justification_text": "Apruebo", "pdf_base64": VALID_PDF_B64,
             "content_fingerprint": _fp(drp_with_pin),
         },
     )
@@ -296,6 +298,7 @@ def test_approval_round_rejects_signer_without_document_access(drp_with_pin, cli
     drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
     cli, user_id = cliente
     drp_id = _superadmin_id(drp_with_pin)
+    drp_with_pin.post("/projects/proj-1/documents/HLRA/close-review", json={"pin": "9999"})
     r = drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round",
         json={"signers": [
@@ -313,6 +316,7 @@ def test_full_approval_flow_seals_document(drp_with_pin, cliente):
     drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
     drp_id = _superadmin_id(drp_with_pin)
 
+    drp_with_pin.post("/projects/proj-1/documents/HLRA/close-review", json={"pin": "9999"})
     created = drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round",
         json={"signers": [
@@ -327,7 +331,7 @@ def test_full_approval_flow_seals_document(drp_with_pin, cliente):
     early = drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round/sign",
         json={
-            "pin": "9999", "justification_text": "Conforme", "pdf_base64": "JVBERi0xLjQgZmFrZSB0ZXN0IHBkZg==",
+            "pin": "9999", "justification_text": "Conforme", "pdf_base64": VALID_PDF_B64,
             "content_fingerprint": fp,
         },
     )
@@ -352,7 +356,7 @@ def test_full_approval_flow_seals_document(drp_with_pin, cliente):
     r2 = drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round/sign",
         json={
-            "pin": "9999", "justification_text": "Apruebo", "pdf_base64": "JVBERi0xLjQgZmFrZSB0ZXN0IHBkZg==",
+            "pin": "9999", "justification_text": "Apruebo", "pdf_base64": VALID_PDF_B64,
             "content_fingerprint": fp,
         },
     )
@@ -376,6 +380,7 @@ def test_approval_sign_out_of_turn_rejected(drp_with_pin, cliente):
     cli, user_id = cliente
     drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
     drp_id = _superadmin_id(drp_with_pin)
+    drp_with_pin.post("/projects/proj-1/documents/HLRA/close-review", json={"pin": "9999"})
     drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round",
         json={"signers": [
@@ -399,6 +404,7 @@ def test_approval_sign_twice_rejected(drp_with_pin, cliente):
     cli, user_id = cliente
     drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
     drp_id = _superadmin_id(drp_with_pin)
+    drp_with_pin.post("/projects/proj-1/documents/HLRA/close-review", json={"pin": "9999"})
     drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round",
         json={"signers": [
@@ -454,6 +460,7 @@ def test_cannot_open_second_approval_round_while_one_is_open(drp_with_pin, clien
         {"user_id": user_id, "role_label": "Revisor", "sign_order": 1},
         {"user_id": drp_id, "role_label": "Aprobador", "sign_order": 2},
     ]}
+    drp_with_pin.post("/projects/proj-1/documents/HLRA/close-review", json={"pin": "9999"})
     drp_with_pin.post("/projects/proj-1/documents/HLRA/approval-round", json=body)
     r = drp_with_pin.post("/projects/proj-1/documents/HLRA/approval-round", json=body)
     assert r.status_code == 409
@@ -568,6 +575,7 @@ def test_signed_render_include_pending_adds_own_unsigned_signature(drp_with_pin,
     cli, user_id = cliente
     drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
     drp_id = _superadmin_id(drp_with_pin)
+    drp_with_pin.post("/projects/proj-1/documents/HLRA/close-review", json={"pin": "9999"})
     drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round",
         json={"signers": [

@@ -17,7 +17,7 @@ def cliente_client(drp_client):
     )
     token = created.json()["invite_link"].split("token=")[-1]
     cli = TestClient(app)
-    accept = cli.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "1234"})
+    accept = cli.post("/invite/accept", json={"token": token, "password": "password123", "pin": "1234"})
     assert accept.status_code == 200
     return cli, created.json()["user_id"]
 

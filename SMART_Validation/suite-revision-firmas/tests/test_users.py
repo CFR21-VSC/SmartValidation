@@ -13,7 +13,7 @@ def cliente_client(drp_client):
     )
     token = created.json()["invite_link"].split("token=")[-1]
     cli = TestClient(app)
-    cli.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "1234"})
+    cli.post("/invite/accept", json={"token": token, "password": "password123", "pin": "1234"})
     return cli, created.json()["user_id"]
 
 
@@ -55,7 +55,7 @@ def test_create_user_requires_drp_role(client, drp_client):
         "/users", json={"username": "cli", "email": "cli@example.com", "display_name": "Cli", "role": "cliente"}
     )
     token = created.json()["invite_link"].split("token=")[-1]
-    client.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "1234"})
+    client.post("/invite/accept", json={"token": token, "password": "password123", "pin": "1234"})
 
     r = client.post(
         "/users", json={"username": "otro", "email": "otro@example.com", "display_name": "Otro", "role": "cliente"}
@@ -186,7 +186,7 @@ def _invite_and_activate(drp_client, username, email, role="cliente", password="
     user_id = created.json()["user_id"]
     token = created.json()["invite_link"].split("token=")[-1]
     cli = TestClient(app)
-    accept = cli.post(f"/invite/{token}/accept", json={"password": password, "pin": pin})
+    accept = cli.post("/invite/accept", json={"token": token, "password": password, "pin": pin})
     assert accept.status_code == 200, accept.text
     return user_id, cli
 
@@ -309,7 +309,7 @@ def test_reset_credentials_link_lets_user_set_new_password(drp_client):
     token = r.json()["invite_link"].split("token=")[-1]
 
     fresh = TestClient(app)
-    accept = fresh.post(f"/invite/{token}/accept", json={"password": "unaClaveNueva123", "pin": "9999"})
+    accept = fresh.post("/invite/accept", json={"token": token, "password": "unaClaveNueva123", "pin": "9999"})
     assert accept.status_code == 200, accept.text
 
     login = fresh.post("/auth/login", json={"username": "reset2", "password": "unaClaveNueva123"})
@@ -325,3 +325,143 @@ def test_reset_credentials_requires_drp(cliente_client):
     cli, uid = cliente_client
     r = cli.post(f"/users/{uid}/reset-credentials")
     assert r.status_code == 403
+
+
+# ── Links de activación: endurecimiento 2026-10-03 ───────────────────────────
+
+def _token_of(response) -> str:
+    return response.json()["invite_link"].split("token=")[-1]
+
+
+def test_reset_credentials_kills_previous_unused_link(drp_client):
+    """"Mail viejo, muere": un reseteo invalida el link anterior aunque nunca se haya usado
+    (antes seguía sirviendo hasta su vencimiento, y con él se podía fijar el PIN de firma)."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    created = drp_client.post(
+        "/users",
+        json={"username": "viejo1", "email": "viejo1@example.com", "display_name": "Viejo Uno", "role": "cliente"},
+    )
+    old_token = _token_of(created)
+    new_token = _token_of(drp_client.post(f"/users/{created.json()['user_id']}/reset-credentials"))
+    assert new_token != old_token
+
+    anon = TestClient(app)
+    assert anon.post("/invite/lookup", json={"token": old_token}).status_code == 404
+    old_accept = anon.post("/invite/accept", json={"token": old_token, "password": "password123", "pin": "1234"})
+    assert old_accept.status_code == 404
+    assert anon.post("/invite/lookup", json={"token": new_token}).status_code == 200
+
+
+def test_accepting_a_link_kills_every_other_pending_link(drp_client):
+    """"Usado mata": al activar la cuenta no puede quedar ningún otro link vivo del mismo
+    usuario (por ejemplo una fila vieja que hubiera quedado pendiente en la base)."""
+    import time
+    from fastapi.testclient import TestClient
+    from app import security
+    from app.db import get_db
+    from app.main import app
+
+    created = drp_client.post(
+        "/users",
+        json={"username": "mata1", "email": "mata1@example.com", "display_name": "Mata Uno", "role": "cliente"},
+    )
+    token = _token_of(created)
+    db = get_db()
+    stray = security.generate_invite_token()
+    db.execute(
+        "INSERT INTO rf_invites (token, user_id, created_at, expires_at) VALUES (?,?,?,?)",
+        (security.hash_invite_token(stray), created.json()["user_id"], time.time(), time.time() + 3600),
+    )
+    db.commit()
+
+    anon = TestClient(app)
+    assert anon.post("/invite/accept", json={"token": token, "password": "password123", "pin": "1234"}).status_code == 200
+    assert TestClient(app).post("/invite/lookup", json={"token": stray}).status_code == 404
+
+
+def test_invite_token_is_stored_hashed_not_in_clear(drp_client):
+    from app import security
+    from app.db import get_db
+
+    created = drp_client.post(
+        "/users",
+        json={"username": "hash1", "email": "hash1@example.com", "display_name": "Hash Uno", "role": "cliente"},
+    )
+    token = _token_of(created)
+    stored = [r["token"] for r in get_db().execute("SELECT token FROM rf_invites").fetchall()]
+    assert token not in stored
+    assert security.hash_invite_token(token) in stored
+
+
+def test_migration_hashes_legacy_clear_tokens_and_old_link_still_works(drp_client):
+    """Un link ya enviado por mail antes del cambio (guardado en claro) tiene que seguir
+    funcionando después de la migración, que además es idempotente."""
+    import time
+    from fastapi.testclient import TestClient
+    from app import security
+    from app.db import _migrate_hash_invite_tokens, get_db
+    from app.main import app
+
+    created = drp_client.post(
+        "/users",
+        json={"username": "legacy1", "email": "legacy1@example.com", "display_name": "Legacy Uno", "role": "cliente"},
+    )
+    db = get_db()
+    db.execute("DELETE FROM rf_invites")
+    legacy = security.generate_invite_token()
+    db.execute(
+        "INSERT INTO rf_invites (token, user_id, created_at, expires_at) VALUES (?,?,?,?)",
+        (legacy, created.json()["user_id"], time.time(), time.time() + 3600),
+    )
+    db.commit()
+
+    _migrate_hash_invite_tokens(db)
+    _migrate_hash_invite_tokens(db)
+    stored = [r["token"] for r in db.execute("SELECT token FROM rf_invites").fetchall()]
+    assert stored == [security.hash_invite_token(legacy)]
+    assert TestClient(app).post("/invite/lookup", json={"token": legacy}).status_code == 200
+
+
+def test_invite_link_is_only_returned_to_the_superadmin(drp_client):
+    """Con el link se define el PIN de firma: un DRP común no lo recibe (ni al crear un
+    usuario ni al resetear), solo el superadministrador."""
+    _other_id, other_cli = _invite_and_activate(drp_client, "drpcomun", "drpcomun@example.com", role="drp")
+
+    created = other_cli.post(
+        "/users",
+        json={"username": "ext1", "email": "ext1@example.com", "display_name": "Externo Uno", "role": "cliente"},
+    )
+    assert created.status_code == 200, created.text
+    assert created.json()["invite_link"] is None
+    assert "token=" not in created.text
+
+    reset = other_cli.post(f"/users/{created.json()['user_id']}/reset-credentials")
+    assert reset.status_code == 200, reset.text
+    assert reset.json()["invite_link"] is None
+    assert "token=" not in reset.text
+
+    assert drp_client.post(f"/users/{created.json()['user_id']}/reset-credentials").json()["invite_link"]
+
+
+def test_invite_token_never_travels_in_the_url_path(client):
+    """Las rutas viejas con el token en la URL (que quedaba en el log de accesos) ya no existen."""
+    assert client.get("/invite/cualquier-token").status_code in (404, 405)
+    assert client.post("/invite/cualquier-token/accept", json={"password": "password123", "pin": "1234"}).status_code in (404, 405)
+
+
+def test_security_headers_are_sent_on_every_response(client):
+    for path in ("/health", "/app/login.html"):
+        r = client.get(path)
+        assert r.headers["X-Content-Type-Options"] == "nosniff"
+        assert r.headers["X-Frame-Options"] == "SAMEORIGIN"
+        assert r.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
+        assert "frame-ancestors 'self'" in r.headers["Content-Security-Policy"]
+
+
+def test_hsts_is_sent_in_production_only(client, monkeypatch):
+    from app import config
+    assert "Strict-Transport-Security" not in client.get("/health").headers
+    monkeypatch.setattr(config, "IS_PROD", True)
+    assert "max-age=" in client.get("/health").headers["Strict-Transport-Security"]

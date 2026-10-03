@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from tests.conftest import accept_signature_consent
+from tests.conftest import VALID_PDF_B64, accept_signature_consent
 
 SAMPLE_JSON = {"type": "HLRA", "metadata": {"title": "Demo"}, "secciones": [
     {"titulo": "Propósito", "contenido": "texto original"}
@@ -23,7 +23,7 @@ def cliente(drp_client):
     user_id = created.json()["user_id"]
     token = created.json()["invite_link"].split("token=")[-1]
     cli = TestClient(app)
-    cli.post(f"/invite/{token}/accept", json={"password": "password123", "pin": "1234"})
+    cli.post("/invite/accept", json={"token": token, "password": "password123", "pin": "1234"})
     accept_signature_consent(cli)
     return cli, user_id
 
@@ -46,6 +46,7 @@ def _seal_document(drp_with_pin, cliente_tuple, project_id="proj-1", doc_type="H
         json={"pin": "9999", "content_fingerprint": fp},
     )
 
+    drp_with_pin.post(f"/projects/{project_id}/documents/{doc_type}/close-review", json={"pin": "9999"})
     drp_with_pin.post(
         f"/projects/{project_id}/documents/{doc_type}/approval-round",
         json={"signers": [
@@ -60,7 +61,7 @@ def _seal_document(drp_with_pin, cliente_tuple, project_id="proj-1", doc_type="H
     drp_with_pin.post(
         f"/projects/{project_id}/documents/{doc_type}/approval-round/sign",
         json={
-            "pin": "9999", "justification_text": "ok", "pdf_base64": "JVBERi0xLjQgZmFrZSB0ZXN0IHBkZg==",
+            "pin": "9999", "justification_text": "ok", "pdf_base64": VALID_PDF_B64,
             "content_fingerprint": fp,
         },
     )
@@ -557,6 +558,7 @@ def test_dossier_flags_open_approval_round_until_sealed(drp_with_pin, cliente):
     before = drp_with_pin.get("/projects/proj-1/dossier").json()["documents"][0]
     assert before["has_open_approval_round"] is False
 
+    drp_with_pin.post("/projects/proj-1/documents/HLRA/close-review", json={"pin": "9999"})
     drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round",
         json={"signers": [
@@ -575,7 +577,7 @@ def test_dossier_flags_open_approval_round_until_sealed(drp_with_pin, cliente):
     drp_with_pin.post(
         "/projects/proj-1/documents/HLRA/approval-round/sign",
         json={
-            "pin": "9999", "justification_text": "ok", "pdf_base64": "JVBERi0xLjQgZmFrZSB0ZXN0IHBkZg==",
+            "pin": "9999", "justification_text": "ok", "pdf_base64": VALID_PDF_B64,
             "content_fingerprint": fp,
         },
     )
