@@ -728,6 +728,44 @@ document.addEventListener('DOMContentLoaded', async function () {
     _pollTestExecutions();
     setInterval(_pollTestExecutions, 5000);
 
+    // Merge estructural sin reload: cubre el caso común (la sesión que subió el snapshot
+    // más nuevo agregó protocolos/carpetas/tests) sin pedirle al usuario que haga clic en
+    // "Actualizar" y pierda el estado de la pantalla. Si en cambio detecta que algo que
+    // tenemos localmente ya NO está en el remoto (lo borraron en la otra sesión), no toca
+    // nada — ese caso sigue el camino viejo del banner manual, que es más seguro que borrar
+    // algo de debajo del usuario sin que lo vea venir.
+    function _planStructuralMerge(remoteSnapshot) {
+        const idsOf = (arr) => new Set((arr || []).map(x => x && x.id).filter(Boolean));
+        const localProtocolIds = idsOf(protocols);
+        const localGroupIds = idsOf(groups);
+        const localTestIds = idsOf(tests);
+        const remoteProtocolIds = idsOf(remoteSnapshot.protocols);
+        const remoteGroupIds = idsOf(remoteSnapshot.groups);
+        const remoteTestIds = idsOf(remoteSnapshot.tests);
+
+        const hasRemovals =
+            [...localProtocolIds].some(id => !remoteProtocolIds.has(id)) ||
+            [...localGroupIds].some(id => !remoteGroupIds.has(id)) ||
+            [...localTestIds].some(id => !remoteTestIds.has(id));
+        if (hasRemovals) return null;
+
+        return {
+            addedProtocols: (remoteSnapshot.protocols || []).filter(p => !localProtocolIds.has(p.id)),
+            addedGroups: (remoteSnapshot.groups || []).filter(g => !localGroupIds.has(g.id)),
+            addedTests: (remoteSnapshot.tests || []).filter(t => !localTestIds.has(t.id))
+        };
+    }
+
+    function _applyStructuralMerge(plan) {
+        plan.addedProtocols.forEach(p => protocols.push(p));
+        plan.addedGroups.forEach(g => groups.push(g));
+        plan.addedTests.forEach(t => {
+            if (!Array.isArray(t.evidences)) t.evidences = [];
+            tests.push(t);
+        });
+        if (typeof renderTests === 'function') renderTests();
+    }
+
     // Cross-browser sync: detectar proyectos en el servidor que este browser no tiene activos,
     // o cambios estructurales (nombres de prueba, carpetas, altas/bajas) del MISMO proyecto
     // subidos por otro usuario. Antes esto corría UNA SOLA VEZ, 2s después de cargar la
@@ -754,10 +792,30 @@ document.addEventListener('DOMContentLoaded', async function () {
                 const serverUpdated = newest.updated_at || 0;
                 if (serverUpdated > lastSyncFrom + 5) {  // 5s de tolerancia
                     // Descargar imágenes nuevas en background sin recargar
-                    _syncImagesFromServer(localId)
-                        .then(() => localStorage.setItem(`_serverSyncFrom_${localId}`, String(serverUpdated)))
-                        .catch(() => {});
-                    // Banner para recargar el snapshot completo (datos de tests, evidencias)
+                    const imageSyncPromise = _syncImagesFromServer(localId).catch(() => {});
+                    // Intentar mergear los cambios estructurales (altas de protocolo/
+                    // carpeta/test) sin pedirle al usuario que recargue la página.
+                    let plan = null;
+                    try {
+                        const entry = await window.ValidationSuite.projects.downloadFromServer(localId);
+                        if (entry && entry.snapshot) plan = _planStructuralMerge(entry.snapshot);
+                    } catch (e) {
+                        console.warn('[cross-browser sync] descarga para merge falló:', e);
+                    }
+                    if (plan) {
+                        const added = plan.addedProtocols.length + plan.addedGroups.length + plan.addedTests.length;
+                        if (added > 0) {
+                            _applyStructuralMerge(plan);
+                            showNotification(`🔄 ${added} elemento(s) nuevo(s) del proyecto sincronizados`);
+                        }
+                        await imageSyncPromise;
+                        localStorage.setItem(`_serverSyncFrom_${localId}`, String(serverUpdated));
+                        if (added > 0) saveToStorage().catch(() => {});
+                        return;
+                    }
+                    imageSyncPromise.then(() => localStorage.setItem(`_serverSyncFrom_${localId}`, String(serverUpdated)));
+                    // Fallback: hubo borrados u otro cambio que no podemos auto-mergear con
+                    // seguridad (ver _planStructuralMerge) -> banner manual, como antes.
                     if (!document.getElementById('_serverUpdateBanner')) {
                         const ub = document.createElement('div');
                         ub.id = '_serverUpdateBanner';
