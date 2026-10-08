@@ -169,6 +169,21 @@ def test_private_project_other_drp_cannot_reorder_documents(drp_with_pin, other_
     assert r.status_code == 404
 
 
+def test_private_project_other_drp_cannot_resolve_comments(drp_with_pin, other_drp):
+    """security-checklist (2026-10-07): único endpoint DRP-only de documents.py que se había
+    quedado sin assert_owner_if_private -- ver todos sus hermanos arriba en este archivo."""
+    other_cli, _uid = other_drp
+    proj = _create_private_project(drp_with_pin)
+    drp_with_pin.put(f"/projects/{proj}/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    added = drp_with_pin.post(
+        f"/projects/{proj}/documents/HLRA/sections/intro/comments", json={"content": "revisar esto"}
+    )
+    assert added.status_code == 200, added.text
+    comment_id = added.json()["comment"]["id"]
+    r = other_cli.patch(f"/projects/{proj}/documents/HLRA/sections/intro/comments/{comment_id}/resolve")
+    assert r.status_code == 404
+
+
 def test_private_project_other_drp_cannot_see_people_book(drp_with_pin, other_drp):
     other_cli, _uid = other_drp
     proj = _create_private_project(drp_with_pin)

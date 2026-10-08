@@ -697,8 +697,14 @@ def resolve_comment(
     """DRP confirma que ya consideró ese comentario puntual — habilita la firma de revisión
     cuando todos los comentarios del documento están resueltos (sección 5.1). Avisa por mail
     al autor del comentario (sección pedida 2026-09-01), salvo que DRP se esté resolviendo
-    un comentario propio."""
+    un comentario propio.
+
+    2026-10-07 (security-checklist, medida 14): único endpoint DRP-only de este router sin
+    assert_owner_if_private -- un DRP no dueño de un proyecto privado podía resolver
+    comentarios ahí conociendo los IDs, igual que ya lo tienen load_document/delete_document/
+    list_document_grants/set_documents_order/push_to_validacion/get_people_book."""
     db = get_db()
+    assert_owner_if_private(db, user, project_id)
     doc = _get_document_or_404(db, project_id, doc_type)
     comment = db.execute(
         "SELECT user_id FROM rf_section_comments WHERE id=? AND document_id=? AND section_key=?",
