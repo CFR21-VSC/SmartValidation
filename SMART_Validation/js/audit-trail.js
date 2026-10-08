@@ -12,7 +12,10 @@
    ==================================================================== */
 
 const AUDIT_CONFIG = {
-    dbVersion: 2,  // v2: auditTrail store
+    // Comparte la base GestorEvidenciasDB con logica-modular.js (DB_VERSION ahí) --
+    // mismo número acá o esta conexión falla con VersionError apenas la otra suba
+    // de versión primero.
+    dbVersion: 3,  // v3: pendingSync store (logica-modular.js)
     storeName: 'auditTrail',
     sessionId: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     enabled: true  // Flag para habilitar/deshabilitar logging

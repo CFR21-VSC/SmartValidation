@@ -124,7 +124,7 @@ function saveImageToDB(id, imageData, { upload = true } = {}) {
  * @param {string} id - ID de la evidencia
  * @returns {Promise<string>} - Base64 de la imagen
  */
-async function getImageFromDB(id) {
+async function getImageFromDB(id, { serverFallback = true } = {}) {
     // 1. Intentar IndexedDB local (rápido, sin red)
     const localData = await new Promise((resolve, reject) => {
         if (!db) { resolve(null); return; }
@@ -133,6 +133,7 @@ async function getImageFromDB(id) {
         req.onerror  = () => resolve(null);
     });
     if (localData) return localData;
+    if (!serverFallback) return null;
 
     // 2. Fallback: recuperar del servidor (R2 es fuente de verdad para multi-sesión).
     // NO cachear en IndexedDB — evita que una imagen vieja tape una nueva del servidor.
@@ -845,6 +846,11 @@ document.addEventListener('DOMContentLoaded', async function () {
                 // Bajar del server imágenes que falten localmente (siempre, incremental)
                 await _syncImagesFromServer(projId);
             }
+            // Completar en background lo que loadFromStorage dejó sin cargar (local-only,
+            // ver comentario ahí) -- esto sí consulta el servidor, pero en lotes, sin
+            // bloquear el arranque de la app.
+            await precargarImagenesEvidenciaFaltantes(tests);
+            if (typeof renderWorkArea === 'function') renderWorkArea();
         } catch (_) {}
     }, 3000);
 
@@ -1340,16 +1346,23 @@ async function loadFromStorage() {
 
             for (const test of tests) {
                 for (const evidence of test.evidences) {
-                    // Si tiene flag hasImage, buscar en IndexedDB (con fallback/auto-reparación
-                    // a la clave vieja por step, para evidencias guardadas antes de este fix)
+                    // Si tiene flag hasImage, buscar SOLO en IndexedDB local (sin red) --
+                    // este loop es secuencial y corre en cada carga de la app, así que un
+                    // proyecto con muchas evidencias sin la foto cacheada en este browser
+                    // (sesión nueva, otro dispositivo) podía quedarse colgado varios minutos
+                    // pegándole al servidor una por una. Lo que no se encuentra acá queda con
+                    // hasImage intacto (no se borra el flag) para que lo complete en
+                    // background precargarImagenesEvidenciaFaltantes, que sí hace esas
+                    // consultas al servidor pero en lotes, sin bloquear el arranque.
                     if (evidence.hasImage && !evidence.isEmpty) {
                         const imageId = evidenceImageKey(test, evidence);
 
                         try {
-                            const imageData = await loadEvidenceImage(test, evidence);
+                            const imageData = await loadEvidenceImage(test, evidence, { serverFallback: false });
                             if (imageData) {
                                 evidence.image = imageData;
                                 imageLoadCount++;
+                                delete evidence.hasImage;
                             } else {
     // //                                 console.warn(`Imagen no encontrada en IndexedDB: ${imageId}`);
                             }
@@ -1357,9 +1370,6 @@ async function loadFromStorage() {
     // //                             console.error(`Error cargando imagen ${imageId}:`, err);
                         }
                     }
-
-                    // Limpiar flag temporal
-                    delete evidence.hasImage;
                 }
             }
 
@@ -8537,15 +8547,15 @@ function evidenceImageKey(test, evidence) {
  * del step, que puede volver a cambiar en cualquier borrado/reordenamiento.
  * No borra la clave vieja -- igual criterio que esos dos flujos existentes.
  */
-async function loadEvidenceImage(test, evidence) {
+async function loadEvidenceImage(test, evidence, { serverFallback = true } = {}) {
     const newKey = evidenceImageKey(test, evidence);
-    let data = await getImageFromDB(newKey);
+    let data = await getImageFromDB(newKey, { serverFallback });
     if (data) return data;
 
     if (evidence.step == null) return null;
     const oldKey = `${test.id}_evidence_${evidence.step}`;
     if (oldKey === newKey) return null;
-    data = await getImageFromDB(oldKey);
+    data = await getImageFromDB(oldKey, { serverFallback });
     if (data) {
         saveImageToDB(newKey, data).catch(() => {});
     }

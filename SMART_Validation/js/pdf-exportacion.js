@@ -106,9 +106,12 @@ async function loadSessionForPDF() {
 }
 
 async function getImageFromDB(imageId) {
+    // El 3 acá (y en los otros 3 indexedDB.open de este archivo) tiene que matchear
+    // DB_VERSION en logica-modular.js -- es la MISMA base compartida por nombre, y un
+    // número más bajo acá rompe con VersionError apenas la otra conexión suba de versión.
     // 1. Intentar IndexedDB local
     const localData = await new Promise((resolve) => {
-        const request = indexedDB.open('GestorEvidenciasDB', 2);
+        const request = indexedDB.open('GestorEvidenciasDB', 3);
         request.onsuccess = (event) => {
             const db = event.target.result;
             const tx = db.transaction(['images'], 'readonly');
@@ -128,7 +131,7 @@ async function getImageFromDB(imageId) {
             const serverData = await window.VS.Storage.fetchEvidence(compoundId);
             if (serverData) {
                 // Cachear en IndexedDB
-                const request = indexedDB.open('GestorEvidenciasDB', 2);
+                const request = indexedDB.open('GestorEvidenciasDB', 3);
                 request.onsuccess = (event) => {
                     const db = event.target.result;
                     db.transaction(['images'], 'readwrite').objectStore('images').put({ id: imageId, data: serverData });
@@ -152,7 +155,7 @@ async function _prefetchPDFImages(imageIds) {
     // Detectar cuáles faltan en IndexedDB
     for (const imageId of imageIds) {
         const has = await new Promise(res => {
-            const req = indexedDB.open('GestorEvidenciasDB', 2);
+            const req = indexedDB.open('GestorEvidenciasDB', 3);
             req.onsuccess = (e) => {
                 const r = e.target.result.transaction(['images'], 'readonly').objectStore('images').get(imageId);
                 r.onsuccess = () => res(!!r.result);
@@ -179,7 +182,7 @@ async function _prefetchPDFImages(imageIds) {
                 return c === compoundId;
             });
             if (!localId) continue;
-            const dbReq = indexedDB.open('GestorEvidenciasDB', 2);
+            const dbReq = indexedDB.open('GestorEvidenciasDB', 3);
             dbReq.onsuccess = (e) => {
                 e.target.result.transaction(['images'], 'readwrite').objectStore('images').put({ id: localId, data });
             };
