@@ -252,24 +252,28 @@ async function _syncTestExecution(projId, test) {
     if (!projId || !test) return;
     const evidenceIds = (test.evidences || [])
         .filter(e => !e.isEmpty && (e.hasImage || e.image))
-        .map(e => `${projId}_${test.id}_evidence_${e.step}`);
+        .map(e => `${projId}_${evidenceImageKey(test, e)}`);
     const evidenceMeta = (test.evidences || [])
         .filter(e => !e.isEmpty)
-        .map(e => ({
-            step: e.step,
-            description: e.description,
-            resultado: e.resultado,
-            size: e.size,
-            dimensions: e.dimensions,
-            captureTimestamp: e.captureTimestamp,
-            timestamp: e.timestamp,
-            executor: e.executor,
-            observacion: e.observacion || '',
-            operacion: e.operacion || '',
-            usuarioPrueba: e.usuarioPrueba || '',
-            rolPrueba: e.rolPrueba || '',
-            criterioRef: e.criterioRef || ''
-        }));
+        .map(e => {
+            if (!e.uid) e.uid = _generateEvidenceUid();  // compat: evidencia vieja sin uid
+            return {
+                uid: e.uid,
+                step: e.step,
+                description: e.description,
+                resultado: e.resultado,
+                size: e.size,
+                dimensions: e.dimensions,
+                captureTimestamp: e.captureTimestamp,
+                timestamp: e.timestamp,
+                executor: e.executor,
+                observacion: e.observacion || '',
+                operacion: e.operacion || '',
+                usuarioPrueba: e.usuarioPrueba || '',
+                rolPrueba: e.rolPrueba || '',
+                criterioRef: e.criterioRef || ''
+            };
+        });
     const body = JSON.stringify({
         status: test.resultado || '',
         notes: test.conclusion || '',
@@ -342,28 +346,41 @@ async function _pollTestExecutions() {
                 } catch (_) {}
             }
             // Merge evidence_ids: sincronizar slots (agrega nuevos, elimina los borrados)
+            //
+            // 2026-10-07: antes esto emparejaba evidencias remoto<->local por NÚMERO DE
+            // STEP -- si otra sesión reordenaba/borraba evidencias entre dos polls, el
+            // step dejaba de identificar la misma evidencia físicamente y el merge mezclaba
+            // metadata de una con la imagen de otra. Ahora empareja por `evidence.uid`
+            // (identidad estable, nunca cambia). Compat con mensajes viejos (pestaña sin
+            // este fix todavía abierta, sin uid): si el id remoto es puramente numérico se
+            // sigue interpretando como step y se empareja contra `String(e.step)` -- no
+            // rompe una pestaña vieja durante el rollout, simplemente no se beneficia de la
+            // identidad estable hasta que recargue.
             if (Array.isArray(exec.evidence_ids)) {
                 if (!test.evidences) test.evidences = [];
                 const projPrefix = projId2 + '_';
 
-                // Construir set de pasos que existen en el servidor
-                const remoteSteps = new Set();
+                // Construir set de identidades (uid, o step como fallback) que existen en el servidor
+                const remoteIds = new Set();
                 for (const cid of exec.evidence_ids) {
                     const localId = cid.startsWith(projPrefix) ? cid.slice(projPrefix.length) : cid;
-                    const stepMatch = localId.match(/_evidence_(\d+)$/);
-                    if (stepMatch) remoteSteps.add(parseInt(stepMatch[1], 10));
+                    const idMatch = localId.match(/_evidence_(.+)$/);
+                    if (idMatch) remoteIds.add(idMatch[1]);
                 }
+                const findLocal = (id) => test.evidences.find(e => e.uid === id || String(e.step) === id);
 
                 // Agregar/actualizar slots nuevos
                 for (const cid of exec.evidence_ids) {
                     const localId = cid.startsWith(projPrefix) ? cid.slice(projPrefix.length) : cid;
-                    const stepMatch = localId.match(/_evidence_(\d+)$/);
-                    if (!stepMatch) continue;
-                    const step = parseInt(stepMatch[1], 10);
-                    const meta = remoteEvidenceMeta && remoteEvidenceMeta.find(m => m.step === step);
-                    let ev = test.evidences.find(e => e.step === step);
+                    const idMatch = localId.match(/_evidence_(.+)$/);
+                    if (!idMatch) continue;
+                    const remoteId = idMatch[1];
+                    const meta = remoteEvidenceMeta && remoteEvidenceMeta.find(m => (m.uid || String(m.step)) === remoteId);
+                    const step = meta ? meta.step : (/^\d+$/.test(remoteId) ? parseInt(remoteId, 10) : undefined);
+                    let ev = findLocal(remoteId);
                     if (!ev) {
-                        ev = { step, isEmpty: false, hasImage: true,
+                        ev = { uid: (meta && meta.uid) || (/^\d+$/.test(remoteId) ? undefined : remoteId),
+                               step, isEmpty: false, hasImage: true,
                                description: meta && meta.description || undefined,
                                resultado: meta && meta.resultado || undefined,
                                size: meta && meta.size || undefined,
@@ -379,11 +396,12 @@ async function _pollTestExecutions() {
                         test.evidences.push(ev);
                         changed = true;
                     } else {
+                        if (!ev.uid && meta && meta.uid) { ev.uid = meta.uid; changed = true; }
                         if (!ev.hasImage) { ev.isEmpty = false; ev.hasImage = true; changed = true; }
                         if (meta) {
                             // Si el captureTimestamp cambió → imagen reemplazada → invalidar cache local
                             if (meta.captureTimestamp && ev.captureTimestamp && meta.captureTimestamp !== ev.captureTimestamp && ev.image) {
-                                const _staleId = `${test.id}_evidence_${ev.step}`;
+                                const _staleId = evidenceImageKey(test, ev);
                                 ev.image = null;
                                 ev._imgLoading = false;
                                 ev._imgFailed = false;
@@ -415,10 +433,10 @@ async function _pollTestExecutions() {
                 test.evidences = test.evidences.filter(ev => {
                     if (ev.isEmpty) return true;               // placeholder local — no tocar
                     if (!ev.hasImage) return true;              // imagen capturada localmente — no tocar
-                    if (remoteSteps.has(ev.step)) return true; // sigue existiendo en servidor
+                    if (remoteIds.has(ev.uid) || remoteIds.has(String(ev.step))) return true; // sigue existiendo en servidor
                     // Slot del servidor eliminado — limpiar también IndexedDB y memoria
                     ev.image = null;
-                    deleteImageFromDB(`${test.id}_evidence_${ev.step}`).catch(() => {});
+                    deleteImageFromDB(evidenceImageKey(test, ev)).catch(() => {});
                     return false;
                 });
                 if (test.evidences.length !== before) changed = true;
@@ -436,9 +454,8 @@ async function _pollTestExecutions() {
                         ev.hasImage && !ev.image && !ev.isEmpty
                     );
                     if (missingImgs.length && window.VS && window.VS.Storage) {
-                        // Directo a R2 (fuente de verdad) — no pasar por IndexedDB
                         Promise.all(missingImgs.map(ev =>
-                            window.VS.Storage.fetchEvidence(`${activeTest.id}_evidence_${ev.step}`)
+                            fetchEvidenceFromServer(activeTest, ev)
                                 .then(d => { if (d) ev.image = d; }).catch(() => {})
                         )).then(() => {
                             if (typeof renderWorkArea === 'function') renderWorkArea();
@@ -907,8 +924,10 @@ async function saveToStorage() {
             for (const evidence of test.evidences) {
                 // Solo guardar imágenes que existen
                 if (evidence.image && !evidence.isEmpty) {
-                    // ID único: testId_evidenceStep
-                    const imageId = `${test.id}_evidence_${evidence.step}`;
+                    // ID único y ESTABLE: testId_evidenceUid (nunca cambia aunque se
+                    // reordene/borre otra evidencia, a diferencia del step -- ver nota junto
+                    // a evidenceImageKey)
+                    const imageId = evidenceImageKey(test, evidence);
 
                     // Guardar imagen en IndexedDB (async)
                     imagePromises.push(
@@ -1121,12 +1140,13 @@ async function loadFromStorage() {
 
             for (const test of tests) {
                 for (const evidence of test.evidences) {
-                    // Si tiene flag hasImage, buscar en IndexedDB
+                    // Si tiene flag hasImage, buscar en IndexedDB (con fallback/auto-reparación
+                    // a la clave vieja por step, para evidencias guardadas antes de este fix)
                     if (evidence.hasImage && !evidence.isEmpty) {
-                        const imageId = `${test.id}_evidence_${evidence.step}`;
+                        const imageId = evidenceImageKey(test, evidence);
 
                         try {
-                            const imageData = await getImageFromDB(imageId);
+                            const imageData = await loadEvidenceImage(test, evidence);
                             if (imageData) {
                                 evidence.image = imageData;
                                 imageLoadCount++;
@@ -2146,7 +2166,7 @@ async function precargarImagenesEvidenciaFaltantes(testsAEvaluar) {
             // Mismo chequeo que usa renderWorkArea para decidir si hay que bajar la imagen --
             // evidencias de tabla/texto no tienen hasImage, así que no se intenta fetch inútil.
             if (!ev.isEmpty && ev.hasImage && !ev.image) {
-                pendientes.push({ ev, imageId: `${t.id}_evidence_${ev.step}` });
+                pendientes.push({ ev, test: t });
             }
         });
     });
@@ -2156,7 +2176,7 @@ async function precargarImagenesEvidenciaFaltantes(testsAEvaluar) {
     const LOTE = 20;
     for (let i = 0; i < pendientes.length; i += LOTE) {
         const lote = pendientes.slice(i, i + LOTE);
-        const datos = await Promise.all(lote.map(p => getImageFromDB(p.imageId).catch(() => null)));
+        const datos = await Promise.all(lote.map(p => loadEvidenceImage(p.test, p.ev).catch(() => null)));
         datos.forEach((data, j) => { if (data) lote[j].ev.image = data; });
     }
 }
@@ -3618,8 +3638,7 @@ async function executeZipExport() {
                 let imageData = evidence.image;
                 if (!imageData && evidence.hasImage) {
                     try {
-                        const imageId = `${test.id}_evidence_${evidence.step}`;
-                        imageData = await getImageFromDB(imageId);
+                        imageData = await loadEvidenceImage(test, evidence);
                     } catch (e) { /* skip */ }
                 }
 
@@ -5261,20 +5280,24 @@ async function duplicateTest(testId) {
     const clonedEvidences = [];
     for (let i = 0; i < test.evidences.length; i++) {
         const ev = test.evidences[i];
+        // uid SIEMPRE nuevo acá -- es una evidencia físicamente distinta, nunca puede
+        // heredar la identidad de almacenamiento del original (ver nota junto a
+        // evidenceImageKey). El `uid:` explícito después del spread gana por orden de
+        // propiedades, no importa qué traiga `...ev`.
         const cloned = {
             ...ev,
             step: i + 1,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            uid: _generateEvidenceUid(),
         };
 
-        // Copiar imagen en IndexedDB si existe
+        // Copiar imagen si existe -- loadEvidenceImage ya resuelve sola la clave vieja/nueva
+        // del ORIGINAL (y de paso lo auto-repara si todavía estaba en el esquema viejo).
         if (ev.hasImage || ev.image) {
             try {
-                const originalImageId = `${testId}_evidence_${ev.step}`;
-                const imageData = await getImageFromDB(originalImageId);
+                const imageData = await loadEvidenceImage(test, ev);
                 if (imageData) {
-                    const newImageId = `${newId}_evidence_${cloned.step}`;
-                    await saveImageToDB(newImageId, imageData);
+                    await saveImageToDB(`${newId}_evidence_${cloned.uid}`, imageData);
                     cloned.hasImage = true;
                 }
             } catch (e) {
@@ -5351,14 +5374,16 @@ async function moveEvidenceToTest(evidenceIndex, targetTestId) {
     const evidence = sourceTest.evidences[evidenceIndex];
     if (!evidence) return;
 
-    // Mover imagen en IndexedDB
+    // Mover imagen -- el uid de la evidencia no cambia (misma evidencia), pero la clave de
+    // storage incluye el test.id, así que cambiar de test SÍ cambia la clave física (mismo
+    // motivo por el que esto ya necesitaba migración antes, ahora por test.id en vez de
+    // por step -- el step puede quedar igual o no, ya no importa para la imagen).
     if (evidence.hasImage || evidence.image) {
         try {
-            const oldImageId = `${sourceTest.id}_evidence_${evidence.step}`;
-            const imageData = await getImageFromDB(oldImageId);
+            const oldImageId = evidenceImageKey(sourceTest, evidence);
+            const imageData = await loadEvidenceImage(sourceTest, evidence);
             if (imageData) {
-                const newStep = targetTest.evidences.length + 1;
-                const newImageId = `${targetTest.id}_evidence_${newStep}`;
+                const newImageId = `${targetTest.id}_evidence_${evidence.uid}`;
                 await saveImageToDB(newImageId, imageData);
                 await deleteImageFromDB(oldImageId);
             }
@@ -6291,7 +6316,7 @@ function renderWorkArea() {
     // Evidencias
     // Auto-inicializar con un slot vacío al abrir un TC sin evidencias
     if (test.evidences.length === 0 && !isLocked) {
-        test.evidences.push({
+        test.evidences.push(createEvidenceSlot({
             step: 1,
             description: 'Evidencia pendiente',
             operacion: '',
@@ -6305,7 +6330,7 @@ function renderWorkArea() {
             isEmpty: true,
             hasImage: false,
             image: null
-        });
+        }));
         saveToStorage();
     }
 
@@ -6834,7 +6859,6 @@ function renderEvidenceItem(evidence, index, test) {
         }
         if (!evidence._imgLoading) {
             evidence._imgLoading = true;
-            const _loadId = `${test.id}_evidence_${evidence.step}`;
             // Timeout de 12 s: si el servidor no responde, mostrar estado de fallo
             const _failTimer = setTimeout(() => {
                 if (evidence._imgLoading) {
@@ -6843,10 +6867,9 @@ function renderEvidenceItem(evidence, index, test) {
                     if (typeof renderWorkArea === 'function') renderWorkArea();
                 }
             }, 12000);
-            // R2 es fuente de verdad — ir directo al servidor, saltear IndexedDB
-            const _fetchPromise = (window.VS && window.VS.Storage)
-                ? window.VS.Storage.fetchEvidence(_loadId)
-                : Promise.resolve(null);
+            // R2 es fuente de verdad — ir directo al servidor, saltear IndexedDB (con
+            // fallback a la clave vieja por step, ver fetchEvidenceFromServer)
+            const _fetchPromise = fetchEvidenceFromServer(test, evidence);
             _fetchPromise.then(data => {
                 clearTimeout(_failTimer);
                 evidence._imgLoading = false;
@@ -7099,7 +7122,7 @@ async function smartFillEmptyEvidence(test, emptyIndex, imageData) {
     }
 
     // Guardar imagen en IndexedDB
-    const imageId = `${test.id}_evidence_${evidence.step}`;
+    const imageId = evidenceImageKey(test, evidence);
     try {
         await saveImageToDB(imageId, imageData.data);
     } catch (e) { /* silenciar */ }
@@ -7366,7 +7389,7 @@ function addExtraEvidenceStep() {
     if (!test) return;
     const maxStep = test.evidences.reduce((m, e) => Math.max(m, e.step), 0);
     const newStep = maxStep + 1;
-    test.evidences.push({
+    test.evidences.push(createEvidenceSlot({
         step: newStep,
         description: 'Evidencia adicional',
         operacion: '',
@@ -7380,7 +7403,7 @@ function addExtraEvidenceStep() {
         isEmpty: true,
         hasImage: false,
         image: null
-    });
+    }));
     renderWorkArea();
     saveToStorage();
     setTimeout(() => {
@@ -7955,7 +7978,7 @@ async function confirmEvidence() {
     const nextStep = test.evidences.length + 1;
 
     // Crear evidencia
-    const evidence = {
+    const evidence = createEvidenceSlot({
         step: insertBeforeIndex !== null ? insertBeforeIndex + 1 : nextStep,
         image: pendingImage.data,
         description: description,
@@ -7975,7 +7998,7 @@ async function confirmEvidence() {
         isEmpty: false,
         // Metadatos EXIF (si existen)
         exif: pendingImage.exif || null
-    };
+    });
 
     // Memorizar usuario/rol/criterio para autocompletado en próximas capturas
     rememberTestUserRoleUsage(usuarioPrueba, rolPrueba, criterioRef);
@@ -8183,7 +8206,7 @@ function handleMultipleImages(files) {
 
                 img.onload = function () {
                     compressImage(img, (compressedDataURL, compressedSize) => {
-                        const evidence = {
+                        const evidence = createEvidenceSlot({
                             step: test.evidences.length + 1,
                             image: compressedDataURL,
                             description: `${file.name}`,
@@ -8203,7 +8226,7 @@ function handleMultipleImages(files) {
                                 cameraMake: exifData.cameraMake,
                                 cameraModel: exifData.cameraModel
                             }
-                        };
+                        });
 
                         test.evidences.push(evidence);
                         processedCount++;
@@ -8239,6 +8262,93 @@ function renumberSteps(test) {
     test.evidences.forEach((evidence, index) => {
         evidence.step = index + 1;
     });
+}
+
+/* ====================================================================
+   Identidad estable de evidencia (2026-10-07) -- hasta acá la clave de
+   almacenamiento de cada foto (IndexedDB Y servidor) era
+   `${test.id}_evidence_${evidence.step}` -- pero `step` es la POSICIÓN de la
+   evidencia en el array, no un identificador. Cada borrado/reordenamiento
+   llama a renumberSteps() y reescribe el step de TODAS las evidencias
+   restantes sin mover la foto que ya está guardada bajo la clave vieja --
+   resultado: la evidencia que pasa a tener el step de una borrada no
+   encuentra nada ("no levanta"), y la que pasa a tener el step de otra
+   encuentra la foto ajena ("se pisan"). Mismo problema en _pollTestExecutions
+   (emparejaba por step entre sesiones).
+
+   `evidence.uid` es la clave real ahora: se asigna UNA sola vez al crear la
+   evidencia y nunca cambia, pase lo que pase con su step. Las 3 funciones de
+   abajo son el único lugar que debe tocar la clave de almacenamiento --
+   ningún otro call-site debe volver a interpolar `.step` en un ID de imagen.
+   ==================================================================== */
+
+/** ID estable, mismo estilo que los test.id ya existentes (`'test_' + Date.now() + ...`). */
+function _generateEvidenceUid() {
+    return 'ev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+/**
+ * Fábrica única para un objeto evidencia nuevo -- asigna `uid` siempre (nunca
+ * se vuelve a tocar después), `step` lo sigue decidiendo cada caller como
+ * hasta ahora (overrides.step). Reemplaza los ~9 sitios que armaban el
+ * objeto a mano con un `step:` suelto.
+ */
+function createEvidenceSlot(overrides) {
+    return Object.assign({ uid: _generateEvidenceUid() }, overrides);
+}
+
+/**
+ * Clave de almacenamiento estable para la foto de esta evidencia. Si todavía
+ * no tiene `uid` (evidencia serializada ANTES de este fix, cargada de
+ * localStorage/IndexedDB/servidor), se lo asigna acá mismo -- lazy, sin
+ * necesitar una migración masiva aparte: cualquier evidencia vieja queda
+ * compatible la primera vez que se toca.
+ */
+function evidenceImageKey(test, evidence) {
+    if (!evidence.uid) evidence.uid = _generateEvidenceUid();
+    return `${test.id}_evidence_${evidence.uid}`;
+}
+
+/**
+ * Lee la foto de una evidencia con fallback + auto-reparación: prueba la
+ * clave nueva (por uid) primero; si no hay nada ahí, cae a la clave VIEJA
+ * (por step, el esquema de antes de este fix) -- si la encuentra ahí, la
+ * devuelve Y la re-guarda bajo la clave nueva (mismo patrón ya probado en
+ * duplicateTest/moveEvidenceToTest) para que de acá en más deje de depender
+ * del step, que puede volver a cambiar en cualquier borrado/reordenamiento.
+ * No borra la clave vieja -- igual criterio que esos dos flujos existentes.
+ */
+async function loadEvidenceImage(test, evidence) {
+    const newKey = evidenceImageKey(test, evidence);
+    let data = await getImageFromDB(newKey);
+    if (data) return data;
+
+    if (evidence.step == null) return null;
+    const oldKey = `${test.id}_evidence_${evidence.step}`;
+    if (oldKey === newKey) return null;
+    data = await getImageFromDB(oldKey);
+    if (data) {
+        saveImageToDB(newKey, data).catch(() => {});
+    }
+    return data;
+}
+
+/**
+ * Igual que loadEvidenceImage, pero SIN pasar por IndexedDB local -- para los dos lugares
+ * que deliberadamente van directo a R2 (fuente de verdad) porque el disparador es "me
+ * acabo de enterar por sync/poll que esto cambió en el servidor" y una copia local vieja
+ * en IndexedDB taparía la versión nueva (ver comentario de getImageFromDB sobre por qué
+ * esa función no cachea ahí a propósito). Con el mismo fallback a la clave vieja por step.
+ */
+async function fetchEvidenceFromServer(test, evidence) {
+    if (!window.VS || !window.VS.Storage) return null;
+    const newKey = evidenceImageKey(test, evidence);
+    let data = await window.VS.Storage.fetchEvidence(newKey).catch(() => null);
+    if (data) return data;
+    if (evidence.step == null) return null;
+    const oldKey = `${test.id}_evidence_${evidence.step}`;
+    if (oldKey === newKey) return null;
+    return window.VS.Storage.fetchEvidence(oldKey).catch(() => null);
 }
 
 /* ====================================================================
@@ -8298,7 +8408,7 @@ function addTable() {
     }
 
     // Agregar como "evidencia" especial de tipo tabla
-    const tableEvidence = {
+    const tableEvidence = createEvidenceSlot({
         step: test.evidences.length + 1,
         type: 'table',  // Identificador especial
         title: title || 'Tabla sin título',
@@ -8312,7 +8422,7 @@ function addTable() {
         timestamp: new Date().toISOString(),
         testName: test.name,
         executor: executor || document.getElementById('ejecutor').value.trim()
-    };
+    });
 
     test.evidences.push(tableEvidence);
 
@@ -9379,7 +9489,7 @@ function confirmImageEditor() {
     // Subir imagen editada al servidor para sincronización multi-sesión.
     // saveToStorage() usa upload:false para evitar re-subir imágenes que
     // YA vienen del servidor; acá es una edición local nueva → upload:true.
-    const _editImageId = `${test.id}_evidence_${evidence.step}`;
+    const _editImageId = evidenceImageKey(test, evidence);
     saveImageToDB(_editImageId, dataURL, { upload: true }).catch(() => {});
 
     fabricCanvas.dispose();
@@ -9492,10 +9602,25 @@ async function deleteEvidence(index) {
 
     // Borrar imagen de IndexedDB y del servidor (R2 + DB) antes de quitar del array
     if (!evidence.isEmpty && (evidence.image || evidence.hasImage)) {
-        const imageId = `${test.id}_evidence_${evidence.step}`;
+        const imageId = evidenceImageKey(test, evidence);
         deleteImageFromDB(imageId).catch(() => {});
         if (window.VS && window.VS.Storage) {
             window.VS.Storage.deleteEvidence(imageId).catch(() => {});
+        }
+        // Compat (2026-10-07): si esta evidencia es de antes del fix y nunca se auto-reparó
+        // (nunca se leyó en esta sesión), la foto real puede seguir viviendo SOLO bajo la
+        // clave vieja por step -- borrar también esa, o quedaría huérfana y un vecino que
+        // más tarde herede ese mismo step (renumberSteps) podría "encontrarla" por el
+        // fallback de loadEvidenceImage y mostrarla como propia -- el mismo bug original,
+        // acotado a datos que todavía no pasaron por este fix.
+        if (evidence.step != null) {
+            const legacyId = `${test.id}_evidence_${evidence.step}`;
+            if (legacyId !== imageId) {
+                deleteImageFromDB(legacyId).catch(() => {});
+                if (window.VS && window.VS.Storage) {
+                    window.VS.Storage.deleteEvidence(legacyId).catch(() => {});
+                }
+            }
         }
     }
 
@@ -9521,20 +9646,34 @@ async function deleteEvidence(index) {
 /**
  * Duplicar evidencia
  */
-function duplicateEvidence(index) {
+async function duplicateEvidence(index) {
     const test = tests.find(t => t.id === activeTestId);
     if (!test) return;
 
     const evidence = test.evidences[index];
     if (!evidence) return;
 
-    // Crear copia
+    // Crear copia -- uid SIEMPRE nuevo (evidencia físicamente distinta, ver nota junto a
+    // evidenceImageKey). 2026-10-07: antes esta función no copiaba la imagen en absoluto
+    // (a diferencia de duplicateTest/moveEvidenceToTest, que sí lo hacían) -- la "copia"
+    // terminaba sin foto propia hasta que algo más la pisara.
     const duplicate = {
         ...evidence,
         step: test.evidences.length + 1,
         timestamp: new Date().toISOString(),
-        description: evidence.description + ' (copia)'
+        description: evidence.description + ' (copia)',
+        uid: _generateEvidenceUid(),
     };
+
+    if (evidence.hasImage || evidence.image) {
+        try {
+            const imageData = await loadEvidenceImage(test, evidence);
+            if (imageData) {
+                await saveImageToDB(`${test.id}_evidence_${duplicate.uid}`, imageData);
+                duplicate.hasImage = true;
+            }
+        } catch (e) { /* continuar sin imagen si falla la copia */ }
+    }
 
     // Agregar al final
     test.evidences.push(duplicate);
@@ -9720,7 +9859,7 @@ function createEmptyEvidence() {
         return;
     }
 
-    const evidence = {
+    const evidence = createEvidenceSlot({
         step: test.evidences.length + 1,
         image: null,
         description: 'Evidencia pendiente',
@@ -9729,7 +9868,7 @@ function createEmptyEvidence() {
         isEmpty: true,
         testName: test.name,
         executor: executor || document.getElementById('ejecutor').value.trim()
-    };
+    });
 
     test.evidences.push(evidence);
 
@@ -9776,7 +9915,7 @@ function handleDropOnPlaceholder(event, index) {
 
                 // Guardar en IndexedDB
                 try {
-                    await saveImageToDB(`${test.id}_evidence_${evidence.step}`, compressedDataURL);
+                    await saveImageToDB(evidenceImageKey(test, evidence), compressedDataURL);
                 } catch (err) { /* silenciar */ }
 
                 renderWorkArea();
@@ -9823,7 +9962,7 @@ function handleClickPlaceholder(index) {
                     if (!evidence.resultado || evidence.resultado === 'OK') evidence.resultado = 'PASA';
 
                     try {
-                        await saveImageToDB(`${test.id}_evidence_${evidence.step}`, compressedDataURL);
+                        await saveImageToDB(evidenceImageKey(test, evidence), compressedDataURL);
                     } catch (err) { /* silenciar */ }
 
                     renderWorkArea();
@@ -11411,14 +11550,14 @@ async function processMobilePhoto(photo) {
         const nextStep = test.evidences.length > 0
             ? Math.max(...test.evidences.map(e => e.step)) + 1
             : 1;
-        targetEvidence = {
+        targetEvidence = createEvidenceSlot({
             step: nextStep,
             image: null,
             description: '',
             resultado: 'PASA',
             timestamp: new Date().toISOString(),
             isEmpty: false
-        };
+        });
         test.evidences.push(targetEvidence);
     }
 
@@ -11453,7 +11592,7 @@ async function processMobilePhoto(photo) {
     targetEvidence.isEmpty = false;
 
     // Guardar imagen en IndexedDB + subir al servidor
-    const imageId = `${test.id}_evidence_${targetEvidence.step}`;
+    const imageId = evidenceImageKey(test, targetEvidence);
     try {
         await saveImageToDB(imageId, photo.image);
     } catch (e) {
@@ -12071,7 +12210,7 @@ function rotateEvidence(index) {
         if (parts.length === 2) {
             evidence.dimensions = swap ? `${parts[1]}x${parts[0]}` : `${parts[0]}x${parts[1]}`;
         }
-        try { saveImageToDB(`${test.id}_evidence_${evidence.step}`, newDataUrl); } catch (e) { /* silenciar */ }
+        try { saveImageToDB(evidenceImageKey(test, evidence), newDataUrl); } catch (e) { /* silenciar */ }
         saveToStorage();
         renderWorkArea();
     };
