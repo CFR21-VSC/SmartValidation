@@ -14,8 +14,9 @@
  * Configuración de IndexedDB
  */
 const DB_NAME = 'GestorEvidenciasDB';
-const DB_VERSION = 2;  // v2: Agregado auditTrail store
+const DB_VERSION = 3;  // v3: Agregado pendingSync store
 const IMAGES_STORE = 'images';
+const PENDING_SYNC_STORE = 'pendingSync';
 
 let db = null;
 
@@ -56,6 +57,14 @@ function initIndexedDB() {
                 auditStore.createIndex('user', 'user', { unique: false });
             }
 
+            // Cola de subidas que fallaron hacia el servidor (v3). keyPath 'key' es
+            // estable por recurso (ej. "evidence:test_1_evidence_ev_abc") -- un put()
+            // posterior con el mismo key pisa la versión vieja en vez de acumular
+            // duplicados, así siempre reintentamos el dato más reciente.
+            if (!db.objectStoreNames.contains(PENDING_SYNC_STORE)) {
+                db.createObjectStore(PENDING_SYNC_STORE, { keyPath: 'key' });
+            }
+
         };
     });
 }
@@ -67,7 +76,8 @@ function initIndexedDB() {
  * @returns {Promise}
  */
 function _evidenceCompoundId(imageId) {
-    const projId = (window.VS && window.VS.projects && window.VS.projects.getActiveId()) || 'noproj';
+    const projId = (window.ValidationSuite && window.ValidationSuite.projects
+        && window.ValidationSuite.projects.getActiveId()) || 'noproj';
     return (projId + '_' + imageId).replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 300);
 }
 
@@ -93,7 +103,15 @@ function saveImageToDB(id, imageData, { upload = true } = {}) {
             // la subida sigue en background y storage-server.js ya está pensado como
             // "write-through" (ver su comentario de cabecera).
             if (upload && window.VS && window.VS.Storage) {
-                window.VS.Storage.uploadEvidence(id, imageData).catch(() => {});
+                const projId = (window.ValidationSuite && window.ValidationSuite.projects
+                    && window.ValidationSuite.projects.getActiveId()) || null;
+                window.VS.Storage.uploadEvidence(id, imageData).then((r) => {
+                    if (projId && !(r && r.data && r.data.ok)) {
+                        _enqueuePendingSync('evidence', `evidence:${id}`, { rawImageId: id, imageData, projId });
+                    }
+                }).catch(() => {
+                    if (projId) _enqueuePendingSync('evidence', `evidence:${id}`, { rawImageId: id, imageData, projId });
+                });
             }
             resolve();
         };
@@ -238,6 +256,126 @@ function getAllImagesFromDB() {
  * Se llama una sola vez cuando el servidor está disponible.
  * Usa un flag en localStorage para no repetirlo en cada sesión.
  */
+
+// ── Cola de reintentos para subidas que fallaron ─────────────────────────────
+// Las subidas al servidor (foto, snapshot completo, ejecución de un test) son
+// fire-and-forget: si en el momento de guardar no hay red o el server no
+// responde, el error se tragaba en silencio y ese cambio quedaba SOLO en este
+// dispositivo para siempre, sin ningún aviso. Esta cola persiste en IndexedDB
+// (sobrevive a un reload/cierre de pestaña) lo que no pudo subir, y un reintento
+// periódico + al reconectar lo vuelve a intentar hasta que el server lo confirma.
+function _pendingSyncPut(entry) {
+    return new Promise((resolve) => {
+        if (!db) { resolve(); return; }
+        try {
+            const tx = db.transaction([PENDING_SYNC_STORE], 'readwrite');
+            tx.objectStore(PENDING_SYNC_STORE).put(entry);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => resolve();
+        } catch (_) { resolve(); }
+    });
+}
+
+function _pendingSyncDelete(key) {
+    return new Promise((resolve) => {
+        if (!db) { resolve(); return; }
+        try {
+            const tx = db.transaction([PENDING_SYNC_STORE], 'readwrite');
+            tx.objectStore(PENDING_SYNC_STORE).delete(key);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => resolve();
+        } catch (_) { resolve(); }
+    });
+}
+
+function _pendingSyncAll() {
+    return new Promise((resolve) => {
+        if (!db) { resolve([]); return; }
+        try {
+            const tx = db.transaction([PENDING_SYNC_STORE], 'readonly');
+            const req = tx.objectStore(PENDING_SYNC_STORE).getAll();
+            req.onsuccess = () => resolve(req.result || []);
+            req.onerror = () => resolve([]);
+        } catch (_) { resolve([]); }
+    });
+}
+
+function _updatePendingSyncIndicator(count) {
+    const existing = document.getElementById('_pendingSyncIndicator');
+    if (!count || count <= 0) {
+        if (existing) existing.remove();
+        return;
+    }
+    let el = existing;
+    if (!el) {
+        el = document.createElement('div');
+        el.id = '_pendingSyncIndicator';
+        el.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#B8860B;color:#fff;padding:8px 14px;border-radius:20px;font-size:12px;font-weight:600;z-index:99985;box-shadow:0 2px 10px rgba(0,0,0,.3);';
+        document.body.appendChild(el);
+    }
+    el.textContent = `⏳ ${count} cambio(s) sin sincronizar`;
+    el.title = 'Hay cambios guardados en este dispositivo que todavía no llegaron al servidor. Se reintenta solo, no cierres el navegador sin conexión.';
+}
+
+async function _refreshPendingSyncIndicator() {
+    const all = await _pendingSyncAll();
+    _updatePendingSyncIndicator(all.length);
+    return all;
+}
+
+function _enqueuePendingSync(kind, key, payload) {
+    _pendingSyncPut({ key, kind, payload, createdAt: Date.now() }).then(_refreshPendingSyncIndicator);
+}
+window._enqueuePendingSync = _enqueuePendingSync;
+
+async function _retryEvidenceUpload(payload) {
+    if (!window.VS || !window.VS.Storage) return false;
+    const r = await window.VS.Storage.uploadEvidence(payload.rawImageId, payload.imageData).catch(() => null);
+    return !!(r && r.data && r.data.ok);
+}
+
+async function _retrySnapshotSync(payload) {
+    if (!window.VS || !window.VS.Storage) return false;
+    const r = await window.VS.Storage.syncSnapshot(payload.projectId, payload.snapshot, payload.projectName).catch(() => null);
+    return !!(r && r.data && r.data.ok);
+}
+
+async function _retryExecutionSync(payload) {
+    try {
+        const resp = await fetch(
+            `/api/projects/${encodeURIComponent(payload.projId)}/executions/${encodeURIComponent(payload.testId)}`,
+            { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: payload.body }
+        );
+        return resp.ok;
+    } catch (_) { return false; }
+}
+
+let _flushingPendingSync = false;
+async function _flushPendingSyncQueue() {
+    if (_flushingPendingSync) return;
+    if (navigator.onLine === false) return;  // ni intentar si el browser ya sabe que no hay red
+    _flushingPendingSync = true;
+    try {
+        const items = await _pendingSyncAll();
+        for (const item of items) {
+            let ok = false;
+            try {
+                if (item.kind === 'evidence') ok = await _retryEvidenceUpload(item.payload);
+                else if (item.kind === 'snapshot') ok = await _retrySnapshotSync(item.payload);
+                else if (item.kind === 'execution') ok = await _retryExecutionSync(item.payload);
+            } catch (_) { ok = false; }
+            if (ok) await _pendingSyncDelete(item.key);
+        }
+        await _refreshPendingSyncIndicator();
+    } finally {
+        _flushingPendingSync = false;
+    }
+}
+
+window.addEventListener('online', () => _flushPendingSyncQueue().catch(() => {}));
+setTimeout(() => _flushPendingSyncQueue().catch(() => {}), 4000);  // por si quedó algo de una sesión anterior
+setInterval(() => _flushPendingSyncQueue().catch(() => {}), 20000);
+
 // ── Sync granular de ejecuciones de tests ────────────────────────────────────
 // Cada test case tiene su propia fila en test_executions → múltiples usuarios
 // pueden editar tests distintos en paralelo sin pisarse (no hay last-write-wins).
@@ -291,6 +429,9 @@ async function _syncTestExecution(projId, test) {
         } catch (_) {}
         if (attempt < 2) await new Promise(r => setTimeout(r, 1200 * (attempt + 1)));
     }
+    // Los 3 intentos fallaron (sin red, server caído, etc.) -- encolar para
+    // reintentar más tarde en vez de perder este resultado en silencio.
+    _enqueuePendingSync('execution', `execution:${projId}:${test.id}`, { projId, testId: test.id, body });
 }
 
 /**
@@ -695,8 +836,9 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Se ejecuta en background para no bloquear la UI
     setTimeout(async () => {
         try {
-            const projId = window.VS && window.VS.projects && window.VS.projects.getActiveId
-                ? window.VS.projects.getActiveId() : null;
+            const projId = window.ValidationSuite && window.ValidationSuite.projects
+                && window.ValidationSuite.projects.getActiveId
+                ? window.ValidationSuite.projects.getActiveId() : null;
             if (projId) {
                 // Subir imágenes locales al server (one-time, gated por _imgSynced_)
                 await _bulkSyncImagesToServer(projId);

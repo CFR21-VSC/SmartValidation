@@ -239,8 +239,21 @@
         entry.lastOpenedAt = new Date().toISOString();
         entry = refreshFromSnapshot(entry, snapshot);
         await dbPut(entry);
-        // Write-through: non-blocking backup to server SQLite
-        if (global.VS && global.VS.Storage) global.VS.Storage.syncSnapshot(id, snapshot, entry.name);
+        // Write-through: non-blocking backup to server SQLite. Si falla (sin red,
+        // server caído), lo encolamos para reintentar -- ver _enqueuePendingSync
+        // en logica-modular.js (ambos scripts ya están cargados para cuando esto
+        // se invoca en runtime, sin importar el orden de los <script> tags).
+        if (global.VS && global.VS.Storage) {
+            global.VS.Storage.syncSnapshot(id, snapshot, entry.name).then((r) => {
+                if (!(r && r.data && r.data.ok) && global._enqueuePendingSync) {
+                    global._enqueuePendingSync('snapshot', `snapshot:${id}`, { projectId: id, snapshot, projectName: entry.name });
+                }
+            }).catch(() => {
+                if (global._enqueuePendingSync) {
+                    global._enqueuePendingSync('snapshot', `snapshot:${id}`, { projectId: id, snapshot, projectName: entry.name });
+                }
+            });
+        }
         return entry;
     }
 
