@@ -5374,6 +5374,11 @@ async function moveEvidenceToTest(evidenceIndex, targetTestId) {
     const evidence = sourceTest.evidences[evidenceIndex];
     if (!evidence) return;
 
+    // El origen se renumera más abajo tras sacar esta evidencia -- reparar primero
+    // cualquier evidencia de sourceTest sin uid (ver nota junto a
+    // ensureTestEvidenceUidsMigrated).
+    await ensureTestEvidenceUidsMigrated(sourceTest);
+
     // Mover imagen -- el uid de la evidencia no cambia (misma evidencia), pero la clave de
     // storage incluye el test.id, así que cambiar de test SÍ cambia la clave física (mismo
     // motivo por el que esto ya necesitaba migración antes, ahora por test.id en vez de
@@ -5516,6 +5521,16 @@ function selectTest(testId) {
     renderTests(); // Re-renderizar para mostrar activo
     renderWorkArea();
     saveToStorage();
+
+    // 2026-10-08: reparar en segundo plano las evidencias de este test que todavía no
+    // tengan uid (datos de antes del fix) -- sin bloquear la apertura. Si algo cambió
+    // (imágenes migradas), re-renderizar para que se vea la foto correcta sin recargar.
+    const test = tests.find(t => t.id === testId);
+    if (test) {
+        ensureTestEvidenceUidsMigrated(test).then(() => {
+            if (activeTestId === testId) renderWorkArea();
+        }).catch(() => {});
+    }
 }
 
 /**
@@ -7947,6 +7962,10 @@ async function confirmEvidence() {
         showNotification('Error: Prueba no encontrada', 'error');
         return;
     }
+    // Si esto va a insertar ANTES de un paso existente, renumberSteps corre más abajo --
+    // reparar primero cualquier evidencia de este test sin uid (ver nota junto a
+    // ensureTestEvidenceUidsMigrated).
+    if (insertBeforeIndex !== null) await ensureTestEvidenceUidsMigrated(test);
 
     // Bloquear si finalizado en cualquier nivel del cascade
     if (isTestLocked(test)) {
@@ -8349,6 +8368,58 @@ async function fetchEvidenceFromServer(test, evidence) {
     const oldKey = `${test.id}_evidence_${evidence.step}`;
     if (oldKey === newKey) return null;
     return window.VS.Storage.fetchEvidence(oldKey).catch(() => null);
+}
+
+/**
+ * 2026-10-08 (reportado por el usuario: fotos borradas que "persisten", fotos nuevas que no
+ * reemplazan a las viejas): loadEvidenceImage repara una evidencia recién cuando se LEE su
+ * foto -- pero la gran mayoría de las evidencias existentes son de ANTES de este fix y
+ * todavía no tienen `uid`. Mientras no lo tengan, siguen 100% expuestas al bug original: un
+ * `step` reciclado por renumberSteps() puede traerle a una evidencia sin uid la foto de OTRA
+ * evidencia sin uid que ocupó ese mismo número de paso antes. El fallback por step de
+ * loadEvidenceImage protege la lectura individual, pero no alcanza si esa evidencia puntual
+ * nunca llega a leerse antes de que algo la reordene.
+ *
+ * Esto repara TODAS las evidencias de un test de una vez (no una por una al leerlas) --
+ * llamado al abrir el test (selectTest) y, de forma bloqueante, antes de cualquier operación
+ * que llame a renumberSteps (deleteEvidence, duplicateEvidence, moveEvidence*), para que
+ * ninguna reasignación de step pueda ocurrir mientras todavía haya evidencias sin uid.
+ */
+const _migratingTests = new Map();  // testId -> Promise (memoizado, no se repite por test)
+
+async function migrateTestEvidenceUids(test) {
+    const pending = (test.evidences || []).filter(e => !e.isEmpty && !e.uid);
+    if (pending.length === 0) return;
+    const LOTE = 10;  // mismo criterio que precargarImagenesEvidenciaFaltantes -- no todas juntas
+    let migrated = 0;
+    for (let i = 0; i < pending.length; i += LOTE) {
+        const lote = pending.slice(i, i + LOTE);
+        await Promise.all(lote.map(async (ev) => {
+            const oldKey = ev.step != null ? `${test.id}_evidence_${ev.step}` : null;
+            // evidenceImageKey asigna el uid ahí mismo -- a partir de acá esta evidencia ya
+            // no depende más de su step para identidad de almacenamiento.
+            const newKey = evidenceImageKey(test, ev);
+            if (!oldKey || oldKey === newKey || !(ev.hasImage || ev.image)) return;
+            try {
+                const data = await getImageFromDB(oldKey);
+                if (data) {
+                    await saveImageToDB(newKey, data);
+                    migrated++;
+                }
+            } catch (e) { /* no bloquear la apertura del test por una foto puntual */ }
+        }));
+    }
+    if (migrated > 0) await saveToStorage();
+}
+
+/** Memoiza la migración por test -- llamadas repetidas (ej. varias operaciones seguidas
+ *  sobre el mismo test) reusan la misma promesa en vez de re-escanear el array de nuevo. */
+function ensureTestEvidenceUidsMigrated(test) {
+    if (!test) return Promise.resolve();
+    if (!_migratingTests.has(test.id)) {
+        _migratingTests.set(test.id, migrateTestEvidenceUids(test));
+    }
+    return _migratingTests.get(test.id);
 }
 
 /* ====================================================================
@@ -8853,6 +8924,9 @@ async function deleteTable(index) {
 
     if (!await drpConfirm(`Se eliminara la tabla "${evidence.title}".`, 'Eliminar tabla?', 'danger')) return;
 
+    // La tabla en sí no tiene foto, pero renumberSteps de abajo corre sobre TODAS las
+    // evidencias del test -- reparar primero cualquier evidencia con foto sin uid.
+    await ensureTestEvidenceUidsMigrated(test);
     test.evidences.splice(index, 1);
     renumberSteps(test);
     renderWorkArea();
@@ -9600,6 +9674,11 @@ async function deleteEvidence(index) {
         return;
     }
 
+    // Reparar primero cualquier OTRA evidencia de este test sin uid -- renumberSteps corre
+    // más abajo y afecta a todas las que queden, no solo a la que se está borrando (ver nota
+    // junto a ensureTestEvidenceUidsMigrated).
+    await ensureTestEvidenceUidsMigrated(test);
+
     // Borrar imagen de IndexedDB y del servidor (R2 + DB) antes de quitar del array
     if (!evidence.isEmpty && (evidence.image || evidence.hasImage)) {
         const imageId = evidenceImageKey(test, evidence);
@@ -9689,7 +9768,7 @@ async function duplicateEvidence(index) {
 /**
  * Mover evidencia hacia ARRIBA
  */
-function moveEvidenceUp(index) {
+async function moveEvidenceUp(index) {
     const test = tests.find(t => t.id === activeTestId);
     if (!test) return;
 
@@ -9698,6 +9777,10 @@ function moveEvidenceUp(index) {
         showNotification('Ya está en la primera posición', 'error');
         return;
     }
+
+    // El swap de abajo intercambia el step de dos evidencias -- si alguna no tiene uid
+    // todavía, terminaría leyendo la foto de la otra por el step reciclado. Reparar primero.
+    await ensureTestEvidenceUidsMigrated(test);
 
     // Intercambiar con la anterior
     const temp = test.evidences[index];
@@ -9718,7 +9801,7 @@ function moveEvidenceUp(index) {
 /**
  * Mover evidencia hacia ABAJO
  */
-function moveEvidenceDown(index) {
+async function moveEvidenceDown(index) {
     const test = tests.find(t => t.id === activeTestId);
     if (!test) return;
 
@@ -9727,6 +9810,10 @@ function moveEvidenceDown(index) {
         showNotification('Ya está en la última posición', 'error');
         return;
     }
+
+    // El swap de abajo intercambia el step de dos evidencias -- si alguna no tiene uid
+    // todavía, terminaría leyendo la foto de la otra por el step reciclado. Reparar primero.
+    await ensureTestEvidenceUidsMigrated(test);
 
     // Intercambiar con la siguiente
     const temp = test.evidences[index];
