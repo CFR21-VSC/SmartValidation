@@ -254,5 +254,20 @@ else:
         return _sqlite_local.conn
 
     def release_db() -> None:  # type: ignore[misc]
-        """No-op for SQLite — connections are reused across requests on the same thread."""
-        pass
+        """Cierra la conexión de este hilo.
+
+        Antes esto era un no-op bajo la premisa de 'las conexiones se
+        reusan entre requests del mismo hilo' -- cierto para un thread
+        POOL, pero server.py usa ThreadingHTTPServer, que crea un hilo
+        NUEVO por cada conexión entrante y lo descarta al terminar. Sin
+        este cierre, cada request dejaba una conexión SQLite (+ sus
+        file handles de journal WAL) sin cerrar nunca -- un leak que
+        escala con el tráfico y termina agotando el límite de handles
+        del proceso (confirmado: ~56 requests alcanzan para tumbar el
+        servidor en Windows bajo stress test)."""
+        if hasattr(_sqlite_local, "conn"):
+            try:
+                _sqlite_local.conn.close()
+            except Exception:
+                pass
+            del _sqlite_local.conn
