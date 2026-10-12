@@ -1029,6 +1029,14 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }
                 return;
             }
+            // Este banner ofrece CAMBIAR de proyecto -- solo tiene sentido si el browser
+            // todavía no eligió uno a propósito (recién abierto / cayó en el demo). Si ya
+            // hay un proyecto real activo, no hay que insistir con otro solo porque alguien
+            // lo tocó más recientemente en otro lado -- eso no significa que haga falta
+            // abandonar en lo que se está trabajando. El merge/banner de "este MISMO
+            // proyecto tiene cambios" (arriba) sigue andando igual, sin esto.
+            if (localId && localId !== DEMO_ID) return;
+
             // Mostrar banner persistente (idempotente: sin esto, al pasar a chequeo periódico
             // se apilaría un banner nuevo en cada tick mientras la condición siga siendo cierta)
             if (document.getElementById('_serverSyncBanner')) return;
