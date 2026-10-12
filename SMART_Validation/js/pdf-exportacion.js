@@ -68,12 +68,14 @@ async function loadSessionForPDF() {
 
     const parsed = JSON.parse(jsonData);
 
-    // Recopilar todos los IDs de imagen que se van a necesitar
+    // Recopilar todos los IDs de imagen que se van a necesitar (clave por uid,
+    // igual que el resto de la app desde el fix de fotos que se pisaban -- la
+    // clave por step quedó obsoleta y rompía evidencias reordenadas/borradas)
     const neededImageIds = [];
     for (const test of parsed.tests) {
         for (const evidence of test.evidences) {
             if (evidence.hasImage) {
-                neededImageIds.push(`${test.id}_evidence_${evidence.step}`);
+                neededImageIds.push(evidenceImageKey(test, evidence));
             }
         }
     }
@@ -86,8 +88,7 @@ async function loadSessionForPDF() {
     for (const test of parsed.tests) {
         for (const evidence of test.evidences) {
             if (evidence.hasImage) {
-                const imageId = `${test.id}_evidence_${evidence.step}`;
-                evidence.image = await getImageFromDB(imageId);
+                evidence.image = await loadEvidenceImage(test, evidence);
                 delete evidence.hasImage;
             }
         }
@@ -105,43 +106,13 @@ async function loadSessionForPDF() {
     };
 }
 
-async function getImageFromDB(imageId) {
-    // El 3 acá (y en los otros 3 indexedDB.open de este archivo) tiene que matchear
-    // DB_VERSION en logica-modular.js -- es la MISMA base compartida por nombre, y un
-    // número más bajo acá rompe con VersionError apenas la otra conexión suba de versión.
-    // 1. Intentar IndexedDB local
-    const localData = await new Promise((resolve) => {
-        const request = indexedDB.open('GestorEvidenciasDB', 3);
-        request.onsuccess = (event) => {
-            const db = event.target.result;
-            const tx = db.transaction(['images'], 'readonly');
-            const req = tx.objectStore('images').get(imageId);
-            req.onsuccess = () => resolve(req.result ? req.result.data : null);
-            req.onerror = () => resolve(null);
-        };
-        request.onerror = () => resolve(null);
-    });
-    if (localData) return localData;
-
-    // 2. Fallback: buscar en el servidor (compound ID = projId + '_' + imageId)
-    try {
-        if (window.VS && window.VS.Storage && window.VS.Storage.isAvailable()) {
-            const projId = (window.VS.projects && window.VS.projects.getActiveId()) || 'noproj';
-            const compoundId = (projId + '_' + imageId).replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 300);
-            const serverData = await window.VS.Storage.fetchEvidence(compoundId);
-            if (serverData) {
-                // Cachear en IndexedDB
-                const request = indexedDB.open('GestorEvidenciasDB', 3);
-                request.onsuccess = (event) => {
-                    const db = event.target.result;
-                    db.transaction(['images'], 'readwrite').objectStore('images').put({ id: imageId, data: serverData });
-                };
-                return serverData;
-            }
-        }
-    } catch (_) {}
-    return null;
-}
+// getImageFromDB vive en logica-modular.js (que carga ANTES que este archivo) --
+// no redeclarar acá. Una declaración `function` de nombre repetido en otro
+// <script> de la misma página pisa la anterior en el objeto global, así que esta
+// copia (más vieja: sin fallback a la clave legacy por step/uid, sin el cache de
+// "confirmado ausente", y con el bug de `window.VS.projects` que no existe)
+// estaba ganando silenciosamente y anulando esas mejoras para TODA la app, no
+// solo para exportación a PDF.
 
 /**
  * Pre-carga en batch todas las imágenes necesarias para el PDF desde el servidor.
@@ -150,43 +121,25 @@ async function getImageFromDB(imageId) {
 async function _prefetchPDFImages(imageIds) {
     if (!window.VS || !window.VS.Storage || !window.VS.Storage.isAvailable()) return;
     if (!imageIds || !imageIds.length) return;
-    const projId = (window.VS.projects && window.VS.projects.getActiveId()) || 'noproj';
+    // Detectar cuáles faltan en IndexedDB local (usa la misma conexión `db`
+    // compartida de logica-modular.js, no una conexión propia)
     const missing = [];
-    // Detectar cuáles faltan en IndexedDB
     for (const imageId of imageIds) {
         const has = await new Promise(res => {
-            const req = indexedDB.open('GestorEvidenciasDB', 3);
-            req.onsuccess = (e) => {
-                const r = e.target.result.transaction(['images'], 'readonly').objectStore('images').get(imageId);
-                r.onsuccess = () => res(!!r.result);
-                r.onerror = () => res(false);
-            };
-            req.onerror = () => res(false);
+            if (!db) { res(false); return; }
+            const r = db.transaction([IMAGES_STORE], 'readonly').objectStore(IMAGES_STORE).get(imageId);
+            r.onsuccess = () => res(!!r.result);
+            r.onerror = () => res(false);
         });
-        if (!has) {
-            const compoundId = (projId + '_' + imageId).replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 300);
-            missing.push(compoundId);
-        }
+        if (!has) missing.push(imageId);
     }
     if (!missing.length) return;
-    // Batch fetch
-    const CHUNK = 100;
-    for (let i = 0; i < missing.length; i += CHUNK) {
-        const chunk = missing.slice(i, i + CHUNK);
-        const results = await window.VS.Storage.fetchEvidenceBatch(chunk).catch(() => ({}));
-        for (const [compoundId, data] of Object.entries(results)) {
-            if (!data) continue;
-            // Reconstruir imageId desde compoundId
-            const localId = imageIds.find(id => {
-                const c = (projId + '_' + id).replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 300);
-                return c === compoundId;
-            });
-            if (!localId) continue;
-            const dbReq = indexedDB.open('GestorEvidenciasDB', 3);
-            dbReq.onsuccess = (e) => {
-                e.target.result.transaction(['images'], 'readwrite').objectStore('images').put({ id: localId, data });
-            };
-        }
+    // fetchEvidenceBatch espera IDs locales (sin prefijo de proyecto) -- ella
+    // misma arma el compound ID correcto con el proyecto activo real.
+    const results = await window.VS.Storage.fetchEvidenceBatch(missing).catch(() => ({}));
+    for (const [localId, data] of Object.entries(results)) {
+        if (!data) continue;
+        await saveImageToDB(localId, data, { upload: false }).catch(() => {});
     }
 }
 
@@ -554,8 +507,7 @@ async function exportEvidence(evidenceStep, testId) {
 
         // Cargar imagen (solo si es tipo imagen)
         if (evidence.type !== 'table') {
-            const imageId = `${testId}_evidence_${evidenceStep}`;
-            evidence.image = await getImageFromDB(imageId);
+            evidence.image = await loadEvidenceImage(test, evidence);
         }
 
         // Validar que tabla tenga datos estructurados
@@ -662,8 +614,7 @@ async function exportTest(testId, userConclusion) {
 
         // Cargar todas las imágenes de las evidencias
         for (const evidence of validEvidences) {
-            const imageId = `${testId}_evidence_${evidence.step}`;
-            evidence.image = await getImageFromDB(imageId);
+            evidence.image = await loadEvidenceImage(test, evidence);
         }
 
         const group = sessionData.groups.find(g => g.id === test.groupId);
@@ -1444,8 +1395,7 @@ async function exportFolder(groupId, userConclusion) {
             const validEvidences = test.evidences.filter(e => !e.isEmpty);
 
             for (const evidence of validEvidences) {
-                const imageId = `${test.id}_evidence_${evidence.step}`;
-                evidence.image = await getImageFromDB(imageId);
+                evidence.image = await loadEvidenceImage(test, evidence);
 
                 // Agregar referencia a la prueba para contexto
                 evidence.testName = test.name;
@@ -5136,8 +5086,7 @@ async function exportProject() {
 
                 // Cargar imágenes de evidencias
                 for (const evidence of validEvidences) {
-                    const imageId = `${test.id}_evidence_${evidence.step}`;
-                    evidence.image = await getImageFromDB(imageId);
+                    evidence.image = await loadEvidenceImage(test, evidence);
                 }
 
                 // Contexto específico del test

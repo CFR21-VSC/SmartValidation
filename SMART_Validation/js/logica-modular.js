@@ -106,7 +106,12 @@ function saveImageToDB(id, imageData, { upload = true } = {}) {
                 const projId = (window.ValidationSuite && window.ValidationSuite.projects
                     && window.ValidationSuite.projects.getActiveId()) || null;
                 window.VS.Storage.uploadEvidence(id, imageData).then((r) => {
-                    if (projId && !(r && r.data && r.data.ok)) {
+                    if (r && r.data && r.data.ok) {
+                        // Ya está confirmado en el servidor -- si una lectura posterior en esta
+                        // misma sesión la busca, que no la de por "sabida ausente" (ver caché en
+                        // getImageFromDB) por un inventario corrido antes de esta subida.
+                        if (projId) _markServerImageKnownPresent(projId, id);
+                    } else if (projId) {
                         _enqueuePendingSync('evidence', `evidence:${id}`, { rawImageId: id, imageData, projId });
                     }
                 }).catch(() => {
@@ -117,6 +122,33 @@ function saveImageToDB(id, imageData, { upload = true } = {}) {
         };
         request.onerror = () => reject(request.error);
     });
+}
+
+// ── Caché de "qué existe en el servidor" por proyecto ────────────────────────
+// _syncImagesFromServer ya trae el inventario COMPLETO de imágenes del proyecto
+// (una sola vez, al abrir). Si una clave no está ahí, pegarle al servidor por esa
+// clave puntual más tarde (con sus reintentos de 1s) es trabajo en vano -- ya
+// sabemos la respuesta. Esto es lo que generaba los 404 repetidos en cada sesión
+// para fotos que realmente se perdieron antes de los fixes de uid.
+const _knownServerImageIds = new Map();   // projectId -> Set<localId> (confirmados presentes)
+const _knownServerInventoryFresh = new Set(); // projectIds con inventario completo ya corrido esta sesión
+
+function _markServerImageInventory(projectId, localIds) {
+    _knownServerImageIds.set(projectId, new Set(localIds));
+    _knownServerInventoryFresh.add(projectId);
+}
+
+function _markServerImageKnownPresent(projectId, localId) {
+    if (!projectId) return;
+    let set = _knownServerImageIds.get(projectId);
+    if (!set) { set = new Set(); _knownServerImageIds.set(projectId, set); }
+    set.add(localId);
+}
+
+function _isConfirmedMissingOnServer(projectId, localId) {
+    if (!projectId || !_knownServerInventoryFresh.has(projectId)) return false;  // no lo sabemos -> no asumir
+    const known = _knownServerImageIds.get(projectId);
+    return !known || !known.has(localId);
 }
 
 /**
@@ -134,6 +166,10 @@ async function getImageFromDB(id, { serverFallback = true } = {}) {
     });
     if (localData) return localData;
     if (!serverFallback) return null;
+
+    const _projIdForCache = (window.ValidationSuite && window.ValidationSuite.projects
+        && window.ValidationSuite.projects.getActiveId()) || null;
+    if (_isConfirmedMissingOnServer(_projIdForCache, id)) return null;
 
     // 2. Fallback: recuperar del servidor (R2 es fuente de verdad para multi-sesión).
     // NO cachear en IndexedDB — evita que una imagen vieja tape una nueva del servidor.
@@ -640,14 +676,19 @@ async function _syncImagesFromServer(projectId) {
     if (!projectId) return;
     try {
         const serverImages = await window.VS.Storage.fetchAllEvidence(projectId);
-        if (!serverImages || !Object.keys(serverImages).length) return;
         const projPrefix = projectId.replace(/[^a-zA-Z0-9_-]/g, '_') + '_';
+        const toLocalId = (compoundId) => compoundId.startsWith(projPrefix)
+            ? compoundId.slice(projPrefix.length) : compoundId;
+        // Este fetch trae el inventario COMPLETO del proyecto -- lo cacheamos para
+        // no volver a pegarle al servidor por una clave que ya sabemos ausente
+        // (ver _isConfirmedMissingOnServer, usado en getImageFromDB).
+        _markServerImageInventory(projectId, Object.entries(serverImages || {})
+            .filter(([, data]) => !!data).map(([compoundId]) => toLocalId(compoundId)));
+        if (!serverImages || !Object.keys(serverImages).length) return;
         let downloaded = 0;
         for (const [compoundId, data] of Object.entries(serverImages)) {
             if (!data) continue;
-            const localId = compoundId.startsWith(projPrefix)
-                ? compoundId.slice(projPrefix.length)
-                : compoundId;
+            const localId = toLocalId(compoundId);
             const exists = await new Promise(res => {
                 if (!db) { res(false); return; }
                 const req = db.transaction([IMAGES_STORE], 'readonly')
