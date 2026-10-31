@@ -244,13 +244,18 @@
         // en logica-modular.js (ambos scripts ya están cargados para cuando esto
         // se invoca en runtime, sin importar el orden de los <script> tags).
         if (global.VS && global.VS.Storage) {
-            global.VS.Storage.syncSnapshot(id, snapshot, entry.name).then((r) => {
+            // baseRev se captura ACÁ (al momento de guardar): un reintento posterior debe llevar la
+            // revisión sobre la que se trabajó, no la que haya en ese momento.
+            const baseRev = global.VS.Storage.getBaseRev(id);
+            global.VS.Storage.syncSnapshot(id, snapshot, entry.name, baseRev).then((r) => {
+                // 409 = copia atrasada: no se encola (reintentar no sirve; hay que bajar la del servidor).
+                if (r && r.status === 409) return;
                 if (!(r && r.data && r.data.ok) && global._enqueuePendingSync) {
-                    global._enqueuePendingSync('snapshot', `snapshot:${id}`, { projectId: id, snapshot, projectName: entry.name });
+                    global._enqueuePendingSync('snapshot', `snapshot:${id}`, { projectId: id, snapshot, projectName: entry.name, baseRev });
                 }
             }).catch(() => {
                 if (global._enqueuePendingSync) {
-                    global._enqueuePendingSync('snapshot', `snapshot:${id}`, { projectId: id, snapshot, projectName: entry.name });
+                    global._enqueuePendingSync('snapshot', `snapshot:${id}`, { projectId: id, snapshot, projectName: entry.name, baseRev });
                 }
             });
         }
@@ -301,6 +306,8 @@
             archived: false,
         };
         entry.snapshot = snapshot;
+        // Revisión del servidor de la que viene esta copia (se adopta como base recién al aplicarla: switchTo).
+        entry.serverRev = global.VS.Storage.takeLastRev(id) || 0;
         entry.lastOpenedAt = new Date().toISOString();
         const updated = refreshFromSnapshot(entry, snapshot);
         await dbPut(updated);
@@ -325,6 +332,10 @@
         if (!target) throw new Error('Proyecto no encontrado: ' + id);
         writeSnapshot(target.snapshot || null);
         setActiveId(id);
+        // La copia local pasa a ser la del servidor: su revisión es la nueva base para las subidas.
+        if (global.VS && global.VS.Storage && target.serverRev) {
+            global.VS.Storage.adoptRev(id, Math.max(Number(target.serverRev) || 0, global.VS.Storage.getBaseRev(id)));
+        }
         target.lastOpenedAt = new Date().toISOString();
         await dbPut(target);
         if (global.AuditTrail && typeof global.AuditTrail.logAction === 'function') {
@@ -590,8 +601,10 @@
                                 stats: computeStats(snapshot),
                             };
                             entry = refreshFromSnapshot(entry, snapshot);
+                            entry.serverRev = global.VS.Storage.takeLastRev(activeId) || 0;
                             await dbPut(entry);
                             writeSnapshot(snapshot);
+                            global.VS.Storage.adoptRev(activeId);
                             console.info('[projects] Proyecto restaurado desde servidor:', activeId);
                             ensureDemoProject().catch(() => {});
                             return entry;
@@ -811,6 +824,7 @@
         if (!global.VS || !global.VS.Storage) throw new Error('Servidor no disponible');
         const snapshot = entry.snapshot || (readCurrentSnapshot && readCurrentSnapshot()) || {};
         const r = await global.VS.Storage.syncSnapshot(id, snapshot, entry.name);
+        if (r && r.status === 409) throw new Error('El servidor tiene una versión más nueva del proyecto: actualizá desde el servidor antes de subir');
         if (!r || !r.data || !r.data.ok) throw new Error('El servidor rechazó el snapshot');
         return { ok: true, name: entry.name };
     }

@@ -34,12 +34,16 @@ def live_server():
     env = {
         **os.environ,
         "DATA_DIR": tmp_data_dir,
+        # db_adapter NO usa DATA_DIR: lee DB_PATH. Sin esto los tests escribían en la base REAL
+        # (data/smart_validation.db). Se fuerza una base descartable y se anula DATABASE_URL.
+        "DB_PATH": os.path.join(tmp_data_dir, "smart_validation.db"),
         "ALLOW_NO_AUTH": "true",
         "PORT": str(port),
     }
     # Sin AUTH_SECRET_KEY: queda en modo dev (ALLOW_NO_AUTH manda). No heredar
     # una real del entorno del usuario por accidente.
     env.pop("AUTH_SECRET_KEY", None)
+    env.pop("DATABASE_URL", None)
 
     # IMPORTANTE: stdout/stderr van a un ARCHIVO, no a subprocess.PIPE.
     # Un PIPE tiene un buffer chico (el pipe de Windows ronda 64KB) -- si

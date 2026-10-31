@@ -269,6 +269,9 @@ def _db_init():
         "ALTER TABLE users ADD COLUMN last_login_ip TEXT",
         # Snapshot del estado completo del proyecto (JSON) para restaurar en otros browsers
         "ALTER TABLE projects ADD COLUMN snapshot_json TEXT",
+        # Revisión del snapshot (control de concurrencia optimista): solo cambia cuando se guarda el
+        # snapshot completo, a diferencia de updated_at que también mueven logo/carpeta/etc.
+        "ALTER TABLE projects ADD COLUMN snapshot_rev REAL",
         # Logo de la empresa partner/cliente (projects.cliente, ya existente, es el nombre --
         # no se duplica el campo). Cuando hay logo cargado, sale junto al de DRP Assurance en
         # portada/header/footer de TODOS los PDF del proyecto (ver template-base.js). Gateado
@@ -2378,24 +2381,52 @@ class SyncHandler(BaseHTTPRequestHandler):
                 db.execute("ROLLBACK")
             except Exception:
                 pass
-            db.execute("BEGIN")
+            db.execute("BEGIN IMMEDIATE")
+            # Control de concurrencia optimista: un navegador con copia local atrasada (IndexedDB /
+            # localStorage) no puede pisar un snapshot más nuevo del servidor. El cliente manda la
+            # revisión sobre la que trabajó (baseRev); si el servidor ya avanzó, se rechaza con 409
+            # sin escribir nada y el cliente debe bajar la versión del servidor.
+            _cur = db.execute(
+                "SELECT snapshot_json, snapshot_rev, updated_at FROM projects WHERE id=?", (proj_id,)
+            ).fetchone()
+            if _cur and _cur["snapshot_json"]:
+                _cur_rev = _cur["snapshot_rev"] or _cur["updated_at"] or 0
+                try:
+                    _base = float(data.get("baseRev"))
+                except (TypeError, ValueError):
+                    _base = None
+                if _base is None or _base + 0.001 < _cur_rev:
+                    db.execute("ROLLBACK")
+                    try:
+                        db.execute("""
+                            INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
+                            VALUES (?, NULL, ?, 'snapshot_conflict', ?, ?, ?)
+                        """, (proj_id, user.get("u"),
+                              "Subida rechazada: copia local atrasada respecto del servidor",
+                              self._get_client_ip(), now))
+                        db.commit()
+                    except Exception:
+                        pass
+                    return self._send_json(409, {
+                        "ok": False, "conflict": True, "server_rev": _cur_rev,
+                        "error": "El servidor tiene una versión más nueva del proyecto"})
             db.execute("""
                 INSERT INTO projects
                   (id, name, system_name, system_type, gamp_category, cliente,
-                   status, snapshot_json, created_by, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   status, snapshot_json, snapshot_rev, created_by, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                   name=excluded.name, system_name=excluded.system_name,
                   system_type=excluded.system_type, gamp_category=excluded.gamp_category,
                   cliente=excluded.cliente, snapshot_json=excluded.snapshot_json,
-                  updated_at=excluded.updated_at
+                  snapshot_rev=excluded.snapshot_rev, updated_at=excluded.updated_at
             """, (
                 proj_id, name,
                 sys_info.get("systemName") or sys_info.get("system_name"),
                 sys_info.get("systemType") or sys_info.get("system_type"),
                 sys_info.get("gampCategory") or sys_info.get("gamp_category"),
                 sys_info.get("client") or sys_info.get("cliente"),
-                "in_progress", snapshot_str, user.get("u"), now, now
+                "in_progress", snapshot_str, now, user.get("u"), now, now
             ))
             synced_types = []
             for doc in package_docs:
@@ -2434,7 +2465,7 @@ class SyncHandler(BaseHTTPRequestHandler):
             return self._send_json(500, {"ok": False, "error": "Error interno al sincronizar documentos."})
         if is_new_project:
             _bridge_ensure_project(proj_id, name)
-        return self._send_json(200, {"ok": True, "docs_synced": len(package_docs), "updated_at": now})
+        return self._send_json(200, {"ok": True, "docs_synced": len(package_docs), "updated_at": now, "rev": now})
 
     def _api_snapshot_get(self, proj_id, user):
         """Devuelve el snapshot almacenado para restaurar IndexedDB en un navegador nuevo."""
@@ -2442,7 +2473,7 @@ class SyncHandler(BaseHTTPRequestHandler):
         if not self._assert_project_access(db, user, proj_id):
             return
         row = db.execute(
-            "SELECT snapshot_json FROM projects WHERE id=?", (proj_id,)
+            "SELECT snapshot_json, snapshot_rev, updated_at FROM projects WHERE id=?", (proj_id,)
         ).fetchone()
         if not row or not row["snapshot_json"]:
             return self._send_json(404, {"ok": False, "error": "Snapshot no disponible"})
@@ -2450,7 +2481,8 @@ class SyncHandler(BaseHTTPRequestHandler):
             snapshot = json.loads(row["snapshot_json"])
         except Exception:
             return self._send_json(500, {"ok": False, "error": "Snapshot corrupto"})
-        return self._send_json(200, {"ok": True, "snapshot": snapshot})
+        return self._send_json(200, {"ok": True, "snapshot": snapshot,
+                                     "rev": row["snapshot_rev"] or row["updated_at"] or 0})
 
     # ── Evidence images (persistencia multi-navegador) ────────────────────────
 

@@ -373,7 +373,10 @@ async function _retryEvidenceUpload(payload) {
 
 async function _retrySnapshotSync(payload) {
     if (!window.VS || !window.VS.Storage) return false;
-    const r = await window.VS.Storage.syncSnapshot(payload.projectId, payload.snapshot, payload.projectName).catch(() => null);
+    const r = await window.VS.Storage.syncSnapshot(payload.projectId, payload.snapshot, payload.projectName, payload.baseRev || 0).catch(() => null);
+    // 409: la copia encolada quedó atrasada respecto del servidor. Se descarta (no se reintenta):
+    // el aviso de conflicto le pide al usuario bajar la versión del servidor.
+    if (r && r.status === 409) return true;
     return !!(r && r.data && r.data.ok);
 }
 
@@ -1064,6 +1067,32 @@ document.addEventListener('DOMContentLoaded', async function () {
             console.warn('[cross-browser sync]', e);
         }
     }
+    // El servidor rechazó una subida porque la copia de este navegador (IndexedDB/localStorage) está
+    // atrasada: se avisa y se ofrece bajar la versión del servidor. Nada se pisa en silencio.
+    window.addEventListener('vs:snapshot-conflict', (ev) => {
+        const pid = ev && ev.detail && ev.detail.projectId;
+        if (!pid || document.getElementById('_snapshotConflictBanner')) return;
+        const cb = document.createElement('div');
+        cb.id = '_snapshotConflictBanner';
+        cb.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#8A1C1C;color:#fff;padding:14px 22px;border-radius:8px;display:flex;align-items:center;gap:16px;z-index:99995;box-shadow:0 4px 18px rgba(0,0,0,.4);font-size:13px;max-width:92vw;';
+        cb.innerHTML = '<span><strong>Esta copia está desactualizada.</strong> El servidor tiene una versión más nueva del proyecto y tus últimos cambios en este navegador <strong>no se guardaron</strong>. No edites más: actualizá desde el servidor.</span>' +
+            '<button id="_btnConflictReload" style="background:#fff;color:#8A1C1C;border:none;border-radius:5px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">Actualizar desde el servidor</button>';
+        document.body.appendChild(cb);
+        document.getElementById('_btnConflictReload').onclick = async () => {
+            const btn = document.getElementById('_btnConflictReload');
+            btn.textContent = 'Actualizando…'; btn.disabled = true;
+            try {
+                // Respaldo de la copia local antes de reemplazarla (por si hubiera algo que rescatar).
+                try { localStorage.setItem('_localBackup_' + pid, JSON.stringify({ at: new Date().toISOString(), snapshot: JSON.parse(localStorage.getItem('vscTestsData_v3') || 'null') })); } catch (_) {}
+                await window.ValidationSuite.projects.downloadFromServer(pid);
+                await window.ValidationSuite.projects.switchTo(pid);
+            } catch (e) {
+                alert('Error al actualizar: ' + e.message);
+                btn.textContent = 'Actualizar desde el servidor'; btn.disabled = false;
+            }
+        };
+    });
+
     setTimeout(_checkServerProjectUpdates, 2000);
     setInterval(_checkServerProjectUpdates, 15000);
 

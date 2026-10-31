@@ -70,6 +70,9 @@
 
   // ── Public API ──────────────────────────────────────────────────────────────
 
+  const _conflicts = {};  // projectId -> true si el servidor rechazó una subida por copia atrasada
+  const _lastRev = {};    // projectId -> revisión del último snapshot descargado
+
   const Storage = {
     isAvailable() { return _available; },
 
@@ -77,12 +80,23 @@
      * Push snapshot to server. Returns a Promise — awaitable when called from createNew()
      * so the project appears on the server before reload. Also safe as fire-and-forget.
      */
-    syncSnapshot(projectId, snapshot, projectName) {
+    syncSnapshot(projectId, snapshot, projectName, baseRev) {
       if (!projectId || !snapshot) return Promise.resolve(null);
+      // Conflicto ya detectado para este proyecto: no seguir intentando hasta que el usuario
+      // baje la versión del servidor (evita insistir en cada autoguardado).
+      if (_conflicts[projectId]) return Promise.resolve({ status: 409, data: { ok: false, conflict: true } });
       const body = { snapshot };
       if (projectName) body.projectName = String(projectName);
+      // Revisión del servidor sobre la que se basa esta copia. Un reintento encolado pasa la
+      // que tenía al momento de encolar (no la actual), para no "blanquear" una copia atrasada.
+      body.baseRev = (baseRev !== undefined && baseRev !== null) ? Number(baseRev) : Storage.getBaseRev(projectId);
       return _apiFetch("POST", `/api/projects/${encodeURIComponent(projectId)}/snapshot`, body)
         .then((r) => {
+          if (r && r.status === 409 && r.data && r.data.conflict) {
+            _conflicts[projectId] = true;
+            try { window.dispatchEvent(new CustomEvent("vs:snapshot-conflict", { detail: { projectId } })); } catch (_) {}
+            return r;
+          }
           if (r && r.data && r.data.ok) {
             _available = true;
             try {
@@ -90,11 +104,29 @@
               localStorage.setItem(`_myLastUpload_${projectId}`, String(ts));
               // Actualizar siempre: el banner "Actualizar" solo aparece cuando OTRO usuario sube cambios.
               localStorage.setItem(`_serverSyncFrom_${projectId}`, String(ts));
+              if (r.data.rev) localStorage.setItem(`_serverRev_${projectId}`, String(r.data.rev));
             } catch (_) {}
           }
           return r;
         }).catch(() => null);
     },
+
+    /** Revisión del servidor sobre la que está basada la copia local (0 = nunca bajó/subió). */
+    getBaseRev(projectId) {
+      try { return parseFloat(localStorage.getItem(`_serverRev_${projectId}`)) || 0; } catch (_) { return 0; }
+    },
+
+    /** Adopta como base la revisión del último getSnapshot (llamar SOLO cuando esa copia ya se aplicó a lo local). */
+    adoptRev(projectId, rev) {
+      const r = (rev !== undefined) ? Number(rev) : _lastRev[projectId];
+      if (!r) return;
+      try { localStorage.setItem(`_serverRev_${projectId}`, String(r)); } catch (_) {}
+      delete _conflicts[projectId];
+    },
+
+    takeLastRev(projectId) { return _lastRev[projectId] || 0; },
+
+    hasConflict(projectId) { return !!_conflicts[projectId]; },
 
     async listProjects() {
       const r = await _apiFetch("GET", "/api/projects");
@@ -154,6 +186,7 @@
       );
       if (!r || r.status !== 200 || !r.data.ok) return null;
       _available = true;
+      _lastRev[projectId] = r.data.rev || 0;
       return r.data.snapshot || null;
     },
 
