@@ -44,50 +44,65 @@ async function hasta(fn, ms = 15000, paso = 300) {
       groups.push({ id: 'g1', name: 'A', protocolId: 'p1', finalized: false });
       tests.push({ id: 't1', tcId: 'TC-1', name: 'Prueba 1', groupId: 'g1', evidences: [], finalized: false });
       tests.push({ id: 't2', tcId: 'TC-2', name: 'Prueba 2', groupId: 'g1', evidences: [], finalized: false });
+      groups.push({ id: 'g2', name: 'B', protocolId: 'p1', finalized: false });
+      tests.push({ id: 't3', tcId: 'TC-3', name: 'Prueba 3', groupId: 'g2', evidences: [], finalized: false });
       return saveToStorage();
     });
-    const lleg = await hasta(async () => { const s = await srvSnap(PID); return s && (s.tests || []).length === 2 ? s : null; });
-    ok(!!lleg, 'el servidor recibió el protocolo, la carpeta y las 2 pruebas');
+    const lleg = await hasta(async () => { const s = await srvSnap(PID); return s && (s.tests || []).length === 3 ? s : null; });
+    ok(!!lleg, 'el servidor recibió el protocolo, 2 carpetas y 3 pruebas');
     ok(lleg && lleg.groups[0]._srev > 0, 'los elementos quedaron sellados con su revisión (_srev)');
 
     // 2) B abre el proyecto desde el servidor (otro navegador)
     await B.goto(base + '/', { waitUntil: 'domcontentloaded' }); await esperar(2500);
     await B.evaluate((pid) => window.ValidationSuite.projects.switchTo(pid).catch(() => {}), PID);
     await esperar(3500); await B.waitForLoadState('domcontentloaded'); await esperar(1500);
-    const bTiene = await hasta(() => B.evaluate(() => tests.length === 2 && groups.length === 1));
-    ok(!!bTiene, 'B cargó el proyecto del servidor (2 pruebas, 1 carpeta)');
+    const bTiene = await hasta(() => B.evaluate(() => tests.length === 3 && groups.length === 2));
+    ok(!!bTiene, 'B cargó el proyecto del servidor (3 pruebas, 2 carpetas)');
     ok(await B.evaluate((pid) => window.VS.Storage.hasDeltaBase(pid), PID), 'B tiene base de diferencias (puede sincronizar por diferencias)');
 
-    // 3) A finaliza la carpeta y el protocolo
-    await A.evaluate(() => { groups[0].finalized = true; groups[0].resultado = 'PASA'; protocols[0].finalized = true; return saveToStorage(); });
-    const fin = await hasta(async () => { const s = await srvSnap(PID); return s.groups[0].finalized && s.protocols[0].finalized ? s : null; });
-    ok(!!fin, 'el servidor tiene la carpeta y el protocolo finalizados');
+    // 3) A finaliza las pruebas y la carpeta A (en orden, como en la aplicación)
+    await A.evaluate(() => { tests[0].finalized = true; tests[1].finalized = true; groups[0].finalized = true; groups[0].resultado = 'PASA'; return saveToStorage(); });
+    const fin = await hasta(async () => { const s = await srvSnap(PID); return s.groups[0].finalized && s.tests[0].finalized ? s : null; });
+    ok(!!fin, 'el servidor tiene las pruebas y la carpeta finalizadas');
 
     // 4) B, atrasada (su copia local sigue con la carpeta abierta), edita OTRA cosa y guarda
-    ok(await B.evaluate(() => groups[0].finalized === false), 'B sigue viendo la carpeta abierta (copia atrasada)');
-    await B.evaluate(() => { tests[1].name = 'Prueba 2 editada por B'; return saveToStorage(); });
-    const b4 = await hasta(async () => { const s = await srvSnap(PID); return s.tests[1].name === 'Prueba 2 editada por B' ? s : null; });
+    ok(await B.evaluate(() => groups[0].finalized === false && tests[0].finalized === false), 'B sigue viendo la carpeta abierta (copia atrasada)');
+    await B.evaluate(() => { tests[2].name = 'Prueba 3 editada por B'; return saveToStorage(); });
+    const b4 = await hasta(async () => { const s = await srvSnap(PID); return s.tests[2].name === 'Prueba 3 editada por B' ? s : null; });
     ok(!!b4, 'la edición de B llegó al servidor');
-    ok(b4 && b4.groups[0].finalized === true && b4.protocols[0].finalized === true,
-       'LA CARPETA Y EL PROTOCOLO SIGUEN FINALIZADOS en el servidor (antes se reabrían)');
+    ok(b4 && b4.groups[0].finalized === true && b4.tests[0].finalized === true && b4.tests[1].finalized === true,
+       'LA CARPETA Y SUS PRUEBAS SIGUEN FINALIZADAS en el servidor (antes se reabrían)');
 
     // 5) B recibe lo de A y lo ve en pantalla
-    const vio = await hasta(() => B.evaluate(() => groups[0].finalized === true && protocols[0].finalized === true));
+    const vio = await hasta(() => B.evaluate(() => groups[0].finalized === true && tests[0].finalized === true));
     ok(!!vio, 'B recibió y aplicó la finalización hecha por A');
 
     // 6) conflicto real: A y B editan la MISMA prueba. B atrasada
-    await A.evaluate(() => { tests[0].name = 'Prueba 1 (A)'; return saveToStorage(); });
-    await hasta(async () => (await srvSnap(PID)).tests[0].name === 'Prueba 1 (A)');
-    await B.evaluate(() => { tests[0].name = 'Prueba 1 (B)'; return saveToStorage(); });
-    const quedo = await hasta(async () => { await esperar(1500); return (await srvSnap(PID)).tests[0].name; });
-    ok(quedo === 'Prueba 1 (A)', `ante conflicto en el mismo elemento gana lo del servidor (${quedo})`);
-    const bNombre = await hasta(() => B.evaluate(() => tests[0].name === 'Prueba 1 (A)' ? 'ok' : null));
+    // A se pone al día primero (como haría el sondeo de 15 s): baja la edición de B
+    await A.evaluate((pid) => window.VS.Storage.syncProject(pid, JSON.parse(localStorage.getItem('vscTestsData_v3')), undefined, { force: true }), PID);
+    ok(!!(await hasta(() => A.evaluate(() => tests[2].name === 'Prueba 3 editada por B'))), 'A bajó la edición de B (sincronización en ambos sentidos)');
+    await A.evaluate(() => { tests[2].name = 'Prueba 3 (A)'; return saveToStorage(); });
+    await hasta(async () => (await srvSnap(PID)).tests[2].name === 'Prueba 3 (A)');
+    await B.evaluate(() => { tests[2].name = 'Prueba 3 (B)'; return saveToStorage(); });
+    const quedo = await hasta(async () => { await esperar(1500); return (await srvSnap(PID)).tests[2].name; });
+    ok(quedo === 'Prueba 3 (A)', `ante conflicto en el mismo elemento gana lo del servidor (${quedo})`);
+    const bNombre = await hasta(() => B.evaluate(() => tests[2].name === 'Prueba 3 (A)' ? 'ok' : null));
     ok(!!bNombre, 'B terminó mostrando la versión del servidor');
     ok(await B.evaluate(() => !document.getElementById('_snapshotConflictBanner')), 'sin cartel rojo de copia desactualizada (se fusionó por elemento)');
 
     // 7) lo no conflictivo de B se conservó
     const sFin = await srvSnap(PID);
-    ok(sFin.tests[1].name === 'Prueba 2 editada por B' && sFin.groups[0].finalized, 'el servidor conserva la edición de B y lo finalizado por A');
+    ok(sFin.tests[2].name === 'Prueba 3 (A)' && sFin.groups[0].finalized, 'el servidor conserva lo finalizado por A y la versión ganadora');
+
+    // 8) el servidor hace cumplir la jerarquía: no se acepta finalizar la carpeta B con su prueba abierta
+    const rej = await B.evaluate(async () => {
+      let ev = null; window.addEventListener('vs:sync-rejected', (e) => { ev = e.detail; });
+      groups[1].finalized = true;
+      await saveToStorage(); await new Promise(r => setTimeout(r, 2500));
+      return ev;
+    });
+    ok(rej && rej.violations && rej.violations.length > 0, 'finalizar una carpeta con pruebas abiertas es rechazado por el servidor (' + (rej && rej.violations && rej.violations[0]) + ')');
+    ok(!(await srvSnap(PID)).groups[1].finalized, 'la carpeta B sigue abierta en el servidor');
   } catch (e) { console.log('ERROR', e.stack || e.message); fallos++; }
   finally { await b.close(); srv.kill(); }
   console.log(fallos ? `\n${fallos} FALLA(S)` : '\nTODO OK');

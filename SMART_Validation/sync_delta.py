@@ -139,6 +139,10 @@ def apply_delta(snap, changes, base_rev, cur_rev, now):
                     continue
             if cur is not None and _same(cur, e):
                 continue
+            # Un registro finalizado es inmutable: solo puede cambiar para reabrirse (finalized -> False).
+            if cur is not None and cur.get("finalized") is True and e.get("finalized") is True:
+                conflicts.append({"kind": kind, "id": eid, "motivo": "finalizado"})
+                continue
             e = dict(e)
             e["_srev"] = now
             if cur is None:
@@ -152,6 +156,9 @@ def apply_delta(snap, changes, base_rev, cur_rev, now):
             if not _valid_id(eid) or eid not in idx:
                 continue
             cur = lst[idx[eid]]
+            if cur.get("finalized") is True:
+                conflicts.append({"kind": kind, "id": eid, "motivo": "finalizado"})
+                continue
             if not strict and (cur.get("_srev") or cur_rev) > base_rev + TOL:
                 conflicts.append({"kind": kind, "id": eid, "motivo": "modificado"})
                 continue
@@ -174,3 +181,46 @@ def apply_delta(snap, changes, base_rev, cur_rev, now):
         sb["meta"][k] = now
         changed = True
     return conflicts, changed
+
+
+def violations(snap):
+    """Reglas de jerarquía de lo finalizado. Devuelve un conjunto de descripciones (vacío si cumple)."""
+    v = set()
+    groups = [g for g in (snap.get("groups") or []) if isinstance(g, dict) and _valid_id(g.get("id"))]
+    tests = [t for t in (snap.get("tests") or []) if isinstance(t, dict) and _valid_id(t.get("id"))]
+    protocols = [p for p in (snap.get("protocols") or []) if isinstance(p, dict) and _valid_id(p.get("id"))]
+    for g in groups:
+        if g.get("finalized"):
+            for t in tests:
+                if t.get("groupId") == g.get("id") and not t.get("finalized"):
+                    v.add(f"carpeta {g['id']} finalizada con la prueba {t['id']} sin finalizar")
+    for p in protocols:
+        if p.get("finalized"):
+            for g in groups:
+                if g.get("protocolId") == p.get("id") and not g.get("finalized"):
+                    v.add(f"protocolo {p['id']} finalizado con la carpeta {g['id']} sin finalizar")
+    if (snap.get("projectData") or {}).get("finalized"):
+        if any(not t.get("finalized") for t in tests):
+            v.add("proyecto finalizado con pruebas sin finalizar")
+        if any(not g.get("finalized") for g in groups):
+            v.add("proyecto finalizado con carpetas sin finalizar")
+        if any(not p.get("finalized") for p in protocols):
+            v.add("proyecto finalizado con protocolos sin finalizar")
+    return v
+
+
+def transitions(before, after):
+    """Finalizaciones y reaperturas entre dos snapshots: [(kind, id, 'finalizada'|'reabierta')]."""
+    out = []
+    for kind in KINDS:
+        prev = {e.get("id"): bool(e.get("finalized")) for e in (before.get(kind) or []) if isinstance(e, dict)}
+        for e in (after.get(kind) or []):
+            if not isinstance(e, dict) or e.get("id") not in prev:
+                continue
+            if bool(e.get("finalized")) and not prev[e["id"]]:
+                out.append((kind, e["id"], "finalizada"))
+            elif not e.get("finalized") and prev[e["id"]]:
+                out.append((kind, e["id"], "reabierta"))
+    if bool((after.get("projectData") or {}).get("finalized")) != bool((before.get("projectData") or {}).get("finalized")):
+        out.append(("proyecto", "projectData", "finalizada" if (after.get("projectData") or {}).get("finalized") else "reabierta"))
+    return out

@@ -2526,10 +2526,18 @@ class SyncHandler(BaseHTTPRequestHandler):
                 return self._send_json(409, {"ok": False, "needFull": True,
                                              "error": "Hace falta un guardado completo"})
             snap = json.loads(row["snapshot_json"])
+            before = json.loads(row["snapshot_json"])
             cur_rev = row["snapshot_rev"] or row["updated_at"] or 0
             conflicts, changed = sync_delta.apply_delta(snap, changes, base, cur_rev, now)
             new_rev = cur_rev
             if changed:
+                # El servidor hace cumplir la jerarquía de lo finalizado (carpeta -> pruebas, protocolo ->
+                # carpetas, proyecto -> todo): un cambio que introduce una violación nueva se rechaza entero.
+                _nuevas = sync_delta.violations(snap) - sync_delta.violations(before)
+                if _nuevas:
+                    db.execute("ROLLBACK")
+                    return self._send_json(422, {"ok": False, "violations": sorted(_nuevas),
+                                                 "error": "El cambio viola las reglas de finalización"})
                 snapshot_str = json.dumps(snap)
                 if len(snapshot_str) > 5 * 1024 * 1024:
                     db.execute("ROLLBACK")
@@ -2547,6 +2555,14 @@ class SyncHandler(BaseHTTPRequestHandler):
                       "Sincronizó cambios: " + ", ".join(f"{k} {v}" for k, v in _n.items() if v)
                       + (f" (conflictos: {len(conflicts)})" if conflicts else ""),
                       self._get_client_ip(), now))
+                # Trazabilidad (ALCOA+): cada finalización y reapertura queda registrada por separado.
+                for _k, _i, _t in sync_delta.transitions(before, snap):
+                    db.execute("""
+                        INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
+                        VALUES (?, NULL, ?, ?, ?, ?, ?)
+                    """, (proj_id, user.get("u"),
+                          "entity_finalized" if _t == "finalizada" else "entity_reopened",
+                          f"{_k} {_i}: {_t}", self._get_client_ip(), now))
             server_changes = sync_delta.changes_since(snap, base, exclude_rev=now if changed else None)
             db.execute("COMMIT")
         except Exception as e:

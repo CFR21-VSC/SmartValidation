@@ -1138,6 +1138,13 @@ document.addEventListener('DOMContentLoaded', async function () {
             showNotification(`🔄 ${n} cambio(s) de otra sesión sincronizados`);
         }
     }
+    window.addEventListener('vs:sync-rejected', (ev) => {
+        const v = ((ev.detail && ev.detail.violations) || []).join('; ');
+        const ahora = Date.now();
+        if (window._lastSyncRejected && window._lastSyncRejected.v === v && ahora - window._lastSyncRejected.t < 60000) return;
+        window._lastSyncRejected = { v, t: ahora };
+        showNotification('⛔ El servidor rechazó el cambio: ' + v, 'error');
+    });
     window.addEventListener('vs:server-changes', (ev) => {
         try { _applyServerChangesToLive(ev.detail); } catch (e) { console.warn('[sync] no se pudo aplicar cambios del servidor:', e); }
     });

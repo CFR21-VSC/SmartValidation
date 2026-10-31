@@ -217,6 +217,11 @@
       _clearBase(projectId);
       return _postSnapshot(projectId, snapshot, projectName, rev);
     }
+    if (r.status === 422 && r.data && r.data.violations) {
+      // El servidor rechazó el cambio por violar las reglas de finalización (p. ej. carpeta finalizada con pruebas abiertas).
+      try { window.dispatchEvent(new CustomEvent("vs:sync-rejected", { detail: { projectId, violations: r.data.violations } })); } catch (_) {}
+      return r;
+    }
     if (r.status === 200 && r.data && r.data.ok) {
       _available = true;
       const sc = r.data.serverChanges || {};
