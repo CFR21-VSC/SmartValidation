@@ -481,12 +481,20 @@
       const projId = (global.ValidationSuite && global.ValidationSuite.projects &&
                       global.ValidationSuite.projects.getActiveId()) || null;
       if (!projId) return {};
-      const all = await this.fetchAllEvidence(projId);
       const result = {};
-      for (const rawId of rawIds) {
-        const compoundId = (projId + "_" + rawId).replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 300);
-        result[rawId] = all[compoundId] || null;
+      const compound = (rawId) => (projId + "_" + rawId).replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 300);
+      // Por lotes de 25 (solo las pedidas). Antes se bajaba el volcado de TODAS las imágenes del proyecto
+      // para quedarse con unas pocas.
+      let ok = true;
+      for (let i = 0; i < rawIds.length && ok; i += 25) {
+        const grupo = rawIds.slice(i, i + 25);
+        const res = await this.fetchEvidenceBatchByCompoundIds(projId, grupo.map(compound));
+        if (!res) { ok = false; break; }
+        grupo.forEach((rawId) => { result[rawId] = res[compound(rawId)] || null; });
       }
+      if (ok) return result;
+      const all = await this.fetchAllEvidence(projId);   // servidor sin lotes: comportamiento anterior
+      for (const rawId of rawIds) result[rawId] = all[compound(rawId)] || null;
       return result;
     },
 

@@ -120,6 +120,13 @@ const N = 30;
     reqs.length = 0;
     await B.evaluate((pid) => _syncImagesFromServer(pid), PID); await esperar(2000);
     ok(reqs.filter(u => /\/evidence\/[^?]+$/.test(u)).length === 1, 'la sincronización bajó solo la imagen cuya huella cambió (1 petición)');
+
+    // 8) la precarga previa a exportar pide solo las imágenes que necesita, en lote, y no el volcado de todas
+    reqs.length = 0;
+    const crudos = Object.keys(idx).slice(0, 3).map(c => c.replace(/^proj_[0-9]+_[a-z0-9]+_/, ''));
+    const lote = await B.evaluate((ids) => window.VS.Storage.fetchEvidenceBatch(ids), crudos);
+    ok(crudos.every(id => lote[id] && lote[id].startsWith('data:image/png')), 'fetchEvidenceBatch devuelve las imágenes pedidas');
+    ok(!reqs.some(u => /\/evidence$/.test(u)) && reqs.filter(u => /\/evidence\/batch$/.test(u)).length === 1, 'y lo hace con una petición de lote, sin bajar el volcado de todas las imágenes');
   } catch (e) { console.log('ERROR', e.stack || e.message); fallos++; }
   finally { await b.close(); srv.kill(); }
   console.log(fallos ? `\n${fallos} FALLA(S)` : '\nTODO OK');
