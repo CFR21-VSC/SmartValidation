@@ -244,10 +244,10 @@
         // en logica-modular.js (ambos scripts ya están cargados para cuando esto
         // se invoca en runtime, sin importar el orden de los <script> tags).
         if (global.VS && global.VS.Storage) {
-            // baseRev se captura ACÁ (al momento de guardar): un reintento posterior debe llevar la
-            // revisión sobre la que se trabajó, no la que haya en ese momento.
+            // La subida en vivo usa la revisión vigente al momento de enviar (ver syncSnapshot, que las
+            // serializa). baseRev se captura acá solo para el reintento encolado si falla.
             const baseRev = global.VS.Storage.getBaseRev(id);
-            global.VS.Storage.syncSnapshot(id, snapshot, entry.name, baseRev).then((r) => {
+            global.VS.Storage.syncSnapshot(id, snapshot, entry.name).then((r) => {
                 // 409 = copia atrasada: no se encola (reintentar no sirve; hay que bajar la del servidor).
                 if (r && r.status === 409) return;
                 if (!(r && r.data && r.data.ok) && global._enqueuePendingSync) {

@@ -35,6 +35,15 @@
 
   // ── Internal fetch wrapper ──────────────────────────────────────────────────
 
+  /** Comprime un string a gzip (null si el navegador no soporta CompressionStream: se manda sin comprimir). */
+  async function _gzip(txt) {
+    try {
+      if (typeof CompressionStream === "undefined") return null;
+      const stream = new Blob([txt]).stream().pipeThrough(new CompressionStream("gzip"));
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    } catch (_) { return null; }
+  }
+
   async function _apiFetch(method, path, body) {
     try {
       const opts = {
@@ -42,7 +51,12 @@
         credentials: "include",
         headers: { "Content-Type": "application/json" },
       };
-      if (body !== undefined) opts.body = JSON.stringify(body);
+      if (body !== undefined) {
+        const txt = JSON.stringify(body);
+        const gz = txt.length > 8192 ? await _gzip(txt) : null;
+        if (gz) { opts.body = gz; opts.headers["Content-Encoding"] = "gzip"; }
+        else opts.body = txt;
+      }
       const res = await fetch(BASE + path, opts);
       if (res.status === 401) {
         const errData = await res.json().catch(() => ({}));
@@ -71,7 +85,35 @@
   // ── Public API ──────────────────────────────────────────────────────────────
 
   const _conflicts = {};  // projectId -> true si el servidor rechazó una subida por copia atrasada
+  const _queues = {};     // projectId -> cola de subidas en vivo (una en vuelo + la última pendiente)
   const _lastRev = {};    // projectId -> revisión del último snapshot descargado
+
+  function _postSnapshot(projectId, snapshot, projectName, baseRev) {
+    // Conflicto ya detectado para este proyecto: no seguir intentando hasta que el usuario
+    // baje la versión del servidor (evita insistir en cada autoguardado).
+    if (_conflicts[projectId]) return Promise.resolve({ status: 409, data: { ok: false, conflict: true } });
+    const body = { snapshot, baseRev: Number(baseRev) || 0 };
+    if (projectName) body.projectName = String(projectName);
+    return _apiFetch("POST", `/api/projects/${encodeURIComponent(projectId)}/snapshot`, body)
+      .then((r) => {
+        if (r && r.status === 409 && r.data && r.data.conflict) {
+          _conflicts[projectId] = true;
+          try { window.dispatchEvent(new CustomEvent("vs:snapshot-conflict", { detail: { projectId } })); } catch (_) {}
+          return r;
+        }
+        if (r && r.data && r.data.ok) {
+          _available = true;
+          try {
+            const ts = (r.data.updated_at || (Date.now() / 1000));
+            localStorage.setItem(`_myLastUpload_${projectId}`, String(ts));
+            // Actualizar siempre: el banner "Actualizar" solo aparece cuando OTRO usuario sube cambios.
+            localStorage.setItem(`_serverSyncFrom_${projectId}`, String(ts));
+            if (r.data.rev) localStorage.setItem(`_serverRev_${projectId}`, String(r.data.rev));
+          } catch (_) {}
+        }
+        return r;
+      }).catch(() => null);
+  }
 
   const Storage = {
     isAvailable() { return _available; },
@@ -82,33 +124,32 @@
      */
     syncSnapshot(projectId, snapshot, projectName, baseRev) {
       if (!projectId || !snapshot) return Promise.resolve(null);
-      // Conflicto ya detectado para este proyecto: no seguir intentando hasta que el usuario
-      // baje la versión del servidor (evita insistir en cada autoguardado).
-      if (_conflicts[projectId]) return Promise.resolve({ status: 409, data: { ok: false, conflict: true } });
-      const body = { snapshot };
-      if (projectName) body.projectName = String(projectName);
-      // Revisión del servidor sobre la que se basa esta copia. Un reintento encolado pasa la
-      // que tenía al momento de encolar (no la actual), para no "blanquear" una copia atrasada.
-      body.baseRev = (baseRev !== undefined && baseRev !== null) ? Number(baseRev) : Storage.getBaseRev(projectId);
-      return _apiFetch("POST", `/api/projects/${encodeURIComponent(projectId)}/snapshot`, body)
-        .then((r) => {
-          if (r && r.status === 409 && r.data && r.data.conflict) {
-            _conflicts[projectId] = true;
-            try { window.dispatchEvent(new CustomEvent("vs:snapshot-conflict", { detail: { projectId } })); } catch (_) {}
-            return r;
+      // Reintento encolado: lleva la revisión de cuando se guardó, se envía tal cual (sin fusionar con otras).
+      if (baseRev !== undefined && baseRev !== null) return _postSnapshot(projectId, snapshot, projectName, Number(baseRev));
+      // Subida "en vivo": una sola en vuelo por proyecto. Si llegan más mientras tanto, solo importa la
+      // última, que se envía al terminar la actual con la revisión ya actualizada. Sin esto, dos subidas
+      // seguidas salían con la misma base y la segunda se chocaba con la primera (conflicto falso).
+      const q = _queues[projectId] || (_queues[projectId] = { busy: false, next: null, waiters: [] });
+      if (q.busy) {
+        q.next = { snapshot, projectName };
+        return new Promise((res) => q.waiters.push(res));
+      }
+      q.busy = true;
+      return (async () => {
+        let cur = { snapshot, projectName }, r = null;
+        try {
+          for (;;) {
+            r = await _postSnapshot(projectId, cur.snapshot, cur.projectName, Storage.getBaseRev(projectId));
+            if (!q.next || (r && r.status === 409)) break;
+            cur = q.next; q.next = null;
           }
-          if (r && r.data && r.data.ok) {
-            _available = true;
-            try {
-              const ts = (r.data.updated_at || (Date.now() / 1000));
-              localStorage.setItem(`_myLastUpload_${projectId}`, String(ts));
-              // Actualizar siempre: el banner "Actualizar" solo aparece cuando OTRO usuario sube cambios.
-              localStorage.setItem(`_serverSyncFrom_${projectId}`, String(ts));
-              if (r.data.rev) localStorage.setItem(`_serverRev_${projectId}`, String(r.data.rev));
-            } catch (_) {}
-          }
-          return r;
-        }).catch(() => null);
+        } finally {
+          q.busy = false; q.next = null;
+          const w = q.waiters; q.waiters = [];
+          w.forEach((f) => f(r));
+        }
+        return r;
+      })();
     },
 
     /** Revisión del servidor sobre la que está basada la copia local (0 = nunca bajó/subió). */
@@ -127,6 +168,13 @@
     takeLastRev(projectId) { return _lastRev[projectId] || 0; },
 
     hasConflict(projectId) { return !!_conflicts[projectId]; },
+
+    /** Revisión vigente en el servidor (consulta liviana, sin snapshot). null si no se pudo consultar. */
+    async getRev(projectId) {
+      const r = await _apiFetch("GET", `/api/projects/${encodeURIComponent(projectId)}/rev`);
+      if (!r || r.status !== 200 || !r.data || !r.data.ok) return null;
+      return Number(r.data.rev) || 0;
+    },
 
     async listProjects() {
       const r = await _apiFetch("GET", "/api/projects");

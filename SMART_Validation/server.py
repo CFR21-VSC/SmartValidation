@@ -13,6 +13,7 @@ para que dispositivos en la misma red puedan acceder via http://IP-PC:11294
 """
 
 import base64
+import gzip
 import hashlib
 import hmac
 import html as _html_mod
@@ -28,6 +29,7 @@ import time
 import urllib.request
 import urllib.error
 import uuid
+import zlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs, quote
 
@@ -321,6 +323,7 @@ def _is_valid_doc_type(v: str) -> bool:
 _RE_PROJ_ID          = re.compile(r'^/api/projects/([^/]+)$')
 _RE_PROJ_EXPORT      = re.compile(r'^/api/projects/([^/]+)/export$')
 _RE_PROJ_SNAPSHOT    = re.compile(r'^/api/projects/([^/]+)/snapshot$')
+_RE_PROJ_REV         = re.compile(r'^/api/projects/([^/]+)/rev$')
 _RE_EVIDENCE         = re.compile(r'^/api/evidence/([a-zA-Z0-9_-]{1,300})$')
 _RE_EVIDENCE_BATCH   = re.compile(r'^/api/evidence-batch$')
 _RE_ANALYTICS        = re.compile(r'^/api/analytics(/.+)?$')
@@ -1520,8 +1523,18 @@ class SyncHandler(BaseHTTPRequestHandler):
 
     def _send_json(self, status, payload):
         body = json.dumps(payload).encode("utf-8")
+        # Respuestas grandes (snapshot, listados) viajan comprimidas si el cliente lo acepta.
+        # Se excluye /auth: nada de sesión/credenciales comprimido junto a texto que el cliente controla.
+        _gz = (len(body) > 1024
+               and "gzip" in (self.headers.get("Accept-Encoding") or "").lower()
+               and not (self.path or "").startswith("/auth"))
+        if _gz:
+            body = gzip.compress(body, compresslevel=5)
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
+        if _gz:
+            self.send_header("Content-Encoding", "gzip")
+            self.send_header("Vary", "Accept-Encoding")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Access-Control-Allow-Origin", _ALLOWED_ORIGIN)
         self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
@@ -2466,6 +2479,20 @@ class SyncHandler(BaseHTTPRequestHandler):
         if is_new_project:
             _bridge_ensure_project(proj_id, name)
         return self._send_json(200, {"ok": True, "docs_synced": len(package_docs), "updated_at": now, "rev": now})
+
+    def _api_project_rev(self, proj_id, user):
+        """GET /api/projects/{id}/rev — revisión vigente del snapshot (consulta liviana para detectar
+        cambios de otra sesión sin bajar el snapshot ni listar todos los proyectos)."""
+        db = _get_db()
+        if not self._assert_project_access(db, user, proj_id):
+            return
+        row = db.execute(
+            "SELECT snapshot_rev, updated_at FROM projects WHERE id=?", (proj_id,)
+        ).fetchone()
+        if not row:
+            return self._send_json(404, {"ok": False, "error": "Proyecto no encontrado"})
+        return self._send_json(200, {"ok": True, "rev": row["snapshot_rev"] or row["updated_at"] or 0,
+                                     "updated_at": row["updated_at"] or 0})
 
     def _api_snapshot_get(self, proj_id, user):
         """Devuelve el snapshot almacenado para restaurar IndexedDB en un navegador nuevo."""
@@ -3910,6 +3937,22 @@ class SyncHandler(BaseHTTPRequestHandler):
                 self.connection.settimeout(None)
             except Exception:
                 pass
+        # Cuerpo comprimido (el cliente comprime los snapshots grandes). El tope se aplica sobre el
+        # tamaño DESCOMPRIMIDO: un cuerpo chico que se expande a cientos de MB (zip bomb) se rechaza.
+        _enc = (self.headers.get("Content-Encoding") or "").strip().lower()
+        if _enc in ("gzip", "x-gzip"):
+            try:
+                _d = zlib.decompressobj(16 + zlib.MAX_WBITS)
+                raw = _d.decompress(raw, MAX_SESSION_BYTES)
+                if _d.unconsumed_tail:
+                    self._send_json(413, {"error": "Payload demasiado grande"})
+                    return None
+            except zlib.error:
+                self._send_json(400, {"error": "Cuerpo comprimido inválido"})
+                return None
+        elif _enc not in ("", "identity"):
+            self._send_json(415, {"error": "Content-Encoding no soportado"})
+            return None
         try:
             return json.loads(raw.decode("utf-8"))
         except (ValueError, UnicodeDecodeError):
@@ -4222,6 +4265,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_PROJ_SNAPSHOT.match(path)
         if m:
             return self._api_snapshot_get(m.group(1), user)
+        m = _RE_PROJ_REV.match(path)
+        if m:
+            return self._api_project_rev(m.group(1), user)
         if _RE_MAPEO_LIST.match(path):
             return self._api_mapeo_list(user)
         m = _RE_MAPEO_ONE.match(path)

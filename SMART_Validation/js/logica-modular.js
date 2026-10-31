@@ -373,6 +373,8 @@ async function _retryEvidenceUpload(payload) {
 
 async function _retrySnapshotSync(payload) {
     if (!window.VS || !window.VS.Storage) return false;
+    // Si después de encolar esto ya se subió una copia propia más nueva, la encolada quedó obsoleta.
+    if ((payload.baseRev || 0) < window.VS.Storage.getBaseRev(payload.projectId)) return true;
     const r = await window.VS.Storage.syncSnapshot(payload.projectId, payload.snapshot, payload.projectName, payload.baseRev || 0).catch(() => null);
     // 409: la copia encolada quedó atrasada respecto del servidor. Se descarta (no se reintenta):
     // el aviso de conflicto le pide al usuario bajar la versión del servidor.
@@ -969,6 +971,12 @@ document.addEventListener('DOMContentLoaded', async function () {
             if (!window.ValidationSuite || !window.ValidationSuite.projects || !window.VS || !window.VS.Storage) return;
             const localId = window.ValidationSuite.projects.getActiveId();
             const DEMO_ID = window.ValidationSuite.projects.DEMO_PROJECT_ID;
+            // Consulta liviana: si la revisión del servidor es la que ya tenemos, no hay nada que
+            // bajar ni que listar (antes se listaban todos los proyectos cada 15 s).
+            if (localId && localId !== DEMO_ID && window.VS.Storage.getRev) {
+                const srvRev = await window.VS.Storage.getRev(localId);
+                if (srvRev !== null && srvRev > 0 && srvRev <= window.VS.Storage.getBaseRev(localId) + 0.001) return;
+            }
             const serverList = await window.VS.Storage.listProjects();
             if (!serverList || !serverList.length) return;
             const real = serverList.filter(p => p.id !== DEMO_ID);
