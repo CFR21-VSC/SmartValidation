@@ -3,3 +3,5 @@
 # In local dev (no DATABASE_URL), only the standard library is needed.
 # Versión fijada (SEC-FIX-DEPS01) -- ver requirements.txt de la raíz del repo.
 psycopg2-binary==2.9.12
+# Optimización sin pérdida de las imágenes de evidencia (image_opt.py); opcional: sin él se guardan tal cual.
+Pillow==12.1.1

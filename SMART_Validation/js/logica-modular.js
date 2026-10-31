@@ -680,30 +680,48 @@ async function _syncImagesFromServer(projectId) {
     if (!window.VS || !window.VS.Storage) return;
     if (!projectId) return;
     try {
-        const serverImages = await window.VS.Storage.fetchAllEvidence(projectId);
         const projPrefix = projectId.replace(/[^a-zA-Z0-9_-]/g, '_') + '_';
         const toLocalId = (compoundId) => compoundId.startsWith(projPrefix)
             ? compoundId.slice(projPrefix.length) : compoundId;
-        // Este fetch trae el inventario COMPLETO del proyecto -- lo cacheamos para
-        // no volver a pegarle al servidor por una clave que ya sabemos ausente
-        // (ver _isConfirmedMissingOnServer, usado en getImageFromDB).
-        _markServerImageInventory(projectId, Object.entries(serverImages || {})
-            .filter(([, data]) => !!data).map(([compoundId]) => toLocalId(compoundId)));
-        if (!serverImages || !Object.keys(serverImages).length) return;
+        const existeLocal = (localId) => new Promise(res => {
+            if (!db) { res(false); return; }
+            const req = db.transaction([IMAGES_STORE], 'readonly').objectStore(IMAGES_STORE).get(localId);
+            req.onsuccess = () => res(!!req.result);
+            req.onerror   = () => res(false);
+        });
+        // Índice liviano (huella y tamaño, sin datos): se baja únicamente lo que falta en este navegador.
+        // Antes cada chequeo traía TODAS las imágenes del proyecto en una sola respuesta.
+        const indice = window.VS.Storage.fetchEvidenceIndex ? await window.VS.Storage.fetchEvidenceIndex(projectId) : null;
         let downloaded = 0;
-        for (const [compoundId, data] of Object.entries(serverImages)) {
-            if (!data) continue;
-            const localId = toLocalId(compoundId);
-            const exists = await new Promise(res => {
-                if (!db) { res(false); return; }
-                const req = db.transaction([IMAGES_STORE], 'readonly')
-                    .objectStore(IMAGES_STORE).get(localId);
-                req.onsuccess = () => res(!!req.result);
-                req.onerror   = () => res(false);
-            });
-            if (!exists) {
-                await saveImageToDB(localId, data, { upload: false }).catch(() => {});
-                downloaded++;
+        if (indice) {
+            // Este inventario es COMPLETO -- se cachea para no consultar por una clave que ya sabemos ausente
+            // (ver _isConfirmedMissingOnServer, usado en getImageFromDB).
+            _markServerImageInventory(projectId, Object.keys(indice).map(toLocalId));
+            const faltan = [];
+            for (const compoundId of Object.keys(indice)) {
+                if (!(await existeLocal(toLocalId(compoundId)))) faltan.push(compoundId);
+            }
+            const CONC = 4;
+            for (let i = 0; i < faltan.length; i += CONC) {
+                await Promise.all(faltan.slice(i, i + CONC).map(async (compoundId) => {
+                    const data = await window.VS.Storage.fetchEvidenceByCompoundId(projectId, compoundId).catch(() => null);
+                    if (!data) return;
+                    await saveImageToDB(toLocalId(compoundId), data, { upload: false }).catch(() => {});
+                    downloaded++;
+                }));
+            }
+        } else {
+            // Servidor sin índice (versión anterior): comportamiento de antes
+            const serverImages = await window.VS.Storage.fetchAllEvidence(projectId);
+            _markServerImageInventory(projectId, Object.entries(serverImages || {})
+                .filter(([, data]) => !!data).map(([compoundId]) => toLocalId(compoundId)));
+            if (!serverImages || !Object.keys(serverImages).length) return;
+            for (const [compoundId, data] of Object.entries(serverImages)) {
+                if (!data) continue;
+                if (!(await existeLocal(toLocalId(compoundId)))) {
+                    await saveImageToDB(toLocalId(compoundId), data, { upload: false }).catch(() => {});
+                    downloaded++;
+                }
             }
         }
         if (downloaded > 0) {
@@ -724,27 +742,8 @@ async function _syncImagesFromServer(projectId) {
 async function _downloadAllEvidenceFromServer(projectId) {
     if (!window.VS || !window.VS.Storage) return;
     if (!projectId) return;
-    try {
-        const images = await window.VS.Storage.fetchAllEvidence(projectId);
-        if (!images || !Object.keys(images).length) return;
-        const projSanitized = projectId.replace(/[^a-zA-Z0-9_-]/g, '_');
-        const projPrefix = projSanitized + '_';
-        let count = 0;
-        for (const [compoundId, data] of Object.entries(images)) {
-            if (!data) continue;
-            const localId = compoundId.startsWith(projPrefix)
-                ? compoundId.slice(projPrefix.length)
-                : compoundId;
-            await saveImageToDB(localId, data, { upload: false }).catch(() => {});
-            count++;
-        }
-        if (count > 0) {
-            localStorage.setItem(`_imgSynced_${projectId}`, '1');
-            console.log(`[DownloadEvidence] ${count} imágenes descargadas del servidor`);
-        }
-    } catch (e) {
-        console.warn('[DownloadEvidence] Error:', e);
-    }
+    await _syncImagesFromServer(projectId);
+    try { localStorage.setItem(`_imgSynced_${projectId}`, '1'); } catch (_) {}
 }
 
 /**
@@ -892,10 +891,8 @@ document.addEventListener('DOMContentLoaded', async function () {
                 // Bajar del server imágenes que falten localmente (siempre, incremental)
                 await _syncImagesFromServer(projId);
             }
-            // Completar en background lo que loadFromStorage dejó sin cargar (local-only,
-            // ver comentario ahí) -- esto sí consulta el servidor, pero en lotes, sin
-            // bloquear el arranque de la app.
-            await precargarImagenesEvidenciaFaltantes(tests);
+            // Las imágenes ya NO se precargan todas en memoria al arrancar: cada evidencia se trae al
+            // mostrarla (renderWorkArea) y las exportaciones (PDF, AEX, sesión) las piden al momento.
             if (typeof renderWorkArea === 'function') renderWorkArea();
         } catch (_) {}
     }, 3000);
@@ -1322,7 +1319,7 @@ async function saveToStorage() {
                 const { image, ...evidenceWithoutImage } = evidence;
                 return {
                     ...evidenceWithoutImage,
-                    hasImage: !!image && !evidence.isEmpty  // Flag para saber si tiene imagen en IndexedDB
+                    hasImage: (!!image || !!evidence.hasImage) && !evidence.isEmpty  // Flag para saber si tiene imagen en IndexedDB (aunque no esté cargada en memoria)
                 };
             })
         }));
@@ -1499,42 +1496,9 @@ async function loadFromStorage() {
         // =======================
         tests = parsed.tests || [];
 
-        // Si usa IndexedDB, cargar imágenes
-        if (parsed.storageMethod === 'indexeddb' && db) {
-            // console.log('🔄 Cargando imágenes desde IndexedDB...');
-            let imageLoadCount = 0;
-
-            for (const test of tests) {
-                for (const evidence of test.evidences) {
-                    // Si tiene flag hasImage, buscar SOLO en IndexedDB local (sin red) --
-                    // este loop es secuencial y corre en cada carga de la app, así que un
-                    // proyecto con muchas evidencias sin la foto cacheada en este browser
-                    // (sesión nueva, otro dispositivo) podía quedarse colgado varios minutos
-                    // pegándole al servidor una por una. Lo que no se encuentra acá queda con
-                    // hasImage intacto (no se borra el flag) para que lo complete en
-                    // background precargarImagenesEvidenciaFaltantes, que sí hace esas
-                    // consultas al servidor pero en lotes, sin bloquear el arranque.
-                    if (evidence.hasImage && !evidence.isEmpty) {
-                        const imageId = evidenceImageKey(test, evidence);
-
-                        try {
-                            const imageData = await loadEvidenceImage(test, evidence, { serverFallback: false });
-                            if (imageData) {
-                                evidence.image = imageData;
-                                imageLoadCount++;
-                                delete evidence.hasImage;
-                            } else {
-    // //                                 console.warn(`Imagen no encontrada en IndexedDB: ${imageId}`);
-                            }
-                        } catch (err) {
-    // //                             console.error(`Error cargando imagen ${imageId}:`, err);
-                        }
-                    }
-                }
-            }
-
-    // //             console.log(`✓ ${imageLoadCount} imágenes cargadas desde IndexedDB`);
-        }
+        // Las imágenes NO se cargan acá: cada evidencia conserva hasImage y su imagen se trae de IndexedDB
+        // (o del servidor) cuando se muestra o se exporta (renderWorkArea, loadEvidenceImage, precargar...).
+        // Antes se metían TODAS en memoria al abrir el proyecto (base64: ~1,3 veces su tamaño en disco).
 
         // Cargar datos del proyecto
         projectData = parsed.projectData || {

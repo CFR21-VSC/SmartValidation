@@ -5,3 +5,5 @@
 # la próxima versión evaluada antes de subir el pin.
 psycopg2-binary==2.9.12
 boto3==1.43.89
+# Optimización sin pérdida de las imágenes de evidencia (image_opt.py); opcional: sin él se guardan tal cual.
+Pillow==12.1.1

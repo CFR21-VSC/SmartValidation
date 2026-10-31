@@ -34,6 +34,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs, quote
 
 import sync_delta  # sincronización por diferencias (módulo puro)
+import image_opt  # optimización sin pérdida de imágenes de evidencia + huellas SHA-256
 
 try:
     import r2_adapter as _r2
@@ -276,6 +277,9 @@ def _db_init():
         # Revisión del snapshot (control de concurrencia optimista): solo cambia cuando se guarda el
         # snapshot completo, a diferencia de updated_at que también mueven logo/carpeta/etc.
         "ALTER TABLE projects ADD COLUMN snapshot_rev REAL",
+        # Huella de cada imagen de evidencia: sha256 de lo guardado y de lo recibido (integridad / ETag)
+        "ALTER TABLE evidence_images ADD COLUMN sha256 TEXT",
+        "ALTER TABLE evidence_images ADD COLUMN orig_sha256 TEXT",
         # Logo de la empresa partner/cliente (projects.cliente, ya existente, es el nombre --
         # no se duplica el campo). Cuando hay logo cargado, sale junto al de DRP Assurance en
         # portada/header/footer de TODOS los PDF del proyecto (ver template-base.js). Gateado
@@ -1546,7 +1550,13 @@ class SyncHandler(BaseHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Credentials", "true")
             self.send_header("Vary", "Origin")
         _add_sec_headers(self)
-        self.send_header("Cache-Control", "no-store")
+        _etag = getattr(self, "_etag_pendiente", None)
+        if _etag and status == 200:
+            self.send_header("ETag", _etag)
+            self.send_header("Cache-Control", "private, no-cache")
+        else:
+            self.send_header("Cache-Control", "no-store")
+        self._etag_pendiente = None
         self.end_headers()
         self.wfile.write(body)
 
@@ -2784,6 +2794,8 @@ class SyncHandler(BaseHTTPRequestHandler):
         """Persist one evidence image.
         Always stores the data-URI inline in SQLite (guaranteed retrieval).
         Also uploads to R2 when configured — R2 is a CDN backup, not the source of truth."""
+        # Reencode PNG sin pérdida (píxeles verificados idénticos) y huellas SHA-256 de lo recibido y lo guardado.
+        data_uri, _info = image_opt.optimizar_data_uri(data_uri)
         use_r2 = _r2 is not None and _r2.is_configured()
         if use_r2:
             ok = _r2.put_image(cid, data_uri)
@@ -2793,10 +2805,11 @@ class SyncHandler(BaseHTTPRequestHandler):
         stored_size = len(data_uri)
         try:
             db.execute(
-                "INSERT INTO evidence_images (compound_id, project_id, data, size_bytes, updated_at) "
-                "VALUES (?, ?, ?, ?, ?) ON CONFLICT(compound_id) DO UPDATE SET "
-                "data=excluded.data, size_bytes=excluded.size_bytes, updated_at=excluded.updated_at",
-                (str(cid)[:300], proj_id, stored_data, stored_size, now)
+                "INSERT INTO evidence_images (compound_id, project_id, data, size_bytes, updated_at, sha256, orig_sha256) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(compound_id) DO UPDATE SET "
+                "data=excluded.data, size_bytes=excluded.size_bytes, updated_at=excluded.updated_at, "
+                "sha256=excluded.sha256, orig_sha256=excluded.orig_sha256",
+                (str(cid)[:300], proj_id, stored_data, stored_size, now, _info["sha256"], _info["orig_sha256"])
             )
             return True
         except Exception as exc:
@@ -2808,6 +2821,23 @@ class SyncHandler(BaseHTTPRequestHandler):
         db = _get_db()
         if not self._assert_project_access(db, user, proj_id):
             return
+        # ?index=1: solo huella y tamaño de cada imagen, sin los datos (el cliente baja únicamente las que le faltan)
+        if "index=1" in (urlparse(self.path).query or "").split("&"):
+            rows = db.execute(
+                "SELECT compound_id, data, size_bytes, sha256 FROM evidence_images WHERE project_id=?", (proj_id,)
+            ).fetchall()
+            index = {}
+            for r in rows:
+                h = r["sha256"]
+                if not h:  # imágenes anteriores a la columna: se calcula una vez y se guarda
+                    h = image_opt.sha256_data_uri(self._resolve_evidence_data(r["data"] or "") or "")
+                    try:
+                        db.execute("UPDATE evidence_images SET sha256=? WHERE compound_id=? AND project_id=?",
+                                   (h, r["compound_id"], proj_id))
+                    except Exception:
+                        pass
+                index[r["compound_id"]] = {"sha256": h, "size": r["size_bytes"] or 0}
+            return self._send_json(200, {"ok": True, "index": index})
         rows = db.execute(
             "SELECT compound_id, data FROM evidence_images WHERE project_id=?", (proj_id,)
         ).fetchall()
@@ -2824,7 +2854,7 @@ class SyncHandler(BaseHTTPRequestHandler):
         if not self._assert_project_access(db, user, proj_id):
             return
         row = db.execute(
-            "SELECT data FROM evidence_images WHERE compound_id=? AND project_id=?",
+            "SELECT data, sha256 FROM evidence_images WHERE compound_id=? AND project_id=?",
             (compound_id, proj_id)
         ).fetchone()
         if not row:
@@ -2832,7 +2862,18 @@ class SyncHandler(BaseHTTPRequestHandler):
         resolved = self._resolve_evidence_data(row["data"] or "")
         if not resolved:
             return self._send_json(404, {"ok": False, "error": "Imagen no disponible"})
-        return self._send_json(200, {"ok": True, "compound_id": compound_id, "data": resolved})
+        etag = '"' + (row["sha256"] or image_opt.sha256_data_uri(resolved)) + '"'
+        # Revalidación: si el navegador ya tiene esa versión, no se vuelve a enviar la imagen.
+        if (self.headers.get("If-None-Match") or "").strip() == etag:
+            self.send_response(304)
+            self.send_header("ETag", etag)
+            self.send_header("Cache-Control", "private, no-cache")
+            _add_sec_headers(self)
+            self.end_headers()
+            return
+        self._etag_pendiente = etag
+        return self._send_json(200, {"ok": True, "compound_id": compound_id, "data": resolved,
+                                     "sha256": etag.strip('"')})
 
     def _api_evidence_images_upload(self, proj_id, user):
         """POST /api/projects/{id}/evidence — subida masiva {images: {cid: dataUri}}."""

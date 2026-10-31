@@ -419,6 +419,20 @@
       ).catch(() => null);
     },
 
+    /** Índice liviano de las imágenes del proyecto {compoundId: {sha256, size}} (sin los datos). null si el servidor no lo soporta. */
+    async fetchEvidenceIndex(projectId) {
+      const r = await _apiFetch("GET", `/api/projects/${encodeURIComponent(projectId)}/evidence?index=1`);
+      if (!r || r.status !== 200 || !r.data || !r.data.ok || !r.data.index) return null;
+      return r.data.index;
+    },
+
+    /** Descarga una imagen por su compoundId completo (el que devuelve el índice). */
+    async fetchEvidenceByCompoundId(projectId, compoundId) {
+      const r = await _apiFetch("GET", `/api/projects/${encodeURIComponent(projectId)}/evidence/${encodeURIComponent(compoundId)}`);
+      if (!r || r.status !== 200 || !r.data || !r.data.ok) return null;
+      return r.data.data || null;
+    },
+
     /** Descarga una imagen de evidencia del servidor como data URL. rawImageId es el ID local. */
     async fetchEvidence(rawImageId) {
       const projId = (global.ValidationSuite && global.ValidationSuite.projects &&
