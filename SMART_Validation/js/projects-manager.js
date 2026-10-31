@@ -664,6 +664,10 @@
                                 const entry = await downloadFromServer(real[0].id);
                                 setActiveId(entry.id);
                                 writeSnapshot(entry.snapshot);
+                                // La copia local ES la del servidor: se adopta su revisión + snapshot como base de
+                                // diferencias. Sin esto el navegador quedaba con revisión 0 y todos sus guardados
+                                // eran rechazados por el servidor (409) como "copia desactualizada".
+                                if (entry.serverRev) global.VS.Storage.adoptRev(entry.id, entry.serverRev, entry.baseSnapshot);
                                 console.info('[projects] Auto-sync: proyecto descargado del servidor:', entry.name);
                                 return entry;
                             } catch (e) {

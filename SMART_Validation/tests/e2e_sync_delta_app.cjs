@@ -103,6 +103,19 @@ async function hasta(fn, ms = 15000, paso = 300) {
     });
     ok(rej && rej.violations && rej.violations.length > 0, 'finalizar una carpeta con pruebas abiertas es rechazado por el servidor (' + (rej && rej.violations && rej.violations[0]) + ')');
     ok(!(await srvSnap(PID)).groups[1].finalized, 'la carpeta B sigue abierta en el servidor');
+
+    // 9) un navegador NUEVO (sin proyecto activo) baja el proyecto solo, al arrancar, y debe poder guardar
+    //    (caso del skill de evidencias: perfil limpio de Chrome)
+    const C = await (await b.newContext()).newPage();
+    C.on('pageerror', e => console.log('  [C pageerror]', e.message));
+    await C.goto(base + '/', { waitUntil: 'domcontentloaded' });
+    const cOk = await hasta(() => C.evaluate(() => window.ValidationSuite.projects.getActiveId() && tests.length === 3 ? true : null), 20000);
+    ok(!!cOk, 'un navegador nuevo descarga el proyecto del servidor al arrancar');
+    ok(await C.evaluate((pid) => window.VS.Storage.hasDeltaBase(pid) && window.VS.Storage.getBaseRev(pid) > 0, PID), 'ese navegador adoptó la revisión del servidor (puede guardar por diferencias)');
+    await C.evaluate(() => { tests[2].name = 'Prueba 3 (C, navegador nuevo)'; return saveToStorage(); });
+    const cLlego = await hasta(async () => (await srvSnap(PID)).tests[2].name === 'Prueba 3 (C, navegador nuevo)');
+    ok(!!cLlego, 'el guardado del navegador nuevo llega al servidor');
+    ok(await C.evaluate(() => !document.getElementById('_snapshotConflictBanner')), 'sin cartel de copia desactualizada en el navegador nuevo');
   } catch (e) { console.log('ERROR', e.stack || e.message); fallos++; }
   finally { await b.close(); srv.kill(); }
   console.log(fallos ? `\n${fallos} FALLA(S)` : '\nTODO OK');
