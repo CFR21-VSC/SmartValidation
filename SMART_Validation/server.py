@@ -276,7 +276,10 @@ def _db_init():
         "ALTER TABLE projects ADD COLUMN snapshot_json TEXT",
         # Revisión del snapshot (control de concurrencia optimista): solo cambia cuando se guarda el
         # snapshot completo, a diferencia de updated_at que también mueven logo/carpeta/etc.
-        "ALTER TABLE projects ADD COLUMN snapshot_rev REAL",
+        "ALTER TABLE projects ADD COLUMN snapshot_rev DOUBLE PRECISION",
+        # PostgreSQL: corrige la columna si ya se había creado como REAL (4 bytes, redondeaba la revisión).
+        # En SQLite esta sentencia falla y se ignora (la columna ya es de doble precisión).
+        "ALTER TABLE projects ALTER COLUMN snapshot_rev TYPE DOUBLE PRECISION",
         # Huella de cada imagen de evidencia: sha256 de lo guardado y de lo recibido (integridad / ETag)
         "ALTER TABLE evidence_images ADD COLUMN sha256 TEXT",
         "ALTER TABLE evidence_images ADD COLUMN orig_sha256 TEXT",
@@ -2417,7 +2420,11 @@ class SyncHandler(BaseHTTPRequestHandler):
                 "SELECT snapshot_json, snapshot_rev, updated_at FROM projects WHERE id=?", (proj_id,)
             ).fetchone()
             if _cur and _cur["snapshot_json"]:
-                _cur_rev = _cur["snapshot_rev"] or _cur["updated_at"] or 0
+                try:
+                    _cur_snap = json.loads(_cur["snapshot_json"])
+                except Exception:
+                    _cur_snap = {}
+                _cur_rev = sync_delta.effective_rev(_cur["snapshot_rev"], _cur["updated_at"], _cur_snap)
                 try:
                     _base = float(data.get("baseRev"))
                 except (TypeError, ValueError):
@@ -2538,7 +2545,7 @@ class SyncHandler(BaseHTTPRequestHandler):
                                              "error": "Hace falta un guardado completo"})
             snap = json.loads(row["snapshot_json"])
             before = json.loads(row["snapshot_json"])
-            cur_rev = row["snapshot_rev"] or row["updated_at"] or 0
+            cur_rev = sync_delta.effective_rev(row["snapshot_rev"], row["updated_at"], snap)
             conflicts, changed = sync_delta.apply_delta(snap, changes, base, cur_rev, now)
             new_rev = cur_rev
             if changed:
@@ -2593,11 +2600,15 @@ class SyncHandler(BaseHTTPRequestHandler):
         if not self._assert_project_access(db, user, proj_id):
             return
         row = db.execute(
-            "SELECT snapshot_rev, updated_at FROM projects WHERE id=?", (proj_id,)
+            "SELECT snapshot_json, snapshot_rev, updated_at FROM projects WHERE id=?", (proj_id,)
         ).fetchone()
         if not row:
             return self._send_json(404, {"ok": False, "error": "Proyecto no encontrado"})
-        return self._send_json(200, {"ok": True, "rev": row["snapshot_rev"] or row["updated_at"] or 0,
+        try:
+            _sn = json.loads(row["snapshot_json"]) if row["snapshot_json"] else {}
+        except Exception:
+            _sn = {}
+        return self._send_json(200, {"ok": True, "rev": sync_delta.effective_rev(row["snapshot_rev"], row["updated_at"], _sn),
                                      "updated_at": row["updated_at"] or 0})
 
     def _api_snapshot_get(self, proj_id, user):
@@ -2615,7 +2626,7 @@ class SyncHandler(BaseHTTPRequestHandler):
         except Exception:
             return self._send_json(500, {"ok": False, "error": "Snapshot corrupto"})
         return self._send_json(200, {"ok": True, "snapshot": snapshot,
-                                     "rev": row["snapshot_rev"] or row["updated_at"] or 0})
+                                     "rev": sync_delta.effective_rev(row["snapshot_rev"], row["updated_at"], snapshot)})
 
     # ── Evidence images (persistencia multi-navegador) ────────────────────────
 

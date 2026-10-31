@@ -7,6 +7,7 @@ import sys
 import uuid
 from pathlib import Path
 
+import pytest
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -134,3 +135,34 @@ def test_endpoint_acepta_la_jerarquia_en_orden_y_la_audita(live_server):
     r3 = _delta(live_server, rev2, {"groups": {"upsert": [{"id": "g1", "protocolId": "p1", "finalized": False}]},
                                     "tests": {"upsert": [{"id": "t1", "groupId": "g1", "finalized": False}]}})
     assert r3.status_code == 200
+
+
+# ------------------------------------------------------------------ revisión efectiva (columna con precisión perdida)
+
+def test_revision_efectiva_ignora_el_redondeo_de_la_columna():
+    snap = _srv(1793471037.6543)                       # sellos en doble precisión dentro del JSON
+    assert sd.effective_rev(1793471000.0, None, snap) == pytest.approx(1793471037.6543)   # columna REAL: redondeada hacia abajo
+
+
+def test_revision_efectiva_sin_sellos_usa_la_columna_o_updated_at():
+    assert sd.effective_rev(150.0, 100.0, {}) == 150.0
+    assert sd.effective_rev(None, 100.0, {}) == 100.0
+    assert sd.effective_rev(None, None, {}) == 0.0
+
+
+def test_max_stamp_incluye_metadatos_y_lapidas():
+    s = _srv(100.0)
+    sd.apply_delta(s, {"tests": {"remove": ["t2"]}, "meta": {"projectData": {"finalized": False, "x": 1}}}, 100, 100, 250.5)
+    assert sd.max_stamp(s) == 250.5
+
+
+def test_una_columna_redondeada_hacia_abajo_no_oculta_la_escritura_de_otra_sesion():
+    """Con la columna redondeada, `strict` daba verdadero aunque otra sesión hubiera escrito: se perdía el conflicto."""
+    s = _srv(1793471037.6543)
+    sd.apply_delta(s, {"groups": {"upsert": [{"id": "g1", "protocolId": "p1", "finalized": True}]}}, 1793471037.6543, 1793471037.6543, 1793471080.0)
+    rev_real = sd.effective_rev(1793471000.0, None, s)               # la columna quedó en ...000, el sello dice ...080
+    assert rev_real == 1793471080.0
+    conf, _ = sd.apply_delta(s, {"groups": {"upsert": [{"id": "g1", "protocolId": "p1", "finalized": False}]}},
+                             base_rev=1793471037.6543, cur_rev=rev_real, now=1793471100.0)
+    assert conf and conf[0]["motivo"] in ("modificado", "finalizado")
+    assert s["groups"][0]["finalized"] is True

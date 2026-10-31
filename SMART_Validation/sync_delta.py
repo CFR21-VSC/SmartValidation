@@ -224,3 +224,31 @@ def transitions(before, after):
     if bool((after.get("projectData") or {}).get("finalized")) != bool((before.get("projectData") or {}).get("finalized")):
         out.append(("proyecto", "projectData", "finalizada" if (after.get("projectData") or {}).get("finalized") else "reabierta"))
     return out
+
+
+def max_stamp(snap):
+    """Mayor sello (_srev de elementos y de metadatos) que lleva el propio snapshot; 0 si no tiene."""
+    mx = 0.0
+    if not isinstance(snap, dict):
+        return mx
+    for kind in KINDS:
+        for e in (snap.get(kind) or []):
+            if isinstance(e, dict) and isinstance(e.get("_srev"), (int, float)):
+                mx = max(mx, float(e["_srev"]))
+    sb = snap.get("_sync")
+    if isinstance(sb, dict):
+        for v in (sb.get("meta") or {}).values():
+            if isinstance(v, (int, float)):
+                mx = max(mx, float(v))
+        for tomb in (sb.get("removed") or {}).values():
+            for v in (tomb or {}).values():
+                if isinstance(v, (int, float)):
+                    mx = max(mx, float(v))
+    return mx
+
+
+def effective_rev(col_rev, updated_at, snap):
+    """Revisión vigente del proyecto. La columna snapshot_rev puede haber perdido precisión (en PostgreSQL
+    una columna REAL de 4 bytes redondea 1793471037 a 1793471000): se toma el mayor entre ella, updated_at y
+    el sello más nuevo del snapshot, que se guarda en doble precisión dentro del JSON."""
+    return max(float(col_rev or 0), float(updated_at or 0) if not col_rev else 0.0, max_stamp(snap))
