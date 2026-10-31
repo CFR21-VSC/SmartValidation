@@ -16,7 +16,7 @@ async function hasta(fn, ms = 15000, paso = 300) {
   while (Date.now() - t0 < ms) { try { const v = await fn(); if (v) return v; } catch (_) {} await esperar(paso); }
   return null;
 }
-const N = 6;
+const N = 30;
 
 (async () => {
   const port = await libre(); const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'sv_img_'));
@@ -91,12 +91,15 @@ const N = 6;
     ok(hay === N, `B tiene las ${N} imágenes en su IndexedDB local`);
     ok(reqs.some(u => /evidence\?index=1/.test(u)), 'B consultó primero el índice liviano');
     ok(!reqs.some(u => /\/evidence$/.test(u)), 'B no pidió el volcado completo de imágenes en una sola respuesta');
-    ok(reqs.filter(u => /\/evidence\/[^?]+$/.test(u)).length === N, `B bajó cada una de las ${N} imágenes una sola vez`);
+    const lotes = reqs.filter(u => /\/evidence\/batch$/.test(u)).length;
+    const sueltas = reqs.filter(u => /\/evidence\/[^?]+$/.test(u) && !/\/batch$/.test(u)).length;
+    ok(lotes === Math.ceil(N / 12) && sueltas === 0, `B bajó las ${N} imágenes en ${lotes} petición(es) de lote (12 por vez) y ${sueltas} sueltas`);
+    ok(reqs.length <= 10, `el arranque en frío de B hizo solo ${reqs.length} peticiones de evidencia (antes: una por imagen)`);
 
     // 5) segunda sincronización: ya las tiene, no baja nada
     reqs.length = 0;
     await B.evaluate((pid) => _syncImagesFromServer(pid), PID); await esperar(1500);
-    ok(reqs.filter(u => /\/evidence\/[^?]+$/.test(u)).length === 0, 'una segunda sincronización no vuelve a bajar ninguna imagen');
+    ok(reqs.filter(u => /\/evidence\/[^?]+$/.test(u) && !/\/batch$/.test(u)).length === 0, 'una segunda sincronización no vuelve a bajar ninguna imagen');
 
     // 6) mostrar las evidencias NO consulta al servidor por cada una (copia local primero): evita el límite
     //    de 200 solicitudes por minuto, que dejaba sin guardar todo lo posterior (429)
@@ -104,7 +107,7 @@ const N = 6;
     await B.evaluate(() => { activeTestId = tests[0].id; renderWorkArea(); });
     const cargadas = await hasta(() => B.evaluate((n) => tests[0].evidences.filter(e => !!e.image).length === n ? true : null, N), 10000);
     ok(!!cargadas, `al mostrar la prueba se cargan las ${N} imágenes desde la copia local`);
-    ok(reqs.filter(u => /\/evidence\/[^?]+$/.test(u)).length === 0, 'mostrar las evidencias no hizo ninguna petición de imagen al servidor');
+    ok(reqs.filter(u => /\/evidence\/[^?]+$/.test(u) && !/\/batch$/.test(u)).length === 0, 'mostrar las evidencias no hizo ninguna petición de imagen al servidor');
 
     // 7) si la imagen cambia en el servidor, la sincronización detecta que la copia local quedó vieja (huella distinta)
     const cid = Object.keys(idx)[0];

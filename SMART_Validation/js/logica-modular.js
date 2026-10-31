@@ -716,14 +716,25 @@ async function _syncImagesFromServer(projectId) {
                 const localId = toLocalId(compoundId);
                 if (!(await existeLocal(localId)) || !(await alDia(localId, indice[compoundId] && indice[compoundId].sha256))) faltan.push(compoundId);
             }
-            const CONC = 4;
-            for (let i = 0; i < faltan.length; i += CONC) {
-                await Promise.all(faltan.slice(i, i + CONC).map(async (compoundId) => {
-                    const data = await window.VS.Storage.fetchEvidenceByCompoundId(projectId, compoundId).catch(() => null);
-                    if (!data) return;
+            // En lotes de 12 por petición (el servidor limita a 200 solicitudes por minuto por IP: bajar 90 imágenes
+            // de a una agotaba el cupo y los guardados siguientes recibían 429). Si el servidor no tiene lotes, de a una.
+            const LOTE = 12;
+            for (let i = 0; i < faltan.length; i += LOTE) {
+                const grupo = faltan.slice(i, i + LOTE);
+                let resultados = window.VS.Storage.fetchEvidenceBatchByCompoundIds
+                    ? await window.VS.Storage.fetchEvidenceBatchByCompoundIds(projectId, grupo).catch(() => null) : null;
+                if (!resultados) {
+                    resultados = {};
+                    for (const compoundId of grupo) {
+                        resultados[compoundId] = await window.VS.Storage.fetchEvidenceByCompoundId(projectId, compoundId).catch(() => null);
+                    }
+                }
+                for (const compoundId of grupo) {
+                    const data = resultados[compoundId];
+                    if (!data) continue;
                     await saveImageToDB(toLocalId(compoundId), data, { upload: false }).catch(() => {});
                     downloaded++;
-                }));
+                }
             }
         } else {
             // Servidor sin índice (versión anterior): comportamiento de antes

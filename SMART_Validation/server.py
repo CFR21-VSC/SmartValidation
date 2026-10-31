@@ -351,6 +351,7 @@ _RE_PROJ_PHOTOS   = re.compile(r'^/api/projects/([^/]+)/photos$')
 _RE_PROJ_PHOTO_ID = re.compile(r'^/api/projects/([^/]+)/photos/([^/]+)$')
 _RE_EVIDENCE_BULK = re.compile(r'^/api/projects/([^/]+)/evidence$')
 _RE_EVIDENCE_ONE  = re.compile(r'^/api/projects/([^/]+)/evidence/([^/]+)$')
+_RE_EVIDENCE_BATCH_PROJ = re.compile(r'^/api/projects/([^/]+)/evidence/batch$')
 _RE_EXECUTIONS    = re.compile(r'^/api/projects/([^/]+)/executions$')
 _RE_EXECUTION_ONE = re.compile(r'^/api/projects/([^/]+)/executions/([^/]+)$')
 _RE_MAPEO_LIST    = re.compile(r'^/api/mapeo/projects$')
@@ -2848,6 +2849,27 @@ class SyncHandler(BaseHTTPRequestHandler):
                 images[r["compound_id"]] = resolved
         return self._send_json(200, {"ok": True, "images": images})
 
+    def _api_evidence_batch_project(self, proj_id, user):
+        """POST /api/projects/{id}/evidence/batch — varias imágenes del proyecto en UNA petición.
+        Body: {ids: [compound_id, ...]} (máx 25). Responde {results: {id: data URI | null}}.
+        Existe para no superar el límite de solicitudes por minuto al sincronizar decenas de imágenes."""
+        db = _get_db()
+        if not self._assert_project_access(db, user, proj_id):
+            return
+        data = self._read_json_body()
+        ids = data.get("ids") if isinstance(data, dict) else None
+        if not isinstance(ids, list) or not ids or len(ids) > 25:
+            return self._send_json(400, {"ok": False, "error": "ids debe ser una lista de 1 a 25"})
+        results = {}
+        for cid in ids:
+            if not isinstance(cid, str) or not re.match(r'^[a-zA-Z0-9_-]{1,300}$', cid):
+                continue
+            row = db.execute(
+                "SELECT data FROM evidence_images WHERE compound_id=? AND project_id=?", (cid, proj_id)
+            ).fetchone()
+            results[cid] = (self._resolve_evidence_data(row["data"] or "") if row else None) or None
+        return self._send_json(200, {"ok": True, "results": results})
+
     def _api_evidence_image_get(self, proj_id, compound_id, user):
         """GET /api/projects/{id}/evidence/{compound_id} — una imagen."""
         db = _get_db()
@@ -4566,6 +4588,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_EVIDENCE_BULK.match(path)
         if m:
             return self._api_evidence_images_upload(m.group(1), user)
+        m = _RE_EVIDENCE_BATCH_PROJ.match(path)
+        if m:
+            return self._api_evidence_batch_project(m.group(1), user)
         m = _RE_EVIDENCE_ONE.match(path)
         if m:
             return self._api_evidence_image_upload(m.group(1), m.group(2), user)

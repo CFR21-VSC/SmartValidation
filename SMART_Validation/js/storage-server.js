@@ -85,6 +85,7 @@
   // ── Public API ──────────────────────────────────────────────────────────────
 
   const _conflicts = {};  // projectId -> true si el servidor rechazó una subida por copia atrasada
+  const _inflightImg = {};  // ruta de imagen -> promesa en curso (evita pedir la misma imagen dos veces a la vez)
   const _dqueues = {};    // projectId -> cola de sincronizaciones por diferencias
   const _queues = {};     // projectId -> cola de subidas en vivo (una en vuelo + la última pendiente)
   const _lastSnap = {};   // projectId -> último snapshot descargado
@@ -426,6 +427,13 @@
       return r.data.index;
     },
 
+    /** Varias imágenes en UNA petición (máx 25): {compoundId: data URI | null}. null si el servidor no soporta lotes. */
+    async fetchEvidenceBatchByCompoundIds(projectId, compoundIds) {
+      const r = await _apiFetch("POST", `/api/projects/${encodeURIComponent(projectId)}/evidence/batch`, { ids: compoundIds });
+      if (!r || r.status !== 200 || !r.data || !r.data.ok) return null;
+      return r.data.results || {};
+    },
+
     /** Descarga una imagen por su compoundId completo (el que devuelve el índice). */
     async fetchEvidenceByCompoundId(projectId, compoundId) {
       const r = await _apiFetch("GET", `/api/projects/${encodeURIComponent(projectId)}/evidence/${encodeURIComponent(compoundId)}`);
@@ -440,12 +448,19 @@
       if (!projId) return null;
       const compoundId = (projId + "_" + rawImageId).replace(/[^a-zA-Z0-9_-]/g, "_").substring(0, 300);
       const path = `/api/projects/${encodeURIComponent(projId)}/evidence/${encodeURIComponent(compoundId)}`;
-      for (let attempt = 0; attempt < 2; attempt++) {
-        const r = await _apiFetch("GET", path);
-        if (r && r.status === 200 && r.data && r.data.ok) return r.data.data || null;
-        if (attempt < 1) await new Promise(res => setTimeout(res, 1000));
-      }
-      return null;
+      if (_inflightImg[path]) return _inflightImg[path];
+      const p = (async () => {
+        for (let attempt = 0; attempt < 2; attempt++) {
+          const r = await _apiFetch("GET", path);
+          if (r && r.status === 200 && r.data && r.data.ok) return r.data.data || null;
+          if (r && r.status === 404) return null;                       // no existe: reintentar no sirve (y cuenta contra el límite)
+          if (attempt < 1) await new Promise(res => setTimeout(res, 1000));
+        }
+        return null;
+      })();
+      _inflightImg[path] = p;
+      p.then(() => { delete _inflightImg[path]; }, () => { delete _inflightImg[path]; });
+      return p;
     },
 
     /** Descarga TODAS las imágenes de un proyecto del servidor. */

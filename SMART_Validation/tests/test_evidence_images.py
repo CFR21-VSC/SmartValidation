@@ -146,3 +146,32 @@ def test_cambiar_la_imagen_cambia_la_huella(proyecto):
     _subir(proyecto, "t1_evidence_a", _uri(raw2))
     despues = requests.get(url, timeout=10).headers["ETag"]
     assert antes != despues
+
+
+def test_lote_devuelve_varias_imagenes_en_una_peticion(proyecto):
+    ids = []
+    for i in range(3):
+        _, raw = _png_captura(200 + i, 120)
+        _subir(proyecto, f"t9_evidence_{i}", _uri(raw))
+        ids.append(f"{PID}_t9_evidence_{i}")
+    r = requests.post(f"{proyecto}/api/projects/{PID}/evidence/batch", json={"ids": ids + [f"{PID}_no_existe"]}, timeout=10)
+    assert r.status_code == 200
+    res = r.json()["results"]
+    assert all(res[i] and res[i].startswith("data:image/png;base64,") for i in ids)
+    assert res[f"{PID}_no_existe"] is None
+
+
+def test_lote_rechaza_listas_invalidas_o_demasiado_largas(proyecto):
+    url = f"{proyecto}/api/projects/{PID}/evidence/batch"
+    assert requests.post(url, json={"ids": []}, timeout=10).status_code == 400
+    assert requests.post(url, json={"ids": ["x"] * 26}, timeout=10).status_code == 400
+    assert requests.post(url, json={"ids": "no es lista"}, timeout=10).status_code == 400
+    assert requests.post(url, json={}, timeout=10).status_code == 400
+
+
+def test_lote_ignora_ids_con_caracteres_peligrosos(proyecto):
+    r = requests.post(f"{proyecto}/api/projects/{PID}/evidence/batch",
+                      json={"ids": ["../../etc/passwd", "a'; DROP TABLE evidence_images;--", 123, None]}, timeout=10)
+    assert r.status_code == 200 and r.json()["results"] == {}
+    # la tabla sigue ahí
+    assert requests.get(f"{proyecto}/api/projects/{PID}/evidence?index=1", timeout=10).json()["ok"]
