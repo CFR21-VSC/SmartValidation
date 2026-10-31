@@ -247,9 +247,14 @@
             // La subida en vivo usa la revisión vigente al momento de enviar (ver syncSnapshot, que las
             // serializa). baseRev se captura acá solo para el reintento encolado si falla.
             const baseRev = global.VS.Storage.getBaseRev(id);
-            global.VS.Storage.syncSnapshot(id, snapshot, entry.name).then((r) => {
+            const _sync = global.VS.Storage.syncProject
+                ? global.VS.Storage.syncProject(id, snapshot, entry.name)
+                : global.VS.Storage.syncSnapshot(id, snapshot, entry.name);
+            _sync.then((r) => {
                 // 409 = copia atrasada: no se encola (reintentar no sirve; hay que bajar la del servidor).
                 if (r && r.status === 409) return;
+                // Con base de diferencias el próximo guardado reenvía lo pendiente solo: no hace falta encolar.
+                if (!(r && r.data && r.data.ok) && global.VS.Storage.hasDeltaBase && global.VS.Storage.hasDeltaBase(id)) return;
                 if (!(r && r.data && r.data.ok) && global._enqueuePendingSync) {
                     global._enqueuePendingSync('snapshot', `snapshot:${id}`, { projectId: id, snapshot, projectName: entry.name, baseRev });
                 }
@@ -308,6 +313,7 @@
         entry.snapshot = snapshot;
         // Revisión del servidor de la que viene esta copia (se adopta como base recién al aplicarla: switchTo).
         entry.serverRev = global.VS.Storage.takeLastRev(id) || 0;
+        entry.baseSnapshot = JSON.parse(JSON.stringify(snapshot));
         entry.lastOpenedAt = new Date().toISOString();
         const updated = refreshFromSnapshot(entry, snapshot);
         await dbPut(updated);
@@ -333,8 +339,9 @@
         writeSnapshot(target.snapshot || null);
         setActiveId(id);
         // La copia local pasa a ser la del servidor: su revisión es la nueva base para las subidas.
-        if (global.VS && global.VS.Storage && target.serverRev) {
-            global.VS.Storage.adoptRev(id, Math.max(Number(target.serverRev) || 0, global.VS.Storage.getBaseRev(id)));
+        if (global.VS && global.VS.Storage && target.serverRev &&
+            Number(target.serverRev) > global.VS.Storage.getBaseRev(id) + 1e-9) {
+            global.VS.Storage.adoptRev(id, Number(target.serverRev), target.baseSnapshot);
         }
         target.lastOpenedAt = new Date().toISOString();
         await dbPut(target);

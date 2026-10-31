@@ -85,8 +85,93 @@
   // ── Public API ──────────────────────────────────────────────────────────────
 
   const _conflicts = {};  // projectId -> true si el servidor rechazó una subida por copia atrasada
+  const _dqueues = {};    // projectId -> cola de sincronizaciones por diferencias
   const _queues = {};     // projectId -> cola de subidas en vivo (una en vuelo + la última pendiente)
+  const _lastSnap = {};   // projectId -> último snapshot descargado
   const _lastRev = {};    // projectId -> revisión del último snapshot descargado
+
+
+  // ── Sincronización por diferencias (delta) ──────────────────────────────────
+  // El cliente guarda la última versión conocida del servidor ("base") y envía solo lo que cambió
+  // respecto de ella. El servidor fusiona por elemento y devuelve lo que otras sesiones cambiaron.
+
+  const KINDS = ["tests", "groups", "protocols"];
+  const META_KEYS = ["systemInfo", "executor", "projectData", "exportConfig"];
+
+  function _stable(o) {
+    if (Array.isArray(o)) return o.map(_stable);
+    if (o && typeof o === "object") {
+      const r = {};
+      Object.keys(o).sort().forEach((k) => { if (k !== "_srev") r[k] = _stable(o[k]); });
+      return r;
+    }
+    return o;
+  }
+  function _same(a, b) { return JSON.stringify(_stable(a)) === JSON.stringify(_stable(b)); }
+  function _clean(o) { return JSON.parse(JSON.stringify(o, (k, v) => (k === "_srev" ? undefined : v))); }
+  function _validId(i) { return (typeof i === "string" && i !== "") || typeof i === "number"; }
+
+  /** Cambios de `cur` respecto de `base` (ambos snapshots completos). {} si no hay diferencias. */
+  function computeDelta(base, cur) {
+    const out = {};
+    KINDS.forEach((kind) => {
+      const b = new Map(), c = new Map();
+      (base[kind] || []).forEach((e) => { if (e && _validId(e.id)) b.set(e.id, e); });
+      (cur[kind] || []).forEach((e) => { if (e && _validId(e.id)) c.set(e.id, e); });
+      const upsert = [], remove = [];
+      c.forEach((e, id) => { const be = b.get(id); if (!be || !_same(be, e)) upsert.push(_clean(e)); });
+      b.forEach((_e, id) => { if (!c.has(id)) remove.push(id); });
+      if (upsert.length || remove.length) out[kind] = { upsert, remove };
+    });
+    const meta = {};
+    META_KEYS.forEach((k) => { if (k in cur && !_same(base[k], cur[k])) meta[k] = _clean(cur[k]); });
+    if (Object.keys(meta).length) out.meta = meta;
+    return out;
+  }
+
+  /** Snapshot resultante de aplicar lo que cambió en el servidor (serverChanges) sobre `snap`. Función pura. */
+  function mergeServerChanges(snap, sc) {
+    const out = JSON.parse(JSON.stringify(snap));
+    sc = sc || {};
+    KINDS.forEach((kind) => {
+      const lst = out[kind] || (out[kind] = []);
+      (sc[kind] || []).forEach((srv) => {
+        const i = lst.findIndex((e) => e && e.id === srv.id);
+        if (i >= 0) lst[i] = JSON.parse(JSON.stringify(srv)); else lst.push(JSON.parse(JSON.stringify(srv)));
+      });
+      const gone = ((sc.removed || {})[kind] || []).map(String);
+      out[kind] = lst.filter((e) => !(e && gone.includes(String(e.id))));
+    });
+    Object.keys(sc.meta || {}).forEach((k) => { out[k] = JSON.parse(JSON.stringify(sc.meta[k])); });
+    return out;
+  }
+
+  function _hasServerChanges(sc) {
+    if (!sc) return false;
+    return KINDS.some((k) => (sc[k] || []).length || ((sc.removed || {})[k] || []).length) || Object.keys(sc.meta || {}).length > 0;
+  }
+
+  const _bases = {};     // projectId -> { rev, snap }  (última versión conocida del servidor)
+  function _loadBase(id) {
+    if (_bases[id]) return _bases[id];
+    try {
+      const raw = localStorage.getItem("_baseSnap_" + id);
+      if (raw) { _bases[id] = JSON.parse(raw); return _bases[id]; }
+    } catch (_) {}
+    return null;
+  }
+  function _saveBase(id, rev, snap) {
+    const b = { rev: Number(rev) || 0, snap };
+    _bases[id] = b;
+    try {
+      localStorage.setItem("_baseSnap_" + id, JSON.stringify(b));
+      localStorage.setItem(`_serverRev_${id}`, String(b.rev));
+    } catch (_) {}
+  }
+  function _clearBase(id) {
+    delete _bases[id];
+    try { localStorage.removeItem("_baseSnap_" + id); } catch (_) {}
+  }
 
   function _postSnapshot(projectId, snapshot, projectName, baseRev) {
     // Conflicto ya detectado para este proyecto: no seguir intentando hasta que el usuario
@@ -110,9 +195,43 @@
             localStorage.setItem(`_serverSyncFrom_${projectId}`, String(ts));
             if (r.data.rev) localStorage.setItem(`_serverRev_${projectId}`, String(r.data.rev));
           } catch (_) {}
+          if (r.data.rev) _saveBase(projectId, r.data.rev, _clean(snapshot));
         }
         return r;
       }).catch(() => null);
+  }
+
+  /** Un ciclo de sincronización de un proyecto: por diferencias si hay base, completo si no. */
+  async function _syncOnce(projectId, snapshot, projectName, force) {
+    const base = _loadBase(projectId);
+    const rev = Storage.getBaseRev(projectId);
+    if (!base || !base.snap || Math.abs(base.rev - rev) > 1e-6) {
+      return _postSnapshot(projectId, snapshot, projectName, rev);   // sin base: guardado completo estricto
+    }
+    const delta = computeDelta(base.snap, snapshot);
+    if (!force && !Object.keys(delta).length) return { status: 200, data: { ok: true, noop: true } };
+    const r = await _apiFetch("POST", `/api/projects/${encodeURIComponent(projectId)}/snapshot/delta`,
+                              { baseRev: base.rev, changes: delta });
+    if (!r) return null;
+    if (r.status === 409 && r.data && r.data.needFull) {
+      _clearBase(projectId);
+      return _postSnapshot(projectId, snapshot, projectName, rev);
+    }
+    if (r.status === 200 && r.data && r.data.ok) {
+      _available = true;
+      const sc = r.data.serverChanges || {};
+      // El servidor ahora tiene: lo que envié (menos lo rechazado) + lo de otras sesiones. Esa es la nueva base.
+      _saveBase(projectId, r.data.rev, _clean(mergeServerChanges(snapshot, sc)));
+      try {
+        localStorage.setItem(`_myLastUpload_${projectId}`, String(r.data.updated_at || r.data.rev));
+        localStorage.setItem(`_serverSyncFrom_${projectId}`, String(r.data.updated_at || r.data.rev));
+      } catch (_) {}
+      const conflicts = r.data.conflicts || [];
+      if (_hasServerChanges(sc) || conflicts.length) {
+        try { window.dispatchEvent(new CustomEvent("vs:server-changes", { detail: { projectId, serverChanges: sc, conflicts } })); } catch (_) {}
+      }
+    }
+    return r;
   }
 
   const Storage = {
@@ -152,16 +271,59 @@
       })();
     },
 
+    /**
+     * Sincroniza el proyecto con el servidor (por diferencias si hay base). Una sola operación en vuelo por
+     * proyecto; las que llegan mientras tanto se reducen a la última. `force` consulta aunque no haya cambios
+     * locales (para traer lo que cambió en otras sesiones).
+     */
+    syncProject(projectId, snapshot, projectName, opts) {
+      if (!projectId || !snapshot) return Promise.resolve(null);
+      const force = !!(opts && opts.force);
+      const q = _dqueues[projectId] || (_dqueues[projectId] = { busy: false, next: null, waiters: [] });
+      if (q.busy) {
+        q.next = { snapshot, projectName, force: force || (q.next && q.next.force) };
+        return new Promise((res) => q.waiters.push(res));
+      }
+      q.busy = true;
+      return (async () => {
+        let cur = { snapshot, projectName, force }, r = null;
+        try {
+          for (;;) {
+            r = await _syncOnce(projectId, cur.snapshot, cur.projectName, cur.force);
+            if (!q.next || (r && r.status === 409)) break;
+            cur = q.next; q.next = null;
+          }
+        } finally {
+          q.busy = false; q.next = null;
+          const w = q.waiters; q.waiters = [];
+          w.forEach((f) => f(r));
+        }
+        return r;
+      })();
+    },
+
+    hasDeltaBase(projectId) {
+      const b = _loadBase(projectId);
+      return !!(b && b.snap && Math.abs(b.rev - Storage.getBaseRev(projectId)) <= 1e-6);
+    },
+
+    computeDelta, mergeServerChanges,
+
     /** Revisión del servidor sobre la que está basada la copia local (0 = nunca bajó/subió). */
     getBaseRev(projectId) {
       try { return parseFloat(localStorage.getItem(`_serverRev_${projectId}`)) || 0; } catch (_) { return 0; }
     },
 
-    /** Adopta como base la revisión del último getSnapshot (llamar SOLO cuando esa copia ya se aplicó a lo local). */
-    adoptRev(projectId, rev) {
+    /**
+     * Adopta como base la copia del servidor (revisión + snapshot) cuando YA se aplicó a lo local.
+     * Sin argumentos usa la del último getSnapshot; switchTo pasa la que guardó la entrada de IndexedDB.
+     */
+    adoptRev(projectId, rev, snap) {
       const r = (rev !== undefined) ? Number(rev) : _lastRev[projectId];
       if (!r) return;
-      try { localStorage.setItem(`_serverRev_${projectId}`, String(r)); } catch (_) {}
+      const sn = snap || (_lastRev[projectId] === r ? _lastSnap[projectId] : null);
+      if (sn) _saveBase(projectId, r, _clean(sn));
+      else { _clearBase(projectId); try { localStorage.setItem(`_serverRev_${projectId}`, String(r)); } catch (_) {} }
       delete _conflicts[projectId];
     },
 
@@ -235,6 +397,7 @@
       if (!r || r.status !== 200 || !r.data.ok) return null;
       _available = true;
       _lastRev[projectId] = r.data.rev || 0;
+      _lastSnap[projectId] = r.data.snapshot || null;
       return r.data.snapshot || null;
     },
 

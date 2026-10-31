@@ -971,6 +971,16 @@ document.addEventListener('DOMContentLoaded', async function () {
             if (!window.ValidationSuite || !window.ValidationSuite.projects || !window.VS || !window.VS.Storage) return;
             const localId = window.ValidationSuite.projects.getActiveId();
             const DEMO_ID = window.ValidationSuite.projects.DEMO_PROJECT_ID;
+            // Con base de diferencias: sincronización completa en ambos sentidos (sube lo pendiente y
+            // baja lo que otras sesiones cambiaron), sin listar proyectos ni bajar el snapshot entero.
+            if (localId && localId !== DEMO_ID && window.VS.Storage.hasDeltaBase && window.VS.Storage.hasDeltaBase(localId)) {
+                const srvRev0 = await window.VS.Storage.getRev(localId);
+                const hayNuevo = srvRev0 !== null && srvRev0 > window.VS.Storage.getBaseRev(localId) + 0.001;
+                let snapLocal = null;
+                try { snapLocal = JSON.parse(localStorage.getItem('vscTestsData_v3') || 'null'); } catch (_) {}
+                if (snapLocal) await window.VS.Storage.syncProject(localId, snapLocal, undefined, { force: hayNuevo });
+                return;
+            }
             // Consulta liviana: si la revisión del servidor es la que ya tenemos, no hay nada que
             // bajar ni que listar (antes se listaban todos los proyectos cada 15 s).
             if (localId && localId !== DEMO_ID && window.VS.Storage.getRev) {
@@ -1075,6 +1085,63 @@ document.addEventListener('DOMContentLoaded', async function () {
             console.warn('[cross-browser sync]', e);
         }
     }
+    // Cambios de otras sesiones (y elementos que el servidor rechazó por conflicto): se aplican a lo
+    // que se ve en pantalla. Gana siempre la versión del servidor para ese elemento.
+    function _applyServerChangesToLive(detail) {
+        const pid = detail && detail.projectId;
+        const act = window.ValidationSuite && window.ValidationSuite.projects && window.ValidationSuite.projects.getActiveId();
+        if (!pid || pid !== act) return;
+        const sc = detail.serverChanges || {};
+        const conflicts = detail.conflicts || [];
+        let n = 0;
+        const reemplazar = (lista, srv, esTest) => {
+            const i = lista.findIndex(e => e && e.id === srv.id);
+            if (i >= 0) {
+                if (esTest) {
+                    // conservar en memoria las imágenes ya cargadas de las evidencias que siguen siendo las mismas
+                    const imgs = {};
+                    (lista[i].evidences || []).forEach(e => { if (e.uid && e.image) imgs[e.uid] = e.image; });
+                    (srv.evidences || []).forEach(e => { if (e.uid && imgs[e.uid] && !e.image) { e.image = imgs[e.uid]; delete e.hasImage; } });
+                }
+                lista[i] = srv;
+            } else {
+                if (esTest && !Array.isArray(srv.evidences)) srv.evidences = [];
+                lista.push(srv);
+            }
+            n++;
+        };
+        (sc.protocols || []).forEach(p => reemplazar(protocols, p, false));
+        (sc.groups || []).forEach(g => reemplazar(groups, g, false));
+        (sc.tests || []).forEach(t => reemplazar(tests, t, true));
+        const quitar = (lista, ids) => (ids || []).forEach(id => {
+            const i = lista.findIndex(e => e && String(e.id) === String(id));
+            if (i >= 0) { lista.splice(i, 1); n++; }
+        });
+        quitar(tests, (sc.removed || {}).tests); quitar(groups, (sc.removed || {}).groups); quitar(protocols, (sc.removed || {}).protocols);
+        if (activeTestId && !tests.some(t => t.id === activeTestId)) activeTestId = null;
+        const meta = sc.meta || {};
+        if (meta.projectData) { Object.keys(projectData).forEach(k => delete projectData[k]); Object.assign(projectData, meta.projectData); n++; }
+        if (typeof meta.executor === 'string') {
+            executor = meta.executor;
+            const ej = document.getElementById('ejecutor'); if (ej) ej.value = meta.executor;
+            n++;
+        }
+        if (n > 0 || conflicts.length) {
+            try { renderTests(); } catch (_) {}
+            try { if (typeof renderWorkArea === 'function') renderWorkArea(); } catch (_) {}
+            saveToStorage().catch(() => {});
+            _syncImagesFromServer(pid).catch(() => {});
+        }
+        if (conflicts.length) {
+            showNotification(`⚠ ${conflicts.length} elemento(s) fueron modificados en otra sesión: se conservó la versión del servidor`, 'error');
+        } else if (n > 0) {
+            showNotification(`🔄 ${n} cambio(s) de otra sesión sincronizados`);
+        }
+    }
+    window.addEventListener('vs:server-changes', (ev) => {
+        try { _applyServerChangesToLive(ev.detail); } catch (e) { console.warn('[sync] no se pudo aplicar cambios del servidor:', e); }
+    });
+
     // El servidor rechazó una subida porque la copia de este navegador (IndexedDB/localStorage) está
     // atrasada: se avisa y se ofrece bajar la versión del servidor. Nada se pisa en silencio.
     window.addEventListener('vs:snapshot-conflict', (ev) => {

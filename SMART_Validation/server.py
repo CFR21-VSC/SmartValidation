@@ -33,6 +33,8 @@ import zlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs, quote
 
+import sync_delta  # sincronización por diferencias (módulo puro)
+
 try:
     import r2_adapter as _r2
 except ImportError:
@@ -324,6 +326,7 @@ _RE_PROJ_ID          = re.compile(r'^/api/projects/([^/]+)$')
 _RE_PROJ_EXPORT      = re.compile(r'^/api/projects/([^/]+)/export$')
 _RE_PROJ_SNAPSHOT    = re.compile(r'^/api/projects/([^/]+)/snapshot$')
 _RE_PROJ_REV         = re.compile(r'^/api/projects/([^/]+)/rev$')
+_RE_PROJ_SNAPSHOT_DELTA = re.compile(r'^/api/projects/([^/]+)/snapshot/delta$')
 _RE_EVIDENCE         = re.compile(r'^/api/evidence/([a-zA-Z0-9_-]{1,300})$')
 _RE_EVIDENCE_BATCH   = re.compile(r'^/api/evidence-batch$')
 _RE_ANALYTICS        = re.compile(r'^/api/analytics(/.+)?$')
@@ -2423,6 +2426,13 @@ class SyncHandler(BaseHTTPRequestHandler):
                     return self._send_json(409, {
                         "ok": False, "conflict": True, "server_rev": _cur_rev,
                         "error": "El servidor tiene una versión más nueva del proyecto"})
+            # Sellado por elemento (`_srev`): conserva el de lo que no cambió y marca lo nuevo, para que la
+            # sincronización por diferencias sepa qué tocó cada sesión.
+            try:
+                _old_snap = json.loads(_cur["snapshot_json"]) if (_cur and _cur["snapshot_json"]) else {}
+            except Exception:
+                _old_snap = {}
+            snapshot_str = json.dumps(sync_delta.stamp_entities(_old_snap, _snapshot_light, now))
             db.execute("""
                 INSERT INTO projects
                   (id, name, system_name, system_type, gamp_category, cliente,
@@ -2479,6 +2489,75 @@ class SyncHandler(BaseHTTPRequestHandler):
         if is_new_project:
             _bridge_ensure_project(proj_id, name)
         return self._send_json(200, {"ok": True, "docs_synced": len(package_docs), "updated_at": now, "rev": now})
+
+    def _api_snapshot_delta(self, proj_id, user):
+        """POST /api/projects/{id}/snapshot/delta — sube solo lo que cambió, con fusión por elemento.
+
+        Body: {baseRev, changes:{tests|groups|protocols:{upsert:[...],remove:[ids]}, meta:{...}}}.
+        Un elemento solo se rechaza si OTRA sesión lo modificó después de baseRev; el resto se
+        aplica. Responde lo que cambió en el servidor y el cliente aún no tiene (serverChanges)."""
+        if user.get("r") != "admin":
+            return self._send_json(403, {"ok": False, "error": "Solo admin puede sincronizar proyectos"})
+        db = _get_db()
+        if not self._assert_project_access(db, user, proj_id):
+            return
+        data = self._read_json_body()
+        if data is None:
+            return
+        try:
+            base = float(data.get("baseRev"))
+        except (TypeError, ValueError):
+            return self._send_json(400, {"ok": False, "error": "baseRev requerido"})
+        changes = data.get("changes")
+        if not isinstance(changes, dict):
+            return self._send_json(400, {"ok": False, "error": "changes requerido"})
+        now = time.time()
+        try:
+            try:
+                db.execute("ROLLBACK")
+            except Exception:
+                pass
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute(
+                "SELECT snapshot_json, snapshot_rev, updated_at FROM projects WHERE id=?", (proj_id,)
+            ).fetchone()
+            if not row or not row["snapshot_json"] or base <= 0:
+                db.execute("ROLLBACK")
+                return self._send_json(409, {"ok": False, "needFull": True,
+                                             "error": "Hace falta un guardado completo"})
+            snap = json.loads(row["snapshot_json"])
+            cur_rev = row["snapshot_rev"] or row["updated_at"] or 0
+            conflicts, changed = sync_delta.apply_delta(snap, changes, base, cur_rev, now)
+            new_rev = cur_rev
+            if changed:
+                snapshot_str = json.dumps(snap)
+                if len(snapshot_str) > 5 * 1024 * 1024:
+                    db.execute("ROLLBACK")
+                    return self._send_json(413, {"ok": False, "error": "Snapshot demasiado grande (máx 5 MB)"})
+                db.execute(
+                    "UPDATE projects SET snapshot_json=?, snapshot_rev=?, updated_at=? WHERE id=?",
+                    (snapshot_str, now, now, proj_id))
+                new_rev = now
+                _n = {k: len((changes.get(k) or {}).get("upsert") or []) + len((changes.get(k) or {}).get("remove") or [])
+                      for k in sync_delta.KINDS}
+                db.execute("""
+                    INSERT INTO audit_events (project_id, doc_type, username, action, detail, ip, created_at)
+                    VALUES (?, NULL, ?, 'snapshot_delta', ?, ?, ?)
+                """, (proj_id, user.get("u"),
+                      "Sincronizó cambios: " + ", ".join(f"{k} {v}" for k, v in _n.items() if v)
+                      + (f" (conflictos: {len(conflicts)})" if conflicts else ""),
+                      self._get_client_ip(), now))
+            server_changes = sync_delta.changes_since(snap, base, exclude_rev=now if changed else None)
+            db.execute("COMMIT")
+        except Exception as e:
+            try:
+                db.execute("ROLLBACK")
+            except Exception:
+                pass
+            print(f"[DB] Error en snapshot/delta: {e}")
+            return self._send_json(500, {"ok": False, "error": "Error interno al sincronizar."})
+        return self._send_json(200, {"ok": True, "rev": new_rev, "updated_at": new_rev,
+                                     "conflicts": conflicts, "serverChanges": server_changes})
 
     def _api_project_rev(self, proj_id, user):
         """GET /api/projects/{id}/rev — revisión vigente del snapshot (consulta liviana para detectar
@@ -4418,6 +4497,9 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_PROJ_FOLDER_IMPORT.match(path)
         if m:
             return self._api_project_folder_import(m.group(1), user)
+        m = _RE_PROJ_SNAPSHOT_DELTA.match(path)
+        if m:
+            return self._api_snapshot_delta(m.group(1), user)
         m = _RE_PROJ_SNAPSHOT.match(path)
         if m:
             return self._api_snapshot_save(m.group(1), user)
