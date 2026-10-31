@@ -689,6 +689,20 @@ async function _syncImagesFromServer(projectId) {
             req.onsuccess = () => res(!!req.result);
             req.onerror   = () => res(false);
         });
+        // La copia local está al día si su SHA-256 coincide con el del servidor (sin crypto.subtle se asume que sí).
+        const alDia = async (localId, shaServidor) => {
+            if (!shaServidor || !(window.crypto && window.crypto.subtle)) return true;
+            try {
+                const data = await getImageFromDB(localId, { serverFallback: false });
+                if (!data) return false;
+                const i = data.indexOf(',');
+                const bin = atob(data.slice(i + 1));
+                const u8 = new Uint8Array(bin.length);
+                for (let k = 0; k < bin.length; k++) u8[k] = bin.charCodeAt(k);
+                const h = await window.crypto.subtle.digest('SHA-256', u8);
+                return Array.from(new Uint8Array(h)).map(x => x.toString(16).padStart(2, '0')).join('') === shaServidor;
+            } catch (_) { return true; }
+        };
         // Índice liviano (huella y tamaño, sin datos): se baja únicamente lo que falta en este navegador.
         // Antes cada chequeo traía TODAS las imágenes del proyecto en una sola respuesta.
         const indice = window.VS.Storage.fetchEvidenceIndex ? await window.VS.Storage.fetchEvidenceIndex(projectId) : null;
@@ -699,7 +713,8 @@ async function _syncImagesFromServer(projectId) {
             _markServerImageInventory(projectId, Object.keys(indice).map(toLocalId));
             const faltan = [];
             for (const compoundId of Object.keys(indice)) {
-                if (!(await existeLocal(toLocalId(compoundId)))) faltan.push(compoundId);
+                const localId = toLocalId(compoundId);
+                if (!(await existeLocal(localId)) || !(await alDia(localId, indice[compoundId] && indice[compoundId].sha256))) faltan.push(compoundId);
             }
             const CONC = 4;
             for (let i = 0; i < faltan.length; i += CONC) {
@@ -7216,9 +7231,11 @@ function renderEvidenceItem(evidence, index, test) {
                     if (typeof renderWorkArea === 'function') renderWorkArea();
                 }
             }, 12000);
-            // R2 es fuente de verdad — ir directo al servidor, saltear IndexedDB (con
-            // fallback a la clave vieja por step, ver fetchEvidenceFromServer)
-            const _fetchPromise = fetchEvidenceFromServer(test, evidence);
+            // Copia local primero (IndexedDB) y el servidor solo si falta. _syncImagesFromServer mantiene esa
+            // copia al día comparando huellas SHA-256 contra el índice del servidor, así que ya no hace falta
+            // consultar al servidor por CADA evidencia que se muestra: con la carga bajo demanda eso superaba el
+            // límite de 200 solicitudes por minuto (429) y dejaba sin guardar todo lo que venía después.
+            const _fetchPromise = loadEvidenceImage(test, evidence);
             _fetchPromise.then(data => {
                 clearTimeout(_failTimer);
                 evidence._imgLoading = false;

@@ -97,6 +97,26 @@ const N = 6;
     reqs.length = 0;
     await B.evaluate((pid) => _syncImagesFromServer(pid), PID); await esperar(1500);
     ok(reqs.filter(u => /\/evidence\/[^?]+$/.test(u)).length === 0, 'una segunda sincronización no vuelve a bajar ninguna imagen');
+
+    // 6) mostrar las evidencias NO consulta al servidor por cada una (copia local primero): evita el límite
+    //    de 200 solicitudes por minuto, que dejaba sin guardar todo lo posterior (429)
+    reqs.length = 0;
+    await B.evaluate(() => { activeTestId = tests[0].id; renderWorkArea(); });
+    const cargadas = await hasta(() => B.evaluate((n) => tests[0].evidences.filter(e => !!e.image).length === n ? true : null, N), 10000);
+    ok(!!cargadas, `al mostrar la prueba se cargan las ${N} imágenes desde la copia local`);
+    ok(reqs.filter(u => /\/evidence\/[^?]+$/.test(u)).length === 0, 'mostrar las evidencias no hizo ninguna petición de imagen al servidor');
+
+    // 7) si la imagen cambia en el servidor, la sincronización detecta que la copia local quedó vieja (huella distinta)
+    const cid = Object.keys(idx)[0];
+    const nueva = await B.evaluate(async () => {
+      const c = document.createElement('canvas'); c.width = 640; c.height = 360;
+      const g = c.getContext('2d'); g.fillStyle = '#c33'; g.fillRect(0, 0, 640, 360); g.fillStyle = '#fff'; g.fillText('imagen nueva', 50, 50);
+      return c.toDataURL('image/png');
+    });
+    await A.evaluate(async ([cid, nueva]) => { await window.VS.Storage.uploadEvidence(cid.replace(/^proj_[0-9]+_[a-z0-9]+_/, ''), nueva); }, [cid, nueva]);
+    reqs.length = 0;
+    await B.evaluate((pid) => _syncImagesFromServer(pid), PID); await esperar(2000);
+    ok(reqs.filter(u => /\/evidence\/[^?]+$/.test(u)).length === 1, 'la sincronización bajó solo la imagen cuya huella cambió (1 petición)');
   } catch (e) { console.log('ERROR', e.stack || e.message); fallos++; }
   finally { await b.close(); srv.kill(); }
   console.log(fallos ? `\n${fallos} FALLA(S)` : '\nTODO OK');
