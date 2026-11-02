@@ -2941,7 +2941,7 @@ class SyncHandler(BaseHTTPRequestHandler):
         # ?index=1: solo huella y tamaño de cada imagen, sin los datos (el cliente baja únicamente las que le faltan)
         if "index=1" in (urlparse(self.path).query or "").split("&"):
             rows = db.execute(
-                "SELECT compound_id, data, size_bytes, sha256 FROM evidence_images WHERE project_id=?", (proj_id,)
+                "SELECT compound_id, data, size_bytes, sha256, orig_sha256 FROM evidence_images WHERE project_id=?", (proj_id,)
             ).fetchall()
             index = {}
             for r in rows:
@@ -2954,6 +2954,8 @@ class SyncHandler(BaseHTTPRequestHandler):
                     except Exception:
                         pass
                 index[r["compound_id"]] = {"sha256": h, "size": r["size_bytes"] or 0}
+                if r["orig_sha256"] and r["orig_sha256"] != h:
+                    index[r["compound_id"]]["orig_sha256"] = r["orig_sha256"]   # huella de lo que subió el cliente (PNG)
             return self._send_json(200, {"ok": True, "index": index})
         rows = db.execute(
             "SELECT compound_id, data FROM evidence_images WHERE project_id=?", (proj_id,)
@@ -2985,6 +2987,53 @@ class SyncHandler(BaseHTTPRequestHandler):
             ).fetchone()
             results[cid] = (self._resolve_evidence_data(row["data"] or "") if row else None) or None
         return self._send_json(200, {"ok": True, "results": results})
+
+    def _admin_evidence_optimize(self, user):
+        """POST /admin/evidence/optimize {projectId?, after?, limit?} — migra imágenes PNG ya guardadas a WebP SIN
+        PÉRDIDA, por lotes. Cada imagen se reemplaza solo si los píxeles son idénticos (image_opt lo verifica) y
+        pesa menos; si no, queda como está. Se pagina con `after` (último compound_id procesado) hasta done=true."""
+        data = self._read_json_body()
+        if data is None:
+            return
+        try:
+            limit = max(1, min(int((data or {}).get("limit", 15)), 40))
+        except (TypeError, ValueError):
+            limit = 15
+        proj = (data or {}).get("projectId")
+        after = (data or {}).get("after") or ""
+        if proj is not None and (not isinstance(proj, str) or not _is_valid_proj_id(proj)):
+            return self._send_json(400, {"ok": False, "error": "projectId inválido"})
+        if not isinstance(after, str):
+            return self._send_json(400, {"ok": False, "error": "after inválido"})
+        db = _get_db()
+        sql = "SELECT compound_id, project_id, data FROM evidence_images WHERE data LIKE 'data:image/png%' AND compound_id > ?"
+        args = [after]
+        if proj:
+            sql += " AND project_id=?"
+            args.append(proj)
+        sql += " ORDER BY compound_id LIMIT ?"
+        args.append(limit)
+        rows = db.execute(sql, tuple(args)).fetchall()
+        convertidas = conservadas = antes = despues = 0
+        for r in rows:
+            nuevo, info = image_opt.optimizar_data_uri(r["data"])
+            antes += len(r["data"])
+            if info.get("optimizado") and nuevo != r["data"]:
+                db.execute("UPDATE evidence_images SET data=?, size_bytes=?, sha256=? WHERE compound_id=? AND project_id=?",
+                           (nuevo, len(nuevo), info["sha256"], r["compound_id"], r["project_id"]))
+                if _r2 is not None and _r2.is_configured():
+                    _r2.put_image(r["compound_id"], nuevo)
+                convertidas += 1
+                despues += len(nuevo)
+            else:
+                conservadas += 1
+                despues += len(r["data"])
+        db.commit()
+        print(f"[Evidence] optimize por {user.get('u')}: {convertidas} convertidas, {conservadas} sin cambio, {antes}->{despues} bytes")
+        return self._send_json(200, {"ok": True, "procesadas": len(rows), "convertidas": convertidas,
+                                     "conservadas": conservadas, "bytes_antes": antes, "bytes_despues": despues,
+                                     "next": rows[-1]["compound_id"] if rows else after,
+                                     "done": len(rows) < limit})
 
     def _api_evidence_image_get(self, proj_id, compound_id, user):
         """GET /api/projects/{id}/evidence/{compound_id} — una imagen."""
@@ -4746,6 +4795,8 @@ class SyncHandler(BaseHTTPRequestHandler):
                 return self._send_json(403, {"ok": False, "error": "Requiere rol admin"})
             if path == "/admin/users":
                 return self._admin_user_create(user)
+            if path == "/admin/evidence/optimize":
+                return self._admin_evidence_optimize(user)
             m = _RE_ADMIN_USR_PIN.match(path)
             if m:
                 return self._admin_user_pin_set(m.group(1), user)

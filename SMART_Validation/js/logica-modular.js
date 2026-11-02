@@ -690,7 +690,7 @@ async function _syncImagesFromServer(projectId) {
             req.onerror   = () => res(false);
         });
         // La copia local está al día si su SHA-256 coincide con el del servidor (sin crypto.subtle se asume que sí).
-        const alDia = async (localId, shaServidor) => {
+        const alDia = async (localId, shaServidor, shaOriginal) => {
             if (!shaServidor || !(window.crypto && window.crypto.subtle)) return true;
             try {
                 const data = await getImageFromDB(localId, { serverFallback: false });
@@ -700,7 +700,9 @@ async function _syncImagesFromServer(projectId) {
                 const u8 = new Uint8Array(bin.length);
                 for (let k = 0; k < bin.length; k++) u8[k] = bin.charCodeAt(k);
                 const h = await window.crypto.subtle.digest('SHA-256', u8);
-                return Array.from(new Uint8Array(h)).map(x => x.toString(16).padStart(2, '0')).join('') === shaServidor;
+                const hex = Array.from(new Uint8Array(h)).map(x => x.toString(16).padStart(2, '0')).join('');
+                // coincide con lo guardado (WebP sin pérdida) o con lo que este navegador subió (PNG original)
+                return hex === shaServidor || (!!shaOriginal && hex === shaOriginal);
             } catch (_) { return true; }
         };
         // Índice liviano (huella y tamaño, sin datos): se baja únicamente lo que falta en este navegador.
@@ -714,7 +716,7 @@ async function _syncImagesFromServer(projectId) {
             const faltan = [];
             for (const compoundId of Object.keys(indice)) {
                 const localId = toLocalId(compoundId);
-                if (!(await existeLocal(localId)) || !(await alDia(localId, indice[compoundId] && indice[compoundId].sha256))) faltan.push(compoundId);
+                if (!(await existeLocal(localId)) || !(await alDia(localId, indice[compoundId] && indice[compoundId].sha256, indice[compoundId] && indice[compoundId].orig_sha256))) faltan.push(compoundId);
             }
             // En lotes de 12 por petición (el servidor limita a 200 solicitudes por minuto por IP: bajar 90 imágenes
             // de a una agotaba el cupo y los guardados siguientes recibían 429). Si el servidor no tiene lotes, de a una.
@@ -4008,6 +4010,7 @@ async function executeZipExport() {
                 }
 
                 if (!imageData) continue;
+                imageData = await imagenAPng(imageData);   // el ZIP entrega PNG aunque el servidor guarde WebP sin pérdida
 
                 const stepStr = String(evidence.step).padStart(3, '0');
                 const desc = (evidence.description || 'sin_descripcion').replace(/[^a-zA-Z0-9_\- ]/g, '_').substring(0, 30);
@@ -8694,6 +8697,54 @@ function evidenceImageKey(test, evidence) {
     if (!evidence.uid) evidence.uid = _generateEvidenceUid();
     return `${test.id}_evidence_${evidence.uid}`;
 }
+
+/**
+ * Las evidencias se guardan en el servidor como WebP SIN PÉRDIDA (mismos píxeles que el PNG original,
+ * verificado al subirlas). pdfMake solo lee PNG/JPEG y los .png del ZIP deben ser PNG: acá se reconvierte
+ * a PNG en el navegador (exacto para capturas opacas).
+ */
+function imagenAPng(dataUri) {
+    if (typeof dataUri !== 'string' || !dataUri.startsWith('data:image/webp')) return Promise.resolve(dataUri);
+    return new Promise((resolve) => {
+        const im = new Image();
+        im.onload = () => {
+            try {
+                const c = document.createElement('canvas');
+                c.width = im.naturalWidth; c.height = im.naturalHeight;
+                c.getContext('2d').drawImage(im, 0, 0);
+                resolve(c.toDataURL('image/png'));
+            } catch (_) { resolve(dataUri); }
+        };
+        im.onerror = () => resolve(dataUri);
+        im.src = dataUri;
+    });
+}
+window.imagenAPng = imagenAPng;
+
+// Todo PDF creado con pdfMake convierte antes las imágenes WebP a PNG (un solo punto, sin tocar cada generador).
+(function () {
+    if (!window.pdfMake || typeof window.pdfMake.createPdf !== 'function' || window.pdfMake.__webpPng) return;
+    const original = window.pdfMake.createPdf.bind(window.pdfMake);
+    const convertir = async (nodo) => {
+        if (Array.isArray(nodo)) { await Promise.all(nodo.map(convertir)); return; }
+        if (!nodo || typeof nodo !== 'object') return;
+        const tareas = [];
+        for (const k of Object.keys(nodo)) {
+            const v = nodo[k];
+            if (typeof v === 'string' && v.startsWith('data:image/webp')) {
+                tareas.push(imagenAPng(v).then(png => { nodo[k] = png; }));
+            } else if (v && typeof v === 'object') tareas.push(convertir(v));
+        }
+        await Promise.all(tareas);
+    };
+    window.pdfMake.createPdf = function (def, ...resto) {
+        const listo = convertir(def).catch(() => {}).then(() => original(def, ...resto));
+        return new Proxy({}, {
+            get: (_t, metodo) => (...args) => listo.then((doc) => doc[metodo](...args)),
+        });
+    };
+    window.pdfMake.__webpPng = true;
+})();
 
 /**
  * Lee la foto de una evidencia con fallback + auto-reparación: prueba la

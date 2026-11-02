@@ -42,6 +42,7 @@ def live_server():
     }
     # Sin AUTH_SECRET_KEY: queda en modo dev (ALLOW_NO_AUTH manda). No heredar
     # una real del entorno del usuario por accidente.
+    os.environ["SV_TEST_DB_PATH"] = env["DB_PATH"]   # para tests que necesitan sembrar filas directamente
     env.pop("AUTH_SECRET_KEY", None)
     env.pop("DATABASE_URL", None)
 

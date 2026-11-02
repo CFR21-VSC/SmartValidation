@@ -50,13 +50,40 @@ def test_png_se_optimiza_sin_perder_un_pixel():
 
 
 def test_si_no_mejora_se_guarda_tal_cual():
-    im, raw = _png_captura(nivel=9)
+    # ruido aleatorio: ni PNG recomprimido ni WebP sin pérdida ahorran lo suficiente -> se conserva el original
+    import os
+    im = Image.frombytes("RGB", (120, 90), os.urandom(120 * 90 * 3))
     buf = io.BytesIO()
     im.save(buf, "PNG", optimize=True, compress_level=9)
     ya_optimo = buf.getvalue()
     uri, info = image_opt.optimizar_data_uri(_uri(ya_optimo))
     assert not info["optimizado"] and uri == _uri(ya_optimo)
     assert info["sha256"] == info["orig_sha256"]
+
+
+def test_captura_se_guarda_como_webp_sin_perdida_con_pixeles_identicos():
+    im, raw = _png_captura(nivel=9)
+    uri, info = image_opt.optimizar_data_uri(_uri(raw))
+    assert uri.startswith("data:image/webp;base64,") and info["optimizado"] and info.get("formato") == "webp"
+    assert info["bytes"] < len(raw) * 0.9
+    guardada = Image.open(io.BytesIO(base64.b64decode(uri.split(",", 1)[1])))
+    assert guardada.convert("RGBA").tobytes() == im.convert("RGBA").tobytes()
+    assert info["orig_sha256"] == hashlib.sha256(raw).hexdigest() and info["sha256"] != info["orig_sha256"]
+
+
+def test_a_png_bytes_devuelve_los_mismos_pixeles_que_el_original():
+    im, raw = _png_captura(nivel=9)
+    uri, _ = image_opt.optimizar_data_uri(_uri(raw))
+    png = image_opt.a_png_bytes(uri)
+    assert png and png[1:4] == b"PNG"
+    assert Image.open(io.BytesIO(png)).convert("RGBA").tobytes() == im.convert("RGBA").tobytes()
+
+
+def test_imagen_enorme_para_webp_se_conserva_como_png():
+    big = Image.new("RGB", (16400, 8), (255, 255, 255))
+    buf = io.BytesIO(); big.save(buf, "PNG")
+    uri, info = image_opt.optimizar_data_uri(_uri(buf.getvalue()))
+    assert not uri.startswith("data:image/webp")
 
 
 def test_jpeg_y_otros_formatos_no_se_tocan():
@@ -157,7 +184,7 @@ def test_lote_devuelve_varias_imagenes_en_una_peticion(proyecto):
     r = requests.post(f"{proyecto}/api/projects/{PID}/evidence/batch", json={"ids": ids + [f"{PID}_no_existe"]}, timeout=10)
     assert r.status_code == 200
     res = r.json()["results"]
-    assert all(res[i] and res[i].startswith("data:image/png;base64,") for i in ids)
+    assert all(res[i] and res[i].startswith(("data:image/png;base64,", "data:image/webp;base64,")) for i in ids)
     assert res[f"{PID}_no_existe"] is None
 
 
@@ -175,3 +202,23 @@ def test_lote_ignora_ids_con_caracteres_peligrosos(proyecto):
     assert r.status_code == 200 and r.json()["results"] == {}
     # la tabla sigue ahí
     assert requests.get(f"{proyecto}/api/projects/{PID}/evidence?index=1", timeout=10).json()["ok"]
+
+
+def test_migracion_convierte_png_guardados_a_webp_con_pixeles_identicos(proyecto):
+    import os, sqlite3
+    im, raw = _png_captura(nivel=9)
+    cid = f"{PID}_t_mig_evidence_a"
+    con = sqlite3.connect(os.environ["SV_TEST_DB_PATH"])
+    con.execute("INSERT OR REPLACE INTO evidence_images (compound_id, project_id, data, size_bytes, updated_at, sha256, orig_sha256) "
+                "VALUES (?,?,?,?,?,?,?)", (cid, PID, _uri(raw), len(_uri(raw)), 1.0, hashlib.sha256(raw).hexdigest(), hashlib.sha256(raw).hexdigest()))
+    con.commit(); con.close()
+    r = requests.post(f"{proyecto}/admin/evidence/optimize", json={"projectId": PID, "limit": 40}, timeout=60)
+    assert r.status_code == 200 and r.json()["ok"] and r.json()["convertidas"] >= 1 and r.json()["done"]
+    data = requests.get(f"{proyecto}/api/projects/{PID}/evidence/{cid}", timeout=10).json()["data"]
+    assert data.startswith("data:image/webp;base64,")
+    assert Image.open(io.BytesIO(base64.b64decode(data.split(",", 1)[1]))).convert("RGBA").tobytes() == im.convert("RGBA").tobytes()
+    idx = requests.get(f"{proyecto}/api/projects/{PID}/evidence?index=1", timeout=10).json()["index"][cid]
+    assert idx["orig_sha256"] == hashlib.sha256(raw).hexdigest()    # el navegador que subió el PNG lo reconoce como al día
+    # idempotente: una segunda pasada no vuelve a tocar nada
+    r2 = requests.post(f"{proyecto}/admin/evidence/optimize", json={"projectId": PID, "limit": 40}, timeout=60).json()
+    assert r2["convertidas"] == 0
