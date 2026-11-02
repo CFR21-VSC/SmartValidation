@@ -631,6 +631,22 @@
                 (snapshot.packageDocs || []).length > 0 ||
                 (snapshot.protocols || []).length > 0
             );
+            // Restos de datos en este navegador sin proyecto activo: si el servidor ya tiene proyectos, NO se
+            // crea un "Proyecto inicial" nuevo (se subía al servidor y ocultaba al real). Se resguarda la copia
+            // y se deja que el usuario elija el proyecto del servidor.
+            let _servidorConProyectos = false;
+            if (hasData && global.VS && global.VS.Storage && typeof global.VS.Storage.listProjectsStrict === 'function') {
+                try {
+                    const sr = await global.VS.Storage.listProjectsStrict();
+                    _servidorConProyectos = !!(sr.ok && (sr.projects || []).some(p => p.id !== DEMO_PROJECT_ID));
+                } catch (_) {}
+            }
+            if (hasData && _servidorConProyectos) {
+                try { localStorage.setItem('_copiaHuerfana_' + Date.now(), JSON.stringify(snapshot)); } catch (_) {}
+                writeSnapshot(null);
+                console.info('[projects] Datos locales sin proyecto activo resguardados; el servidor tiene proyectos, se elige manualmente');
+                return null;
+            }
             if (hasData) {
                 const sistemaName = (snapshot.systemInfo && snapshot.systemInfo.nombreSistema) || '';
                 const baseName = sistemaName ? `Proyecto inicial — ${sistemaName}` : 'Proyecto inicial';
