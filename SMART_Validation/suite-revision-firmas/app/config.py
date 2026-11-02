@@ -34,6 +34,13 @@ APP_BASE_URL: str = os.environ.get("RF_APP_BASE_URL", "http://localhost:8090")
 
 INVITE_TTL_H: int = int(os.environ.get("RF_INVITE_TTL_H", "72"))
 
+# Topes de gasto/abuso (2026-10-12). El de emails cuenta el total del día en la base y corta
+# el envío al llegar al máximo, venga de donde venga. El de comentarios existe porque cada
+# comentario raíz le manda un email a todos los DRP activos, y lo puede escribir un externo.
+EMAIL_DAILY_LIMIT: int = int(os.environ.get("RF_EMAIL_DAILY_LIMIT", "300"))
+COMMENT_RATE_MAX: int = int(os.environ.get("RF_COMMENT_RATE_MAX", "30"))
+COMMENT_RATE_WINDOW_S: int = int(os.environ.get("RF_COMMENT_RATE_WINDOW_S", "600"))
+
 # 600k es el estándar de seguridad para producción. Los tests lo bajan drásticamente
 # (ver tests/conftest.py) — no se está probando la fuerza del hashing ahí, y con 600k
 # cada verificación de PIN/password tarda ~300ms, que se multiplica por decenas de

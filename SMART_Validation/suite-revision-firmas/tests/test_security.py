@@ -133,3 +133,40 @@ def test_honeypot_triggers_even_with_correct_password(client, superadmin_creds):
         json={**superadmin_creds, "website": "spam"},
     )
     assert r.status_code == 401
+
+
+# ── Topes de gasto/abuso (2026-10-12) ────────────────────────────────────────
+
+def test_email_daily_cap_stops_sending(monkeypatch):
+    """Pasado el tope diario no sale ni un email más (no se llega a abrir el thread de envío)."""
+    from app import config, email_resend
+
+    started = []
+
+    class _FakeThread:
+        def __init__(self, target=None, daemon=None):
+            pass
+
+        def start(self):
+            started.append(1)
+
+    monkeypatch.setattr(config, "RESEND_API_KEY", "re_clave_falsa_de_test")
+    monkeypatch.setattr(config, "EMAIL_DAILY_LIMIT", 3)
+    monkeypatch.setattr(email_resend.threading, "Thread", _FakeThread)
+
+    for _ in range(10):
+        email_resend.send_email("alguien@example.com", "asunto", "<p>x</p>")
+    assert len(started) == 3
+
+
+def test_comment_rate_limit_per_user(drp_client, monkeypatch):
+    """Cada comentario raíz le manda un email a todos los DRP: se limita por usuario."""
+    from app import config
+
+    monkeypatch.setattr(config, "COMMENT_RATE_MAX", 3)
+    drp_client.put("/projects/proj-1/documents/HLRA", json={"json_data": {"type": "HLRA", "secciones": []}})
+    codes = [
+        drp_client.post("/projects/proj-1/documents/HLRA/sections/s1/comments", json={"content": f"c{i}"}).status_code
+        for i in range(4)
+    ]
+    assert codes == [200, 200, 200, 429], codes

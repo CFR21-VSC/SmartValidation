@@ -354,3 +354,10 @@ CREATE TABLE IF NOT EXISTS rf_system_audit_log (
 );
 
 CREATE INDEX IF NOT EXISTS idx_rf_system_log_project ON rf_system_audit_log(project_id);
+
+CREATE TABLE IF NOT EXISTS rf_usage_counters (
+    period        TEXT NOT NULL,
+    counter_key   TEXT NOT NULL,
+    n             INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (period, counter_key)
+);

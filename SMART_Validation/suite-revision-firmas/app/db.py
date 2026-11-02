@@ -151,7 +151,9 @@ if USE_PG:
             return c
 
         def executescript(self, script: str) -> None:
-            adapted = _adapt_ddl(script)
+            # Los comentarios `--` se quitan antes de partir por ";": un ";" dentro de un comentario
+            # generaba "sentencias" falsas (y las que eran solo comentario, consultas vacías).
+            adapted = re.sub(r"--[^\n]*", "", _adapt_ddl(script))
             statements = [s.strip() for s in adapted.split(";") if s.strip()]
             raw_cur = self._raw.cursor()
             for stmt in statements:
@@ -745,6 +747,7 @@ def reset_db_for_tests() -> None:
     """Solo para tests: vacía todas las tablas rf_* sin borrar el esquema."""
     db = get_db()
     for table in (
+        "rf_usage_counters",
         "rf_system_audit_log",
         "rf_projects",
         "rf_people_book_events",

@@ -612,6 +612,15 @@ def add_comment(
             )
 
     now = time.time()
+    recent = db.execute(
+        "SELECT COUNT(*) AS n FROM rf_section_comments WHERE user_id=? AND created_at>?",
+        (user["uid"], now - config.COMMENT_RATE_WINDOW_S),
+    ).fetchone()["n"]
+    if recent >= config.COMMENT_RATE_MAX:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            "Demasiados comentarios en poco tiempo -- esperá unos minutos antes de seguir.",
+        )
     cur = db.execute(
         "INSERT INTO rf_section_comments "
         "(document_id, section_key, content, resolved, user_id, username, created_at, parent_id) "

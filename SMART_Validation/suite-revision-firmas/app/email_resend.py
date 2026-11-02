@@ -8,15 +8,46 @@ hay API key configurada (permite desarrollar sin cuenta de Resend).
 import json
 import sys
 import threading
+import time
 import urllib.error
 import urllib.request
 from html import escape as _esc
 
 from . import config
+from .db import get_db
+
+_budget_lock = threading.Lock()
+
+
+def _take_daily_email_budget() -> bool:
+    """Descuenta un email del tope diario (config.EMAIL_DAILY_LIMIT). False si ya se agotó.
+    Ante un error de base NO deja pasar: si no se puede contar, no se envía."""
+    day = time.strftime("%Y-%m-%d", time.gmtime())
+    with _budget_lock:
+        try:
+            db = get_db()
+            row = db.execute(
+                "SELECT n FROM rf_usage_counters WHERE period=? AND counter_key='email'", (day,)
+            ).fetchone()
+            if (row["n"] if row else 0) >= config.EMAIL_DAILY_LIMIT:
+                return False
+            db.execute(
+                "INSERT INTO rf_usage_counters (period, counter_key, n) VALUES (?, 'email', 1) "
+                "ON CONFLICT(period, counter_key) DO UPDATE SET n = rf_usage_counters.n + 1",
+                (day,),
+            )
+            db.commit()
+            return True
+        except Exception as exc:
+            sys.stderr.write(f"[email] no se pudo contar el envío, se bloquea: {exc}\n")
+            return False
 
 
 def send_email(to: str, subject: str, html: str) -> None:
     if not config.RESEND_API_KEY or not to or "@" not in to:
+        return
+    if not _take_daily_email_budget():
+        sys.stderr.write(f"[email] tope diario de {config.EMAIL_DAILY_LIMIT} emails alcanzado -- no se envía a {to}\n")
         return
 
     def _worker():
