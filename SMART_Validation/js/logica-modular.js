@@ -8078,16 +8078,23 @@ function compressImage(img, callback, sourceType = 'unknown') {
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, 0, 0, width, height);
 
-    // Comprimir a JPEG con calidad dinámica
-    canvas.toBlob((blob) => {
+    // Capturas de pantalla: PNG SIN PÉRDIDA (con texto pesa menos que un JPEG de calidad 0,95 y no deja artefactos;
+    // el servidor lo guarda como WebP sin pérdida, ~4 veces más chico). Fotos, o un PNG demasiado grande: JPEG.
+    const PNG_MAX_BYTES = 1.6 * 1024 * 1024;
+    const entregar = (blob) => {
         const reader = new FileReader();
-        reader.onload = function (e) {
-            const compressionRatio = ((1 - (blob.size / (img.width * img.height * 4))) * 100).toFixed(1);
-    // //             console.log(`${label} | Original: ${originalSize} → Procesada: ${width}x${height} | Calidad: ${quality} | Tamaño: ${formatBytes(blob.size)} | Compresión: ${compressionRatio}%`);
-            callback(e.target.result, blob.size);
-        };
+        reader.onload = function (e) { callback(e.target.result, blob.size); };
         reader.readAsDataURL(blob);
-    }, 'image/jpeg', quality);
+    };
+    const comoJpeg = () => canvas.toBlob((blob) => entregar(blob), 'image/jpeg', quality);
+    if (isScreenshot) {
+        canvas.toBlob((blob) => {
+            if (blob && blob.type === 'image/png' && blob.size <= PNG_MAX_BYTES) entregar(blob);
+            else comoJpeg();
+        }, 'image/png');
+    } else {
+        comoJpeg();
+    }
 }
 
 /**
