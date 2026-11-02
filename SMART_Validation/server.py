@@ -209,6 +209,13 @@ def _db_init():
         );
         CREATE INDEX IF NOT EXISTS idx_sync_sess_exp ON sync_sessions(expires_at);
 
+        CREATE TABLE IF NOT EXISTS usage_counters (
+            period       TEXT NOT NULL,
+            counter_key  TEXT NOT NULL,
+            n            INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (period, counter_key)
+        );
+
         CREATE TABLE IF NOT EXISTS test_executions (
             id           TEXT PRIMARY KEY,
             project_id   TEXT NOT NULL,
@@ -476,6 +483,61 @@ _SCANNER_UA_KEYWORDS = (
 _WINDOWS_RESERVED_RE = re.compile(
     r'^(CON|PRN|AUX|NUL|COM[0-9]|LPT[0-9])(\.|$)', re.IGNORECASE
 )
+
+
+# ── Topes de gasto (2026-10-12) ───────────────────────────────────────────────
+# Los rate limits de arriba son por minuto y por IP: frenan una ráfaga, pero no un consumo
+# sostenido (10 generaciones/min son 14.400 por día). Estos topes cuentan el total del día
+# y del mes en la base (sobreviven reinicios) y cortan el servicio pago al llegar al máximo,
+# venga de donde venga: sesión robada, script en bucle o bug del frontend. Son la segunda
+# barrera -- la primera es el límite de gasto configurado en el panel de cada proveedor.
+def _env_int(name: str, default: int) -> int:
+    try:
+        return max(0, int(os.environ.get(name, default)))
+    except (TypeError, ValueError):
+        return default
+
+
+_AI_ENABLED               = os.environ.get("AI_ENABLED", "true").strip().lower() != "false"
+_AI_DAILY_LIMIT           = _env_int("AI_DAILY_LIMIT", 60)            # generaciones/día, todo el sistema
+_AI_DAILY_LIMIT_PER_USER  = _env_int("AI_DAILY_LIMIT_PER_USER", 30)   # generaciones/día por usuario
+_AI_MONTHLY_LIMIT         = _env_int("AI_MONTHLY_LIMIT", 400)         # generaciones/mes, todo el sistema
+_EMAIL_DAILY_LIMIT        = _env_int("EMAIL_DAILY_LIMIT", 200)        # emails/día, todo el sistema
+_NOTIFY_DAILY_LIMIT_PER_USER = _env_int("NOTIFY_DAILY_LIMIT_PER_USER", 20)  # avisos de desvíos/día por usuario
+
+_BUDGET_LOCK = threading.Lock()
+
+
+def _budget_take(budgets: list) -> "str | None":
+    """Consume una unidad de cada presupuesto [(counter_key, period, limit), ...] de forma
+    atómica: o entran todos o no se descuenta ninguno. Devuelve None si pasó, o el
+    counter_key del presupuesto agotado. Ante un error de base NO deja pasar (devuelve
+    "error"): si no se puede contar, no se gasta."""
+    with _BUDGET_LOCK:
+        try:
+            db = _get_db()
+            for key, period, limit in budgets:
+                row = db.execute(
+                    "SELECT n FROM usage_counters WHERE period=? AND counter_key=?", (period, key)
+                ).fetchone()
+                if (row["n"] if row else 0) >= limit:
+                    return key
+            for key, period, _limit in budgets:
+                db.execute(
+                    "INSERT INTO usage_counters (period, counter_key, n) VALUES (?,?,1) "
+                    "ON CONFLICT(period, counter_key) DO UPDATE SET n = usage_counters.n + 1",
+                    (period, key),
+                )
+            return None
+        except Exception as exc:
+            sys.stderr.write(f"[budget] no se pudo contar el consumo, se bloquea: {exc}\n")
+            return "error"
+
+
+def _budget_periods() -> "tuple[str, str]":
+    """(día, mes) en UTC, como claves de período."""
+    t = time.gmtime()
+    return time.strftime("%Y-%m-%d", t), time.strftime("%Y-%m", t)
 
 
 def _rate_limit(store: dict, ip: str, max_per_min: int) -> bool:
@@ -876,6 +938,10 @@ def _email_html(title: str, body: str, cta_text: str = "", cta_url: str = "") ->
 def _send_email(to: str, subject: str, html: str) -> None:
     """Envía email via Resend en un thread daemon. No-op si no hay API key configurada."""
     if not _RESEND_API_KEY or not to or "@" not in to:
+        return
+    day, _month = _budget_periods()
+    if _budget_take([("email", day, _EMAIL_DAILY_LIMIT)]):
+        sys.stderr.write(f"[email] tope diario de {_EMAIL_DAILY_LIMIT} emails alcanzado -- no se envía a {to}\n")
         return
 
     def _worker():
@@ -3130,6 +3196,12 @@ class SyncHandler(BaseHTTPRequestHandler):
         if not desvios:
             return self._send_json(400, {"ok": False, "error": "Sin desvíos seleccionados"})
 
+        # Los destinatarios son libres (hasta 10 por pedido): sin este tope, cualquier usuario
+        # logueado podía usar el endpoint para mandar correo masivo desde el dominio.
+        day, _month = _budget_periods()
+        if _budget_take([(f"notify:user:{user.get('u', '?')}", day, _NOTIFY_DAILY_LIMIT_PER_USER)]):
+            return self._send_json(429, {"ok": False, "error": "Alcanzaste el máximo de avisos de desvíos por hoy."})
+
         now_str = _dt.datetime.now().strftime("%Y-%m-%d %H:%M")
 
         rows_html = ""
@@ -4653,6 +4725,8 @@ class SyncHandler(BaseHTTPRequestHandler):
             ip = self._get_client_ip()
             if not _rate_limit(_AI_ATTEMPTS, ip, _MAX_AI_PER_MIN):
                 return self._send_json(429, {"ok": False, "error": "Demasiadas solicitudes. Esperá un momento antes de generar otro documento."})
+            if not _AI_ENABLED:
+                return self._send_json(503, {"ok": False, "error": "La generación está deshabilitada en este servidor."})
 
             data = self._read_json_body()
             if data is None:
@@ -4675,6 +4749,31 @@ class SyncHandler(BaseHTTPRequestHandler):
             api_key = _get_api_key()
             if not api_key:
                 return self._send_json(503, {"ok": False, "error": "Servicio de IA no disponible."})
+
+            # Tope de gasto: se descuenta ANTES de llamar al proveedor y aunque la llamada
+            # después falle -- una respuesta cortada a mitad de camino también se factura.
+            day, month = _budget_periods()
+            exhausted = _budget_take([
+                (f"ai:user:{user.get('u', '?')}", day, _AI_DAILY_LIMIT_PER_USER),
+                ("ai", day, _AI_DAILY_LIMIT),
+                ("ai", month, _AI_MONTHLY_LIMIT),
+            ])
+            if exhausted:
+                # Un solo aviso por día (su propio contador), no uno por pedido rechazado.
+                if not _budget_take([("ai:alert", day, 1)]):
+                    _send_security_alert(
+                        "Tope de generaciones alcanzado",
+                        f"<p>Se alcanzó un tope de generación de documentos "
+                        f"(usuario <strong>{_html_mod.escape(str(user.get('u', '?')))}</strong>, IP "
+                        f"<code>{_html_mod.escape(ip)}</code>). Los pedidos siguientes se rechazan "
+                        f"hasta que cambie el período.</p>"
+                        f"<p>Topes: {_AI_DAILY_LIMIT_PER_USER}/día por usuario, {_AI_DAILY_LIMIT}/día "
+                        f"y {_AI_MONTHLY_LIMIT}/mes en total. Si no fuiste vos, revisá las sesiones activas.</p>"
+                    )
+                return self._send_json(429, {
+                    "ok": False,
+                    "error": "Se alcanzó el tope de generaciones del período. Avisale al administrador del sistema.",
+                })
 
             try:
                 content, stop_reason = _call_anthropic(api_key, model, system_prompt, user_prompt)
