@@ -3006,29 +3006,38 @@ class SyncHandler(BaseHTTPRequestHandler):
         if not isinstance(after, str):
             return self._send_json(400, {"ok": False, "error": "after inválido"})
         db = _get_db()
-        sql = "SELECT compound_id, project_id, data FROM evidence_images WHERE data LIKE 'data:image/png%' AND compound_id > ?"
-        args = [after]
+        # El patrón va como parámetro: un "%" literal en el SQL rompe psycopg2 (Postgres) cuando hay parámetros.
+        sql = "SELECT compound_id, project_id, data FROM evidence_images WHERE data LIKE ? AND compound_id > ?"
+        args = ["data:image/png%", after]
         if proj:
             sql += " AND project_id=?"
             args.append(proj)
         sql += " ORDER BY compound_id LIMIT ?"
         args.append(limit)
-        rows = db.execute(sql, tuple(args)).fetchall()
         convertidas = conservadas = antes = despues = 0
-        for r in rows:
-            nuevo, info = image_opt.optimizar_data_uri(r["data"])
-            antes += len(r["data"])
-            if info.get("optimizado") and nuevo != r["data"]:
-                db.execute("UPDATE evidence_images SET data=?, size_bytes=?, sha256=? WHERE compound_id=? AND project_id=?",
-                           (nuevo, len(nuevo), info["sha256"], r["compound_id"], r["project_id"]))
-                if _r2 is not None and _r2.is_configured():
-                    _r2.put_image(r["compound_id"], nuevo)
-                convertidas += 1
-                despues += len(nuevo)
-            else:
-                conservadas += 1
-                despues += len(r["data"])
-        db.commit()
+        try:
+            rows = db.execute(sql, tuple(args)).fetchall()
+            for r in rows:
+                nuevo, info = image_opt.optimizar_data_uri(r["data"])
+                antes += len(r["data"])
+                if info.get("optimizado") and nuevo != r["data"]:
+                    db.execute("UPDATE evidence_images SET data=?, size_bytes=?, sha256=? WHERE compound_id=? AND project_id=?",
+                               (nuevo, len(nuevo), info["sha256"], r["compound_id"], r["project_id"]))
+                    if _r2 is not None and _r2.is_configured():
+                        _r2.put_image(r["compound_id"], nuevo)
+                    convertidas += 1
+                    despues += len(nuevo)
+                else:
+                    conservadas += 1
+                    despues += len(r["data"])
+            db.commit()
+        except Exception as exc:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            print(f"[Evidence] optimize falló: {type(exc).__name__}: {exc}")
+            return self._send_json(500, {"ok": False, "error": "No se pudo optimizar este lote"})
         print(f"[Evidence] optimize por {user.get('u')}: {convertidas} convertidas, {conservadas} sin cambio, {antes}->{despues} bytes")
         return self._send_json(200, {"ok": True, "procesadas": len(rows), "convertidas": convertidas,
                                      "conservadas": conservadas, "bytes_antes": antes, "bytes_despues": despues,
