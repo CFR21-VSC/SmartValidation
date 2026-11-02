@@ -338,6 +338,7 @@
         if (!target) throw new Error('Proyecto no encontrado: ' + id);
         writeSnapshot(target.snapshot || null);
         setActiveId(id);
+        if (id !== DEMO_PROJECT_ID && global.VS && global.VS.Storage && global.VS.Storage.setLastProject) global.VS.Storage.setLastProject(id);
         // La copia local pasa a ser la del servidor: su revisión es la nueva base para las subidas.
         if (global.VS && global.VS.Storage && target.serverRev &&
             Number(target.serverRev) > global.VS.Storage.getBaseRev(id) + 1e-9) {
@@ -644,10 +645,9 @@
             if (hasData && _servidorConProyectos) {
                 try { localStorage.setItem('_copiaHuerfana_' + Date.now(), JSON.stringify(snapshot)); } catch (_) {}
                 writeSnapshot(null);
-                console.info('[projects] Datos locales sin proyecto activo resguardados; el servidor tiene proyectos, se elige manualmente');
-                return null;
+                console.info('[projects] Datos locales sin proyecto activo resguardados; se consulta el servidor');
             }
-            if (hasData) {
+            if (hasData && !_servidorConProyectos) {
                 const sistemaName = (snapshot.systemInfo && snapshot.systemInfo.nombreSistema) || '';
                 const baseName = sistemaName ? `Proyecto inicial — ${sistemaName}` : 'Proyecto inicial';
                 const id = 'proj_initial_' + Date.now();
@@ -675,13 +675,15 @@
                         const real = serverProjects
                             .filter(p => p.id !== DEMO_PROJECT_ID)
                             .sort((a, b) => (b.updated_at || b.last_opened_at || 0) - (a.updated_at || a.last_opened_at || 0));
-                        // Con más de un proyecto real no se adivina cuál abrir (el "más reciente" puede ser otro
-                        // distinto del que se está validando): el usuario elige desde el selector de proyectos.
-                        if (real.length > 1) {
+                        // Con más de un proyecto real no se adivina por fecha de modificación (puede ser otro distinto
+                        // del que se está validando): se abre el último que ESTE usuario abrió en cualquier navegador
+                        // (lo registra el servidor); si no hay ninguno, elige desde el selector de proyectos.
+                        const elegido = real.length === 1 ? real[0] : real.find(p => p.last_opened_by_me);
+                        if (!elegido) {
                             console.info('[projects] Auto-sync omitido: hay ' + real.length + ' proyectos en el servidor, se elige manualmente');
-                        } else if (real.length === 1) {
+                        } else {
                             try {
-                                const entry = await downloadFromServer(real[0].id);
+                                const entry = await downloadFromServer(elegido.id);
                                 setActiveId(entry.id);
                                 writeSnapshot(entry.snapshot);
                                 // La copia local ES la del servidor: se adopta su revisión + snapshot como base de

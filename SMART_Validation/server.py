@@ -209,6 +209,12 @@ def _db_init():
         );
         CREATE INDEX IF NOT EXISTS idx_sync_sess_exp ON sync_sessions(expires_at);
 
+        CREATE TABLE IF NOT EXISTS user_last_project (
+            username     TEXT PRIMARY KEY,
+            project_id   TEXT NOT NULL,
+            updated_at   TEXT
+        );
+
         CREATE TABLE IF NOT EXISTS usage_counters (
             period       TEXT NOT NULL,
             counter_key  TEXT NOT NULL,
@@ -1989,7 +1995,40 @@ class SyncHandler(BaseHTTPRequestHandler):
                 WHERE u.username = ?
                 ORDER BY p.updated_at DESC
             """, (user.get("u", ""),)).fetchall()
-        return self._send_json(200, {"ok": True, "projects": [dict(r) for r in rows]})
+        projects = [dict(r) for r in rows]
+        # Último proyecto que este usuario abrió (en cualquier PC/navegador): el cliente lo abre solo
+        # al entrar desde un navegador nuevo, en vez de adivinar por fecha de modificación.
+        try:
+            _lp = db.execute("SELECT project_id FROM user_last_project WHERE username=?",
+                             (user.get("u", ""),)).fetchone()
+            if _lp:
+                for p in projects:
+                    if p.get("id") == _lp["project_id"]:
+                        p["last_opened_by_me"] = True
+        except Exception:
+            pass
+        return self._send_json(200, {"ok": True, "projects": projects})
+
+    def _api_last_project_set(self, user):
+        """POST /api/me/last-project {projectId} — registra el último proyecto abierto por el usuario."""
+        data = self._read_json_body()
+        if data is None:
+            return
+        proj_id = (data or {}).get("projectId")
+        db = _get_db()
+        if not isinstance(proj_id, str) or not self._assert_project_access(db, user, proj_id):
+            if not isinstance(proj_id, str):
+                self._send_json(400, {"ok": False, "error": "projectId requerido"})
+            return
+        if not db.execute("SELECT 1 FROM projects WHERE id=?", (proj_id,)).fetchone():
+            return self._send_json(404, {"ok": False, "error": "Proyecto no encontrado"})
+        db.execute(
+            "INSERT INTO user_last_project (username, project_id, updated_at) VALUES (?,?,?) "
+            "ON CONFLICT(username) DO UPDATE SET project_id=excluded.project_id, updated_at=excluded.updated_at",
+            (user.get("u", ""), proj_id, time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())),
+        )
+        db.commit()
+        return self._send_json(200, {"ok": True})
 
     def _api_projects_create(self, user):
         if user.get("r") != "admin":
@@ -4659,6 +4698,8 @@ class SyncHandler(BaseHTTPRequestHandler):
         m = _RE_PROJ_FOLDER_IMPORT.match(path)
         if m:
             return self._api_project_folder_import(m.group(1), user)
+        if path == "/api/me/last-project":
+            return self._api_last_project_set(user)
         m = _RE_PROJ_SNAPSHOT_DELTA.match(path)
         if m:
             return self._api_snapshot_delta(m.group(1), user)

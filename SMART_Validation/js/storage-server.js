@@ -359,6 +359,11 @@
       return r.data.projects || [];
     },
 
+    /** Registra en el servidor el último proyecto abierto por este usuario (un navegador nuevo lo abre solo). */
+    setLastProject(projectId) {
+      return _apiFetch("POST", "/api/me/last-project", { projectId }).catch(() => null);
+    },
+
     /** Como listProjects pero distingue "el servidor no respondió" de "no hay proyectos": {ok, status, projects}. */
     async listProjectsStrict() {
       const r = await _apiFetch("GET", "/api/projects");
