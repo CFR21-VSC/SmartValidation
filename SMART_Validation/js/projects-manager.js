@@ -659,7 +659,11 @@
                         const real = serverProjects
                             .filter(p => p.id !== DEMO_PROJECT_ID)
                             .sort((a, b) => (b.updated_at || b.last_opened_at || 0) - (a.updated_at || a.last_opened_at || 0));
-                        if (real.length > 0) {
+                        // Con más de un proyecto real no se adivina cuál abrir (el "más reciente" puede ser otro
+                        // distinto del que se está validando): el usuario elige desde el selector de proyectos.
+                        if (real.length > 1) {
+                            console.info('[projects] Auto-sync omitido: hay ' + real.length + ' proyectos en el servidor, se elige manualmente');
+                        } else if (real.length === 1) {
                             try {
                                 const entry = await downloadFromServer(real[0].id);
                                 setActiveId(entry.id);

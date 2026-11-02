@@ -1087,12 +1087,17 @@ document.addEventListener('DOMContentLoaded', async function () {
             const banner = document.createElement('div');
             banner.id = '_serverSyncBanner';
             banner.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1A3550;color:#fff;padding:12px 20px;border-radius:8px;display:flex;align-items:center;gap:14px;z-index:99990;box-shadow:0 4px 16px rgba(0,0,0,.35);font-size:13px;max-width:92vw;';
-            banner.innerHTML = `<span>El servidor tiene el proyecto <strong>${newest.name}</strong> disponible.</span>
-                <button id="_btnLoadServer" style="background:#3D8FD1;color:#fff;border:none;border-radius:5px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">Cargar proyecto</button>
+            const _varios = real.length > 1;
+            const _nombre = String(newest.name || '').replace(/[<>&"]/g, '');
+            banner.innerHTML = (_varios
+                ? `<span>El servidor tiene <strong>${real.length} proyectos</strong>. Elegí cuál abrir.</span>`
+                : `<span>El servidor tiene el proyecto <strong>${_nombre}</strong> disponible.</span>`) +
+                `<button id="_btnLoadServer" style="background:#3D8FD1;color:#fff;border:none;border-radius:5px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">${_varios ? 'Elegir proyecto' : 'Cargar proyecto'}</button>
                 <button id="_btnDismissServer" style="background:none;border:none;color:#9CB8CC;font-size:16px;cursor:pointer;line-height:1;padding:0 4px;">✕</button>`;
             document.body.appendChild(banner);
             document.getElementById('_btnDismissServer').onclick = () => banner.remove();
             document.getElementById('_btnLoadServer').onclick = async () => {
+                if (_varios && typeof window.openProjectsModal === 'function') { banner.remove(); window.openProjectsModal(); return; }
                 banner.querySelector('#_btnLoadServer').textContent = 'Cargando…';
                 banner.querySelector('#_btnLoadServer').disabled = true;
                 try {
