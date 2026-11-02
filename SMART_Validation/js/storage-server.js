@@ -74,7 +74,8 @@
         window.location.replace("/login.html");
         return null;
       }
-      const json = await res.json();
+      // El 429 del servidor viene sin cuerpo: antes res.json() fallaba y se informaba "servidor no disponible".
+      const json = await res.json().catch(() => ({}));
       return { status: res.status, data: json };
     } catch (_) {
       return null;   // server unreachable — caller handles gracefully
