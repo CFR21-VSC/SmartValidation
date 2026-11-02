@@ -57,7 +57,14 @@
         if (gz) { opts.body = gz; opts.headers["Content-Encoding"] = "gzip"; }
         else opts.body = txt;
       }
-      const res = await fetch(BASE + path, opts);
+      let res = await fetch(BASE + path, opts);
+      // Límite de peticiones del servidor (429): las lecturas se reintentan respetando Retry-After,
+      // en vez de devolver "sin datos" y dejar la pantalla mostrando solo la copia local.
+      for (let intento = 1; method === "GET" && res.status === 429 && intento <= 3; intento++) {
+        const espera = Math.min(15, parseFloat(res.headers.get("Retry-After")) || 2 * intento);
+        await new Promise((ok) => setTimeout(ok, espera * 1000));
+        res = await fetch(BASE + path, opts);
+      }
       if (res.status === 401) {
         const errData = await res.json().catch(() => ({}));
         if (errData && errData.code === "SUPERSEDED") {
@@ -349,6 +356,14 @@
       if (!r || r.status !== 200) return [];
       _available = true;
       return r.data.projects || [];
+    },
+
+    /** Como listProjects pero distingue "el servidor no respondió" de "no hay proyectos": {ok, status, projects}. */
+    async listProjectsStrict() {
+      const r = await _apiFetch("GET", "/api/projects");
+      if (!r || r.status !== 200 || !r.data) return { ok: false, status: r ? r.status : 0, projects: [] };
+      _available = true;
+      return { ok: true, status: 200, projects: r.data.projects || [] };
     },
 
     async getDocument(projectId, docType) {

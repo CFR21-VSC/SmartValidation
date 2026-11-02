@@ -54,8 +54,17 @@
             // Se intenta siempre (no gateado por isAvailable), ya que la probe puede no haber
             // completado aún cuando el modal se abre por primera vez.
             let serverList = [];
+            let serverError = null;
             if (VS.Storage) {
-                try { serverList = (await VS.Storage.listProjects()) || []; } catch (_) {}
+                try {
+                    if (typeof VS.Storage.listProjectsStrict === 'function') {
+                        const sr = await VS.Storage.listProjectsStrict();
+                        serverList = sr.projects || [];
+                        if (!sr.ok) serverError = sr.status ? ('el servidor respondió ' + sr.status) : 'sin respuesta del servidor';
+                    } else {
+                        serverList = (await VS.Storage.listProjects()) || [];
+                    }
+                } catch (_) { serverError = 'sin respuesta del servidor'; }
             }
             console.log('[projects-ui] serverList:', serverList.length, serverList.map(p => p.id + ' ' + p.name));
             console.log('[projects-ui] localList:', localList.length, localList.map(p => p.id + ' ' + p.name));
@@ -108,14 +117,19 @@
                 .map(p => renderCard(p, activeId))
                 .join('');
 
+            const aviso = serverError
+                ? '<div style="grid-column:1/-1;background:#8A1C1C;color:#fff;padding:12px 16px;border-radius:8px;font-size:13px;display:flex;gap:14px;align-items:center;justify-content:space-between;">' +
+                  '<span><strong>No se pudo consultar el servidor</strong> (' + escapeHtml(serverError) + '). Esta lista muestra solo copias guardadas en este navegador; puede faltar el proyecto real.</span>' +
+                  '<button type="button" onclick="VS.projectsUI.refresh()" style="background:#fff;color:#8A1C1C;border:none;border-radius:5px;padding:7px 14px;font-weight:700;cursor:pointer;white-space:nowrap;">Reintentar</button></div>'
+                : '';
             if (all.length === 0) {
-                container.innerHTML =
+                container.innerHTML = aviso +
                     '<div class="proj-empty">' +
                     '<div class="proj-empty-title">No hay proyectos todavia</div>' +
                     '<div class="proj-empty-text">Crea tu primer proyecto desde el boton <strong>+ Nuevo proyecto</strong> de arriba a la derecha.</div>' +
                     '</div>';
             } else {
-                container.innerHTML = cards;
+                container.innerHTML = aviso + cards;
             }
         } catch (e) {
             container.innerHTML = '<div class="proj-empty"><div class="proj-empty-title">Error</div><div class="proj-empty-text">' + escapeHtml(e.message) + '</div></div>';
