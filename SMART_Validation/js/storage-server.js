@@ -44,6 +44,19 @@
     } catch (_) { return null; }
   }
 
+  // Máximo de imágenes individuales en vuelo: al abrir un caso con muchas capturas se pedían todas juntas y el servidor
+  // respondía 429 (límite por minuto), dejando huecos de «Imagen no disponible».
+  let _imgActivas = 0; const _imgCola = [];
+  function _imgSlot(fn) {
+    return new Promise((resolve, reject) => {
+      const correr = () => {
+        _imgActivas++;
+        Promise.resolve().then(fn).then(resolve, reject).finally(() => { _imgActivas--; const sig = _imgCola.shift(); if (sig) sig(); });
+      };
+      if (_imgActivas < 3) correr(); else _imgCola.push(correr);
+    });
+  }
+
   async function _apiFetch(method, path, body) {
     try {
       const opts = {
@@ -471,11 +484,11 @@
       const path = `/api/projects/${encodeURIComponent(projId)}/evidence/${encodeURIComponent(compoundId)}`;
       if (_inflightImg[path]) return _inflightImg[path];
       const p = (async () => {
-        for (let attempt = 0; attempt < 2; attempt++) {
-          const r = await _apiFetch("GET", path);
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const r = await _imgSlot(() => _apiFetch("GET", path));      // como mucho 3 imágenes a la vez: no se dispara el límite de peticiones
           if (r && r.status === 200 && r.data && r.data.ok) return r.data.data || null;
           if (r && r.status === 404) return null;                       // no existe: reintentar no sirve (y cuenta contra el límite)
-          if (attempt < 1) await new Promise(res => setTimeout(res, 1000));
+          if (attempt < 2) await new Promise(res => setTimeout(res, 1500 * (attempt + 1)));
         }
         return null;
       })();

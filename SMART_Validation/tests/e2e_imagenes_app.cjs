@@ -125,7 +125,7 @@ const N = 30;
     reqs.length = 0;
     const crudos = Object.keys(idx).slice(0, 3).map(c => c.replace(/^proj_[0-9]+_[a-z0-9]+_/, ''));
     const lote = await B.evaluate((ids) => window.VS.Storage.fetchEvidenceBatch(ids), crudos);
-    ok(crudos.every(id => lote[id] && lote[id].startsWith('data:image/png')), 'fetchEvidenceBatch devuelve las imágenes pedidas');
+    ok(crudos.every(id => lote[id] && /^data:image\/(png|webp)/.test(lote[id])), 'fetchEvidenceBatch devuelve las imágenes pedidas');
     ok(!reqs.some(u => /\/evidence$/.test(u)) && reqs.filter(u => /\/evidence\/batch$/.test(u)).length === 1, 'y lo hace con una petición de lote, sin bajar el volcado de todas las imágenes');
   } catch (e) { console.log('ERROR', e.stack || e.message); fallos++; }
   finally { await b.close(); srv.kill(); }

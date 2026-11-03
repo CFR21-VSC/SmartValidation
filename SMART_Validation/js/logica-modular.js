@@ -7261,14 +7261,13 @@ function renderEvidenceItem(evidence, index, test) {
         }
         if (!evidence._imgLoading) {
             evidence._imgLoading = true;
-            // Timeout de 12 s: si el servidor no responde, mostrar estado de fallo
+            // Timeout de 45 s (antes 12: ante un 429 el cliente espera el Retry-After y se rendía antes de reintentar)
             const _failTimer = setTimeout(() => {
                 if (evidence._imgLoading) {
                     evidence._imgLoading = false;
-                    evidence._imgFailed = true;
-                    if (typeof renderWorkArea === 'function') renderWorkArea();
+                    _imagenFallo(evidence);
                 }
-            }, 12000);
+            }, 45000);
             // Copia local primero (IndexedDB) y el servidor solo si falta. _syncImagesFromServer mantiene esa
             // copia al día comparando huellas SHA-256 contra el índice del servidor, así que ya no hace falta
             // consultar al servidor por CADA evidencia que se muestra: con la carga bajo demanda eso superaba el
@@ -7281,14 +7280,12 @@ function renderEvidenceItem(evidence, index, test) {
                     evidence.image = data;
                     if (typeof renderWorkArea === 'function') renderWorkArea();
                 } else {
-                    evidence._imgFailed = true;
-                    if (typeof renderWorkArea === 'function') renderWorkArea();
+                    _imagenFallo(evidence);
                 }
             }).catch(() => {
                 clearTimeout(_failTimer);
                 evidence._imgLoading = false;
-                evidence._imgFailed = true;
-                if (typeof renderWorkArea === 'function') renderWorkArea();
+                _imagenFallo(evidence);
             });
         }
         return `
@@ -8722,6 +8719,22 @@ function createEvidenceSlot(overrides) {
 function evidenceImageKey(test, evidence) {
     if (!evidence.uid) evidence.uid = _generateEvidenceUid();
     return `${test.id}_evidence_${evidence.uid}`;
+}
+
+// Imagen que no pudo bajarse: se muestra el estado «no disponible» y se reintenta sola hasta 3 veces (6, 12 y 18 s);
+// después queda el botón «Reintentar». Antes quedaba fallida hasta recargar la página.
+function _imagenFallo(evidence) {
+    evidence._imgFailed = true;
+    evidence._imgAuto = (evidence._imgAuto || 0) + 1;
+    if (typeof renderWorkArea === 'function') renderWorkArea();
+    if (evidence._imgAuto <= 3) {
+        setTimeout(() => {
+            if (evidence._imgFailed && !evidence.image) {
+                evidence._imgFailed = false; evidence._imgLoading = false;
+                if (typeof renderWorkArea === 'function') renderWorkArea();
+            }
+        }, 6000 * evidence._imgAuto);
+    }
 }
 
 /**
