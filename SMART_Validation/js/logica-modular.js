@@ -8732,22 +8732,26 @@ window.imagenAPng = imagenAPng;
 (function () {
     if (!window.pdfMake || typeof window.pdfMake.createPdf !== 'function' || window.pdfMake.__webpPng) return;
     const original = window.pdfMake.createPdf.bind(window.pdfMake);
-    const convertir = async (nodo) => {
-        if (Array.isArray(nodo)) { await Promise.all(nodo.map(convertir)); return; }
-        if (!nodo || typeof nodo !== 'object') return;
+    // Recorrido seguro: sin repetir objetos (el documento puede tener referencias circulares) y con tope de profundidad.
+    const convertir = async (nodo, visto = new WeakSet(), nivel = 0) => {
+        if (!nodo || typeof nodo !== 'object' || nivel > 40 || visto.has(nodo)) return;
+        visto.add(nodo);
         const tareas = [];
         for (const k of Object.keys(nodo)) {
             const v = nodo[k];
-            if (typeof v === 'string' && v.startsWith('data:image/webp')) {
-                tareas.push(imagenAPng(v).then(png => { nodo[k] = png; }));
-            } else if (v && typeof v === 'object') tareas.push(convertir(v));
+            if (typeof v === 'string') {
+                if (v.startsWith('data:image/webp')) tareas.push(imagenAPng(v).then(png => { nodo[k] = png; }));
+            } else if (v && typeof v === 'object') {
+                if (typeof Node !== 'undefined' && v instanceof Node) continue;
+                tareas.push(convertir(v, visto, nivel + 1));
+            }
         }
         await Promise.all(tareas);
     };
     window.pdfMake.createPdf = function (def, ...resto) {
         const listo = convertir(def).catch(() => {}).then(() => original(def, ...resto));
         return new Proxy({}, {
-            get: (_t, metodo) => (...args) => listo.then((doc) => doc[metodo](...args)),
+            get: (_t, metodo) => (...args) => listo.then((doc) => doc[metodo](...args)).catch((e) => { console.error('[pdfMake]', e); throw e; }),
         });
     };
     window.pdfMake.__webpPng = true;
@@ -11665,6 +11669,41 @@ function prefillProjectExportModal() {
         const radio = document.querySelector(`input[name="projectCriticidad"][value="${saved.criticidad}"]`);
         if (radio) radio.checked = true;
     }
+
+    // Lo que sigue vacío se calcula con los datos del proyecto y del protocolo activo, así el formulario sale
+    // completo en cualquier PC/navegador (no depende de lo que se escribió antes en ese navegador). Todo editable.
+    try {
+        const prot = protocols.find(p => p.id === activeProtocolId) || protocols[0] || null;
+        const setIfEmpty = (id, val) => { const el = document.getElementById(id); if (el && val && !String(el.value || '').trim()) el.value = val; };
+        const gids = prot ? new Set(groups.filter(g => g.protocolId === prot.id).map(g => g.id)) : null;
+        const tests_ = gids ? tests.filter(t => gids.has(t.groupId)) : tests;
+        // Informe de ejecución: el protocolo PIQ/POQ/PPQ da el código IIQ/IOQ/IPQ del mismo sistema
+        setIfEmpty('projectDocCode', prot && prot.code && prot.code.replace(/^P(?=[A-Z]{2}-)/, 'I'));
+        setIfEmpty('projectVersion', systemInfo.versionSistema);
+        setIfEmpty('projectEmpresa', systemInfo.cliente || systemInfo.empresa);
+        // Fechas: primera y última captura de las evidencias del protocolo
+        const dias = [];
+        tests_.forEach(t => (t.evidences || []).forEach(e => {
+            const d = e.captureTimestamp ? new Date(e.captureTimestamp) : null;
+            if (d && !isNaN(d)) dias.push(d);
+        }));
+        if (dias.length) {
+            const iso = d => d.toISOString().slice(0, 10);
+            setIfEmpty('projectFechaInicio', iso(new Date(Math.min(...dias))));
+            setIfEmpty('projectFechaFin', iso(new Date(Math.max(...dias))));
+        }
+        const nEv = tests_.reduce((a, t) => a + (t.evidences || []).filter(e => !e.isEmpty).length, 0);
+        const tipo = ({ PIQ: 'Calificación de Instalación (IQ)', POQ: 'Calificación Operativa (OQ)', PPQ: 'Calificación de Desempeño (PQ)' })[(prot && prot.type) || ''] || 'Validación';
+        setIfEmpty('projectAlcance', `${tipo} del sistema ${systemInfo.nombreSistema || ''} (${systemInfo.codigoSistema || ''})` +
+            `${systemInfo.versionSistema ? ' versión ' + systemInfo.versionSistema : ''}: ${tests_.length} casos de prueba con ${nEv} evidencias ` +
+            `en el entorno de prueba, ejecutados según el protocolo ${prot ? prot.code : ''}.`);
+        setIfEmpty('projectMarcoReg', 'GAMP 5 (2ª edición), 21 CFR Part 11, EU GMP Anexo 11, Disposición ANMAT 4159/2023 Anexo 6 y principios de integridad de datos ALCOA+.');
+        if (!document.querySelector('input[name="projectGampCat"]:checked')) {
+            const cat = String(systemInfo.categoriaGamp || '').match(/[1345]/);
+            const r = cat && document.querySelector(`input[name="projectGampCat"][value="${cat[0]}"]`);
+            if (r) r.checked = true;
+        }
+    } catch (e) { console.warn('[export] prellenado calculado falló:', e); }
 }
 
 /**
