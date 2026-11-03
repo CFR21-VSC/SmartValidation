@@ -7,6 +7,9 @@
     'use strict';
 
     const VS = global.ValidationSuite = global.ValidationSuite || {};
+    // El almacenamiento del servidor vive en window.VS (storage-server.js), NO en ValidationSuite: antes el selector no lo veía
+    // y nunca listaba los proyectos del servidor (solo las copias locales de cada navegador).
+    const _storage = () => (global.VS && global.VS.Storage) || null;
     if (!VS.projects) {
         console.error('[projects-ui] VS.projects no esta cargado.');
         return;
@@ -55,14 +58,14 @@
             // completado aún cuando el modal se abre por primera vez.
             let serverList = [];
             let serverError = null;
-            if (VS.Storage) {
+            if (_storage()) {
                 try {
-                    if (typeof VS.Storage.listProjectsStrict === 'function') {
-                        const sr = await VS.Storage.listProjectsStrict();
+                    if (typeof _storage().listProjectsStrict === 'function') {
+                        const sr = await _storage().listProjectsStrict();
                         serverList = sr.projects || [];
                         if (!sr.ok) serverError = sr.status ? ('el servidor respondió ' + sr.status) : 'sin respuesta del servidor';
                     } else {
-                        serverList = (await VS.Storage.listProjects()) || [];
+                        serverList = (await _storage().listProjects()) || [];
                     }
                 } catch (_) { serverError = 'sin respuesta del servidor'; }
             }
@@ -91,12 +94,12 @@
             // Proyectos solo locales (no están en el servidor aún).
             // Se pushean una sola vez por sesión para no saturar Railway (429).
             const localOnly = localList.filter(p => !serverIds.has(p.id));
-            if (VS.Storage && localOnly.length > 0) {
+            if (_storage() && localOnly.length > 0) {
                 localOnly
                     .filter(p => p.id && p.snapshot && !p.id.startsWith('__demo') && !_syncedThisSession.has(p.id))
                     .forEach(p => {
                         _syncedThisSession.add(p.id);
-                        VS.Storage.syncSnapshot(p.id, p.snapshot, p.name).catch(() => {});
+                        _storage().syncSnapshot(p.id, p.snapshot, p.name).catch(() => {});
                     });
             }
             const all = [...merged, ...localOnly];
@@ -315,11 +318,11 @@
             if (onlineInfo)  onlineInfo.style.display  = online ? 'block' : 'none';
             if (offlineInfo) offlineInfo.style.display = online ? 'none'  : 'block';
         }
-        const isOnline = VS.Storage && VS.Storage.isAvailable();
+        const isOnline = _storage() && _storage().isAvailable();
         _applyStorageMode(isOnline);
         // Si aparentemente offline, re-probar una vez para no quedar colgado en el estado inicial
-        if (!isOnline && VS.Storage && typeof VS.Storage.listProjects === 'function') {
-            VS.Storage.listProjects().then(list => {
+        if (!isOnline && _storage() && typeof _storage().listProjects === 'function') {
+            _storage().listProjects().then(list => {
                 if (list && list.length >= 0) _applyStorageMode(true);
             }).catch(() => {});
         }
