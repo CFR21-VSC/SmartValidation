@@ -2552,8 +2552,12 @@ window.precargarImagenesEvidenciaFaltantes = precargarImagenesEvidenciaFaltantes
 async function buildAexFromGestor() {
     const VS = window.ValidationSuite;
     const ahora = new Date();
-    const fechaCorta = ahora.toISOString().split('T')[0]; // YYYY-MM-DD
-    const fechaLarga = ahora.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    // Fecha LOCAL (toISOString da la de UTC: de noche en Argentina ya es "mañana") y en texto "2 noviembre 2026", que el
+    // formateador de la portada entiende; "02/11/2026" lo leía como mm/dd y emitía "11 de febrero".
+    const _pad2 = (n) => String(n).padStart(2, '0');
+    const _MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    const fechaCorta = ahora.getFullYear() + '-' + _pad2(ahora.getMonth() + 1) + '-' + _pad2(ahora.getDate()); // YYYY-MM-DD
+    const fechaLarga = ahora.getDate() + ' ' + _MESES[ahora.getMonth()] + ' ' + ahora.getFullYear();
     const sysCode = (systemInfo.codigoSistema || 'SIS-001').toUpperCase();
     const aexCode = 'AEX-' + sysCode;
 
@@ -2562,6 +2566,16 @@ async function buildAexFromGestor() {
     const protocolCode = protocolRef ? protocolRef.code : '';
     const protocolType = protocolRef ? protocolRef.type : '';
     const protocolVersion = protocolRef && protocolRef.protocolMeta ? protocolRef.protocolMeta.version : '';
+    // Protocolos que realmente aportan evidencia a este AEX (el gestor puede tener IQ y OQ juntos): se citan todos, no solo el activo.
+    const _protoDeTest = (t) => { const g = groups.find(x => x.id === t.groupId); return g ? g.protocolId : null; };
+    const _verProto = (p) => p.code + (p.protocolMeta && p.protocolMeta.version ? ' v' + p.protocolMeta.version : '');
+    const _protosConEv = protocols.filter(p => tests.some(t => _protoDeTest(t) === p.id && Array.isArray(t.evidences) && t.evidences.some(ev => !ev.isEmpty)));
+    const protosCit = _protosConEv.length ? _protosConEv : (protocolRef ? [protocolRef] : []);
+    const protocolosTxt = protosCit.map(_verProto).join(' · ') || protocolCode;
+    const protocolTiposTxt = protosCit.map(p => p.type).join(' + ') || protocolType || '—';
+    const informesTxt = protosCit.map(p => p.code.replace(/^P/, 'I')).join(' · ') || '—';
+    const informeTiposTxt = protosCit.map(p => 'I' + String(p.type || 'PIQ').charAt(1) + 'Q').join(' / ') || 'IIQ';
+    const todosFinalizados = protosCit.length > 0 && protosCit.every(p => p.finalized);
 
     // === Contar evidencias e identificar TCs con captura ===
     const testsConEvidencia = tests.filter(t => Array.isArray(t.evidences) && t.evidences.some(ev => !ev.isEmpty));
@@ -2684,18 +2698,19 @@ async function buildAexFromGestor() {
 
     // === trazabilidad v2.0: recibeDe (protocolo + URS) y alimentaA ===
     const trazRecibeDe = [];
-    if (protocolRef && protocolType) {
+    protosCit.forEach(p => {
+        const tcsDelProto = testsConEvidencia.filter(t => _protoDeTest(t) === p.id).map(t => t.tcId || ('TEST-' + t.id.substring(0, 8)));
         trazRecibeDe.push({
-            tipo: protocolType,
-            code: protocolCode,
-            version: protocolVersion,
+            tipo: p.type,
+            code: p.code,
+            version: p.protocolMeta ? p.protocolMeta.version : '',
             fechaCongelado: '',
-            items: aexTests.map(t => t.tcId),
-            itemsCount: aexTests.length,
-            estado: 'aprobado',
+            items: tcsDelProto,
+            itemsCount: tcsDelProto.length,
+            estado: p.finalized ? 'finalizado' : 'en ejecución',
             _auto: true
         });
-    }
+    });
     // URS derivados desde TCs
     const ursSet = new Set();
     aexTests.forEach(t => (t.trazabilidad.urs || []).forEach(u => { if (u && u !== '—') ursSet.add(u); }));
@@ -2714,7 +2729,7 @@ async function buildAexFromGestor() {
     }
 
     // === Estructurar el JSON AEX ===
-    const informeType = protocolType ? ('I' + protocolType.charAt(1) + 'Q') : 'IIQ'; // PIQ→IIQ, POQ→IOQ, PPQ→IPQ
+    const informeType = informeTiposTxt; // PIQ→IIQ, POQ→IOQ, PPQ→IPQ (uno por protocolo citado)
     return {
         schemaVersion: '1.0',
         type: 'AEX',
@@ -2734,14 +2749,14 @@ async function buildAexFromGestor() {
             headerTitle: 'Anexo de Ejecución (AEX)',
             version: '1.0',
             issueDate: fechaLarga,
-            status: projectData.finalized ? 'Aprobado' : 'Borrador',
+            status: projectData.finalized ? 'Aprobado' : (todosFinalizados ? 'Emitido' : 'Borrador'),
             processOwner: executor || '',
             gampCategory: '',
             normativeFramework: 'ANMAT 4159/2023 | 21 CFR Part 11 | EU Annex 11 | FDA CSA 2022',
             extras: {
-                'Protocolo origen': protocolCode + (protocolVersion ? ' v' + protocolVersion : ''),
-                'Tipo de Protocolo': protocolType || '—',
-                'Informe asociado': protocolCode ? protocolCode.replace(/^P/, 'I') : '—',
+                'Protocolo origen': protocolosTxt,
+                'Tipo de Protocolo': protocolTiposTxt,
+                'Informe asociado': informesTxt,
                 'Tests con evidencia': testsConEvidencia.length + ' / ' + tests.length,
                 'Evidencias totales': String(totalEvidencias),
                 'Resultado global': stats.PASS + ' PASS / ' + stats.FAIL + ' FAIL / ' + stats.OBS + ' OBS' + (stats.NA ? ' / ' + stats.NA + ' NA' : '') + (stats.pendiente ? ' / ' + stats.pendiente + ' pendiente(s)' : '')
@@ -2750,29 +2765,29 @@ async function buildAexFromGestor() {
         controlCambios: [
             {
                 version: '1.0',
-                fecha: fechaCorta,
+                fecha: fechaCorta + 'T12:00:00',
                 autor: executor || 'Process Owner',
                 descripcion: 'Emisión inicial — registro de evidencia capturada vía Gestor de Evidencias.'
             }
         ],
         matrizAprobaciones: [
-            { rol: 'Ejecutor (Validador)', nombre: executor || '', iniciales: '', fecha: fechaCorta },
+            { rol: 'Ejecutor (Validador)', nombre: executor || '', iniciales: '', fecha: fechaCorta + 'T12:00:00' },
             { rol: 'Revisor (Process Owner)', nombre: systemInfo.revisor || '', iniciales: '', fecha: '' },
             { rol: 'Aprobador (Gerente QA)', nombre: systemInfo.aprobador || '', iniciales: '', fecha: '' }
         ],
         trazabilidad: {
             schemaVersion: '2.0',
             recibeDe: trazRecibeDe,
-            alimentaA: [
-                { tipo: informeType, codeEsperado: protocolCode ? protocolCode.replace(/^P/, 'I') : '—', relacion: 'integra-evidencia-al-informe' }
-            ]
+            alimentaA: (protosCit.length ? protosCit : [{ type: 'PIQ', code: '' }]).map(p => (
+                { tipo: 'I' + String(p.type || 'PIQ').charAt(1) + 'Q', codeEsperado: p.code ? p.code.replace(/^P/, 'I') : '—', relacion: 'integra-evidencia-al-informe' }
+            ))
         },
         secciones: [
             {
                 tipo: 'texto',
                 titulo: 'PROPÓSITO Y OBJETIVO',
                 bloques: [
-                    { texto: 'El presente Anexo de Ejecución (AEX) documenta de manera formal la evidencia capturada durante la ejecución del ' + (protocolCode || 'protocolo activo') + ' sobre el sistema ' + (systemInfo.nombreSistema || sysCode) + '. Cada captura está asociada a un Test Case específico con su trazabilidad cruzada al requisito URS de origen, riesgo RA evaluado y componente IRA validado.' },
+                    { texto: 'El presente Anexo de Ejecución (AEX) documenta de manera formal la evidencia capturada durante la ejecución ' + (protosCit.length > 1 ? 'de los protocolos ' : 'del ') + (protocolosTxt || 'protocolo activo') + ' sobre el sistema ' + (systemInfo.nombreSistema || sysCode) + '. Cada captura está asociada a un Test Case específico con su trazabilidad cruzada al requisito URS de origen, riesgo RA evaluado y componente IRA validado.' },
                     { texto: 'Este registro forma parte del paquete documental de validación y constituye evidencia auditable conforme 21 CFR Part 11 §11.10(b) — registros electrónicos completos, exactos y recuperables. El gestor de evidencias actúa como almacén de la documentación de Test Cases; la generación del documento formal se realiza desde la Validation Suite.' }
                 ]
             },
@@ -2781,7 +2796,7 @@ async function buildAexFromGestor() {
                 titulo: 'RESUMEN DE EJECUCIÓN',
                 labelWidth: 165,
                 filas: [
-                    { campo: 'Protocolo ejecutado', valor: protocolCode + (protocolVersion ? ' v' + protocolVersion : ''), boldValor: true, colorValor: 'primary' },
+                    { campo: protosCit.length > 1 ? 'Protocolos ejecutados' : 'Protocolo ejecutado', valor: protocolosTxt, boldValor: true, colorValor: 'primary' },
                     { campo: 'Fecha de generación', valor: fechaLarga },
                     { campo: 'Ejecutor', valor: executor || '—' },
                     { campo: 'Tests con evidencia capturada', valor: testsConEvidencia.length + ' de ' + tests.length, boldValor: true, colorValor: 'accent' },
@@ -2823,7 +2838,11 @@ async function buildAexFromGestor() {
                 tipo: 'tabla-firmas-final',
                 titulo: 'FIRMAS DE EJECUCIÓN Y APROBACIÓN',
                 intro: 'Las firmas siguientes evidencian la ejecución, captura de evidencia, revisión y aprobación formal del presente Anexo.',
-                firmas: [],
+                firmas: [
+                    { rol: 'Ejecutor (Validador)', nombre: executor || '' },
+                    { rol: 'Revisor (Process Owner)', nombre: systemInfo.revisor || '' },
+                    { rol: 'Aprobador (Gerente QA)', nombre: systemInfo.aprobador || '' }
+                ],
                 rolesPlaceholder: [
                     'Ejecutor (Validador)',
                     'Revisor (Process Owner)',

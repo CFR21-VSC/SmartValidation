@@ -617,9 +617,48 @@
         return out;
     }
 
+    // ====================================================================
+    // SECCIÓN: tabla-firmas-final — firmas de ejecución, revisión y aprobación
+    // (antes el AEX no la dibujaba y salía "[Tipo de sección desconocido: tabla-firmas-final]")
+    // ====================================================================
+    function renderFirmasFinal(sec, tb) {
+        const C = tb.VS_COLORS;
+        const out = [];
+        if (sec.intro) {
+            out.push({ text: sec.intro, fontSize: 10, color: C.text, alignment: 'justify', lineHeight: 1.4, margin: [0, 0, 0, 8] });
+        }
+        const firmadas = Array.isArray(sec.firmas) ? sec.firmas : [];
+        const roles = (Array.isArray(sec.rolesPlaceholder) && sec.rolesPlaceholder.length)
+            ? sec.rolesPlaceholder
+            : ['Ejecutor (Validador)', 'Revisor (Process Owner)', 'Aprobador (Gerente QA)'];
+        const body = [[
+            tb.vsTh('Rol'), tb.vsTh('Nombre y apellido'), tb.vsTh('Firma', { alignment: 'center' }), tb.vsTh('Fecha', { alignment: 'center' })
+        ]];
+        roles.forEach((rol, i) => {
+            const f = firmadas.find(x => x && x.rol === rol) || {};
+            const bg = (i % 2 === 1) ? C.bgSoft : null;
+            body.push([
+                tb.vsTd(rol, { bold: true, fontSize: 9, color: C.primary, fillColor: bg }),
+                tb.vsTd(f.nombre || ' ', { fontSize: 9, fillColor: bg }),
+                tb.vsTd(f.firma || ' ', { fontSize: 9, alignment: 'center', fillColor: bg }),
+                tb.vsTd(f.fecha || ' ', { fontSize: 9, alignment: 'center', fillColor: bg })
+            ]);
+        });
+        out.push({
+            table: { widths: tb.vsScaleWidths([130, 170, 110, 60]), body: body, headerRows: 1, dontBreakRows: true, keepWithHeaderRows: 1,
+                     heights: (row) => row === 0 ? undefined : 34 },
+            layout: tb.vsTableLayout(),
+            margin: [0, 0, 0, 12]
+        });
+        if (sec.nota) out.push({ text: sec.nota, fontSize: 8.5, italics: true, color: C.textSoft, margin: [0, 0, 0, 8] });
+        return out;
+    }
+
     function maybeWrapUnbreakable(sec, titleBlock, contentBlock) {
         const TABLE_TYPES = ['tabla-info'];
         const rowCount = (sec.filas || []).length;
+        // El título y la tabla de firmas van siempre juntos (no se separan en páginas distintas)
+        if (sec.tipo === 'tabla-firmas-final') return [{ unbreakable: true, stack: [...titleBlock, ...contentBlock] }];
         if (TABLE_TYPES.includes(sec.tipo) && rowCount > 0 && rowCount <= 8) {
             return [{ unbreakable: true, stack: [...titleBlock, ...contentBlock] }];
         }
@@ -687,6 +726,7 @@
                 case 'caja-nota': contentBlock = shared.renderCajaNota(sec, tb); break;
                 case 'aex-registro-tc': contentBlock = renderRegistroTc(sec, tb); break;
                 case 'aex-matriz-trazabilidad': contentBlock = renderMatrizTrazabilidad(sec, tb); break;
+                case 'tabla-firmas-final': contentBlock = renderFirmasFinal(sec, tb); break;
                 case 'firmas-horizontales': contentBlock = (VS.shared && VS.shared.renderFirmasHorizontal) ? VS.shared.renderFirmasHorizontal(sec, tb) : []; titleBlock = []; break;
                 default:
                     contentBlock = [{
