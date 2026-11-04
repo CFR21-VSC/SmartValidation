@@ -8837,18 +8837,26 @@ window.imagenAPng = imagenAPng;
         im.onerror = () => resolve(dataUri);
         im.src = dataUri;
     });
+    const uriABlob = (u) => {
+        const i = u.indexOf(','); const mime = u.slice(5, u.indexOf(';'));
+        const bin = atob(u.slice(i + 1)); const arr = new Uint8Array(bin.length);
+        for (let k = 0; k < bin.length; k++) arr[k] = bin.charCodeAt(k);
+        return new Blob([arr], { type: mime });
+    };
     const aDataUri = (blob) => new Promise((ok, mal) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = mal; r.readAsDataURL(blob); });
     const rapido = typeof createImageBitmap === 'function' && typeof OffscreenCanvas === 'function';
     // Memoria entre exportaciones: la misma imagen (mismo texto) no se vuelve a convertir mientras no se recargue la página.
     const memoria = (window.__imgPdfMemoria = window.__imgPdfMemoria || new Map());
     const aJpegLiviano = async (dataUri) => {
         const clave = dataUri.length + ':' + dataUri.slice(-64) + ':' + dataUri.slice(40, 104);
-        if (memoria.has(clave)) return memoria.get(clave);
+        const est = (window.__pdfStats = window.__pdfStats || { hits: 0, convertidas: 0, rapidas: 0 });
+        if (memoria.has(clave)) { est.hits++; return memoria.get(clave); }
+        est.convertidas++;
         let out = null;
         if (rapido) {
             try {
                 const esWebp = dataUri.startsWith('data:image/webp');
-                const blob = await (await fetch(dataUri)).blob();
+                const blob = uriABlob(dataUri);   // sin fetch: la política de seguridad (CSP) del sitio no permite fetch de data:
                 const bmp = await createImageBitmap(blob);
                 const esc = Math.min(1, MAX_LADO / Math.max(bmp.width, bmp.height));
                 const w = Math.max(1, Math.round(bmp.width * esc)), h = Math.max(1, Math.round(bmp.height * esc));
@@ -8856,6 +8864,7 @@ window.imagenAPng = imagenAPng;
                 bmp.close && bmp.close();
                 const salida = await aDataUri(await oc.convertToBlob({ type: 'image/jpeg', quality: CALIDAD }));
                 out = (esWebp || salida.length < dataUri.length) ? salida : dataUri;
+                est.rapidas++;
             } catch (_) { out = null; }
         }
         if (out === null) out = await aJpegClasico(dataUri);
