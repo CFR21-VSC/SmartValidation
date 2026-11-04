@@ -290,7 +290,7 @@
                 ]);
             }
             blocks.push({
-                table: { widths: VS.templateBase.vsScaleWidths([80, 140, 80, 140]), body: tableRows },
+                table: { widths: [74, '*', 74, '*'], body: tableRows },
                 layout: { hLineWidth: () => 0.3, vLineWidth: () => 0, hLineColor: () => colors.border },
                 margin: [0, 0, 0, 6]
             });
@@ -300,7 +300,20 @@
         // A4 portrait útil ≈ 455 × 692pt. Metadata + traza + paso + dictamen ≈ 200pt.
         // Quedan ~470-490pt para la imagen. Le damos [455, 460] para que siempre
         // entre con margen de seguridad sin desbordar a la siguiente página.
-        blocks.push(renderImageOnly(ev.image, [455, 460], colors));
+        // Altura disponible = alto útil de la página menos lo que ocupa el texto de ESTA evidencia (antes fija en 460 pt, suponiendo 200 pt de
+        // texto: con descripciones largas la imagen no entraba, pasaba a la hoja siguiente y quedaba separada de sus metadatos).
+        const lineas = (n, porLinea) => Math.max(1, Math.ceil((n || 0) / porLinea));
+        let altoTexto = 20 + lineas((ev.descripcion || '').length, 88) * 12.4 + ((ev.descripcion || '').split(String.fromCharCode(10)).length - 1) * 12.4 + 8;
+        if (test && test.trazabilidad) {
+            const tz = test.trazabilidad;
+            const celdas = [Array.isArray(tz.urs) ? tz.urs.join(', ') : '', tz.ra || '', tz.ira ? (tz.ira + (tz.componente ? ' — ' + tz.componente : '')) : '', test.grupo || ''].filter(Boolean);
+            if (celdas.length) altoTexto += Math.max(...celdas.map(t => lineas(t.length, Math.max(10, Math.floor(455 / celdas.length / 3.8))))) * 9.6 + 18;
+        }
+        if (paso) altoTexto += lineas((paso.instruccion || '').length, 112) * 10 + (paso.resultadoEsperado ? lineas(paso.resultadoEsperado.length, 118) * 9.4 : 0) + 12;
+        if (dictamen) altoTexto += 14 + (ev.observacion ? lineas(ev.observacion.length, 125) * 9.4 : 0) + 6;
+        altoTexto += Math.ceil(metaRows.length / 2) * 17 + 8;
+        const altoImg = Math.max(150, Math.min(460, 672 - altoTexto));
+        blocks.push(renderImageOnly(ev.image, [455, altoImg], colors));
 
         return blocks;
     }
@@ -421,6 +434,7 @@
         const tipoTC = test.tipoTC ? '  [' + test.tipoTC + ']' : '';
 
         // Header del TC — banner azul con tcId + título + estado
+        const idxInicioTc = out.length;
         out.push({
             unbreakable: true,
             stack: [{
@@ -506,6 +520,12 @@
                 ],
                 margin: [0, 2, 0, 4], lineHeight: 1.4
             });
+        }
+
+        // El banner del TC no queda solo al pie de una página: se une con la trazabilidad y el procedimiento en un mismo bloque indivisible.
+        if (out.length - idxInicioTc > 1) {
+            const juntos = out.splice(idxInicioTc);
+            out.push({ unbreakable: true, stack: juntos });
         }
 
         // Criterio de aceptación
@@ -609,7 +629,7 @@
         });
 
         out.push({
-            table: { widths: tb.vsScaleWidths([55, 200, 80, 50, 50]), body: body, headerRows: 1, dontBreakRows: true, keepWithHeaderRows: 1 },
+            table: { widths: [50, '*', 78, 46, 52], body: body, headerRows: 1, dontBreakRows: true, keepWithHeaderRows: 1 },
             layout: tb.vsTableLayout(),
             margin: [0, 0, 0, 12]
         });
@@ -645,7 +665,7 @@
             ]);
         });
         out.push({
-            table: { widths: tb.vsScaleWidths([130, 170, 110, 60]), body: body, headerRows: 1, dontBreakRows: true, keepWithHeaderRows: 1,
+            table: { widths: [120, '*', 100, 60], body: body, headerRows: 1, dontBreakRows: true, keepWithHeaderRows: 1,
                      heights: (row) => row === 0 ? undefined : 34 },
             layout: tb.vsTableLayout(),
             margin: [0, 0, 0, 12]
