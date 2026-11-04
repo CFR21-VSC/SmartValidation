@@ -8886,14 +8886,24 @@ window.imagenAPng = imagenAPng;
     const prepararImagenes = async (def) => {
         const t0 = performance.now();
         const lista = []; reunir(def, lista);
+        // Indicador de avance (la primera exportación de la sesión prepara cientos de imágenes y la página parecía colgada)
+        let aviso = null;
+        if (lista.length > 20) {
+            aviso = document.createElement('div');
+            aviso.style.cssText = 'position:fixed;top:16px;right:16px;z-index:100001;background:#0B2341;color:#fff;padding:12px 18px;border-radius:8px;font-size:13px;box-shadow:0 4px 18px rgba(0,0,0,.4);border-left:4px solid #C8921A;';
+            aviso.textContent = 'Preparando imágenes del PDF… 0/' + lista.length;
+            document.body.appendChild(aviso);
+        }
         const cache = new Map();   // la misma imagen repetida en el documento se convierte una sola vez
         for (let i = 0; i < lista.length; i += DE_A) {
             await Promise.all(lista.slice(i, i + DE_A).map(async ([nodo, k]) => {
                 const v = nodo[k]; if (!cache.has(v)) cache.set(v, aJpegLiviano(v));
                 nodo[k] = await cache.get(v);
             }));
+            if (aviso) aviso.textContent = 'Preparando imágenes del PDF… ' + Math.min(i + DE_A, lista.length) + '/' + lista.length;
             await new Promise((r) => setTimeout(r, 0));   // cede el hilo: la página no se congela
         }
+        if (aviso) { aviso.textContent = 'Generando el PDF…'; setTimeout(() => aviso.remove(), 2500); }
         window.__pdfTiempos = { imagenes: lista.length, preparacionMs: Math.round(performance.now() - t0) };
         console.info('[pdf] ' + lista.length + ' imágenes preparadas en ' + Math.round((performance.now() - t0) / 1000) + ' s');
     };
