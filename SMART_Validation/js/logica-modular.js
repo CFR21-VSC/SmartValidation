@@ -8848,6 +8848,7 @@ window.imagenAPng = imagenAPng;
         }
     };
     const prepararImagenes = async (def) => {
+        const t0 = performance.now();
         const lista = []; reunir(def, lista);
         const cache = new Map();   // la misma imagen repetida en el documento se convierte una sola vez
         for (let i = 0; i < lista.length; i += DE_A) {
@@ -8857,6 +8858,8 @@ window.imagenAPng = imagenAPng;
             }));
             await new Promise((r) => setTimeout(r, 0));   // cede el hilo: la página no se congela
         }
+        window.__pdfTiempos = { imagenes: lista.length, preparacionMs: Math.round(performance.now() - t0) };
+        console.info('[pdf] ' + lista.length + ' imágenes preparadas en ' + Math.round((performance.now() - t0) / 1000) + ' s');
     };
     // Imágenes chicas que se repiten (el logo del encabezado en cada página): pdfMake las incrusta de nuevo en cada uso si van en línea
     // (un logo de 57 KB x 586 páginas = 32 MB). Declaradas una vez en `images` y referidas por nombre, se incrustan una sola vez.
@@ -8883,7 +8886,7 @@ window.imagenAPng = imagenAPng;
     };
     window.pdfMake.createPdf = function (def, ...resto) {
         try { nombrarRepetidas(def); } catch (e) { console.warn('[pdfMake] nombrado de imágenes repetidas:', e); }
-        const listo = prepararImagenes(def).catch((e) => console.warn('[pdfMake] preparación de imágenes:', e)).then(() => original(def, ...resto));
+        const listo = prepararImagenes(def).catch((e) => console.warn('[pdfMake] preparación de imágenes:', e)).then(() => { window.__pdfT1 = performance.now(); return original(def, ...resto); });
         return new Proxy({}, {
             get: (_t, metodo) => (...args) => listo.then((doc) => doc[metodo](...args)).catch((e) => { console.error('[pdfMake]', e); throw e; }),
         });
