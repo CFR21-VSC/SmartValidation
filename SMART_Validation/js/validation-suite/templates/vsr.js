@@ -76,7 +76,9 @@
                         sec.subtitulo
                             ? { text: sec.subtitulo, fontSize: 11, italics: true, color: '#FFFFFF', alignment: 'center' }
                             : null,
-                        { text: 'Sistema autorizado para uso productivo GxP bajo el alcance del paquete documental.', fontSize: 10, color: '#FFFFFF', alignment: 'center', italics: true, margin: [0, 6, 0, 0] }
+                        { text: conObs
+                            ? 'Validado bajo el alcance del paquete documental y sujeto a las condiciones indicadas en este reporte.'
+                            : 'Sistema autorizado para uso productivo GxP bajo el alcance del paquete documental.', fontSize: 10, color: '#FFFFFF', alignment: 'center', italics: true, margin: [0, 6, 0, 0] }
                     ].filter(Boolean),
                     fillColor: bg,
                     margin: [22, 28, 22, 28]
@@ -298,7 +300,7 @@
                     kpiCell('Total NCs ciclo', items.length, C.primary, '#F4F6F8'),
                     kpiCell('Cerradas', cerradas, '#1E7E34', '#E8F5E9'),
                     kpiCell('Abiertas', abiertas, abiertas > 0 ? '#A52A2A' : '#1E7E34', abiertas > 0 ? '#FDECEA' : '#F4F6F8'),
-                    kpiCell('Críticas', criticas, criticas > 0 ? '#A52A2A' : C.text, '#F4F6F8')
+                    kpiCell('Mayores o críticas', criticas, criticas > 0 ? '#A52A2A' : C.text, '#F4F6F8')
                 ]]
             },
             layout: tb.vsTableLayout(),
@@ -336,7 +338,7 @@
             // Sin dontBreakRows: filas con descripcion + accion largas pueden dividirse
             // entre paginas en lugar de saltar pesado y dejar whitespace.
             // vsScaleWidths compensa el padding 12pt/celda no incluido en widths.
-            table: { widths: tb.vsScaleWidths([38, 50, 42, 135, 155, 48]), body, headerRows: 1 },
+            table: { widths: tb.vsScaleWidths([60, 62, 52, 112, 126, 58]), body, headerRows: 1 },
             layout: tb.vsTableLayout(),
             margin: [0, 0, 0, 10]
         });

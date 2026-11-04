@@ -1157,7 +1157,7 @@ async function loadDocument() {
     // sellado no se reabre por acá -- eso es un cambio de proceso más grande, no lo cubre
     // esta pieza).
     document.getElementById('btn-reopen-document').style.display =
-        ((session.role === 'drp' || session.role === 'partner') && documentRow.edit_locked && !documentRow.locked) ? '' : 'none';
+        ((session.role === 'drp' || session.role === 'partner') && (documentRow.edit_locked || documentRow.review_closed_at) && !documentRow.locked) ? '' : 'none';
 
     const closeReviewBtn = document.getElementById('btn-close-review');
     // can_sign (2026-09-23): cerrar revisión es DRP-only en el backend (require_drp), pero
@@ -1168,7 +1168,7 @@ async function loadDocument() {
         if (documentRow.review_closed_at) {
             closeReviewBtn.textContent = `✓ Revisión cerrada (${escHtml(documentRow.review_closed_by || '')})`;
             closeReviewBtn.disabled = true;
-            closeReviewBtn.title = `Revisión cerrada el ${fmtDateTime(documentRow.review_closed_at)} por ${documentRow.review_closed_by || '?'} -- no se puede reabrir.`;
+            closeReviewBtn.title = `Revisión cerrada el ${fmtDateTime(documentRow.review_closed_at)} por ${documentRow.review_closed_by || '?'} -- para reabrirla usá «Reabrir para editar».`;
         } else if (!canSign) {
             closeReviewBtn.textContent = 'Cerrar revisión';
             closeReviewBtn.disabled = true;

@@ -473,7 +473,9 @@ def reopen_document(
             status.HTTP_409_CONFLICT,
             "El documento está sellado (aprobación completa) — no se puede reabrir",
         )
-    if not doc["edit_locked"]:
+    # Un documento con la revisión cerrada también hay que poder reabrirlo aunque todavía no
+    # tenga firmas (edit_locked=0): antes quedaba "Revisión cerrada" para siempre.
+    if not doc["edit_locked"] and not doc["review_closed_at"]:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "El documento no tiene firmas, no hace falta reabrirlo")
 
     now = time.time()
@@ -495,14 +497,14 @@ def reopen_document(
     db.execute("BEGIN IMMEDIATE")
     try:
         fresh_doc = db.execute(
-            "SELECT locked, edit_locked FROM rf_documents WHERE id=?", (doc["id"],)
+            "SELECT locked, edit_locked, review_closed_at FROM rf_documents WHERE id=?", (doc["id"],)
         ).fetchone()
         if not fresh_doc or fresh_doc["locked"]:
             raise HTTPException(
                 status.HTTP_409_CONFLICT,
                 "El documento está sellado (aprobación completa) — no se puede reabrir",
             )
-        if not fresh_doc["edit_locked"]:
+        if not fresh_doc["edit_locked"] and not fresh_doc["review_closed_at"]:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "El documento no tiene firmas, no hace falta reabrirlo")
         db.execute(
             "UPDATE rf_review_signatures SET invalidated_at=?, invalidated_reason=? "
@@ -519,7 +521,12 @@ def reopen_document(
                 (now, reason, rnd["id"]),
             )
             db.execute("UPDATE rf_approval_rounds SET status='cancelled' WHERE id=?", (rnd["id"],))
-        db.execute("UPDATE rf_documents SET edit_locked=0, updated_at=? WHERE id=?", (now, doc["id"]))
+        # Al reabrir también se reabre la revisión: las firmas quedaron invalidadas y el contenido
+        # va a cambiar, así que el cierre anterior ya no vale (había que volver a cerrarla).
+        db.execute(
+            "UPDATE rf_documents SET edit_locked=0, review_closed_at=NULL, review_closed_by=NULL, updated_at=? WHERE id=?",
+            (now, doc["id"]),
+        )
         db.execute("COMMIT")
     except Exception:
         db.execute("ROLLBACK")

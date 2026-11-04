@@ -511,3 +511,26 @@ def test_original_pdf_404_message_distinguishes_storage_inconsistency(drp_with_p
         "SELECT event_type FROM rf_system_audit_log WHERE doc_type='HLRA' ORDER BY id DESC LIMIT 1"
     ).fetchone()
     assert last_event["event_type"] == "original_pdf_missing_inconsistency"
+
+
+def test_reopen_also_clears_review_closed(drp_with_pin, cliente):
+    """Reabrir para editar tiene que reabrir también la revisión: antes quedaba 'Revisión
+    cerrada' para siempre aunque las firmas ya estuvieran invalidadas."""
+    drp_with_pin.put("/projects/proj-1/documents/HLRA", json={"json_data": SAMPLE_JSON})
+    cli, user_id = cliente
+    drp_with_pin.post(f"/users/{user_id}/grants", json={"project_id": "proj-1", "doc_type": "HLRA"})
+    r1 = cli.post(
+        "/projects/proj-1/documents/HLRA/review-signatures",
+        json={"pin": "1234", "content_fingerprint": _fp(drp_with_pin)},
+    )
+    assert r1.status_code == 200, r1.text
+    closed = drp_with_pin.post("/projects/proj-1/documents/HLRA/close-review", json={"pin": "9999"})
+    assert closed.status_code == 200, closed.text
+    assert drp_with_pin.get("/projects/proj-1/documents/HLRA").json()["document"]["review_closed_at"]
+
+    r = drp_with_pin.post("/projects/proj-1/documents/HLRA/reopen", json={"reason": "ajustar para firmar todo junto"})
+    assert r.status_code == 200, r.text
+    doc = drp_with_pin.get("/projects/proj-1/documents/HLRA").json()["document"]
+    assert not doc["review_closed_at"]
+    assert not doc["review_closed_by"]
+    assert not doc["edit_locked"]

@@ -753,6 +753,8 @@
             const requeridas = ['IQ', 'OQ', 'PQ'];
             requeridas.forEach(cod => {
                 const f = crono.fases.find(x => x.codigo === cod);
+                // Una fase excluida del alcance (ej. PQ en el VP) se declara "no aplica" y no bloquea.
+                if (f && /NO\s*APLIC|EXCLU/.test(String(f.estado || '').toUpperCase())) return;
                 if (!f || !/APROB|CERR|VALID/.test(String(f.estado || '').toUpperCase())) {
                     errors.push({ msg: `VSR aprobado pero la fase ${cod} no está marcada como aprobada en la cronología.` });
                 }
