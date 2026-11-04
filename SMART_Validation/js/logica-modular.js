@@ -8818,8 +8818,10 @@ window.imagenAPng = imagenAPng;
 (function () {
     if (!window.pdfMake || typeof window.pdfMake.createPdf !== 'function' || window.pdfMake.__imgLiviana) return;
     const original = window.pdfMake.createPdf.bind(window.pdfMake);
-    const MAX_LADO = 1400, CALIDAD = 0.82, UMBRAL_CHARS = 200000, DE_A = 4;
-    const aJpegLiviano = (dataUri) => new Promise((resolve) => {
+    const MAX_LADO = 1400, CALIDAD = 0.82, UMBRAL_CHARS = 200000, DE_A = 6;
+    // Conversión a JPEG liviano. Camino rápido: createImageBitmap + OffscreenCanvas (decodifica y codifica fuera del hilo principal);
+    // si el navegador no lo soporta, el camino clásico con <img> + canvas.
+    const aJpegClasico = (dataUri) => new Promise((resolve) => {
         const esWebp = dataUri.startsWith('data:image/webp');
         const im = new Image();
         im.onload = () => {
@@ -8835,6 +8837,31 @@ window.imagenAPng = imagenAPng;
         im.onerror = () => resolve(dataUri);
         im.src = dataUri;
     });
+    const aDataUri = (blob) => new Promise((ok, mal) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = mal; r.readAsDataURL(blob); });
+    const rapido = typeof createImageBitmap === 'function' && typeof OffscreenCanvas === 'function';
+    // Memoria entre exportaciones: la misma imagen (mismo texto) no se vuelve a convertir mientras no se recargue la página.
+    const memoria = (window.__imgPdfMemoria = window.__imgPdfMemoria || new Map());
+    const aJpegLiviano = async (dataUri) => {
+        const clave = dataUri.length + ':' + dataUri.slice(-64) + ':' + dataUri.slice(40, 104);
+        if (memoria.has(clave)) return memoria.get(clave);
+        let out = null;
+        if (rapido) {
+            try {
+                const esWebp = dataUri.startsWith('data:image/webp');
+                const blob = await (await fetch(dataUri)).blob();
+                const bmp = await createImageBitmap(blob);
+                const esc = Math.min(1, MAX_LADO / Math.max(bmp.width, bmp.height));
+                const w = Math.max(1, Math.round(bmp.width * esc)), h = Math.max(1, Math.round(bmp.height * esc));
+                const oc = new OffscreenCanvas(w, h); const g = oc.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h); g.drawImage(bmp, 0, 0, w, h);
+                bmp.close && bmp.close();
+                const salida = await aDataUri(await oc.convertToBlob({ type: 'image/jpeg', quality: CALIDAD }));
+                out = (esWebp || salida.length < dataUri.length) ? salida : dataUri;
+            } catch (_) { out = null; }
+        }
+        if (out === null) out = await aJpegClasico(dataUri);
+        memoria.set(clave, out);
+        return out;
+    };
     const necesita = (v) => typeof v === 'string' && v.startsWith('data:image/') &&
         (v.startsWith('data:image/webp') || (v.length > UMBRAL_CHARS && !v.startsWith('data:image/svg') && !v.startsWith('data:image/gif')));
     // Recorrido seguro: sin repetir objetos (el documento puede tener referencias circulares) y con tope de profundidad.
