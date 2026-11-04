@@ -8767,12 +8767,12 @@ function imagenAPng(dataUri) {
 window.imagenAPng = imagenAPng;
 
 // Todo PDF creado con pdfMake prepara antes sus imágenes: las WebP (pdfMake no las lee) y las PNG/JPEG pesadas pasan a JPEG liviano
-// (máx. 1600 px de lado, calidad 0,88) y se procesan de a pocas por vez. Antes se convertían todas juntas a PNG sin comprimir:
+// (máx. 1400 px de lado, calidad 0,82) y se procesan de a pocas por vez. Antes se convertían todas juntas a PNG sin comprimir:
 // con cientos de capturas la pestaña se quedaba sin memoria (AEX de 120 MB que se colgaba). Los originales sin pérdida quedan en el servidor.
 (function () {
     if (!window.pdfMake || typeof window.pdfMake.createPdf !== 'function' || window.pdfMake.__imgLiviana) return;
     const original = window.pdfMake.createPdf.bind(window.pdfMake);
-    const MAX_LADO = 1600, CALIDAD = 0.88, UMBRAL_CHARS = 200000, DE_A = 4;
+    const MAX_LADO = 1400, CALIDAD = 0.82, UMBRAL_CHARS = 200000, DE_A = 4;
     const aJpegLiviano = (dataUri) => new Promise((resolve) => {
         const esWebp = dataUri.startsWith('data:image/webp');
         const im = new Image();
@@ -8812,7 +8812,31 @@ window.imagenAPng = imagenAPng;
             await new Promise((r) => setTimeout(r, 0));   // cede el hilo: la página no se congela
         }
     };
+    // Imágenes chicas que se repiten (el logo del encabezado en cada página): pdfMake las incrusta de nuevo en cada uso si van en línea
+    // (un logo de 57 KB x 586 páginas = 32 MB). Declaradas una vez en `images` y referidas por nombre, se incrustan una sola vez.
+    const nombrarRepetidas = (def) => {
+        const dic = def.images = def.images || {}; const nombres = new Map();
+        const nombrar = (nodo, visto = new WeakSet(), nivel = 0) => {
+            if (!nodo || typeof nodo !== 'object' || nivel > 40 || visto.has(nodo)) return nodo;
+            visto.add(nodo);
+            for (const k of Object.keys(nodo)) {
+                const v = nodo[k];
+                if (k === 'image' && typeof v === 'string' && v.startsWith('data:image/') && v.length < UMBRAL_CHARS) {
+                    if (!nombres.has(v)) { const n = 'img_rep_' + nombres.size; nombres.set(v, n); dic[n] = v; }
+                    nodo[k] = nombres.get(v);
+                } else if (v && typeof v === 'object') { if (typeof Node !== 'undefined' && v instanceof Node) continue; nombrar(v, visto, nivel + 1); }
+            }
+            return nodo;
+        };
+        for (const campo of ['header', 'footer', 'background']) {
+            const f = def[campo];
+            if (typeof f === 'function') def[campo] = function () { return nombrar(f.apply(this, arguments)); };
+            else if (f && typeof f === 'object') nombrar(f);
+        }
+        if (def.content) nombrar(def.content);
+    };
     window.pdfMake.createPdf = function (def, ...resto) {
+        try { nombrarRepetidas(def); } catch (e) { console.warn('[pdfMake] nombrado de imágenes repetidas:', e); }
         const listo = prepararImagenes(def).catch((e) => console.warn('[pdfMake] preparación de imágenes:', e)).then(() => original(def, ...resto));
         return new Proxy({}, {
             get: (_t, metodo) => (...args) => listo.then((doc) => doc[metodo](...args)).catch((e) => { console.error('[pdfMake]', e); throw e; }),
