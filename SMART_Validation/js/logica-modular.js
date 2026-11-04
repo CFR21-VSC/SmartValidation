@@ -2549,6 +2549,43 @@ async function precargarImagenesEvidenciaFaltantes(testsAEvaluar) {
 }
 window.precargarImagenesEvidenciaFaltantes = precargarImagenesEvidenciaFaltantes;
 
+/**
+ * Cada anexo/PDF cierra UN solo protocolo (uno de IQ, otro de OQ): si hay más de un protocolo con pruebas, se pregunta cuál.
+ * Devuelve el id del protocolo elegido, o null si se cancela. Con un único protocolo no pregunta.
+ */
+function elegirProtocolo(titulo) {
+    const _protoDe = (t) => { const g = groups.find(x => x.id === t.groupId); return g ? g.protocolId : null; };
+    const lista = protocols.filter(p => tests.some(t => _protoDe(t) === p.id));
+    if (lista.length <= 1) return Promise.resolve(lista.length === 1 ? lista[0].id : (activeProtocolId || null));
+    return new Promise((resolve) => {
+        const ov = document.createElement('div');
+        ov.style.cssText = 'position:fixed;inset:0;background:rgba(11,35,65,.72);z-index:100000;display:flex;align-items:center;justify-content:center;';
+        const card = document.createElement('div');
+        card.style.cssText = 'background:#fff;border-radius:10px;padding:26px 28px;max-width:520px;width:92vw;box-shadow:0 10px 40px rgba(0,0,0,.45);font-family:inherit;';
+        const h = document.createElement('div'); h.textContent = titulo || '¿De qué protocolo?';
+        h.style.cssText = 'font-size:17px;font-weight:700;color:#0B2341;margin-bottom:6px;';
+        const sub = document.createElement('div'); sub.textContent = 'Cada documento cierra un solo protocolo.';
+        sub.style.cssText = 'font-size:13px;color:#5b6b7b;margin-bottom:16px;';
+        card.appendChild(h); card.appendChild(sub);
+        const cerrar = (v) => { ov.remove(); resolve(v); };
+        lista.forEach((p) => {
+            const ts = tests.filter(t => _protoDe(t) === p.id);
+            const ev = ts.reduce((n, t) => n + (t.evidences || []).filter(e => !e.isEmpty).length, 0);
+            const b = document.createElement('button');
+            b.textContent = p.code + ' · ' + ts.length + ' pruebas · ' + ev + ' evidencias' + (p.finalized ? ' · finalizado' : '');
+            b.style.cssText = 'display:block;width:100%;text-align:left;padding:12px 14px;margin:0 0 8px;border:2px solid ' + (p.id === activeProtocolId ? '#C8921A' : '#cfd8e3') + ';border-radius:8px;background:#f7f9fb;font-size:14px;font-weight:600;color:#0B2341;cursor:pointer;';
+            b.onclick = () => cerrar(p.id);
+            card.appendChild(b);
+        });
+        const c = document.createElement('button'); c.textContent = 'Cancelar';
+        c.style.cssText = 'margin-top:6px;padding:8px 16px;border:none;background:none;color:#5b6b7b;font-size:13px;cursor:pointer;text-decoration:underline;';
+        c.onclick = () => cerrar(null); card.appendChild(c); ov.appendChild(card); document.body.appendChild(ov);
+    });
+}
+window.elegirProtocolo = elegirProtocolo;
+window.setProtocoloActivo = (id) => { activeProtocolId = id; };
+window.getProtocoloActivo = () => activeProtocolId;
+
 async function buildAexFromGestor() {
     const VS = window.ValidationSuite;
     const ahora = new Date();
@@ -2559,7 +2596,7 @@ async function buildAexFromGestor() {
     const fechaCorta = ahora.getFullYear() + '-' + _pad2(ahora.getMonth() + 1) + '-' + _pad2(ahora.getDate()); // YYYY-MM-DD
     const fechaLarga = ahora.getDate() + ' ' + _MESES[ahora.getMonth()] + ' ' + ahora.getFullYear();
     const sysCode = (systemInfo.codigoSistema || 'SIS-001').toUpperCase();
-    const aexCode = 'AEX-' + sysCode;
+    let aexCode = 'AEX-' + sysCode;   // con más de un protocolo lleva el sufijo -IQ / -OQ / -PQ (se completa al conocer el protocolo)
 
     // === Protocolo origen (si hay) — toma el activo o el primero ===
     const protocolRef = protocols.find(p => p.id === activeProtocolId) || protocols[0] || null;
@@ -2569,8 +2606,13 @@ async function buildAexFromGestor() {
     // Protocolos que realmente aportan evidencia a este AEX (el gestor puede tener IQ y OQ juntos): se citan todos, no solo el activo.
     const _protoDeTest = (t) => { const g = groups.find(x => x.id === t.groupId); return g ? g.protocolId : null; };
     const _verProto = (p) => p.code + (p.protocolMeta && p.protocolMeta.version ? ' v' + p.protocolMeta.version : '');
-    const _protosConEv = protocols.filter(p => tests.some(t => _protoDeTest(t) === p.id && Array.isArray(t.evidences) && t.evidences.some(ev => !ev.isEmpty)));
-    const protosCit = _protosConEv.length ? _protosConEv : (protocolRef ? [protocolRef] : []);
+    // El AEX cierra UN solo protocolo: solo sus pruebas y solo ese protocolo en portada, resumen y trazabilidad.
+    const testsAlcance = protocolRef ? tests.filter(t => _protoDeTest(t) === protocolRef.id) : tests;
+    const protosCit = protocolRef ? [protocolRef] : [];
+    if (protocols.length > 1 && protocolRef) {
+        const suf = ({ PIQ: 'IQ', POQ: 'OQ', PPQ: 'PQ' })[protocolRef.type];
+        if (suf) aexCode = 'AEX-' + sysCode + '-' + suf;
+    }
     const protocolosTxt = protosCit.map(_verProto).join(' · ') || protocolCode;
     const protocolTiposTxt = protosCit.map(p => p.type).join(' + ') || protocolType || '—';
     const informesTxt = protosCit.map(p => p.code.replace(/^P/, 'I')).join(' · ') || '—';
@@ -2578,8 +2620,8 @@ async function buildAexFromGestor() {
     const todosFinalizados = protosCit.length > 0 && protosCit.every(p => p.finalized);
 
     // === Contar evidencias e identificar TCs con captura ===
-    const testsConEvidencia = tests.filter(t => Array.isArray(t.evidences) && t.evidences.some(ev => !ev.isEmpty));
-    const totalEvidencias = tests.reduce((sum, t) => sum + (Array.isArray(t.evidences) ? t.evidences.filter(ev => !ev.isEmpty).length : 0), 0);
+    const testsConEvidencia = testsAlcance.filter(t => Array.isArray(t.evidences) && t.evidences.some(ev => !ev.isEmpty));
+    const totalEvidencias = testsAlcance.reduce((sum, t) => sum + (Array.isArray(t.evidences) ? t.evidences.filter(ev => !ev.isEmpty).length : 0), 0);
 
     await precargarImagenesEvidenciaFaltantes(testsConEvidencia);
 
@@ -2757,7 +2799,7 @@ async function buildAexFromGestor() {
                 'Protocolo origen': protocolosTxt,
                 'Tipo de Protocolo': protocolTiposTxt,
                 'Informe asociado': informesTxt,
-                'Tests con evidencia': testsConEvidencia.length + ' / ' + tests.length,
+                'Tests con evidencia': testsConEvidencia.length + ' / ' + testsAlcance.length,
                 'Evidencias totales': String(totalEvidencias),
                 'Resultado global': stats.PASS + ' PASS / ' + stats.FAIL + ' FAIL / ' + stats.OBS + ' OBS' + (stats.NA ? ' / ' + stats.NA + ' NA' : '') + (stats.pendiente ? ' / ' + stats.pendiente + ' pendiente(s)' : '')
             }
@@ -2799,7 +2841,7 @@ async function buildAexFromGestor() {
                     { campo: protosCit.length > 1 ? 'Protocolos ejecutados' : 'Protocolo ejecutado', valor: protocolosTxt, boldValor: true, colorValor: 'primary' },
                     { campo: 'Fecha de generación', valor: fechaLarga },
                     { campo: 'Ejecutor', valor: executor || '—' },
-                    { campo: 'Tests con evidencia capturada', valor: testsConEvidencia.length + ' de ' + tests.length, boldValor: true, colorValor: 'accent' },
+                    { campo: 'Tests con evidencia capturada', valor: testsConEvidencia.length + ' de ' + testsAlcance.length, boldValor: true, colorValor: 'accent' },
                     { campo: 'Evidencias totales', valor: String(totalEvidencias) + ' captura(s)' },
                     { campo: 'Resultado global', valor: stats.PASS + ' PASS / ' + stats.FAIL + ' FAIL / ' + stats.OBS + ' OBS' + (stats.NA ? ' / ' + stats.NA + ' NA' : ''), boldValor: true }
                 ]
@@ -2822,8 +2864,8 @@ async function buildAexFromGestor() {
                 titulo: 'CONCLUSIÓN Y DECISIÓN FORMAL',
                 parrafos: [
                     testsConEvidencia.length === 0
-                        ? (tests.length > 0
-                            ? 'Hay ' + tests.length + ' Test Cases registrados sin fotos adjuntas. Use "📸 Cargar fotos reales (JSON)" en el menú principal para importar las evidencias del protocolo y generar el AEX completo.'
+                        ? (testsAlcance.length > 0
+                            ? 'Hay ' + testsAlcance.length + ' Test Cases registrados sin fotos adjuntas. Use "📸 Cargar fotos reales (JSON)" en el menú principal para importar las evidencias del protocolo y generar el AEX completo.'
                             : 'No se ha capturado evidencia documentada en esta sesión. Este anexo se emite vacío como registro estructural.')
                         : ('Los ' + testsConEvidencia.length + ' Test Cases ejecutados con evidencia documentada arrojan: ' + stats.PASS + ' PASS, ' + stats.FAIL + ' FAIL, ' + stats.OBS + ' OBS' + (stats.NA ? ', ' + stats.NA + ' NA' : '') + '. Total de ' + totalEvidencias + ' evidencias capturadas formalmente.'),
                     'La evidencia capturada cumple los requisitos de integridad y trazabilidad establecidos en 21 CFR Part 11 §11.10(b) y EU Annex 11 §9. Cada captura está vinculada a su Test Case origen, su requisito URS y su componente IRA correspondiente (cuando aplica).',
@@ -3077,6 +3119,10 @@ window.actualizarInformeDesdeEjecucion = actualizarInformeDesdeEjecucion;
 async function exportarAex() {
     try {
         if (!validateSystemInfo()) return;
+        // Un AEX por protocolo: se elige cuál (IQ u OQ) y se arma solo con sus pruebas.
+        const _pidAex = await elegirProtocolo('¿De qué protocolo es el AEX?');
+        if (!_pidAex) return;
+        activeProtocolId = _pidAex;
 
         const VS = window.ValidationSuite;
         if (!VS || typeof VS.renderDocument !== 'function') {
@@ -3112,7 +3158,7 @@ async function exportarAex() {
         }
 
         const sysCode = (systemInfo.codigoSistema || 'SIS-001').toUpperCase();
-        const fileName = 'AEX-' + sysCode + '-' + new Date().toISOString().split('T')[0] + '.pdf';
+        const fileName = ((aexJson.document && aexJson.document.code) || ('AEX-' + sysCode)) + '-' + new Date().toISOString().split('T')[0] + '.pdf';
 
         showNotification('Generando AEX vía Validation Suite...');
         aexJson._partnerBranding = typeof VS.fetchPartnerBranding === 'function'
@@ -11690,7 +11736,8 @@ function initFinalizarPruebaHandlers() {
  */
 function prefillProjectExportModal() {
     // Fuente 1: localStorage (guardado rápido entre exports)
-    const STORAGE_KEY = 'drp_projectExportDefaults';
+    // Valores recordados POR PROTOCOLO: antes se compartían y los de la IQ aparecían al exportar la OQ.
+    const STORAGE_KEY = 'drp_projectExportDefaults' + (activeProtocolId ? '_' + activeProtocolId : '');
     let fromLS = {};
     try { fromLS = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch (e) {}
 
@@ -11698,7 +11745,7 @@ function prefillProjectExportModal() {
     let fromSession = {};
     try {
         const sessionData = JSON.parse(localStorage.getItem('vscTestsData_v3') || '{}');
-        fromSession = sessionData.exportConfig || {};
+        fromSession = (protocols.length > 1) ? {} : (sessionData.exportConfig || {});   // la configuración de proyecto mezclaría protocolos
     } catch (e) {}
 
     // Prioridad: localStorage > sesión (el más reciente gana)
@@ -11798,7 +11845,7 @@ function prefillProjectExportModal() {
  * Guardar valores del modal de exportar proyecto en localStorage
  */
 function saveProjectExportDefaults(exportData) {
-    const STORAGE_KEY = 'drp_projectExportDefaults';
+    const STORAGE_KEY = 'drp_projectExportDefaults' + (activeProtocolId ? '_' + activeProtocolId : '');
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(exportData));
     } catch (e) { /* ignore */ }

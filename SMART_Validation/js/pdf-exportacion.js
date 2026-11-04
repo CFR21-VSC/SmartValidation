@@ -62,11 +62,18 @@ function showWatermarkPicker() {
     });
 }
 
-async function loadSessionForPDF() {
+async function loadSessionForPDF(protocolId) {
     const jsonData = localStorage.getItem('vscTestsData_v3');
     if (!jsonData) return null;
 
     const parsed = JSON.parse(jsonData);
+    // Con protocolId solo se cargan carpetas, pruebas e imágenes de ESE protocolo (el resto ni se descarga).
+    if (protocolId) {
+        const gids = new Set((parsed.groups || []).filter(g => g.protocolId === protocolId).map(g => g.id));
+        parsed.groups = (parsed.groups || []).filter(g => gids.has(g.id));
+        parsed.tests = (parsed.tests || []).filter(t => gids.has(t.groupId));
+        parsed.protocols = (parsed.protocols || []).filter(p => p.id === protocolId);
+    }
 
     // Recopilar todos los IDs de imagen que se van a necesitar (clave por uid,
     // igual que el resto de la app desde el fix de fotos que se pisaban -- la
@@ -4956,6 +4963,11 @@ async function exportProject() {
     try {
     //         console.log('=== EXPORTAR PROYECTO COMPLETO ===');
 
+        // Un PDF por protocolo (uno de IQ, otro de OQ): se elige cuál. La portada, el resumen y el cuerpo salen de ESE protocolo.
+        const _pidSel = (typeof window.elegirProtocolo === 'function') ? await window.elegirProtocolo('¿De qué protocolo es el PDF?') : null;
+        if (typeof window.elegirProtocolo === 'function' && !_pidSel) return;
+        if (_pidSel && typeof window.setProtocoloActivo === 'function') window.setProtocoloActivo(_pidSel);
+
         // Abrir modal y esperar datos
         showModal('modalExportProject');
 
@@ -4992,9 +5004,17 @@ async function exportProject() {
     //         console.log('Datos de exportacion:', exportData);
 
         // Cargar sesion
-        const sessionData = await loadSessionForPDF();
+        const sessionData = await loadSessionForPDF(_pidSel);
         if (!sessionData) {
             throw new Error('No hay datos de sesion');
+        }
+
+        // Solo el protocolo elegido: carpetas, pruebas y protocolo (antes entraban todos y el contexto salía del primero).
+        if (_pidSel) {
+            const _gids = new Set((sessionData.groups || []).filter(g => g.protocolId === _pidSel).map(g => g.id));
+            sessionData.groups = (sessionData.groups || []).filter(g => _gids.has(g.id));
+            sessionData.tests = (sessionData.tests || []).filter(t => _gids.has(t.groupId));
+            sessionData.protocols = (sessionData.protocols || []).filter(p => p.id === _pidSel);
         }
 
         // Calcular stats globales a NIVEL DE PRUEBA (resultado del cierre)
