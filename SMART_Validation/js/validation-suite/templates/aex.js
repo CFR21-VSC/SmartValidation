@@ -272,7 +272,8 @@
         pushMeta('Ejecutor', ev.executor);
         pushMeta('Fecha captura', ev.captureTimestamp || ev.timestamp);
         pushMeta('Archivo origen', ev.originalFileName || ev.fileName);
-        pushMeta('Dimensiones', ev.dimensions
+        // Solo si hay ancho y alto reales (antes salía «undefined × undefined px» cuando el objeto venía vacío)
+        pushMeta('Dimensiones', (ev.dimensions && Number(ev.dimensions.width) > 0 && Number(ev.dimensions.height) > 0)
             ? (ev.dimensions.width + ' × ' + ev.dimensions.height + ' px')
             : null);
         pushMeta('Hash/SHA', ev.hash || ev.sha256);
