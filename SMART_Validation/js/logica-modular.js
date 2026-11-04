@@ -3006,8 +3006,9 @@ async function actualizarInformeDesdeGestor(protocolType, aexTests) {
  * al protocolo activo. Devuelve el resultado de actualizarInformeDesdeGestor
  * (o null si no hay nada para actualizar) y muestra su propia notificación.
  */
-async function actualizarInformeDesdeEjecucion() {
-    const aexJson = await buildAexFromGestor();
+async function actualizarInformeDesdeEjecucion(aexPrearmado) {
+    // Si el AEX ya se armó (exportarAex) se reutiliza: antes se armaba dos veces, con dos cargas de todas las imágenes.
+    const aexJson = (aexPrearmado && aexPrearmado.secciones) ? aexPrearmado : await buildAexFromGestor();
     let testsConEvidencia = (aexJson.secciones.find(s => s.tipo === 'aex-registro-tc') || {}).tests || [];
     if (testsConEvidencia.length === 0) {
         showNotification('No hay tests con evidencias capturadas todavía.', 'warning');
@@ -3099,7 +3100,12 @@ async function exportarAex() {
         // el informe se refresca solo, sin que haga falta apretar el botón aparte.
         if (testsConEvidencia.length > 0) {
             try {
-                await actualizarInformeDesdeEjecucion();
+                // El informe (IIQ/IOQ) ya puede estar redactado y en revisión: actualizarlo es una decisión, no un efecto colateral.
+                const actualizar = await drpConfirm(
+                    '¿Actualizar también el informe (IIQ/IOQ) del proyecto con los resultados de este AEX? Si el informe ya fue redactado o enviado a firmas, conviene responder que no.',
+                    'Actualizar informe', 'warning'
+                );
+                if (actualizar) await actualizarInformeDesdeEjecucion(aexJson);
             } catch (e) {
                 console.warn('[exportarAex] actualizarInformeDesdeEjecucion falló, el AEX se genera igual:', e);
             }
@@ -8760,33 +8766,59 @@ function imagenAPng(dataUri) {
 }
 window.imagenAPng = imagenAPng;
 
-// Todo PDF creado con pdfMake convierte antes las imágenes WebP a PNG (un solo punto, sin tocar cada generador).
+// Todo PDF creado con pdfMake prepara antes sus imágenes: las WebP (pdfMake no las lee) y las PNG/JPEG pesadas pasan a JPEG liviano
+// (máx. 1600 px de lado, calidad 0,88) y se procesan de a pocas por vez. Antes se convertían todas juntas a PNG sin comprimir:
+// con cientos de capturas la pestaña se quedaba sin memoria (AEX de 120 MB que se colgaba). Los originales sin pérdida quedan en el servidor.
 (function () {
-    if (!window.pdfMake || typeof window.pdfMake.createPdf !== 'function' || window.pdfMake.__webpPng) return;
+    if (!window.pdfMake || typeof window.pdfMake.createPdf !== 'function' || window.pdfMake.__imgLiviana) return;
     const original = window.pdfMake.createPdf.bind(window.pdfMake);
+    const MAX_LADO = 1600, CALIDAD = 0.88, UMBRAL_CHARS = 200000, DE_A = 4;
+    const aJpegLiviano = (dataUri) => new Promise((resolve) => {
+        const esWebp = dataUri.startsWith('data:image/webp');
+        const im = new Image();
+        im.onload = () => {
+            try {
+                const esc = Math.min(1, MAX_LADO / Math.max(im.naturalWidth, im.naturalHeight));
+                const c = document.createElement('canvas');
+                c.width = Math.max(1, Math.round(im.naturalWidth * esc)); c.height = Math.max(1, Math.round(im.naturalHeight * esc));
+                const g = c.getContext('2d'); g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
+                const out = c.toDataURL('image/jpeg', CALIDAD);
+                resolve(esWebp || out.length < dataUri.length ? out : dataUri);
+            } catch (_) { resolve(dataUri); }
+        };
+        im.onerror = () => resolve(dataUri);
+        im.src = dataUri;
+    });
+    const necesita = (v) => typeof v === 'string' && v.startsWith('data:image/') &&
+        (v.startsWith('data:image/webp') || (v.length > UMBRAL_CHARS && !v.startsWith('data:image/svg') && !v.startsWith('data:image/gif')));
     // Recorrido seguro: sin repetir objetos (el documento puede tener referencias circulares) y con tope de profundidad.
-    const convertir = async (nodo, visto = new WeakSet(), nivel = 0) => {
+    const reunir = (nodo, lista, visto = new WeakSet(), nivel = 0) => {
         if (!nodo || typeof nodo !== 'object' || nivel > 40 || visto.has(nodo)) return;
         visto.add(nodo);
-        const tareas = [];
         for (const k of Object.keys(nodo)) {
             const v = nodo[k];
-            if (typeof v === 'string') {
-                if (v.startsWith('data:image/webp')) tareas.push(imagenAPng(v).then(png => { nodo[k] = png; }));
-            } else if (v && typeof v === 'object') {
-                if (typeof Node !== 'undefined' && v instanceof Node) continue;
-                tareas.push(convertir(v, visto, nivel + 1));
-            }
+            if (typeof v === 'string') { if (necesita(v)) lista.push([nodo, k]); }
+            else if (v && typeof v === 'object') { if (typeof Node !== 'undefined' && v instanceof Node) continue; reunir(v, lista, visto, nivel + 1); }
         }
-        await Promise.all(tareas);
+    };
+    const prepararImagenes = async (def) => {
+        const lista = []; reunir(def, lista);
+        const cache = new Map();   // la misma imagen repetida en el documento se convierte una sola vez
+        for (let i = 0; i < lista.length; i += DE_A) {
+            await Promise.all(lista.slice(i, i + DE_A).map(async ([nodo, k]) => {
+                const v = nodo[k]; if (!cache.has(v)) cache.set(v, aJpegLiviano(v));
+                nodo[k] = await cache.get(v);
+            }));
+            await new Promise((r) => setTimeout(r, 0));   // cede el hilo: la página no se congela
+        }
     };
     window.pdfMake.createPdf = function (def, ...resto) {
-        const listo = convertir(def).catch(() => {}).then(() => original(def, ...resto));
+        const listo = prepararImagenes(def).catch((e) => console.warn('[pdfMake] preparación de imágenes:', e)).then(() => original(def, ...resto));
         return new Proxy({}, {
             get: (_t, metodo) => (...args) => listo.then((doc) => doc[metodo](...args)).catch((e) => { console.error('[pdfMake]', e); throw e; }),
         });
     };
-    window.pdfMake.__webpPng = true;
+    window.pdfMake.__imgLiviana = true;
 })();
 
 /**
